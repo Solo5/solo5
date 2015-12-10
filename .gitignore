@@ -1,0 +1,11 @@
+*.o
+*.swp
+*.pcap
+iso/boot/kernel
+iso/boot/loader
+kernel.iso
+kernel/kernel.ld
+kernel/kernel
+kernel/interrupt_vectors.s
+loader/loader
+disk.img
