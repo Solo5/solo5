@@ -58,3 +58,31 @@ clean:
 	@make -C kernel clean
 	@rm -f kernel.iso iso/boot/kernel iso/boot/loader
 	@echo done
+
+
+include mirage.config
+
+config_console: 
+	bash config_mirage.bash $(CFG_M_APP_CONSOLE_D) > mirage.mk
+	make -C kernel mirage_libs.mk
+config_block: 
+	bash config_mirage.bash $(CFG_M_APP_BLOCK_D) > mirage.mk
+	make -C kernel mirage_libs.mk
+config_kv_ro_crunch: 
+	bash config_mirage.bash $(CFG_M_APP_KV_RO_CRUNCH_D) > mirage.mk
+	make -C kernel mirage_libs.mk
+config_kv_ro: 
+	bash config_mirage.bash $(CFG_M_APP_KV_RO_D) > mirage.mk
+	make -C kernel mirage_libs.mk
+config_stackv4:
+	bash config_mirage.bash $(CFG_M_APP_STACKV4_D) > mirage.mk
+	make -C kernel mirage_libs.mk
+config_www:
+	bash config_mirage.bash $(CFG_M_APP_WWW_D) > mirage.mk
+	make -C kernel mirage_libs.mk
+
+# config_blog5:
+# 	bash config_mirage.bash ../blog5/mirage > mirage.mk
+# 	make -C kernel mirage_libs.mk
+
+

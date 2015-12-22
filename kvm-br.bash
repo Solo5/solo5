@@ -19,5 +19,4 @@
 
 brctl addif virbr0 veth0
 ip link set veth0 up
-#ifconfig veth0 up
 

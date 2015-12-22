@@ -134,6 +134,37 @@ int isxdigit(int c) {
     return 0;
 }
 
+/**  COPIED FROM MINIOS:
+ * simple_strtoul - convert a string to an unsigned long
+ * @cp: The start of the string
+ * @endp: A pointer to the end of the parsed string will be placed here
+ * @base: The number base to use
+ */
+unsigned long simple_strtoul(const char *cp,char **endp,unsigned int base)
+{
+    unsigned long result = 0,value;
+
+    if (!base) {
+        base = 10;
+        if (*cp == '0') {
+            base = 8;
+            cp++;
+            if ((*cp == 'x') && isxdigit(cp[1])) {
+                cp++;
+                base = 16;
+            }
+        }
+    }
+    while (isxdigit(*cp) &&
+           (value = isdigit(*cp) ? *cp-'0' : toupper(*cp)-'A'+10) < base) {
+        result = result*base + value;
+        cp++;
+    }
+    if (endp)
+        *endp = (char *)cp;
+    return result;
+}
+
 int abs(int j) {
     return (j > 0) ? j : (-1 * j);
 }

@@ -18,13 +18,15 @@
 
 #include "kernel.h"
 
+extern void start_kernel(void);
+
 void sleep_test(void);
 void blk_test(void);
 
 void kernel_main(uint32_t arg)
 {
     volatile int gdb = 1;
-	serial_init();
+    serial_init();
 
     printf("            |      ___|  \n");
     printf("  __|  _ \\  |  _ \\ __ \\  \n");
@@ -51,11 +53,15 @@ void kernel_main(uint32_t arg)
     gdb = 10/gdb;
 #endif
 
+    start_kernel();
+
+#if 0
     blk_test();
     sleep_test();
 
     for(;;)
         ping_serve();  /* does things if network packet comes in */
+#endif
 
     printf("Kernel done. \nGoodbye!\n");
     kernel_hang();

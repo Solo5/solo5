@@ -43,12 +43,12 @@ function get_prototype() {
         else
             echo $decl
         fi
-    done 2>/dev/null | grep -v "No manual entry" |grep -v "^$" |head -n 1
+    done 2>>/tmp/app_and_undef | grep -v "No manual entry" |grep -v "^$" |head -n 1
 }
 
 
 echo "cleaning..."
-make clean
+make clean 2>&1 > /tmp/app_and_undef
 
 rm -f $H_FILE $C_FILE $OBJ
 touch $H_FILE $C_FILE 
@@ -57,15 +57,15 @@ echo "#include \"kernel.h\"" > $C_FILE
 
 echo "generating stubs..."
 
-make app_solo5_clean 
+make app_solo5_clean 2>&1 >> /tmp/app_and_undef
 # fill in undeclared types
 for f in `make $OBJ 2>&1|grep "unknown type"|cut -f 2 -d "'"|sort |uniq`; do
     echo "typedef uint64_t $f;"
-done >> /tmp/$H_FILE
+done 2>>/tmp/app_and_undef >> /tmp/$H_FILE
 
 echo "checking man..."
 
-make app_solo5_clean
+make app_solo5_clean 2>&1 > /tmp/app_and_undef
 # check man section 3 then 2
 # XXX change to use get_prototype function
 for m in 3 2; do
@@ -89,15 +89,15 @@ for m in 3 2; do
             echo $decl
         fi
     done 
-done 2>/dev/null >> /tmp/$H_FILE 
+done 2>>/tmp/app_and_undef >> /tmp/$H_FILE 
 
 echo "declaring constants..."
 
-make app_solo5_clean
+make app_solo5_clean 2>&1 > /tmp/app_and_undef
 # declare constants
 for f in `make $OBJ 2>&1 |grep "undeclared" | grep -v "only once"| cut -f 2 -d "'"|sort | uniq`; do
     echo "extern uint64_t $f;" >> /tmp/$H_FILE
-done 
+done 2>>/tmp/app_and_undef
 
 # # check for undefined references that are not yet in the header file
 # # because of (dangerous/sloppy) system header inclusion
@@ -124,18 +124,20 @@ for f in `make kernel 2>&1 |grep "undefined reference to" |cut -f 2 -d "\\\`" |c
     else
         echo $decl | sed s/"("/"( __attribute__((unused)) "/ | sed s/", \([^\.]\)"/", __attribute__((unused)) \1"/g | sed s/";"/"{ PANIC(\"'$f' unimplemented!\\\n\"); return ($r)0;}"/
     fi
-done >> $C_FILE
+done 2>>/tmp/app_and_undef >> $C_FILE
 
 echo "filling in undef ref..."
+
+#make kernel 2>&1 >>/tmp/app_and_undef
 
 # fill in undefined references
 for f in `make kernel 2>&1 |grep "undefined reference to" | cut -f 2 -d "\\\`" | tr -d "'"|sort |uniq`; do 
     echo "void $f(void) { PANIC(\"$f\\n\"); }" >> $C_FILE
-done
+done 
 
 # fill in undefined references
-for f in `make kernel 2>&1 |grep "undefined reference to" | cut -f 2 -d "\\\`" | tr -d "'"|sort |uniq`; do 
-    echo "uint64_t $f = 0;" >> $C_FILE
-done
+# for f in `make kernel 2>&1 |grep "undefined reference to" | cut -f 2 -d "\\\`" | tr -d "'"|sort |uniq`; do 
+#     echo "uint64_t $f = 0;" >> $C_FILE
+# done 2>>/tmp/app_and_undef
 
 echo "done..."

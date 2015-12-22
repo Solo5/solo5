@@ -15,20 +15,7 @@
 # TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 # PERFORMANCE OF THIS SOFTWARE.
 
-# use 64-bit cross compiler for kernel
-AS64=x86_64-elf-as
-GCC64=x86_64-elf-gcc
-LD64=x86_64-elf-gcc
-AR64=x86_64-elf-ar
-
-CFLAGS64=-ffreestanding		\
-	 -mcmodel=large		\
-	 -mno-red-zone		\
-	 -mno-3dnow		\
-	 -std=gnu99 -O2		\
-	 -Wall -Wextra -Werror  \
-	 -D__SOLO5__
-#-g 
+include Makefile.solo5
 
 LDFLAGS64=-ffreestanding -O2 -nostdlib -lgcc -z max-page-size=0x1000 -static -fno-PIC
 LDLIBS64=-lgcc
@@ -51,7 +38,7 @@ APP_LIBS=
 APP_CLEAN=
 include Makefile.app
 
-CFLAGS64 += $(MODULE_CFLAGS)
+S5_CFLAGS += $(MODULE_CFLAGS)
 
 COBJS=\
 $(MODULE_OBJS) \
@@ -66,6 +53,7 @@ net.o \
 pci.o \
 printk.o \
 serial.o \
+stubs.o \
 time.o \
 virtio.o
 
@@ -79,6 +67,12 @@ kernel.h \
 ../loader/multiboot.h \
 ../loader/loader_info.h
 
+.PHONY: undef
+undef: 
+	rm -f undefined.o
+	echo > undefined.c
+	bash gen_undefined.bash > undefined.c
+
 .PHONY: kernel.ld
 kernel.ld: 
 	bash gen_ld.bash > kernel.ld
@@ -87,17 +81,19 @@ interrupt_vectors.s: interrupts.h
 	bash gen_interrupts.bash > interrupt_vectors.s
 
 %_s.o: %.s interrupt_vectors.s
-	$(AS64) $< -o $@
+	$(S5_AS) $< -o $@
 
 .PHONY: app_and_undef
 app_and_undef:
 	bash gen_app_and_undef.bash
 
 %.o: %.c $(HEADERS)
-	$(GCC64) $(CFLAGS64) -c $< -o $@
+	$(S5_GCC) $(S5_CFLAGS) -c $< -o $@
+
+
 
 kernel: Makefile kernel.ld $(COBJS) $(SOBJS) 
-	$(LD64) -T kernel.ld $(LDFLAGS64) -o $@ $(COBJS) $(SOBJS) $(LDLIBS64) $(APP_LIBS) 
+	$(S5_LD) -T kernel.ld $(LDFLAGS64) -o $@ $(COBJS) $(SOBJS) $(LDLIBS64) $(APP_LIBS) 
 
 kernel_clean:
 	@rm -f *.o kernel 

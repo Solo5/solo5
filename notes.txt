@@ -1,3 +1,37 @@
+
+
+Containers are small (relative to VMs), which means that their
+distribution can be done much easier.  And, like VMs, they solve the
+"conflicting system configuration" problem: apps sharing a physical
+machine can coexist with different versions of libraries, etc.
+
+But containers are terrible for multi-tenancy because they have a
+shared kernel.  Despite SELinux policies in the Linux kernel, it is
+difficult to keep mutually distrusting applications (containers)
+isolated because of the breadth of the Linux syscall interface.
+
+Unikernels are tiny VMs that are as small (or smaller) than
+containers, so can be distributed easily.  They get their size from
+leaving out the kernel and using a library OS instead (with only the
+functionality that is needed for the specific app).  They are VMs, so
+have to deal with a smaller interface (Xen) in terms of providing
+isolation.  There is a lot of interest in building new applications in
+typesafe languages (e.g., OCaML) as unikernels, which bring even more
+security benefits.  That said, people do port older applications
+(e.g., ClickOS) and OSv is trying to support all Linux applications
+with a library OS.
+
+Today, Unikernels are limited to Xen, because Mirage OS was built from
+miniOS.  This is not fundamental.  A real library OS shim could be
+written to interface with the rest of Mirage OS to get unikernels on
+KVM, VMware, anywhere that has x86 with VT-x.  (A different port could
+be made for e.g., ARM).
+
+That's the project.  Make MirageOS work on KVM.  It benefits IBM, it's
+fun for me, it's an easy way to get involved with the Unikernel open
+source community.  If we then integrate Unikernels (that run anywhere)
+with Docker, or a Docker-like distribution tool, it's a big win.
+
             |            
   __|  _ \  |  _ \   __| 
 \__ \ (   | | (   |\__ \ 
@@ -37,13 +71,18 @@ bridge:
 And here is how to forward webserver traffic for the mirage webserver:
     iptables -t nat -A POSTROUTING ! -d 10.0.0.0/24 -o eth0 -j SNAT --to-source 9.2.252.208
     iptables -A PREROUTING -t nat -i eth0 -p tcp --dport 80 -j DNAT --to 10.0.0.2:80
-~.
     iptables -A FORWARD -p tcp -d 10.0.0.2 --dport 80 -j ACCEPT
-
 
 Note: you need to add the arp entry to the host because the kernel
 doesn't respond to arps
     sudo arp -s 10.0.4.10 52:54:00:12:34:56
+
+
+How to recompile the console backend (mirage-console in opam):
+    home/djwillia/.opam/4.01.0/bin/oasis -info setup
+    make
+    make reinstall
+
 
 Getting a series of patchs from the master branch:
 Assume that tag A is the commit on master before the one we want.
@@ -55,17 +94,120 @@ Assume that tag B is the commit on master of the final patch in the series.
   git branch -d tmp
 
 
-Todos:
-- cleanup
-  - remove old printk
-  - get rid of memcheck
-  - sort out loader mess
-    - clear bss in loader
-    - merge common mm routines in kernel and loader
-    - merge common lib in kernel and loader
-    - look into lkvm
+First Steps:
+x set up Xen environment
+  x use gpu2
+  x fix xl/xen mismatch
+  x test with a pv domU
+  x test with an hvm domU (addvirt.cfg)
+x set up MirageOS
+  x upgrade Debian to wheezy
+  x install opam, ocaml
+x run a stock unikernel
+  x run hello world unikernel
+x run my small kernel in HVM mode
+  x get environment set up for bare bones OS
+    x cross compiler, etc.
+  x implement serial device driver to see console output on Xen HVM
+x duplicate the xen minios backend build
+x build with stubbed out minios calls
+x figure out how to debug with QEMU + gdb
+x jump straight to 64 bit c code
+x print out memory map from multiboot in loader
+x test if we can touch a bunch of memory after the kernel module
+x create and load new pagetable containing all of memory
+x fix interrupt setup in my kernel
+  x idt is not direct mapped because kernel (w/unikernel libs) has
+    grown too big
+x pass arg to 64 bit kernel
+x pass multiboot structure to 64 bit kernel
+x move stack to top of memory
+x fix horrible page table bug
+x make and build new version of mirage xen bindings
+  x move new version of bindings into my build
+x make and build new version of all of mirage-platform
+x clear bss
+x pull in dlmalloc
+x create page_alloc routines
+x implement sbrk
+x test malloc
+x implement strcpy
+x test interrupts again
+  x reload gdt
+  x reload gdt with tss descriptor
+  x implement tss entry
+x test interrupts on xen
+x clean up interrupt code
+x enable sse
+x implement memmove
+x pull in ee_printf
+x implement sprintf
+x debug page fault in caml_console_start_page
+  x find all start_page libraries
+  x build bindings against kernel (watch the includes)
+  x use cpp/gcc to find includes
+x initialize start_info_t to fake xen for mirage
+x initialize PIC
+x remap irqs
+x set IDT entries for irqs
+x implement tsc clocksource (e.g., monotonic time in ns)
+x make a new console backend
+x clean up boot messages
+x get mirage skeleton in unikernel project tree
+x get console from mirage skeleton in build
+x change Makefile not to always build mirage stuff
+x merge common interrupt vectors in interrupts.c and interrupts.s
+x move gdt and tss init completely to loader
+x make a shared header: info from loader to kernel
+x do block "hello world" on unix and xen
+x try kvm on xen machine
+x get machine to a place where kvm can run
+x revisit virtio net device
+  x send single packet
+  x send multiple packets in a loop
+  x enable irq lines
+  x see irq from virtio network device
+x set up one recv buffers
+x receive first packet
+x handle network irq in a special-case way for xmit
+x safely add send buffers with memcpy
+x set up more recv buffers
+x handle interrupts for recv
+x implement ping server for solo5
+x get virtio net device working (with c drivers)
+x attach virtio disk to kvm build
+x initialize virtio disk 
+x reorganize pci.c into pci, virtio, net
+x pull out vring code to support 128 and 256 lengths
+  x remove indexes that assume 256 length
+x figure out problem with large static structures
+x find real size of kernel (including bss) by reading ELF header in
+  loader
+x adjust mod_end in multiboot structure for kernel
+x fix makefile
+x move virtio blk stuff into separate buffers
+x write a block
+x reclaim written block
+x read a block
+x program PIT to send interrupt for tsc calibration
+- look into mirage block example
+  - build mirage block in a sane way so we can debug it
+  - run unix block test with a custom ocaml block backend
+
+- clear bss in loader
 - consolidate virtq stuff
+- move gdt and tss loader stuff into asm
+  - figure out how to encode tss base in gdt
+- merge common mm routines in kernel and loader
+- look at network "hello worlds"
+- remove old printk
+- move bss clear earlier?
 - protect bottom of stack
+- merge common lib in kernel and loader
+- slim down mirage bindings
+- fill out libc
+- make sure ocaml build is not harmful
+- get rid of memcheck
 - use larger pages
 
 
@@ -203,6 +345,311 @@ Time is maintained via rdtsc.  We assume one CPU and a reliable tsc.
 The speed of the CPU (GHZ) is configured into a macro in time.c.  We
 may need to use a clock source (e.g., the PIT) to calibrate the TSC.
 
+Finally, we get to start_kernel, which jumps into the Solo5 Mirage
+bindings.
+=======
+
+How to debug with QEMU + GDB
+- this is tricky because gdb doesn't like the mode switching between
+  the 32-bit loader and the 64-bit kernel.  So we basically need to
+  get the kernel to a point where we can attach where the kernel is
+  already in 64-bit mode.  My trick is to have an infinite loop that
+  we break by setting a volatile int variable.
+- start qemu with -s
+    qemu-system-x86_64 -s -nographic -cdrom kernel.iso
+    -or-
+    make qemu
+- in another terminal, start gdb
+    gdb kernel/kernel
+    target remote localhost:1234
+    set gdb=1
+    c
+- or I have that in a command file
+    gdb kernel/kernel --command gdb.txt
+
+
+How to find where an interrupt came from in gdb:
+x/1x interrupt_stack_page+4040
+
+
+Assuming KVM will create an interface veth0 and add it to an existing
+virbr0, here is how to set up the network for pinging on a private
+bridge:
+    sudo ip link add veth1 type veth peer name veth2
+    sudo ifconfig veth1 10.0.4.11/24 up
+    sudo ifconfig veth2 up
+    sudo brctl addif virbr0 veth2
+
+Note: you need to add the arp entry to the host because the kernel
+doesn't respond to arps
+    sudo arp -s 10.0.4.10 52:54:00:12:34:56
+
+
+How to recompile the console backend (mirage-console in opam):
+    home/djwillia/.opam/4.01.0/bin/oasis -info setup
+    make
+    make reinstall
+
+
+
+
+First Steps:
+x set up Xen environment
+  x use gpu2
+  x fix xl/xen mismatch
+  x test with a pv domU
+  x test with an hvm domU (addvirt.cfg)
+x set up MirageOS
+  x upgrade Debian to wheezy
+  x install opam, ocaml
+x run a stock unikernel
+  x run hello world unikernel
+x run my small kernel in HVM mode
+  x get environment set up for bare bones OS
+    x cross compiler, etc.
+  x implement serial device driver to see console output on Xen HVM
+x duplicate the xen minios backend build
+x build with stubbed out minios calls
+x figure out how to debug with QEMU + gdb
+x jump straight to 64 bit c code
+x print out memory map from multiboot in loader
+x test if we can touch a bunch of memory after the kernel module
+x create and load new pagetable containing all of memory
+x fix interrupt setup in my kernel
+  x idt is not direct mapped because kernel (w/unikernel libs) has
+    grown too big
+x pass arg to 64 bit kernel
+x pass multiboot structure to 64 bit kernel
+x move stack to top of memory
+x fix horrible page table bug
+x make and build new version of mirage xen bindings
+  x move new version of bindings into my build
+x make and build new version of all of mirage-platform
+x clear bss
+x pull in dlmalloc
+x create page_alloc routines
+x implement sbrk
+x test malloc
+x implement strcpy
+x test interrupts again
+  x reload gdt
+  x reload gdt with tss descriptor
+  x implement tss entry
+x test interrupts on xen
+x clean up interrupt code
+x enable sse
+x implement memmove
+x pull in ee_printf
+x implement sprintf
+x debug page fault in caml_console_start_page
+  x find all start_page libraries
+  x build bindings against kernel (watch the includes)
+  x use cpp/gcc to find includes
+x initialize start_info_t to fake xen for mirage
+x initialize PIC
+x remap irqs
+x set IDT entries for irqs
+x implement tsc clocksource (e.g., monotonic time in ns)
+x make a new console backend
+x clean up boot messages
+x get mirage skeleton in unikernel project tree
+x get console from mirage skeleton in build
+x change Makefile not to always build mirage stuff
+x merge common interrupt vectors in interrupts.c and interrupts.s
+x move gdt and tss init completely to loader
+x make a shared header: info from loader to kernel
+x do block "hello world" on unix and xen
+x try kvm on xen machine
+x get machine to a place where kvm can run
+x revisit virtio net device
+  x send single packet
+  x send multiple packets in a loop
+  x enable irq lines
+  x see irq from virtio network device
+x set up one recv buffers
+x receive first packet
+x handle network irq in a special-case way for xmit
+x safely add send buffers with memcpy
+x set up more recv buffers
+x handle interrupts for recv
+x implement ping server for solo5
+x get virtio net device working (with c drivers)
+x attach virtio disk to kvm build
+x initialize virtio disk 
+x reorganize pci.c into pci, virtio, net
+x pull out vring code to support 128 and 256 lengths
+  x remove indexes that assume 256 length
+x figure out problem with large static structures
+x find real size of kernel (including bss) by reading ELF header in
+  loader
+x adjust mod_end in multiboot structure for kernel
+x fix makefile
+x move virtio blk stuff into separate buffers
+x write a block
+x reclaim written block
+x read a block
+- look into mirage block example
+
+- clear bss in loader
+- consolidate virtq stuff
+- move gdt and tss loader stuff into asm
+  - figure out how to encode tss base in gdt
+- merge common mm routines in kernel and loader
+- look at network "hello worlds"
+
+- program PIT to send interrupt for tsc calibration
+
+- remove old printk
+- move bss clear earlier?
+- protect bottom of stack
+- merge common lib in kernel and loader
+- slim down mirage bindings
+- fill out libc
+- make sure ocaml build is not harmful
+- get rid of memcheck
+- use larger pages
+
+
+
+The Solo5 Boot Process
+
+Solo5 is packaged as an iso (kernel.iso).  Inside this iso is a
+version of the GRUB bootloader (stage2_eltorito), a GRUB configuration
+file (menu.lst), a 32-bit elf file (loader) and a 64-bit elf file
+(kernel).  The reason for the 32-bit loader is that when Solo5 was
+developed, GRUB could not directly boot into the 64-bit kernel.  The
+GRUB configuration file specifies loader as the "kernel" and kernel as
+the first "module".
+
+We don't really care about the memory map too much at this point,
+except for the fact that GRUB loads the loader at 1M, as specified in
+the loader.ld file.  GRUB puts the first module (the kernel) after the
+loader on a 4K page boundary with an extra two full 4K pages of
+padding.  The kernel's linker file is dynamically generated by
+gen_ld.bash so that the kernel binary is consistent with the address
+that GRUB loads it to even if the size of the loader changes.  So,
+after GRUB, the part of the memory map we care about looks like this,
+with just a bit of space between the loader and kernel:
+
+|----|-- loader ---|-- kernel --|----------------------------------|
+   0x100000     0x108000
+
+GRUB will jump to execute the loader first, at _start in boot.s.  In a
+bit more detail, the loader layout looks like this (specified in
+loader.ld)
+
+|--multiboot--text--data--bootstrap_stack--|
+
+The first file to execute is boot.s in the loader.  Here you see the
+multiboot section, which contains the multiboot header (magic number,
+etc).  The bootstrap stack is specified as 16K big.  When _start is
+called, it simply sets the stack pointer to the space allocated for
+the bootstrap stack (for a known good stack), and calls loader_main
+(in loader.c) with a pointer to the multiboot structure (from GRUB) as
+an argument.
+
+loader_main gets a couple of things from the multiboot structure: the
+maximum available memory, the memory address marking the end of the
+kernel in memory, and the address of the kernel entry point.  The
+first two are used to set up the page tables (which must be loaded
+before the jump to 64-bit mode).  The pagetable_init function in
+page_tables.c directly maps all pages and puts the page table
+structures just after the kernel in memory.  These mappings are not
+bootstrap mappings; they will be used by the 64-bit kernel.  The
+memory map is now:
+
+|----|-loader/bootstrap_stack-|-kernel-|-pagetables-|---------------|
+
+loader_main next initializes a bootstrap GDT, which is necessary for
+the jump to 64-bit mode.  The bootstrap GDT only contains a code and
+data segment.  The 64-bit kernel adds the TSS entries later, when it
+re-initializes the GDT.
+
+|----|-loader/bootstrap_GDT/bootstrap_stack-|-kernel-|-pagetables-|--|
+
+Next, the processor is configured for long mode.  to64_prep in to64.s
+sets the pml4 as the base page table pointer, enables PAE and long
+compat mode, enables paging, and finally loads the bootstrap GDT.
+to64_jump switches to long mode (64-bit), sets the stack to the top of
+memory (we are no longer using the loader's bootstrap stack) and jumps
+to the kernel entry point that was previously read from the multiboot
+structure.  Memory now looks like this:
+
+|----|-loader/bootstrap_GDT-|-kernel-|-pagetables-|------------stack|
+
+The kernel entry point is kernel_main in kernel.c, as specified in
+kernel.ld.  This is now in the kernel directory, where everything is
+64-bit.  We initialize the serial device immediately, so that we can
+use printf (which uses serial output) for debugging.  We also have a
+loop very early on a volatile integer named "gdb".  This is a
+convenient way to allow us to connect gdb (through qemu) in pure 64
+bit mode, rather than having gdb become confused by the jump from 32
+to 64.
+
+kernel_main is passed a pointer to the multiboot structure, which we
+use for the remaining memory initialization in mem_init (mem.c).
+mem_init must be called early because it clears the bss (the location
+of which is specified in the linker file).  After that, the main task
+of mem_init is to set up a bitmap for page-level memory allocation.
+It traverses the multiboot structure (again!) to get the kernel start
+and end, and calculates where the loader should have put the page
+tables.  (This is not ideal - the kernel shouldn't be guessing about
+what the loader did).  The kernel then creates a bitmap to keep track
+of what pages are available.  Starting with all pages unavailable, the
+kernel traverses the multiboot memory map and marks available pages as
+available unless they are used by the kernel, the page table area, or
+the bitmap area.  It then also marks the stack pages as unavailable.
+The memory after the bitmap area is recorded of the start of the heap.
+
+|-|-loader/boot_GDT-|-kernel-|-pagetables-|-bitmap-|-heap->---<-stack|
+
+There is a bug here!!!  The bootstrap GDT is in an "available" area.
+In practice this isn't a problem, as the heap doesn't know about that
+memory anyway, and all memory allocation (malloc/sbrk) will be through
+the heap.  In any case, this is not ideal, because all memory under
+the kernel is wasted.
+
+Next, kernel_main calls interrupts_init in interrupts.c.  This code
+initializes the TSS, re-initializes the GDT, and initializes the IDT.
+The main part of the TSS is that it sets up a "known-good" interrupt
+stack to avoid double faults on stack issues.  At some point I want to
+page-protect the bottom of the stack and demand-page it.  The GDT
+includes an entry to the TSS; this is really why we need to
+reinitialize it.  It may be cleaner to set up the GDT once, in the
+loader, complete with the interrupt stack for the TSS entry, as we
+don't expect to touch the GDT or TSS ever again.  At this point, we
+really don't care about the loader in the memory map.
+
+|-----|-kernel/GDT/TSS/IDT/-|-pagetables-|-bitmap-|-heap->---<-stack|
+
+interrupts_init also sets up the IDT, which contains the interrupt
+vectors for processor exceptions and (remapped) irq lines.  The entry
+points for the interrupt service routines are in interrupts.s.  To
+maintain a single set of constants for both the .c and .s interrupt
+code, the header file interrupts.h is used.  It can be included
+directly in the .c file, but is processed into interrupt_vectors.h for
+the .s file to include via gen_interrupts.bash.
+
+The interrupt code includes a nasty hack called the SS hack.  For
+64-bit execution, we want to have a NULL SS (segments aren't used
+anyway and seem to confuse the CPU on returning from interrupts).  To
+force the SS to be NULL, we change the SS value on the stack before
+returning from the first interrupt at setup time (INTR_SS_HACK)
+
+Floating point is enabled via sse_enable, which is found in mem.s (but
+doesn't seem to belong there).
+
+The time keeping system is initialized using time_init in time.c.
+Time is maintained via rdtsc.  We assume one CPU and a reliable tsc.
+The speed of the CPU (GHZ) is configured into a macro in time.c.  We
+may need to use a clock source (e.g., the PIT) to calibrate the TSC.
+
+Finally, we get to start_kernel, which jumps into the Solo5 Mirage
+bindings.
+
+
+
+
 
 
 
@@ -221,3 +668,12 @@ mujs_solo5.o: $(MUJS_FILES)
    variables (look at gen_js_undefined.bash)
 
 
+
+
+
+Note: some of the mirage libraries were being built as position
+independent code, but somewhere along the process of linking with
+solo5 this was getting lost.  At the moment, it seems that we can't do
+position independent code.  It may be interesting to figure out how to
+do it, to the extent where we do address space randomization
+throughout the unikernel.

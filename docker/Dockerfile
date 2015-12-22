@@ -1,48 +1,32 @@
-FROM ubuntu:15.04
+FROM djwillia/solo5
 MAINTAINER Dan Williams <djwillia@us.ibm.com>
-
-# install necessary packages for:
-#   git
-#   building cross compilers
-#   building solo5 image
-#   setting up virtual network
-#   running solo5
-#   pinging solo5
-
-RUN apt-get update && apt-get install -y \
-    sudo \
-    git \
-    build-essential \
-    xorriso \
-    bridge-utils \
-    kvm \
-    iputils-ping
-
-# set up solo5 user
-RUN useradd -m -k /root/ -s /bin/bash solo5 \
-    && echo "solo5:solo5" | chpasswd solo5 \
-    && echo "solo5    ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/solo5 \
-    && chmod 440 /etc/sudoers.d/solo5
-
-# install pacakges to build cross compilers
-RUN apt-get install -y \
-    libgmp3-dev \
-    libmpfr-dev \
-    libisl-dev \
-    libcloog-isl-dev \
-    libmpc-dev \
-    texinfo \
-    wget
 
 USER solo5
 
-# Run script to build cross compilers
-COPY build_xcompile.bash /tmp/
-RUN /bin/bash /tmp/build_xcompile.bash
+# install necessary packages for ocaml
+RUN sudo apt-get update \
+    && sudo apt-get install -y software-properties-common \
+    && sudo add-apt-repository -y ppa:avsm/ppa \
+    && sudo apt-get update \
+    && sudo apt-get install -y ocaml ocaml-native-compilers camlp4-extra opam m4 pkg-config libpcre3-dev libxen-dev ncurses-dev time iptables
 
-# Get Solo5 
-RUN cd /home/solo5 \
-    && git clone https://github.com/djwillia/solo5.git
+# install ocaml and opam packages for mirage
+RUN opam init -a \
+    && opam switch 4.01.0 \
+    && echo "eval \`opam config env\`" >> ~/.profile \
+    && eval `opam config env` \
+    && opam install -y oasis depext
+
+# Get Solo5/Mirage 
+RUN cd /home/solo5/solo5 \
+    && git checkout mirage && git pull
+
+# Get other repositories
+RUN mkdir /home/solo5/solo5-mirage \
+    && cd /home/solo5/solo5-mirage \
+    && for d in mirage mirage-block-solo5 mirage-console mirage-net-solo5 mirage-platform mirage-skeleton mirage-www; do \
+        git clone --branch=solo5 https://github.com/djwillia/$d.git; \
+    done
 
 COPY solo5-startup.bash /tmp/
 ENTRYPOINT ["/bin/bash", "/tmp/solo5-startup.bash"]

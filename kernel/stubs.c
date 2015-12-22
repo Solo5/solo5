@@ -45,3 +45,27 @@ void do_exit(void) {
     printf("Mirage on Solo5 exiting... Goodbye!\n");
     kernel_hang();
 }
+
+/* The definition of struct timeval should be in a header file, but
+ * some libraries are still taking the native (system) time.h causing
+ * a redefinition.  So for now, we define this here, although it's
+ * fragile and a recipe for disaster.  It's also in clock_stubs.c from
+ * mirage-platform.  */
+struct timeval {
+    long tv_sec;
+    long tv_usec;
+};
+
+#define NSEC_TO_USEC(_nsec)     ((_nsec) / 1000UL)
+#define NSEC_TO_MSEC(_nsec)     ((_nsec) / 1000000ULL)
+#define NSEC_TO_SEC(_nsec)      ((_nsec) / 1000000000ULL)
+
+int gettimeofday(struct timeval *tv, __attribute__((__unused__)) void *tz) {
+    uint64_t nsec = time_monotonic_ns();
+
+    tv->tv_sec = NSEC_TO_SEC(nsec);
+    tv->tv_usec = NSEC_TO_USEC(nsec % 1000000000UL);
+
+    return 0;
+}
+

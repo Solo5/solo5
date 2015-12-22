@@ -580,6 +580,46 @@ static int ee_vsprintf(char *buf, const char *fmt, va_list args)
     return str - buf;
 }
 
+static int ee_vprintf(const char *fmt, va_list args) {
+    char buf[15*80],*p;
+    int n=0;
+
+    ee_vsprintf(buf, fmt, args);
+
+    p=buf;
+    while (*p) {
+        serial_putc(*p);
+        n++;
+        p++;
+    }
+
+    return n;
+}
+
+int printf(const char *fmt, ...){
+    va_list args;
+    int ret;
+
+    va_start(args, fmt);
+    ret = ee_vprintf(fmt, args);
+    va_end(args);
+
+    return ret;
+}
+
+int fprintf(void *stream __attribute__((__unused__)), const char *fmt, ...){
+    va_list args;
+    int ret;
+
+    va_start(args, fmt);
+    ret = ee_vprintf(fmt, args);
+    va_end(args);
+
+    return ret;
+}
+
+
+#if 0
 int printf(const char *fmt, ...)
 {
     char buf[15*80],*p;
@@ -598,7 +638,7 @@ int printf(const char *fmt, ...)
 
     return n;
 }
-
+#endif
 int sprintf(char *str, const char *fmt, ...){
     va_list args;
 

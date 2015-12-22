@@ -227,6 +227,7 @@ void* memalign(size_t alignment, size_t bytes);
 
 
 #include "app_undefined.h"
+#include "app_stubs.h"
 
 #endif
 
