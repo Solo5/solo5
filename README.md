@@ -34,7 +34,7 @@ can take a while because of building cross compilers, so if you can,
 just pull the image as described above.
 
     cd docker
-    docker build -t djwillia/solo5
+    docker build -t djwillia/solo5 .
 
 Once you have the image, run it as follows:
 
