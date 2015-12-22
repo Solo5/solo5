@@ -30,8 +30,67 @@ The kernel should run on any x86_64 hypervisor that uses virtio
 devices.  At this point, we have run it on QEMU/KVM and VirtualBox.
 Output is through the serial port.
 
-Building and running
---------------------
+Trying out Solo5/Mirage with Docker
+-----------------------------------
+
+We have packaged the Solo5/Mirage development environment with Docker,
+so now it's easy to try out Solo5/Mirage!  First, get the container
+from Docker Hub:
+
+    docker pull djwillia/solo5-mirage
+
+Or, build it yourself from the provided Dockerfile.  
+
+    cd docker
+    docker build -t djwillia/solo5-mirage .
+
+Once you have the image, run it as follows:
+
+    docker run -d --privileged --name solo5-mirage -t djwillia/solo5-mirage
+
+We run the container as a privileged container because it will be
+starting configuring the virtual network and starting VMs
+(specifically Solo5/Mirage on KVM/QEMU).  A `docker ps` will show an
+instance of the `solo5-mirage` image running.  We can get a login
+shell (as user/pass solo5/solo5) in the container using:
+
+    docker exec -it solo5-mirage /bin/bash -l
+
+You can now build and run several Mirage applications as Solo5
+unikernels on KVM/QEMU.  First enter the Solo5 directory:
+
+    cd ~/solo5
+    
+Then, configure the system to build one of the supported Mirage
+applications (i.e., execute ONE of the following lines):
+
+    make config_console
+    make config_block
+    make config_kv_ro_crunch
+    make config_kv_ro
+    make config_stackv4
+    make config_www
+
+For more information about these applications, check out the [Mirage
+tutorials](https://mirage.io/wiki/hello-world). Run the application
+with:
+
+    make kvm
+
+When you are satisfied with the Mirage application exit KVM/QEMU
+running Solo5 in the terminal with `C-a x`.  Even if you exit these
+terminals (`C-d`), the container will continue to run until you kill
+it (in the host) with:
+
+    sudo docker kill solo5-mirage
+
+
+Building and running yourself
+-----------------------------
+
+This is a bit harder than using the Dockerfile, because of building
+cross compilers for Solo5 and keeping track of other repositories
+containing Mirage bindings and drivers for Solo5.
 
 You must have two cross compilers capable of building x86_64-elf
 targets as well as i686-elf targets.  In particular, your `$PATH`
