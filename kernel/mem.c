@@ -1,5 +1,5 @@
-/* Copyright (c) 2015, IBM
- * Author(s): Dan Williams <djwillia@us.ibm.com>
+/* Copyright (c) 2015, IBM 
+ * Author(s): Dan Williams <djwillia@us.ibm.com> 
  *
  * Permission to use, copy, modify, and/or distribute this software
  * for any purpose with or without fee is hereby granted, provided
