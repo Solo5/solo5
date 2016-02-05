@@ -49,7 +49,6 @@
 #define INTR_IS_EXCEPTION(n) ((n) < INTR_IRQ_0)
 #define INTR_IS_IRQ(n) (((n) >= INTR_IRQ_0) && ((n) <= INTR_IRQ_15))
 
-static void PIC_remap(int offset1, int offset2);
 void irq_eoi(unsigned char irq);
 
 struct __attribute__((__packed__)) qw {
@@ -143,6 +142,7 @@ static void idt_init(void) {
 
     /* user defined interrupts */
     SET_INTR_IDT_ENTRY(INTR_USER_1);
+	SET_INTR_IDT_ENTRY(INTR_TIMER);
 }
 
 void interrupts_init(void) {
@@ -157,12 +157,6 @@ void interrupts_init(void) {
 
     idt_init();
     idt_load((uint64_t) &idtptr);
-
-    /* The SS_HACK interrupt triggers the SS hack to get our SS into a
-       NULL descriptor, which is what we want for 64-bit execution */
-    __asm__ __volatile__("int $"STR(INTR_SS_HACK) ::); 
-
-    PIC_remap(INTR_IRQ_MASTER, INTR_IRQ_SLAVE);
 }
 
 void interrupt_handler(uint64_t num,
@@ -179,11 +173,11 @@ void interrupt_handler(uint64_t num,
             PANIC("got double fault (0x%x)\n", num);
             break;
         case INTR_EXCEPTION_PF:
-            printk("got page fault (0x%x)\n", num);
+            printf("got page fault (0x%x)\n", num);
             PANIC("errorcode was (0x%x)\n", errorcode);
             break;
         case INTR_EXCEPTION_GPF:
-            printk("got gpf (0x%x)\n", num);
+            printf("got gpf (0x%x)\n", num);
             PANIC("errorcode was (0x%x)\n", errorcode);
             break;
         default:
@@ -211,8 +205,12 @@ void interrupt_handler(uint64_t num,
     } else {
 
         switch (num) {
+		case INTR_TIMER:
+			//increment_ms_count();
+			printf("T(0x%x)\n", num);
+			break;
         case INTR_USER_1:
-            printk("got user interrupt (0x%x)\n", num);
+            printf("got user interrupt (0x%x)\n", num);
             break;
         default:
             PANIC("got unknown processor exception 0x%x\n", num);
@@ -263,7 +261,7 @@ void irq_clear(uint8_t irq) {
 static void disable_pic(void) {
     outb(PIC1_DATA, 0xff);
     outb(PIC2_DATA, 0xff);
-    printk("PIC disabled\n");
+    printf("PIC disabled\n");
 }
 #endif
 
@@ -290,6 +288,7 @@ offset2 - same for slave PIC: offset2..offset2+7
 */
 #define io_wait() do { } while(0)
 
+#if 0
 static void PIC_remap(int offset1, int offset2)
 {
     unsigned char a1, a2;
@@ -319,3 +318,4 @@ static void PIC_remap(int offset1, int offset2)
     outb(PIC2_DATA, a2);
 }
 
+#endif

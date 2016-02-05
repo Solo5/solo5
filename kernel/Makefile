@@ -44,6 +44,7 @@ COBJS=\
 $(MODULE_OBJS) \
 $(APP_OBJS) \
 ee_printf.o \
+gdt.o \
 interrupts.o \
 kernel.o \
 lib.o \
@@ -51,7 +52,6 @@ malloc.o \
 mem.o \
 net.o \
 pci.o \
-printk.o \
 serial.o \
 stubs.o \
 time.o \

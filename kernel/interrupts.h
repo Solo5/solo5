@@ -76,3 +76,4 @@
 
 /* user defined interrupts: 0x31 - ... */
 #define INTR_USER_1     0x31 /* no error code */
+#define INTR_TIMER      0x32 /* no error code */

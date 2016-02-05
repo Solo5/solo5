@@ -612,12 +612,12 @@ void virtio_config_network(uint16_t base) {
     guest_features = VIRTIO_NET_F_MAC;
     outl(base + VIRTIO_PCI_GUEST_FEATURES, guest_features);
     
-    printk("Found virtio network device with MAC: ");
+    printf("Found virtio network device with MAC: ");
     for (i = 0; i < 6; i++) {
         virtio_net_mac[i] = inb(base + VIRTIO_PCI_CONFIG_OFF + i);
-        printk("%b ", virtio_net_mac[i]);
+        printf("%02x ", virtio_net_mac[i]);
     }
-    printk("\n");
+    printf("\n");
 
     /* check that 2 256 entry virtqueues are here (recv and transmit) */
     for (i = 0; i > 2; i++) {

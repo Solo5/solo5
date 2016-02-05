@@ -596,7 +596,19 @@ static int ee_vprintf(const char *fmt, va_list args) {
     return n;
 }
 
+/* XXX combine the next 3 */
 int printf(const char *fmt, ...){
+    va_list args;
+    int ret;
+
+    va_start(args, fmt);
+    ret = ee_vprintf(fmt, args);
+    va_end(args);
+
+    return ret;
+}
+
+int printk(const char *fmt, ...){
     va_list args;
     int ret;
 

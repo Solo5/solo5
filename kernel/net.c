@@ -141,13 +141,13 @@ static void construct_udp(struct udppkt *p, uint8_t *mac_source) {
     p->udp.checksum = checksum(&p->udp, sizeof(struct udp));
 
     for (i = 0; i < sizeof(struct udppkt); i++) {
-        printk("%b ", ((uint8_t *)p)[i]);
+        printf("%02x ", ((uint8_t *)p)[i]);
         if (i % 8 == 7 )
-            printk("   ");
+            printf("   ");
         if (i % 16 == 15 )
-            printk("\n");
+            printf("\n");
     }
-    printk("\n");
+    printf("\n");
 }
 #endif
 
@@ -189,13 +189,13 @@ static void construct_ping(struct pingpkt *p, uint8_t *mac_source) {
 
     if(0) {
         for (i = 0; i < sizeof(struct pingpkt); i++) {
-            printk("%b ", ((uint8_t *)p)[i]);
+            printf("%02x ", ((uint8_t *)p)[i]);
             if (i % 8 == 7 )
-                printk("   ");
+                printf("   ");
             if (i % 16 == 15 )
-                printk("\n");
+                printf("\n");
         }
-        printk("\n");
+        printf("\n");
     }
 };
 
@@ -221,13 +221,13 @@ static void construct_arp(struct arppkt *p, uint8_t *mac){
     memcpy(p->arp.tpa, tpa, PLEN_IPV4);
 
     for (i = 0; i < sizeof(struct arppkt); i++) {
-        printk("%b ", ((uint8_t *)p)[i]);
+        printf("%02x ", ((uint8_t *)p)[i]);
         if (i % 8 == 7 )
-            printk("   ");
+            printf("   ");
         if (i % 16 == 15 )
-            printk("\n");
+            printf("\n");
     }
-    printk("\n");
+    printf("\n");
 }
 #endif
 

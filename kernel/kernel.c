@@ -18,6 +18,14 @@
 
 #include "kernel.h"
 
+static void banner(void)
+{
+    printf("            |      ___|  \n");
+    printf("  __|  _ \\  |  _ \\ __ \\  \n");
+    printf("\\__ \\ (   | | (   |  ) | \n");
+    printf("____/\\___/ _|\\___/____/  \n");
+}
+
 extern void start_kernel(void);
 
 void sleep_test(void);
@@ -28,22 +36,17 @@ void kernel_main(uint64_t size, uint64_t kernel_end)
     printf("size=0x%x\n", size);
     printf("kernel_end=0x%x\n", kernel_end);
 
-    printf("            |      ___|  \n");
-    printf("  __|  _ \\  |  _ \\ __ \\  \n");
-    printf("\\__ \\ (   | | (   |  ) | \n");
-    printf("____/\\___/ _|\\___/____/  \n");
+	banner();
 
-    // if (!gdb) printk("looping for gdb\n");
-    // while ( gdb == 0 ); 
+	gdt_init();
+    interrupts_init();
+    interrupts_enable();
 
     mem_init(size, kernel_end);
 
     /* ocaml needs floating point */
     sse_enable();
 
-#if 0
-    gdb = 10/gdb;
-#endif
 
     start_kernel();
 

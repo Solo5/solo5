@@ -27,8 +27,6 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdarg.h>
-#include "../loader/multiboot.h"
-#include "../loader/loader_info.h"
 
 /* alignment macros */
 #define ALIGN_4K __attribute__((aligned(0x1000)))
@@ -48,6 +46,20 @@ void kernel_hang(void);
 void kernel_wait(void);
 void kernel_waitloop(void);
 void kernel_busyloop(void);
+
+/* gdt.c: initialize segment descriptors */
+void gdt_init(void);
+void gdt_load(uint64_t gdtptr);
+void tss_load(uint16_t tss);
+#define GDT_NUM_ENTRIES 5
+#define GDT_DESC_NULL 0
+#define GDT_DESC_CODE 1
+#define GDT_DESC_DATA 2
+#define GDT_DESC_TSS_LO  3
+#define GDT_DESC_TSS_HI  4
+#define GDT_DESC_TSS  GDT_DESC_TSS_LO
+#define GDT_DESC_OFFSET(n) ((n) * 0x8)
+#define TSS_IST_INDEX 0x1 /* the "known good" stack in the TSS */
 
 /* interrupts.c: interrupt handling */
 void interrupts_init(void);
@@ -75,21 +87,11 @@ uint64_t rdtsc(void);
 uint64_t time_counts_since_startup(void);
 void sleep(uint32_t ms);
 
-/* printk.c: only has a few options: 
- *  %c   : character
- *  %s   : string
- *  %d   : int32_t in decimal
- *  %b   : uint8_t in hex
- *  %x   : uint16_t in hex
- *  %lx  : uint32_t in hex
- *  %llx : uint64_t in hex 
- */
-void printk(char *fmt, ...);
-
 /* ee_printf.c: a third-party printf slightly modified and with
  *              sprintf added 
  */
 int printf(const char *fmt, ...);
+int printk(const char *fmt, ...);
 int sprintf(char *str, const char *format, ...);
 
 /* lib.c: expect this to grow... */
@@ -170,8 +172,8 @@ static inline uint64_t inq(uint16_t port_lo){
 
 
 #define PANIC(x...) do {                                   \
-        printk("PANIC: %s:%d\n", __FILE__, __LINE__);      \
-        printk(x);                                         \
+        printf("PANIC: %s:%d\n", __FILE__, __LINE__);      \
+        printf(x);                                         \
         kernel_hang();                                     \
     } while(0)
 
@@ -180,9 +182,9 @@ static inline uint64_t inq(uint16_t port_lo){
             PANIC("assertion failed: \"%s\"", #e);  \
     } while(0)
 
-#define dprintk(x...) do {                      \
+#define dprintf(x...) do {                      \
         if (dbg) {                              \
-            printk(x);                          \
+            printf(x);                          \
         }                                       \
     }while(0)
 
