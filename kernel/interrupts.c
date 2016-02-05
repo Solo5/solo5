@@ -66,8 +66,7 @@ struct __attribute__((__packed__)) idtptr {
 /* assembly functions to load IDT  */
 extern void idt_load(uint64_t idtptr);
 
-/* executed when PIT fires (i.e. when IRQ0 is fired) */
-extern void increment_time_count(void);
+extern void increment_time_secs(void);
 
 /* The actual memory for the IDT is here */
 struct qw idt[IDT_NUM_ENTRIES] ALIGN_64_BIT;
@@ -193,7 +192,7 @@ void interrupt_handler(uint64_t num,
                 handle_virtio_interrupt();
                 break;
             case 0:
-                increment_time_count();
+                //increment_time_count();
                 break;
             default:
                 printf("got irq %d at 0x%lx\n", irq, 
@@ -206,8 +205,7 @@ void interrupt_handler(uint64_t num,
 
         switch (num) {
 		case INTR_TIMER:
-			//increment_ms_count();
-			printf("T(0x%x)\n", num);
+			increment_time_secs();
 			break;
         case INTR_USER_1:
             printf("got user interrupt (0x%x)\n", num);
