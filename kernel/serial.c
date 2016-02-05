@@ -32,22 +32,7 @@
 #define DLAB 0x80
 #define PROT 0x03 /* 8N1 (8 bits, no parity, one stop bit) */
 
-void serial_init() {
-	outb(COM1_INTR, 0x00);      // Disable all interrupts
-	outb(COM1_CTRL, DLAB);      // Enable DLAB (set baud rate divisor)
-	outb(COM1_DIV_LO, 0x01);    // Set divisor to 1 (lo byte) 115200 baud
-	outb(COM1_DIV_HI, 0x00);    //                  (hi byte)
-	outb(COM1_CTRL, PROT);      // Set 8N1, clear DLAB
-}
-
-
-static int serial_tx_empty() {
-	return inb(COM1_STATUS) & 0x20;
-}
- 
 static void serial_write(char a) {
-    while ( !serial_tx_empty() );
- 
     outb(COM1_DATA, a);
 }
 

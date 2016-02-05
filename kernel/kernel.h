@@ -59,7 +59,7 @@ void irq_clear(uint8_t irq);
 void sse_enable(void);
 
 /* mem.c: low-level page alloc routines */
-void mem_init(struct multiboot_info *mb);
+void mem_init(uint64_t size, uint64_t _kernel_end);
 uint64_t mem_max_addr(void);
 uint64_t read_cr3(void);
 
