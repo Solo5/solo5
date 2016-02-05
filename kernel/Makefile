@@ -63,19 +63,13 @@ mem_s.o \
 interrupts_s.o
 
 HEADERS=\
-kernel.h \
-../loader/multiboot.h \
-../loader/loader_info.h
+kernel.h
 
 .PHONY: undef
 undef: 
 	rm -f undefined.o
 	echo > undefined.c
 	bash gen_undefined.bash > undefined.c
-
-.PHONY: kernel.ld
-kernel.ld: 
-	bash gen_ld.bash > kernel.ld
 
 interrupt_vectors.s: interrupts.h
 	bash gen_interrupts.bash > interrupt_vectors.s

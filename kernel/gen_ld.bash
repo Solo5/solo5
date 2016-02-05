@@ -17,6 +17,8 @@
 # TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 # PERFORMANCE OF THIS SOFTWARE.
 
+exit
+
 SZ="0x`objdump -h ../loader/loader |grep bss | awk '{print $3}'`"
 START="0x`objdump -h ../loader/loader |grep bss | awk '{print $4}'`"
 ADDR=`printf "0x%x000\n" $(($(($SZ + $START - 1)) / 0x1000 + 3))`
