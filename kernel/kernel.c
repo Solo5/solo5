@@ -23,33 +23,25 @@ extern void start_kernel(void);
 void sleep_test(void);
 void blk_test(void);
 
-void kernel_main(uint32_t arg)
+void kernel_main(uint64_t size, uint64_t kernel_end)
 {
-    volatile int gdb = 1;
-    serial_init();
+    printf("size=0x%x\n", size);
+    printf("kernel_end=0x%x\n", kernel_end);
 
     printf("            |      ___|  \n");
     printf("  __|  _ \\  |  _ \\ __ \\  \n");
     printf("\\__ \\ (   | | (   |  ) | \n");
     printf("____/\\___/ _|\\___/____/  \n");
 
-    if (!gdb) printk("looping for gdb\n");
-    while ( gdb == 0 ); 
+    // if (!gdb) printk("looping for gdb\n");
+    // while ( gdb == 0 ); 
 
-    /* needs to be very early as it clears the bss */
-    mem_init((struct multiboot_info *)((uint64_t)arg));
+    mem_init(size, kernel_end);
 
-    interrupts_init();
     /* ocaml needs floating point */
     sse_enable();
-    time_init();
-
-    pci_enumerate();
-
-    interrupts_enable();
 
 #if 0
-    gdb = 0;
     gdb = 10/gdb;
 #endif
 
@@ -59,8 +51,12 @@ void kernel_main(uint32_t arg)
     blk_test();
     sleep_test();
 
-    for(;;)
+    for(;;) {
         ping_serve();  /* does things if network packet comes in */
+
+        /* need atomic condition check to do the wait */
+        //kernel_wait();
+    }
 #endif
 
     printf("Kernel done. \nGoodbye!\n");
