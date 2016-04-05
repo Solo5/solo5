@@ -27,6 +27,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdarg.h>
+#include <limits.h>
 #include "../loader/multiboot.h"
 #include "../loader/loader_info.h"
 
@@ -87,10 +88,12 @@ void sleep(uint32_t ms);
 void printk(char *fmt, ...);
 
 /* ee_printf.c: a third-party printf slightly modified and with
- *              sprintf added 
+ *              snprintf added 
  */
 int printf(const char *fmt, ...);
 int sprintf(char *str, const char *format, ...);
+int snprintf(char *str, size_t size, const char *format, ...);
+int vsnprintf(char *buf, size_t size, const char *fmt, va_list args);
 
 /* lib.c: expect this to grow... */
 void memcheck(const void *ptr, uint8_t c, size_t size);
