@@ -80,9 +80,11 @@ config_stackv4:
 config_static_web:
 	bash config_mirage.bash $(CFG_M_APP_STATIC_WEB_D) > mirage.mk
 	make -C kernel mirage_libs.mk
-config_www:
-	bash config_mirage.bash $(CFG_M_APP_WWW_D) > mirage.mk
-	make -C kernel mirage_libs.mk
+
+# www on solo5/mirage seems to be broken
+# config_www:
+# 	bash config_mirage.bash $(CFG_M_APP_WWW_D) > mirage.mk
+# 	make -C kernel mirage_libs.mk
 
 # config_blog5:
 # 	bash config_mirage.bash ../blog5/mirage > mirage.mk
