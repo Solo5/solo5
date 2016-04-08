@@ -24,7 +24,9 @@ unikernels are:
     https://github.com/djwillia/mirage-net-solo5
     https://github.com/djwillia/mirage-block-solo5
     https://github.com/djwillia/mirage-skeleton
-    https://github.com/djwillia/mirage-www
+    https://github.com/djwillia/mirage-bootvar-solo5
+    https://github.com/djwillia/mirage-entropy
+    https://github.com/djwillia/ocaml-nocrypto 
 
 The kernel should run on any x86_64 hypervisor that uses virtio
 devices.  At this point, we have run it on QEMU/KVM and VirtualBox.
@@ -69,7 +71,7 @@ applications (i.e., execute ONE of the following lines):
     make config_kv_ro_crunch
     make config_kv_ro
     make config_stackv4
-    make config_www
+    make config_static_web
 
 For more information about these applications, check out the [Mirage
 tutorials](https://mirage.io/wiki/hello-world). Run the application
@@ -145,8 +147,8 @@ Solo5:
 
     mkdir ~/solo5-mirage
     cd ~/solo5-mirage
-    for d in mirage mirage-block-solo5 mirage-console mirage-net-solo5 mirage-platform mirage-skeleton mirage-www; do
-        git clone --branch=solo5 https://github.com/djwillia/$d.git;
+    for d in mirage mirage-block-solo5 mirage-console mirage-net-solo5 mirage-platform mirage-skeleton mirage-www mirage-entropy mirage-bootvar-solo5 ocaml-nocrypto; do
+        git clone https://github.com/djwillia/$d.git;
     done
 
 Now we are ready to configure a unikernel to run a Mirage application.
@@ -161,7 +163,7 @@ the following lines):
     make config_kv_ro_crunch
     make config_kv_ro
     make config_stackv4
-    make config_www
+    make config_static_web
 
 To just build the kernel.iso, which can then be loaded into
 KVM/QEMU or VirtualBox, type
