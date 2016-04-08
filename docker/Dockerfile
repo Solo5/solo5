@@ -22,7 +22,7 @@ RUN cd /home/solo5/solo5 \
     && git pull && git checkout mirage-update
 
 # Get other repositories
-RUN mkdir /home/solo5/solo5-mirage \
+RUN mkdir /home/solo5/solo5-mirage  \
     && cd /home/solo5/solo5-mirage \
     && for d in mirage mirage-block-solo5 mirage-console mirage-net-solo5 mirage-platform mirage-skeleton mirage-www; do \
         git clone --branch=solo5-update https://github.com/djwillia/$d.git; \
@@ -42,6 +42,17 @@ RUN cd /home/solo5/solo5-mirage \
     && opam pin add -n mirage-bootvar-solo5 mirage-bootvar-solo5 \
     && opam pin add -n mirage-entropy-xen mirage-entropy \
     && opam pin add -n nocrypto ocaml-nocrypto
+
+# Install the pinned packages
+RUN eval `opam config env` \
+    && (cd /home/solo5/solo5-mirage/mirage-net-solo5 && oasis setup) \
+    && (cd /home/solo5/solo5-mirage/mirage-block-solo5 && oasis setup) \
+    && opam install -y mirage \
+    && opam install -y mirage-solo5 \
+    && opam install -y mirage-block-solo5 mirage-net-solo5 \
+    && opam install -y mirage-console \
+    && opam install -y mirage-bootvar-solo5 mirage-entropy-xen nocrypto \
+    && opam install -y tls
 
 COPY solo5-startup.bash /tmp/
 ENTRYPOINT ["/bin/bash", "/tmp/solo5-startup.bash"]
