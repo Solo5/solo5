@@ -79,7 +79,7 @@ $(CFG_M_PLATFORM_D)/solo5-bindings/gnttab_stubs.c \
 $(CFG_M_PLATFORM_D)/solo5-bindings/install.sh \
 $(CFG_M_PLATFORM_D)/solo5-bindings/main.c \
 $(CFG_M_PLATFORM_D)/solo5-bindings/mirage-xen-ocaml-bindings.pc \
-$(CFG_M_PLATFORM_D)/solo5-bindings/mirage-xen.pc \
+$(CFG_M_PLATFORM_D)/solo5-bindings/mirage-solo5.pc \
 $(CFG_M_PLATFORM_D)/solo5-bindings/sched_stubs.c \
 $(CFG_M_PLATFORM_D)/solo5-bindings/start_info_stubs.c \
 $(CFG_M_PLATFORM_D)/solo5-bindings/uninstall.sh \
@@ -184,10 +184,12 @@ mirage-clean:
 
 mirage-app: $(CFG_MIRAGE_APP_DIR)/_build/main.native.o
 
+# Horrible hack below, but all this should go away when Solo5 is a
+# proper backend
 .PHONY: mirage_libs.mk
 mirage_libs.mk: $(MIRAGE_APP_DEPS)
 	@echo "CFG_MIRAGE_APP_LIBS=\\" >> ../mirage.mk
-	@cat $(CFG_MIRAGE_APP_DIR)/Makefile | grep -A20 "build:: main.native.o" |grep "\-L" >> ../mirage.mk
+	@cat $(CFG_MIRAGE_APP_DIR)/Makefile |grep "\-L" | sed s/tcpip_xen_stubs/tcpip_stubs/ >> ../mirage.mk
 	@echo >> ../mirage.mk
 
 ### end mirage stuff ###

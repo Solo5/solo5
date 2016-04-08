@@ -77,6 +77,9 @@ config_kv_ro:
 config_stackv4:
 	bash config_mirage.bash $(CFG_M_APP_STACKV4_D) > mirage.mk
 	make -C kernel mirage_libs.mk
+config_static_web:
+	bash config_mirage.bash $(CFG_M_APP_STATIC_WEB_D) > mirage.mk
+	make -C kernel mirage_libs.mk
 config_www:
 	bash config_mirage.bash $(CFG_M_APP_WWW_D) > mirage.mk
 	make -C kernel mirage_libs.mk
