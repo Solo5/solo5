@@ -12,7 +12,7 @@ sudo ./config_net.bash
 
 # pull more latest source
 cd ~/solo5-mirage
-for d in mirage mirage-block-solo5 mirage-console mirage-net-solo5 mirage-platform mirage-skeleton mirage-www; do
+for d in mirage mirage-block-solo5 mirage-console mirage-net-solo5 mirage-platform mirage-skeleton mirage-www mirage-bootvar-solo5 mirage-entropy ocaml-nocrypto; do
     (cd $d && git pull)
 done
 
