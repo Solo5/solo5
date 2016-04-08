@@ -13,30 +13,13 @@ for f in $DIR/*.ml; do
 done
 echo
 
+# note: most (if not all) of this should disappear with the new
+#       functoria-enabled mirage
+
 # specifics for mirage-www app
 if [[ "`echo $DIR|grep -o mirage-www` " == "mirage-www " ]]; then
     echo "export MODE=solo5"
     echo "export FS=crunch"
-    echo "export NET=direct"
-    echo "export DHCP="
-fi
-
-# specifics for kv_ro app
-if [[ "`basename $DIR`" == "kv_ro" ]]; then
-    echo "CFG_MIRAGE_APP_DEPS=kv_ro_prepare_disk"
-    echo "export FS=fat"
-    echo
-    
-    # rules specific to set up fat-based kv_ro (run always)
-    echo ".PHONY: kv_ro_prepare_disk "
-    echo "kv_ro_prepare_disk:"
-    echo "	(cd $DIR && ./make-fat1-image.sh)"
-    echo "	cp $DIR/fat1.img ../disk.img"
-    echo
-fi
-
-# specifics for stackv4 app
-if [[ "`basename $DIR`" == "stackv4" ]]; then
     echo "export NET=direct"
     echo "export DHCP="
 fi

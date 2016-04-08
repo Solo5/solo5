@@ -35,6 +35,7 @@ $(CFG_M_OPAM_D)/lib/libopenlibm.a \
 
 MIRAGE_APP_DEPS += \
 $(CFG_M_OPAM_D)/lib/mirage \
+$(CFG_M_OPAM_D)/lib/mirage-solo5 \
 $(CFG_M_OPAM_D)/lib/mirage-console/libmirage_console_solo5_stubs.a \
 $(CFG_M_OPAM_D)/lib/mirage-block-solo5/libmirage_block_solo5_stubs.a \
 $(CFG_M_OPAM_D)/lib/mirage-net-solo5/libmirage_net_solo5_stubs.a \
@@ -96,42 +97,54 @@ $(CFG_M_OPAM_D)/lib/mirage-net-solo5/libmirage_net_solo5_stubs.a: $(MIRAGE_NET_F
 	(cd $(CFG_M_NET_D) \
 	&& sed s/"CCOpt.*"/"CCOpt:\t$(S5_CFLAGS) -I$(SOLO5_DIR_4_SED)"/g -i _oasis \
 	&& oasis setup \
-	&& opam pin add mirage-net-solo5 . -y \
-	&& opam update mirage-net-solo5	\
-	&& opam upgrade mirage-net-solo5 )
+	&& opam reinstall -y mirage-net-solo5 )
+
+# && opam pin add mirage-net-solo5 . -y \
+# && opam update mirage-net-solo5	\
+# && opam upgrade mirage-net-solo5 )
 
 # block driver for solo5
 $(CFG_M_OPAM_D)/lib/mirage-block-solo5/libmirage_block_solo5_stubs.a: $(MIRAGE_BLOCK_FILES)
 	(cd $(CFG_M_BLOCK_D) \
 	&& sed s/"CCOpt.*"/"CCOpt:\t$(S5_CFLAGS) -I$(SOLO5_DIR_4_SED)"/g -i _oasis \
 	&& oasis setup \
-	&& opam pin add mirage-block-solo5 . -y \
-	&& opam update mirage-block-solo5 \
-	&& opam upgrade mirage-block-solo5 )
+	&& opam reinstall -y mirage-block-solo5 )
+
+# && opam pin add mirage-block-solo5 . -y \
+# && opam update mirage-block-solo5 \
+# && opam upgrade mirage-block-solo5 )
 
 # console driver for solo5
 $(CFG_M_OPAM_D)/lib/mirage-console/libmirage_console_solo5_stubs.a: $(MIRAGE_CONSOLE_FILES)
 	(cd $(CFG_M_CONSOLE_D) \
 	&& sed s/"CCOpt.*"/"CCOpt:\t$(S5_CFLAGS) -I$(SOLO5_DIR_4_SED)"/g -i _oasis \
 	&& oasis setup \
-	&& opam pin add mirage-console . -y \
-	&& opam update mirage-console \
-	&& opam upgrade mirage-console )
+	&& opam reinstall -y mirage-console )
+
+# && opam pin add mirage-console . -y \
+# && opam update mirage-console \
+# && opam upgrade mirage-console )
 
 # the tool to do the build
 $(CFG_M_OPAM_D)/lib/mirage: $(MIRAGE_TOOL_FILES)
 	(cd $(CFG_M_TOOL_D) \
 	&& oasis setup \
-	&& opam pin add mirage . -y \
-	&& opam update mirage \
-	&& opam upgrade mirage )
+	&& opam reinstall -y mirage )
+
+# && opam pin add mirage . -y \
+# && opam update mirage \
+# && opam upgrade mirage )
+
+$(CFG_M_OPAM_D)/lib/mirage-solo5:
+	opam reinstall -y mirage-solo5
 
 # the platform bindings
 $(CFG_M_PLATFORM_D)/solo5-bindings/libsolo5camlbindings.a: $(MIRAGE_PLATFORM_FILES)
 	(cd $(CFG_M_PLATFORM_D) \
 	&& sed s/"^SOLO5_DIR=.*"/"SOLO5_DIR=$(SOLO5_DIR_4_SED)"/g -i solo5-bindings/Makefile \
 	&& sed s/"^OPAM_DIR=.*"/"OPAM_DIR=$(OPAM_DIR_4_SED)"/g -i solo5-bindings/Makefile \
-	&& make -C solo5-bindings)
+	&& make -C solo5-bindings )
+
 
 $(CFG_M_PLATFORM_D)/xen-ocaml/ocaml-src/asmrun/libasmrun.a: $(MIRAGE_XEN_OCAML_FILES)
 	(cd $(CFG_M_PLATFORM_D) && make -C xen-ocaml)
@@ -169,10 +182,12 @@ mirage-console-clean:
 	-opam remove mirage-console -y
 
 mirage-platform-clean:
-	(cd $(CFG_M_PLATFORM_D) \
-	&& make -C solo5-bindings clean \
-	&& make -C xen-ocaml clean\
-	&& make -C xen-posix clean)
+	-opam remove mirage-solo5 -y
+
+# (cd $(CFG_M_PLATFORM_D) \
+# && make -C solo5-bindings clean \
+# && make -C xen-ocaml clean\
+# && make -C xen-posix clean)
 
 mirage-app-clean: $(CFG_M_OPAM_D)/lib/mirage $(CFG_MIRAGE_APP_DIR)/Makefile
 	(cd $(CFG_MIRAGE_APP_DIR) \
