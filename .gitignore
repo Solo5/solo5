@@ -5,3 +5,4 @@ ukvm/ukvm
 kernel/kernel
 kernel/interrupt_vectors.s
 disk.img
+mirage.mk
