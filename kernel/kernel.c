@@ -18,24 +18,24 @@
 
 #include "kernel.h"
 
-static void banner(void)
-{
+
+extern void start_kernel(void);
+void sleep_test(void);
+void blk_test(void);
+
+
+static void banner(void) {
     printf("            |      ___|  \n");
     printf("  __|  _ \\  |  _ \\ __ \\  \n");
     printf("\\__ \\ (   | | (   |  ) | \n");
     printf("____/\\___/ _|\\___/____/  \n");
 }
 
-extern void start_kernel(void);
 
-void sleep_test(void);
-void blk_test(void);
+void kernel_main(uint64_t size, uint64_t kernel_end) {
+    banner();
 
-void kernel_main(uint64_t size, uint64_t kernel_end)
-{
-	banner();
-
-	gdt_init();
+    gdt_init();
     interrupts_init();
     interrupts_enable();
 
@@ -44,15 +44,15 @@ void kernel_main(uint64_t size, uint64_t kernel_end)
     /* ocaml needs floating point */
     sse_enable();
 
-	time_init();
+    time_init();
 
-	//void ping_forever(void);
-	//ping_forever();
+    //void ping_forever(void);
+    //ping_forever();
 
     start_kernel();
 
     //ping_serve();
-	//for(;;);
+    //for(;;);
 
 
 #if 0
