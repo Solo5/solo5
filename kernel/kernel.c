@@ -18,51 +18,55 @@
 
 #include "kernel.h"
 
+static void banner(void)
+{
+    printf("            |      ___|  \n");
+    printf("  __|  _ \\  |  _ \\ __ \\  \n");
+    printf("\\__ \\ (   | | (   |  ) | \n");
+    printf("____/\\___/ _|\\___/____/  \n");
+}
+
 extern void start_kernel(void);
 
 void sleep_test(void);
 void blk_test(void);
 
-void kernel_main(uint32_t arg)
+void kernel_main(uint64_t size, uint64_t kernel_end)
 {
-    volatile int gdb = 1;
-    serial_init();
+	banner();
 
-    printf("            |      ___|  \n");
-    printf("  __|  _ \\  |  _ \\ __ \\  \n");
-    printf("\\__ \\ (   | | (   |  ) | \n");
-    printf("____/\\___/ _|\\___/____/  \n");
-
-    if (!gdb) printk("looping for gdb\n");
-    while ( gdb == 0 ); 
-
-    /* needs to be very early as it clears the bss */
-    mem_init((struct multiboot_info *)((uint64_t)arg));
-
+	gdt_init();
     interrupts_init();
-    /* ocaml needs floating point */
-    sse_enable();
-    time_init();
-
-    pci_enumerate();
-
     interrupts_enable();
 
-#if 0
-    gdb = 0;
-    gdb = 10/gdb;
-#endif
+    mem_init(size, kernel_end);
+
+    /* ocaml needs floating point */
+    sse_enable();
+
+	time_init();
+
+	//void ping_forever(void);
+	//ping_forever();
 
     start_kernel();
+
+    //ping_serve();
+	//for(;;);
+
 
 #if 0
     blk_test();
     sleep_test();
 
-    for(;;)
+    for(;;) {
         ping_serve();  /* does things if network packet comes in */
-#endif
 
+        /* need atomic condition check to do the wait */
+        //kernel_wait();
+    }
+#endif
+    
     printf("Kernel done. \nGoodbye!\n");
     kernel_hang();
 }

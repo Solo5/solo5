@@ -3,20 +3,31 @@
     \__ \ (   | | (   |  ) | 
     ____/\___/ _|\___/____/  
 
-The Solo5/Mirage Unikernel
---------------------------
+The Solo5/Mirage Unikernel on ukvm
+----------------------------------
 
-This repository holds the code for a native x86_64 kernel that, when
-linked against an application becomes a unikernel.  The project goals
-are to develop a small, understandable base from which research in the
-unikernel space can be conducted.  We don't want to implement any
-general purpose OS component (e.g., threads, address spaces, etc.)
-without thinking about its value in a unikernel environment.
+The `ukvm-mirage` branch contains the base kernel and the necessary
+build environment to link Mirage applications into an executable Solo5
+unikernel.  Rather than producing a target that runs on KVM/QEMU like
+the other branches, there is a specialized "unikernel monitor" called
+`ukvm` that is also compiled in the tree.
 
-The `mirage` branch contains the base kernel and the necessary build
-environment to link Mirage applications into an executable Solo5
-unikernel.  Other repositories that are needed to run Mirage/Solo5
-unikernels are:
+`ukvm` runs as a Linux process and uses KVM.  The goal of `ukvm` is to
+be a small, modular monitor, in which its functionality and interfaces
+are customized to the unikernel that is being built.  In other words,
+the unikernel monitor exhibits the characteristic of "only what is
+needed" for the unikernel to run.  It has the potential to provide a
+thinner interface to the guest unikernel (thinner than either a
+container or a VM), a simpler I/O interface (e.g., packet send rather
+than virtio), and better performance due to its simplicity (e.g., fast
+boot).
+
+So far, we have a small monitor implementation that is not yet
+modular, but demonstrates some dramatically simple interfaces and a
+fast boot time.
+
+Other repositories that are needed to run Mirage/Solo5 unikernels on
+ukvm are:
 
     https://github.com/djwillia/mirage-platform
     https://github.com/djwillia/mirage
@@ -28,38 +39,34 @@ unikernels are:
     https://github.com/djwillia/mirage-entropy
     https://github.com/djwillia/ocaml-nocrypto 
 
-The kernel should run on any x86_64 hypervisor that uses virtio
-devices.  At this point, we have run it on QEMU/KVM and VirtualBox.
-Output is through the serial port.
+Trying out Solo5/Mirage on ukvm with Docker
+-------------------------------------------
 
-Trying out Solo5/Mirage with Docker
------------------------------------
+We have packaged the Solo5/Mirage on ukvm development environment with
+Docker, so now it's easy to try out Solo5/Mirage on ukvm !  First, get
+the container from Docker Hub:
 
-We have packaged the Solo5/Mirage development environment with Docker,
-so now it's easy to try out Solo5/Mirage!  First, get the container
-from Docker Hub:
-
-    docker pull djwillia/solo5-mirage
+    docker pull djwillia/solo5-mirage-ukvm
 
 Or, build it yourself from the provided Dockerfile.  
 
     cd docker
-    docker build -t djwillia/solo5-mirage .
+    docker build -t djwillia/solo5-mirage-ukvm .
 
 Once you have the image, run it as follows:
 
-    docker run -d --privileged --name solo5-mirage -t djwillia/solo5-mirage
+    docker run -d --privileged --name solo5-mirage-ukvm -t djwillia/solo5-mirage-ukvm
 
 We run the container as a privileged container because it will be
 starting configuring the virtual network and starting VMs
-(specifically Solo5/Mirage on KVM/QEMU).  A `docker ps` will show an
-instance of the `solo5-mirage` image running.  We can get a login
+(specifically Solo5/Mirage on ukvm).  A `docker ps` will show an
+instance of the `solo5-mirage-ukvm` image running.  We can get a login
 shell (as user/pass solo5/solo5) in the container using:
 
-    docker exec -it solo5-mirage /bin/bash -l
+    docker exec -it solo5-mirage-ukvm /bin/bash -l
 
 You can now build and run several Mirage applications as Solo5
-unikernels on KVM/QEMU.  First enter the Solo5 directory:
+unikernels on ukvm.  First enter the Solo5 directory:
 
     cd ~/solo5
     
@@ -77,14 +84,14 @@ For more information about these applications, check out the [Mirage
 tutorials](https://mirage.io/wiki/hello-world). Run the application
 with:
 
-    make kvm
+    make run
 
-When you are satisfied with the Mirage application exit KVM/QEMU
-running Solo5 in the terminal with `C-a x`.  Even if you exit these
-terminals (`C-d`), the container will continue to run until you kill
-it (in the host) with:
+When you are satisfied with the Mirage application, exit ukvm running
+Solo5 in the terminal with `C-c`.  Even if you exit these terminals
+(`C-d`), the container will continue to run until you kill it (in the
+host) with:
 
-    sudo docker kill solo5-mirage
+    sudo docker kill solo5-mirage-ukvm
 
 
 Building and running yourself
@@ -110,9 +117,8 @@ the base kernel:
 
     sudo apt-get install -y build-essential xorriso bridge-utils kvm iputils-ping
 
-The default scripts will make KVM/QEMU create an interface veth0 and
-add it to a bridge named virbr0.  The base Solo5 kernel will have an
-IP address of 10.0.0.2 and can be pinged from the host.
+The base Solo5 kernel will have an IP address of 10.0.0.2 and can be
+pinged from the host.
 
 Configure the network by running:
 
@@ -136,7 +142,7 @@ of other dependencies, mostly for OCaml:
 Then, configure OPAM as follows, and install packages from OPAM:
 
     opam init -a
-    opam switch 4.01.0
+    opam switch 4.02.3
     echo "eval \`opam config env\`" >> ~/.profile
     eval `opam config env`
     opam install -y oasis depext
@@ -165,55 +171,15 @@ the following lines):
     make config_stackv4
     make config_static_web
 
-To just build the kernel.iso, which can then be loaded into
-KVM/QEMU or VirtualBox, type
+To build the unikernel and run in ukvm, type
 
-    make 
-
-Or, to build the unikernel and run in KVM/QEMU, type
-
-    make kvm
-
-Debugging
----------
-
-The most convenient way to debug is using QEMU with GDB.  This is
-tricky because gdb doesn't like the mode switching between the 32-bit
-loader and the 64-bit kernel.  So we basically need to get the kernel
-to a point where we can attach where the kernel is already in 64-bit
-mode.  My trick is to have an infinite loop that we break by setting a
-volatile int variable (see kernel.c).
-
-Start qemu with -s:
-
-    qemu-system-x86_64 -s -nographic -cdrom kernel.iso
-
-*or*
-
-    make qemu
-
-*or*
-
-    make kvm
-
-In another terminal, start gdb:
-
-    gdb kernel/kernel
-    target remote localhost:1234
-    set gdb=1
-    c
-
-Or, I have that in a command file:
-
-    gdb kernel/kernel --command gdb.txt
-
-If the kernel crashed in an interrupt handler, you can find out where
-the interrupt came from in gdb:
-
-    x/1x interrupt_stack_page+4040
+    make run
 
 Acknowledgements
 ----------------
+
+`ukvm` was written by Dan Williams and Ricardo Koller.  The Solo5
+kernel was written by Dan Williams.
 
 This kernel got its start following the bare bones kernel tutorial at
 <http://wiki.osdev.org/Bare_Bones>

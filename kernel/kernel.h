@@ -28,8 +28,6 @@
 #include <stdint.h>
 #include <stdarg.h>
 #include <limits.h>
-#include "../loader/multiboot.h"
-#include "../loader/loader_info.h"
 
 /* alignment macros */
 #define ALIGN_4K __attribute__((aligned(0x1000)))
@@ -50,6 +48,20 @@ void kernel_wait(void);
 void kernel_waitloop(void);
 void kernel_busyloop(void);
 
+/* gdt.c: initialize segment descriptors */
+void gdt_init(void);
+void gdt_load(uint64_t gdtptr);
+void tss_load(uint16_t tss);
+#define GDT_NUM_ENTRIES 5
+#define GDT_DESC_NULL 0
+#define GDT_DESC_CODE 1
+#define GDT_DESC_DATA 2
+#define GDT_DESC_TSS_LO  3
+#define GDT_DESC_TSS_HI  4
+#define GDT_DESC_TSS  GDT_DESC_TSS_LO
+#define GDT_DESC_OFFSET(n) ((n) * 0x8)
+#define TSS_IST_INDEX 0x1 /* the "known good" stack in the TSS */
+
 /* interrupts.c: interrupt handling */
 void interrupts_init(void);
 void interrupts_enable(void);
@@ -60,7 +72,7 @@ void irq_clear(uint8_t irq);
 void sse_enable(void);
 
 /* mem.c: low-level page alloc routines */
-void mem_init(struct multiboot_info *mb);
+void mem_init(uint64_t size, uint64_t _kernel_end);
 uint64_t mem_max_addr(void);
 uint64_t read_cr3(void);
 
@@ -74,23 +86,13 @@ uint64_t time_monotonic_ms(void);
 uint64_t time_monotonic_ns(void);
 uint64_t rdtsc(void);
 uint64_t time_counts_since_startup(void);
-void sleep(uint32_t ms);
-
-/* printk.c: only has a few options: 
- *  %c   : character
- *  %s   : string
- *  %d   : int32_t in decimal
- *  %b   : uint8_t in hex
- *  %x   : uint16_t in hex
- *  %lx  : uint32_t in hex
- *  %llx : uint64_t in hex 
- */
-void printk(char *fmt, ...);
+int sleep(uint32_t ms);
 
 /* ee_printf.c: a third-party printf slightly modified and with
- *              snprintf added 
+ *              sprintf added 
  */
 int printf(const char *fmt, ...);
+int printk(const char *fmt, ...);
 int sprintf(char *str, const char *format, ...);
 int snprintf(char *str, size_t size, const char *format, ...);
 int vsnprintf(char *buf, size_t size, const char *fmt, va_list args);
@@ -173,8 +175,8 @@ static inline uint64_t inq(uint16_t port_lo){
 
 
 #define PANIC(x...) do {                                   \
-        printk("PANIC: %s:%d\n", __FILE__, __LINE__);      \
-        printk(x);                                         \
+        printf("PANIC: %s:%d\n", __FILE__, __LINE__);      \
+        printf(x);                                         \
         kernel_hang();                                     \
     } while(0)
 
@@ -183,9 +185,9 @@ static inline uint64_t inq(uint16_t port_lo){
             PANIC("assertion failed: \"%s\"", #e);  \
     } while(0)
 
-#define dprintk(x...) do {                      \
+#define dprintf(x...) do {                      \
         if (dbg) {                              \
-            printk(x);                          \
+            printf(x);                          \
         }                                       \
     }while(0)
 
@@ -232,5 +234,6 @@ void* memalign(size_t alignment, size_t bytes);
 #include "app_undefined.h"
 #include "app_stubs.h"
 
+#include "../ukvm/ukvm.h"
 #endif
 

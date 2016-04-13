@@ -15,48 +15,26 @@
 # TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 # PERFORMANCE OF THIS SOFTWARE.
 
-all: kernel.iso
-
-.PHONY: loader
-loader:
-	make -C loader
+all: kernel ukvm
 
 .PHONY: kernel
 kernel: 
 	make -C kernel
 
-kernel.iso: loader kernel iso/boot/grub/menu.lst Makefile
-	@cp loader/loader iso/boot/
-	@cp kernel/kernel iso/boot/
-	@xorriso -as mkisofs -R -b boot/grub/stage2_eltorito -no-emul-boot \
-		-boot-load-size 4 -quiet -boot-info-table -o kernel.iso iso
+.PHONY: ukvm
+ukvm:
+	make -C ukvm
+
+run: ukvm kernel disk.img
+	sudo time -f"%E elapsed" ukvm/ukvm kernel/kernel disk.img tap100
 
 # nothing needs to be on the disk image, it just needs to exist
 disk.img:
 	dd if=/dev/zero of=disk.img bs=1M count=1
 
-# The option:
-#     -net dump,file=net.pcap
-# dumps the network output to a file.  It can be read with:
-#     tcpdump -nr net.pcap
-# Use the option 
-#     -nographic 
-# to have serial redirected to console like Xen HVM, and use C-a x to
-# exit QEMU afterwards
-qemu: kernel.iso disk.img
-	sudo qemu-system-x86_64 -s -nographic -name foo -m 1024 -cdrom kernel.iso -net nic,model=virtio -net tap,ifname=veth0,script=kvm-br.bash -drive file=disk.img,if=virtio -boot d
-
-kvm: kernel.iso disk.img
-	sudo kvm -s -nographic -name foo -m 1024 -cdrom kernel.iso -net nic,model=virtio -net tap,ifname=veth0,script=kvm-br.bash -drive file=disk.img,if=virtio -boot d
-
-xen: kernel.iso
-	xl create -c kernel.cfg
-
 clean:
 	@echo -n cleaning...
-	@make -C loader clean
 	@make -C kernel clean
-	@rm -f kernel.iso iso/boot/kernel iso/boot/loader
 	@echo done
 
 

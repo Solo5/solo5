@@ -42,6 +42,7 @@ void *_xmalloc(size_t size, size_t align) {
     return memalign(align, size);
 }
 void do_exit(void) {
+    outl(UKVM_PORT_DBG_STACK, 0);
     printf("Mirage on Solo5 exiting... Goodbye!\n");
     kernel_hang();
 }

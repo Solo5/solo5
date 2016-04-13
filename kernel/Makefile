@@ -44,18 +44,14 @@ COBJS=\
 $(MODULE_OBJS) \
 $(APP_OBJS) \
 ee_printf.o \
+gdt.o \
 interrupts.o \
 kernel.o \
 lib.o \
 malloc.o \
 mem.o \
-net.o \
-pci.o \
-printk.o \
-serial.o \
 stubs.o \
-time.o \
-virtio.o
+time.o
 
 SOBJS=\
 kernel_s.o \
@@ -64,18 +60,7 @@ interrupts_s.o
 
 HEADERS=\
 kernel.h \
-../loader/multiboot.h \
-../loader/loader_info.h
-
-.PHONY: undef
-undef: 
-	rm -f undefined.o
-	echo > undefined.c
-	bash gen_undefined.bash > undefined.c
-
-.PHONY: kernel.ld
-kernel.ld: 
-	bash gen_ld.bash > kernel.ld
+ukvm.h
 
 interrupt_vectors.s: interrupts.h
 	bash gen_interrupts.bash > interrupt_vectors.s
