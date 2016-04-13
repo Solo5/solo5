@@ -153,8 +153,11 @@ Solo5:
 
     mkdir ~/solo5-mirage
     cd ~/solo5-mirage
-    for d in mirage mirage-block-solo5 mirage-console mirage-net-solo5 mirage-platform mirage-skeleton mirage-www mirage-entropy mirage-bootvar-solo5 ocaml-nocrypto; do
-        git clone https://github.com/djwillia/$d.git;
+    && for d in mirage-block-solo5 mirage-net-solo5; do
+        git clone --branch ukvm https://github.com/djwillia/$d.git;
+    done
+    for d in mirage mirage-console mirage-platform mirage-skeleton mirage-www mirage-entropy mirage-bootvar-solo5 ocaml-nocrypto; do
+       git clone https://github.com/djwillia/$d.git;
     done
 
 Now we are ready to configure a unikernel to run a Mirage application.
