@@ -119,14 +119,16 @@ extern uint8_t virtio_net_mac[];
 uint8_t *virtio_net_pkt_get(int *size);  /* get a pointer to recv'd data */
 void virtio_net_pkt_put(void);      /* we're done with recv'd data */
 int virtio_net_xmit_packet(void *data, int len);
+int solo5_net_write_sync(uint8_t *data, int n);
+int solo5_net_read_sync(uint8_t *data, int *n);
+char *solo5_net_mac_str(void);
 
-struct virtio_blk_req *virtio_blk_flush(uint64_t sector, void *data, int len);
-struct virtio_blk_req *virtio_blk_write(uint64_t sector, void *data, int len);
-struct virtio_blk_req *virtio_blk_read(uint64_t sector, int len);
-int virtio_blk_write_sync(uint64_t sector, void *data, int len);
-int virtio_blk_read_sync(uint64_t sector, void *data, int *len);
-#define VIRTIO_BLK_SECTOR_SIZE    512
-extern uint64_t virtio_blk_sectors;
+/* block interface */
+int solo5_blk_write_sync(uint64_t sec, uint8_t *data, int n);
+int solo5_blk_read_sync(uint64_t sec, uint8_t *data, int *n);
+int solo5_blk_sector_size(void);
+uint64_t solo5_blk_sectors(void);
+int solo5_blk_rw(void);
 
 void handle_virtio_interrupt(void);
 

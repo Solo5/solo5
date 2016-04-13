@@ -77,7 +77,7 @@
 #define VIRTIO_BLK_S_IOERR  1
 #define VIRTIO_BLK_S_UNSUPP 2
 
-uint64_t virtio_blk_sectors;
+static uint64_t virtio_blk_sectors;
 
 
 #define PKT_BUFFER_LEN 1514
@@ -88,6 +88,7 @@ struct pkt_buffer {
 struct pkt_buffer xmit_bufs[128];
 struct pkt_buffer recv_bufs[128];
 
+#define VIRTIO_BLK_SECTOR_SIZE    512
 struct virtio_blk_hdr {
     uint32_t type;
     uint32_t ioprio;
@@ -227,7 +228,9 @@ struct __attribute__((__packed__)) virtio_net_hdr {
 static struct virtio_net_hdr virtio_net_hdr = {0};
 static uint16_t virtio_net_pci_base; /* base in PCI config space */
 static uint16_t virtio_blk_pci_base; /* base in PCI config space */
+
 uint8_t virtio_net_mac[6];
+static char virtio_net_mac_str[18];
 
 static uint32_t xmit_next_avail = 0;
 static uint32_t recv_next_avail = 0;
@@ -527,14 +530,14 @@ static struct virtio_blk_req *virtio_blk_op(uint32_t type,
 }
 
 #if 0
-struct virtio_blk_req *virtio_blk_flush(uint64_t sector){
+static struct virtio_blk_req *virtio_blk_flush(uint64_t sector){
     return virtio_blk_op(VIRTIO_BLK_T_FLUSH, sector, data, len);
 }
 #endif
-struct virtio_blk_req *virtio_blk_write(uint64_t sector, void *data, int len){
+static struct virtio_blk_req *virtio_blk_write(uint64_t sector, void *data, int len){
     return virtio_blk_op(VIRTIO_BLK_T_OUT, sector, data, len);
 }
-struct virtio_blk_req *virtio_blk_read(uint64_t sector, int len) {
+static struct virtio_blk_req *virtio_blk_read(uint64_t sector, int len) {
     return virtio_blk_op(VIRTIO_BLK_T_IN, sector, NULL, len);
 }
 
@@ -618,7 +621,14 @@ void virtio_config_network(uint16_t base) {
         printk("%b ", virtio_net_mac[i]);
     }
     printk("\n");
-
+    sprintf(virtio_net_mac_str, "%02x:%02x:%02x:%02x:%02x:%02x",
+            virtio_net_mac[0],
+            virtio_net_mac[1],
+            virtio_net_mac[2],
+            virtio_net_mac[3],
+            virtio_net_mac[4],
+            virtio_net_mac[5]);
+    
     /* check that 2 256 entry virtqueues are here (recv and transmit) */
     for (i = 0; i > 2; i++) {
         outw(base + VIRTIO_PCI_QUEUE_SEL, i);
@@ -643,7 +653,7 @@ void virtio_config_network(uint16_t base) {
 
 static uint8_t blk_sector[VIRTIO_BLK_SECTOR_SIZE];
 
-int virtio_blk_write_sync(uint64_t sector, void *data, int len) {
+static int virtio_blk_write_sync(uint64_t sector, void *data, int len) {
     struct virtio_blk_req *req;
     int ret = -1;
 
@@ -663,7 +673,7 @@ int virtio_blk_write_sync(uint64_t sector, void *data, int len) {
     return ret;
 }
 
-int virtio_blk_read_sync(uint64_t sector, void *data, int *len) {
+static int virtio_blk_read_sync(uint64_t sector, void *data, int *len) {
     struct virtio_blk_req *req;
     int ret = -1;
 
@@ -742,4 +752,48 @@ uint8_t *virtio_net_pkt_get(int *size) {
 }
 void virtio_net_pkt_put(void) {
     recv_load_desc();
+}
+
+
+
+int solo5_blk_write_sync(uint64_t sec, uint8_t *data, int n) {
+    return virtio_blk_write_sync(sec, data, n);
+}
+int solo5_blk_read_sync(uint64_t sec, uint8_t *data, int *n) {
+    return virtio_blk_read_sync(sec, data, n);
+}
+int solo5_blk_sector_size(void) {
+    return VIRTIO_BLK_SECTOR_SIZE;
+}
+uint64_t solo5_blk_sectors(void) {
+    return virtio_blk_sectors;
+}
+int solo5_blk_rw(void) {
+    return 1;
+}
+
+
+int solo5_net_write_sync(uint8_t *data, int n) {
+    return virtio_net_xmit_packet(data, n);
+}
+int solo5_net_read_sync(uint8_t *data, int *n) {
+    uint8_t *pkt;
+    int len = *n;
+    
+    pkt = virtio_net_pkt_get(&len);
+    if ( !pkt )
+        return -1;
+
+    assert(len <= *n);
+    *n = len;
+
+    /* also, it's clearly not zero copy */
+    memcpy(data, pkt, len);
+
+    virtio_net_pkt_put();
+
+    return 0;
+}
+char *solo5_net_mac_str(void) {
+    return virtio_net_mac_str;
 }
