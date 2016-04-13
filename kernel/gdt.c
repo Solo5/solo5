@@ -26,25 +26,25 @@
 #define GDT_DESC_DATA_VAL (0x00cf92000000ffff)
 
 /* present (15), type: TSS available (8-11) limit (0-15) 0x67 */
-#define GDT_DESC_TSS_LO_VAL(t)											\
-	(((0x00008900														\
-	   | ((uint64_t)(t) & 0xff000000)									\
-	   | (((uint64_t)(t) >> 16) & 0xff)) << 32)							\
-	 | (0x67 | ((uint64_t)(t) << 16)))
+#define GDT_DESC_TSS_LO_VAL(t)                         \
+    (((0x00008900                                      \
+       | ((uint64_t)(t) & 0xff000000)                  \
+       | (((uint64_t)(t) >> 16) & 0xff)) << 32)        \
+     | (0x67 | ((uint64_t)(t) << 16)))
 
 struct __attribute__((__packed__)) tss {
     uint32_t reserved;
     uint64_t rsp0;
-	uint64_t rsp1;
-	uint64_t rsp2;
+    uint64_t rsp1;
+    uint64_t rsp2;
     uint64_t reserved2;
-	uint64_t ist1;
-	uint64_t ist2;
-	uint64_t ist3;
-	uint64_t ist4;
-	uint64_t ist5;
-	uint64_t ist6;
-	uint64_t ist7;
+    uint64_t ist1;
+    uint64_t ist2;
+    uint64_t ist3;
+    uint64_t ist4;
+    uint64_t ist5;
+    uint64_t ist6;
+    uint64_t ist7;
     uint64_t reserved3;
     uint16_t reserved4;
     uint16_t iomap_base;
@@ -81,6 +81,6 @@ void gdt_init(void) {
     gdt[GDT_DESC_TSS_LO] = GDT_DESC_TSS_LO_VAL(&tss);
     gdt[GDT_DESC_TSS_HI] = 0;
 
-	gdt_load((uint64_t)&gdtptr);
-	tss_load((uint16_t)GDT_DESC_OFFSET(GDT_DESC_TSS));
+    gdt_load((uint64_t)&gdtptr);
+    tss_load((uint16_t)GDT_DESC_OFFSET(GDT_DESC_TSS));
 }
