@@ -46,6 +46,7 @@ $(APP_OBJS) \
 ee_printf.o \
 gdt.o \
 interrupts.o \
+io.o \
 kernel.o \
 lib.o \
 malloc.o \

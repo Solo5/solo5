@@ -735,10 +735,11 @@ void ukvm_port_netwrite(uint8_t * mem, void *data, int netfd)
     struct ukvm_netwrite *wr = (struct ukvm_netwrite *) (mem + mem_off);
     uint8_t *ptr = mem + (uint64_t) wr->data;
     int i;
-
-    wr->ret = write(netfd, mem + (uint64_t) wr->data, wr->len);
-    if (wr->ret < 0)
-        err(1, "Send failed");
+    int ret;
+    
+    wr->ret = 0;
+    ret = write(netfd, mem + (uint64_t) wr->data, wr->len);
+    assert(wr->len == ret);
 }
 
 

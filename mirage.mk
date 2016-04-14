@@ -4,6 +4,8 @@
 CFG_MIRAGE_APP_DIR=/home/solo5/solo5-mirage/mirage-skeleton/console
 CFG_MIRAGE_APP_FILES=\
 /home/solo5/solo5-mirage/mirage-skeleton/console/config.ml \
+/home/solo5/solo5-mirage/mirage-skeleton/console/key_gen.ml \
+/home/solo5/solo5-mirage/mirage-skeleton/console/main.ml \
 /home/solo5/solo5-mirage/mirage-skeleton/console/unikernel.ml \
 
 CFG_MIRAGE_APP_LIBS=\

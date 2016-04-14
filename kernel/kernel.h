@@ -110,30 +110,17 @@ int abs(int j);
 long int labs(long int j);
 long long int llabs(long long int j);
 
-/* pci.c: only enumerate for now */
-void pci_enumerate(void);
-
-/* virtio.c: mostly net for now */
-void virtio_config_network(uint16_t base);
-void virtio_config_block(uint16_t base);
-
-extern uint8_t virtio_net_mac[];
-uint8_t *virtio_net_pkt_get(int *size);  /* get a pointer to recv'd data */
-void virtio_net_pkt_put(void);      /* we're done with recv'd data */
-int virtio_net_xmit_packet(void *data, int len);
-
-struct virtio_blk_req *virtio_blk_flush(uint64_t sector, void *data, int len);
-struct virtio_blk_req *virtio_blk_write(uint64_t sector, void *data, int len);
-struct virtio_blk_req *virtio_blk_read(uint64_t sector, int len);
-int virtio_blk_write_sync(uint64_t sector, void *data, int len);
-int virtio_blk_read_sync(uint64_t sector, void *data, int *len);
-#define VIRTIO_BLK_SECTOR_SIZE    512
-extern uint64_t virtio_blk_sectors;
-
-void handle_virtio_interrupt(void);
-
-/* net.c: ping for now */
-void ping_serve(void);
+/* io.c: ukvm device interface stubs */
+/*       ukvm net interface */
+int solo5_net_write_sync(uint8_t *data, int n);
+int solo5_net_read_sync(uint8_t *data, int *n);
+char *solo5_net_mac_str(void);
+/*       ukvm net interface */
+int solo5_blk_write_sync(uint64_t sec, uint8_t *data, int n);
+int solo5_blk_read_sync(uint64_t sec, uint8_t *data, int *n);
+int solo5_blk_sector_size(void);
+uint64_t solo5_blk_sectors(void);
+int solo5_blk_rw(void);
 
 
 /* accessing devices via port space */
