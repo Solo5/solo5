@@ -24,10 +24,7 @@ RUN cd /home/solo5/solo5 \
 # Get other repositories
 RUN mkdir /home/solo5/solo5-mirage \
     && cd /home/solo5/solo5-mirage \
-    && for d in mirage-block-solo5 mirage-net-solo5; do \
-        git clone --branch ukvm https://github.com/djwillia/$d.git; \
-    done \
-    && for d in mirage mirage-console mirage-platform mirage-skeleton mirage-www mirage-entropy mirage-bootvar-solo5 ocaml-nocrypto; do \
+    && for d in mirage mirage-block-solo5 mirage-net-solo5 mirage-console mirage-platform mirage-skeleton mirage-www mirage-entropy mirage-bootvar-solo5 ocaml-nocrypto; do \
        git clone https://github.com/djwillia/$d.git; \
     done
 
