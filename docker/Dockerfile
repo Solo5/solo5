@@ -19,7 +19,7 @@ RUN opam init -a \
 
 # Get Solo5/Mirage 
 RUN cd /home/solo5/solo5 \
-    && git pull && git checkout ukvm-mirage
+    && git pull && git checkout ukvm-mirage && git pull
 
 # Get other repositories
 RUN mkdir /home/solo5/solo5-mirage \
