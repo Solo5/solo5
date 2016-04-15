@@ -357,7 +357,7 @@ static void setup_system_page_tables(struct kvm_sregs *sregs, uint8_t * mem)
     uint64_t *pdpte = (uint64_t *) (mem + BOOT_PDPTE);
 
     memset(mem + BOOT_PML4, 0, 4096);
-    memset(mem + BOOT_PML4, 0, 4096);
+    memset(mem + BOOT_PDPTE, 0, 4096);
 
     *pml4 = BOOT_PDPTE | 3;
     *pdpte = 0x83;
