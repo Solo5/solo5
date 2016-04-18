@@ -95,7 +95,8 @@ struct ukvm_blkinfo blkinfo;
  */
 
 
-#define GUEST_SIZE  0x20000000	// 512 MBs
+#define GUEST_SIZE      0x20000000 // 512 MBs
+#define GUEST_PAGE_SIZE 0x200000   // 2 MB pages in guest
 
 #define BOOT_IST    0x3000
 #define BOOT_TSS    0x2000
@@ -106,7 +107,8 @@ struct ukvm_blkinfo blkinfo;
 
 /* Puts PML4 right after zero page but aligned to 4k */
 #define BOOT_PML4    0x9000
-#define BOOT_PDPTE    0xA000
+#define BOOT_PDPTE   0xA000
+#define BOOT_PDE     0xB000
 
 #define BOOT_GDT_NULL    0
 #define BOOT_GDT_CODE    1
@@ -355,12 +357,25 @@ static void setup_system_page_tables(struct kvm_sregs *sregs, uint8_t * mem)
 {
     uint64_t *pml4 = (uint64_t *) (mem + BOOT_PML4);
     uint64_t *pdpte = (uint64_t *) (mem + BOOT_PDPTE);
+    uint64_t *pde = (uint64_t *) (mem + BOOT_PDE);
+    uint64_t paddr;
 
-    memset(mem + BOOT_PML4, 0, 4096);
-    memset(mem + BOOT_PDPTE, 0, 4096);
+    /*
+     * For simplicity we currently use 2MB pages and only a single
+     * PML4/PDPTE/PDE.  Sanity check that the guest size is a multiple of the
+     * page size and will fit in a single PDE (512 entries).
+     */
+    assert((GUEST_SIZE & (GUEST_PAGE_SIZE - 1)) == 0);
+    assert(GUEST_SIZE <= (GUEST_PAGE_SIZE * 512));
 
-    *pml4 = BOOT_PDPTE | 3;
-    *pdpte = 0x83;
+    memset(pml4, 0, 4096);
+    memset(pdpte, 0, 4096);
+    memset(pde, 0, 4096);
+
+    *pml4 = BOOT_PDPTE | (X86_PDPT_P | X86_PDPT_RW);
+    *pdpte = BOOT_PDE | (X86_PDPT_P | X86_PDPT_RW);
+    for (paddr = 0; paddr < GUEST_SIZE; paddr += GUEST_PAGE_SIZE, pde++)
+        *pde = paddr | (X86_PDPT_P | X86_PDPT_RW | X86_PDPT_PS);
 
     sregs->cr3 = BOOT_PML4;
     sregs->cr4 |= X86_CR4_PAE;

@@ -37,4 +37,14 @@
 #define X86_CR4_PAE_BIT		5 /* enable physical address extensions */
 #define X86_CR4_PAE		_BITUL(X86_CR4_PAE_BIT)
 
+/*
+ * Intel long mode page directory/table entries
+ */
+#define X86_PDPT_P_BIT          0 /* Present */
+#define X86_PDPT_P              _BITUL(X86_PDPT_P_BIT)
+#define X86_PDPT_RW_BIT         1 /* Writable */
+#define X86_PDPT_RW             _BITUL(X86_PDPT_RW_BIT)
+#define X86_PDPT_PS_BIT         7 /* Page size */
+#define X86_PDPT_PS             _BITUL(X86_PDPT_PS_BIT)
+
 #endif
