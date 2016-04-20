@@ -27,7 +27,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdarg.h>
-#include <limits.h>
+//#include <limits.h>
 
 /* alignment macros */
 #define ALIGN_4K __attribute__((aligned(0x1000)))
@@ -217,9 +217,6 @@ void  free(void *ptr);
 void *sbrk(intptr_t increment);
 void* memalign(size_t alignment, size_t bytes);
 
-
-#include "app_undefined.h"
-#include "app_stubs.h"
 
 #include "../ukvm/ukvm.h"
 #endif

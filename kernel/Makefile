@@ -15,34 +15,23 @@
 # TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 # PERFORMANCE OF THIS SOFTWARE.
 
-include Makefile.solo5
-
-LDFLAGS64=-ffreestanding -O2 -nostdlib -lgcc -z max-page-size=0x1000 -static -fno-PIC
-LDLIBS64=-lgcc
-
-all: kernel
-
-SOLO5_DIR=$(abspath .)
-SOLO5_H=$(SOLO5_DIR)/kernel.h
-
-MODULE_CFLAGS=
-MODULE_OBJS=
-MODULE_HFILES=
-MODULE_CLEAN=
-
-MODULE_DIR=lib
-#include $(MODULE_DIR)/Makefile.openlibm
-
-APP_OBJS=app_undefined.o
-APP_LIBS=
-APP_CLEAN=
-include Makefile.app
-
-S5_CFLAGS += $(MODULE_CFLAGS)
+AS=as
+CC=gcc
+LD=ld
+# Ensure no host headers or libraries are used when building, with the
+# exception of:
+#   - Standard C headers required by C89/C99. -nostdinc removes access to these
+#     so get it back by asking GCC for its installation directory.
+#   - The static libgcc.a (compiler runtime) installed by the host GCC.
+GCC_INSTALL_DIR=$(shell LANG=C gcc -print-search-dirs | sed -n -e 's/install: \(.*\)/\1/p')
+MD_CFLAGS=-nostdinc -isystem $(GCC_INSTALL_DIR)include \
+	  -ffreestanding -mno-red-zone -mno-3dnow
+LDFLAGS=-nostdlib -z max-page-size=0x1000 -static
+LDLIBS=$(shell gcc -print-libgcc-file-name)
+# Platform-independent CFLAGS
+CFLAGS=$(MD_CFLAGS) -std=gnu99 -Wall -Wextra -Werror -O2 -g
 
 COBJS=\
-$(MODULE_OBJS) \
-$(APP_OBJS) \
 ee_printf.o \
 gdt.o \
 interrupts.o \
@@ -63,25 +52,25 @@ HEADERS=\
 kernel.h \
 ukvm.h
 
+TESTS=test_hello.bin
+
+all: solo5.o $(TESTS)
+
 interrupt_vectors.s: interrupts.h
 	bash gen_interrupts.bash > interrupt_vectors.s
 
 %_s.o: %.s interrupt_vectors.s
-	$(S5_AS) $< -o $@
-
-.PHONY: app_and_undef
-app_and_undef:
-	bash gen_app_and_undef.bash
+	$(AS) $< -o $@
 
 %.o: %.c $(HEADERS)
-	$(S5_GCC) $(S5_CFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) -c $< -o $@
 
+%.bin: %.o solo5.o solo5.lds
+	$(LD) -T solo5.lds $(LDFLAGS) -o $@ solo5.o $< $(LDLIBS)
 
+solo5.o: $(COBJS) $(SOBJS)
+	$(LD) -r -o $@ $(COBJS) $(SOBJS)
 
-kernel: Makefile kernel.ld $(COBJS) $(SOBJS) 
-	$(S5_LD) -T kernel.ld $(LDFLAGS64) -o $@ $(COBJS) $(SOBJS) $(LDLIBS64) $(APP_LIBS) 
-
-kernel_clean:
-	@rm -f *.o kernel 
-
-clean: $(APP_CLEAN) $(MODULE_CLEAN) kernel_clean
+.PHONY: clean
+clean:
+	$(RM) *.o interrupt_vectors.s $(TESTS)

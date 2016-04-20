@@ -1033,7 +1033,7 @@ int sprintf(char *str, const char *fmt, ...){
 	int ret;
 	
     va_start(args, fmt);
-    ret = vsnprintf(str, INT_MAX, fmt, args);
+    ret = vsnprintf(str, SIZE_MAX, fmt, args);
     va_end(args);
 
     return ret;

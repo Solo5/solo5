@@ -2,7 +2,7 @@
 *.swp
 *.pcap
 ukvm/ukvm
-kernel/kernel
+kernel/*.bin
 kernel/interrupt_vectors.s
 disk.img
 mirage.mk
