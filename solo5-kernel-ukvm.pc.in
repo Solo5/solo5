@@ -2,6 +2,7 @@ prefix=${pcfiledir}/../..
 exec_prefix=${prefix}
 includedir=${prefix}/include/solo5-kernel-ukvm/include
 libdir=${exec_prefix}/lib/solo5-kernel-ukvm
+linkscript=${libdir}/solo5.lds
 
 Name: solo5-kernel-ukvm
 Version: 0.1
