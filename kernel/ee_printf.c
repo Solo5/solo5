@@ -29,6 +29,7 @@
 
 */
 #include "kernel.h"
+#include "ukvm.h"
 
 #undef HAS_FLOAT
 #define ZEROPAD  	(1<<0)	/* Pad with zero */

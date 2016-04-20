@@ -36,3 +36,32 @@ disk.img:
 clean:
 	make -C kernel clean
 	make -C ukvm clean
+	$(RM) solo5-kernel-ukvm.pc
+
+PREFIX?=/nonexistent # Fail if not run from OPAM
+OPAM_INCDIR=$(PREFIX)/include/solo5-kernel-ukvm/include
+OPAM_LIBDIR=$(PREFIX)/lib/solo5-kernel-ukvm
+OPAM_BINDIR=$(PREFIX)/bin
+
+# We want the MD CFLAGS in the .pc file, where they can be (eventually) picked
+# up by the Mirage tool. XXX We may want to pick LDLIBS and LDFLAGS also.
+KERNEL_MD_CFLAGS=$(shell make -sC kernel print-md-cflags)
+solo5-kernel-ukvm.pc: solo5-kernel-ukvm.pc.in
+	sed <$< > $@ \
+	    -e 's#!CFLAGS!#$(KERNEL_MD_CFLAGS)#g;'
+
+.PHONY: opam-install
+# TODO: solo5.h and ukvm.h should only contain public APIs.
+opam-install: solo5-kernel-ukvm.pc
+	mkdir -p $(OPAM_INCDIR) $(OPAM_LIBDIR)
+	cp kernel/kernel.h $(OPAM_INCDIR)/solo5.h
+	cp ukvm/ukvm.h $(OPAM_INCDIR)/ukvm.h
+	cp kernel/solo5.o kernel/solo5.lds $(OPAM_LIBDIR)
+	cp ukvm/ukvm $(OPAM_BINDIR)
+	cp solo5-kernel-ukvm.pc $(PREFIX)/lib/pkgconfig
+
+.PHONY: opam-uninstall
+opam-uninstall:
+	rm -rf $(OPAM_INCDIR) $(OPAM_LIBDIR)
+	rm -f $(OPAM_BINDIR)/ukvm
+	rm -f $(PREFIX)/lib/pkgconfig/solo5-kernel-ukvm.pc

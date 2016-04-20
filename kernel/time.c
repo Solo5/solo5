@@ -17,6 +17,7 @@
  */
 
 #include "kernel.h"
+#include "ukvm.h"
 
 struct ukvm_clkspeed cycles_per_sec;
 

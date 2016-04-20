@@ -31,6 +31,11 @@ LDLIBS=$(shell gcc -print-libgcc-file-name)
 # Platform-independent CFLAGS
 CFLAGS=$(MD_CFLAGS) -std=gnu99 -Wall -Wextra -Werror -O2 -g
 
+# This target is for the top-level opam-install to get MD CFLAGS
+.PHONY: print-md-cflags
+print-md-cflags:
+	@echo $(MD_CFLAGS)
+
 COBJS=\
 ee_printf.o \
 gdt.o \

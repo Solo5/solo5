@@ -1,4 +1,5 @@
 #include "kernel.h"
+#include "ukvm.h"
 
 /* ukvm net interface */
 int solo5_net_write_sync(uint8_t *data, int n) {

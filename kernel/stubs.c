@@ -17,6 +17,7 @@
  */
 
 #include "kernel.h"
+#include "ukvm.h"
 
 #define IGNORE(x...) do {                                       \
         printf("IGNORING: ");                                   \

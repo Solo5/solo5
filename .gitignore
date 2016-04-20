@@ -6,3 +6,4 @@ kernel/*.bin
 kernel/interrupt_vectors.s
 disk.img
 mirage.mk
+solo5-kernel-ukvm.pc

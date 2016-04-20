@@ -217,7 +217,5 @@ void  free(void *ptr);
 void *sbrk(intptr_t increment);
 void* memalign(size_t alignment, size_t bytes);
 
-
-#include "../ukvm/ukvm.h"
 #endif
 
