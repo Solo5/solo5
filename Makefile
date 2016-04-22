@@ -46,7 +46,7 @@ OPAM_BINDIR=$(PREFIX)/bin
 # We want the MD CFLAGS in the .pc file, where they can be (eventually) picked
 # up by the Mirage tool. XXX We may want to pick LDLIBS and LDFLAGS also.
 KERNEL_MD_CFLAGS=$(shell make -sC kernel print-md-cflags)
-solo5-kernel-ukvm.pc: solo5-kernel-ukvm.pc.in
+%.pc: %.pc.in 
 	sed <$< > $@ \
 	    -e 's#!CFLAGS!#$(KERNEL_MD_CFLAGS)#g;'
 
