@@ -28,7 +28,7 @@
 #error "Loader should be 32-bit!"
 #endif
 
-#undef LOADER_DEBUG
+#define LOADER_DEBUG
 #ifdef LOADER_DEBUG
 #include "../kernel/kernel.h"
 #else 

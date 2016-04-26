@@ -27,7 +27,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdarg.h>
-#include <limits.h>
+//#include <limits.h>
 #include "../loader/multiboot.h"
 #include "../loader/loader_info.h"
 

@@ -15,34 +15,48 @@
 # TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 # PERFORMANCE OF THIS SOFTWARE.
 
-include Makefile.solo5
+AS=as
+CC=gcc
+LD=ld
+# Ensure no host headers or libraries are used when building, with the
+# exception of:
+#   - Standard C headers required by C89/C99. -nostdinc removes access to these
+#     so get it back by asking GCC for its installation directory.
+#   - The static libgcc.a (compiler runtime) installed by the host GCC.
+GCC_INSTALL_DIR=$(shell LANG=C gcc -print-search-dirs | sed -n -e 's/install: \(.*\)/\1/p')
+MD_CFLAGS=-nostdinc -isystem $(GCC_INSTALL_DIR)include \
+	  -ffreestanding -mno-red-zone -mno-3dnow
+LDFLAGS=-nostdlib -z max-page-size=0x1000 -static
+LDLIBS=$(shell gcc -print-libgcc-file-name)
+# Platform-independent CFLAGS
+CFLAGS=$(MD_CFLAGS) -std=gnu99 -Wall -Wextra -Werror -O2 -g
 
-LDFLAGS64=-ffreestanding -O2 -nostdlib -lgcc -z max-page-size=0x1000 -static -fno-PIC
-LDLIBS64=-lgcc
+# MD_CFLAGS=-ffreestanding			\
+# 	  -mcmodel=large			\
+# 	  -mno-red-zone				\
+# 	  -mno-3dnow				\
+# 	  -std=gnu99 -O2 			\
+# 	  -Wall -Wextra -Werror 		\
+# 	  -D__SOLO5__				\
+# 	  -fno-PIC 				\
+# 	  -g 
+# CFLAGS=-ffreestanding			\
+# 	  -mcmodel=large			\
+# 	  -mno-red-zone				\
+# 	  -mno-3dnow				\
+# 	  -std=gnu99 -O2 			\
+# 	  -Wall -Wextra -Werror 		\
+# 	  -D__SOLO5__				\
+# 	  -fno-PIC 				\
+# 	  -g 
+# AS=x86_64-elf-as
+# CC=x86_64-elf-gcc
+# LD=x86_64-elf-gcc
+# LDFLAGS=-ffreestanding -O2 -nostdlib -lgcc -z max-page-size=0x1000 -static -fno-PIC
+# LDLIBS=-lgcc
 
-all: kernel
-
-SOLO5_DIR=$(abspath .)
-SOLO5_H=$(SOLO5_DIR)/kernel.h
-
-MODULE_CFLAGS=
-MODULE_OBJS=
-MODULE_HFILES=
-MODULE_CLEAN=
-
-MODULE_DIR=lib
-#include $(MODULE_DIR)/Makefile.openlibm
-
-APP_OBJS=app_undefined.o
-APP_LIBS=
-APP_CLEAN=
-include Makefile.app
-
-S5_CFLAGS += $(MODULE_CFLAGS)
 
 COBJS=\
-$(MODULE_OBJS) \
-$(APP_OBJS) \
 ee_printf.o \
 interrupts.o \
 kernel.o \
@@ -67,35 +81,35 @@ kernel.h \
 ../loader/multiboot.h \
 ../loader/loader_info.h
 
-.PHONY: undef
-undef: 
-	rm -f undefined.o
-	echo > undefined.c
-	bash gen_undefined.bash > undefined.c
+TESTS=test_hello.bin
 
-.PHONY: kernel.ld
-kernel.ld: 
-	bash gen_ld.bash > kernel.ld
+all: solo5.o $(TESTS)
+
+.PHONY: solo5.lds
+solo5.lds: 
+	bash gen_ld.bash > solo5.lds
 
 interrupt_vectors.s: interrupts.h
 	bash gen_interrupts.bash > interrupt_vectors.s
 
 %_s.o: %.s interrupt_vectors.s
-	$(S5_AS) $< -o $@
-
-.PHONY: app_and_undef
-app_and_undef:
-	bash gen_app_and_undef.bash
+	$(AS) $< -o $@
 
 %.o: %.c $(HEADERS)
-	$(S5_GCC) $(S5_CFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) -c $< -o $@
 
+%.bin: %.o solo5.o solo5.lds
+	$(LD) -T solo5.lds $(LDFLAGS) -o $@ solo5.o $< $(LDLIBS)
 
+solo5.o: $(COBJS) $(SOBJS) solo5.lds
+	$(LD) -r $(LDFLAGS) -o $@ $(COBJS) $(SOBJS) 
 
-kernel: Makefile kernel.ld $(COBJS) $(SOBJS) 
-	$(S5_LD) -T kernel.ld $(LDFLAGS64) -o $@ $(COBJS) $(SOBJS) $(LDLIBS64) $(APP_LIBS) 
+.PHONY: clean
+clean:
+	$(RM) *.o kernel 
 
-kernel_clean:
-	@rm -f *.o kernel 
+# This target is for the top-level opam-install to get MD CFLAGS
+.PHONY: print-md-cflags
+print-md-cflags:
+	@echo $(MD_CFLAGS)
 
-clean: $(APP_CLEAN) $(MODULE_CLEAN) kernel_clean

@@ -5,7 +5,9 @@ iso/boot/kernel
 iso/boot/loader
 kernel.iso
 kernel/kernel.ld
+kernel/solo5.lds
 kernel/kernel
 kernel/interrupt_vectors.s
+kernel/test_hello.bin
 loader/loader
 disk.img

@@ -15,7 +15,7 @@
 # TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 # PERFORMANCE OF THIS SOFTWARE.
 
-all: kernel.iso
+all: loader kernel
 
 .PHONY: loader
 loader:
@@ -30,6 +30,12 @@ kernel.iso: loader kernel iso/boot/grub/menu.lst Makefile
 	@cp kernel/kernel iso/boot/
 	@xorriso -as mkisofs -R -b boot/grub/stage2_eltorito -no-emul-boot \
 		-boot-load-size 4 -quiet -boot-info-table -o kernel.iso iso
+
+test.iso: loader kernel iso/boot/grub/menu.lst Makefile
+	@cp loader/loader iso/boot/
+	@cp kernel/test_hello.bin iso/boot/kernel
+	@xorriso -as mkisofs -R -b boot/grub/stage2_eltorito -no-emul-boot \
+		-boot-load-size 4 -quiet -boot-info-table -o test.iso iso
 
 # nothing needs to be on the disk image, it just needs to exist
 disk.img:
@@ -57,37 +63,34 @@ clean:
 	@make -C loader clean
 	@make -C kernel clean
 	@rm -f kernel.iso iso/boot/kernel iso/boot/loader
+	@rm -f solo5-kernel-virtio.pc
 	@echo done
 
 
-include mirage.config
+PREFIX?=/nonexistent # Fail if not run from OPAM
+OPAM_INCDIR=$(PREFIX)/include/solo5-kernel-virtio/include
+OPAM_LIBDIR=$(PREFIX)/lib/solo5-kernel-virtio
+OPAM_BINDIR=$(PREFIX)/bin
 
-config_console: 
-	bash config_mirage.bash $(CFG_M_APP_CONSOLE_D) > mirage.mk
-	make -C kernel mirage_libs.mk
-config_block: 
-	bash config_mirage.bash $(CFG_M_APP_BLOCK_D) > mirage.mk
-	make -C kernel mirage_libs.mk
-config_kv_ro_crunch: 
-	bash config_mirage.bash $(CFG_M_APP_KV_RO_CRUNCH_D) > mirage.mk
-	make -C kernel mirage_libs.mk
-config_kv_ro: 
-	bash config_mirage.bash $(CFG_M_APP_KV_RO_D) > mirage.mk
-	make -C kernel mirage_libs.mk
-config_stackv4:
-	bash config_mirage.bash $(CFG_M_APP_STACKV4_D) > mirage.mk
-	make -C kernel mirage_libs.mk
-config_static_web:
-	bash config_mirage.bash $(CFG_M_APP_STATIC_WEB_D) > mirage.mk
-	make -C kernel mirage_libs.mk
+# We want the MD CFLAGS in the .pc file, where they can be (eventually) picked
+# up by the Mirage tool. XXX We may want to pick LDLIBS and LDFLAGS also.
+KERNEL_MD_CFLAGS=$(shell make -sC kernel print-md-cflags)
+%.pc: %.pc.in 
+	sed <$< > $@ \
+	    -e 's#!CFLAGS!#$(KERNEL_MD_CFLAGS)#g;'
 
-# www on solo5/mirage seems to be broken
-# config_www:
-# 	bash config_mirage.bash $(CFG_M_APP_WWW_D) > mirage.mk
-# 	make -C kernel mirage_libs.mk
+.PHONY: opam-install
+# TODO: solo5.h and ukvm.h should only contain public APIs.
+opam-install: solo5-kernel-virtio.pc kernel loader
+	mkdir -p $(OPAM_INCDIR) $(OPAM_LIBDIR)
+	cp kernel/kernel.h $(OPAM_INCDIR)/solo5.h
+	cp loader/loader $(OPAM_LIBDIR)
+	cp iso/boot/grub/menu.lst $(OPAM_LIBDIR)
+	cp iso/boot/grub/stage2_eltorito $(OPAM_LIBDIR)
+	cp kernel/solo5.o kernel/solo5.lds $(OPAM_LIBDIR)
+	cp solo5-kernel-virtio.pc $(PREFIX)/lib/pkgconfig
 
-# config_blog5:
-# 	bash config_mirage.bash ../blog5/mirage > mirage.mk
-# 	make -C kernel mirage_libs.mk
-
-
+.PHONY: opam-uninstall
+opam-uninstall:
+	rm -rf $(OPAM_INCDIR) $(OPAM_LIBDIR)
+	rm -f $(PREFIX)/lib/pkgconfig/solo5-kernel-virtio.pc

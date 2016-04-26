@@ -1,0 +1,11 @@
+prefix=${pcfiledir}/../..
+exec_prefix=${prefix}
+includedir=${prefix}/include/solo5-kernel-virtio/include
+libdir=${exec_prefix}/lib/solo5-kernel-virtio
+linkscript=${libdir}/solo5.lds
+
+Name: solo5-kernel-virtio
+Version: 0.1
+Description: Solo5 unikernel base (virtio target)
+Cflags: !CFLAGS! -I${includedir}
+Libs: ${libdir}/solo5.o
