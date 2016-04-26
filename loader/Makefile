@@ -52,8 +52,8 @@ lib.o
 
 # Put these in if doing any LOADER_DEBUG
 KCOBJS=\
-	 serial_k.o \
-	 printk_k.o \
+	 # serial_k.o \
+	 # printk_k.o \
 
 
 SOBJS=\
