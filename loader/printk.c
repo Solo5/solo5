@@ -16,7 +16,7 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include "kernel.h"
+#include "../kernel/virtio/kernel.h"
 
 static char hexdigit_to_char(uint8_t v) {
     if ( v <= 0x9 )
@@ -42,7 +42,7 @@ static char digit_to_char(uint8_t v) {
    %lx  : uint32_t in hex
    %llx : uint64_t in hex 
 */
-void printk(char *fmt, ...) {
+int printk(const char *fmt, ...) {
     va_list va;
     char ch;
     uint32_t in_l_mode = 0;
@@ -142,4 +142,5 @@ void printk(char *fmt, ...) {
     }
 
     va_end(va);
+    return 0;
 }

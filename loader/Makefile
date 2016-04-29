@@ -51,9 +51,9 @@ gdt.o \
 lib.o
 
 # Put these in if doing any LOADER_DEBUG
-KCOBJS=\
-	 # serial_k.o \
-	 # printk_k.o \
+DBGOBJS=\
+#serial_k.o \
+#printk.o \
 
 
 SOBJS=\
@@ -63,14 +63,14 @@ to64_s.o
 %_s.o: %.s
 	$(AS) --32 $< -o $@
 
-%_k.o: ../kernel/%.c ../kernel/kernel.h
+%_k.o: ../kernel/virtio/%.c ../kernel/virtio/kernel.h
 	$(CC) $(CFLAGS) -c $< -o $@
 
 %.o: %.c loader.h
 	$(CC) $(CFLAGS) -c $< -o $@
 
-loader: Makefile loader.ld $(COBJS) $(KCOBJS) $(SOBJS) 
-	$(LD) -T loader.ld $(LDFLAGS) $(COBJS) $(KCOBJS) $(SOBJS) -o loader $(LDLIBS)
+loader: Makefile loader.ld $(COBJS) $(DBGOBJS) $(SOBJS) 
+	$(LD) -T loader.ld $(LDFLAGS) $(COBJS) $(DBGOBJS) $(SOBJS) -o loader $(LDLIBS)
 
 clean: 
 	@rm -f *.o loader 

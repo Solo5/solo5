@@ -30,7 +30,7 @@
 
 #undef LOADER_DEBUG
 #ifdef LOADER_DEBUG
-#include "../kernel/kernel.h"
+#include "../kernel/virtio/kernel.h"
 #else 
 #define serial_init() do {} while (0)
 #define printk(x...) do {} while (0)
