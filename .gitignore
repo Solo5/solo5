@@ -1,6 +1,7 @@
 *.o
 *.swp
 *.pcap
+cscope.*
 iso/boot/kernel
 iso/boot/loader
 kernel.iso
@@ -8,6 +9,8 @@ kernel/kernel.ld
 kernel/solo5.lds
 kernel/kernel
 kernel/interrupt_vectors.s
-kernel/test_hello.bin
+kernel/test_*.ukvm
+kernel/test_*.virtio
+ukvm/ukvm
 loader/loader
 disk.img
