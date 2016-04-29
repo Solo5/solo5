@@ -1,5 +1,3 @@
-#!/bin/bash
-
 # Copyright (c) 2015, IBM
 # Author(s): Dan Williams <djwillia@us.ibm.com>
 #
@@ -17,8 +15,25 @@
 # TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 # PERFORMANCE OF THIS SOFTWARE.
 
-make 2>&1 |grep "undefined reference" |grep -v "more undefined"|cut -d '`' -f2 |sed s/"'"//|sort |uniq > /tmp/symbols
-echo "#include \"kernel.h\""
-for f in `cat /tmp/symbols`; do 
-    echo "void $f(void) { PANIC(\"$f\\n\"); }"
-done
+        .text
+        .code64
+        .globl read_cr3
+        .globl sse_enable
+        
+read_cr3:       
+        mov %cr3, %rax
+        ret
+
+sse_enable:
+        mov %cr0, %rax
+        and $0xfffb, %ax       # clear CR0.EM
+        or $0x2, %ax            # set CR0.MP
+        mov %rax, %cr0
+
+        mov %cr4, %rax
+        or $(3<<9), %ax           # set CR4.OSFXSR and CR4.OSXMMEXCPT
+        mov %rax, %cr4
+
+        ret
+
+        

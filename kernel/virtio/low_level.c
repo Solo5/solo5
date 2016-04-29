@@ -1,4 +1,4 @@
-/* Copyright (c) 2015, IBM 
+/* Copyright (c) 2016, IBM 
  * Author(s): Dan Williams <djwillia@us.ibm.com> 
  *
  * Permission to use, copy, modify, and/or distribute this software
@@ -16,6 +16,18 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef __UNDEFINED_GEN_H__
-#define __UNDEFINED_GEN_H__
-#endif
+#include "kernel.h"
+
+/* in stubs.c */
+void low_level_exit(void) {
+}
+
+/* for ee_printf.c */
+int low_level_puts(char *buf, int n) {
+    int i;
+
+    for (i = 0; i < n; i++)
+        serial_putc(buf[i]);
+
+    return n;
+}

@@ -42,6 +42,7 @@ void *_xmalloc(size_t size, size_t align) {
     return memalign(align, size);
 }
 void do_exit(void) {
+    low_level_exit();
     printf("Mirage on Solo5 exiting... Goodbye!\n");
     kernel_hang();
 }

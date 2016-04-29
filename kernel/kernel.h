@@ -28,8 +28,6 @@
 #include <stdint.h>
 #include <stdarg.h>
 //#include <limits.h>
-#include "../loader/multiboot.h"
-#include "../loader/loader_info.h"
 
 /* alignment macros */
 #define ALIGN_4K __attribute__((aligned(0x1000)))
@@ -40,6 +38,20 @@
 #define PAGE_SHIFT 12
 #define PAGE_MASK ~(0xfff)
 
+/* We have already set up the GDT for the kernel.  Here are the
+ * descriptor numbers (useful for when the kernel sets up the IDT) */
+#define GDT_NUM_ENTRIES 5
+#define GDT_DESC_NULL 0
+#define GDT_DESC_CODE 1
+#define GDT_DESC_DATA 2
+#define GDT_DESC_TSS_LO  3
+#define GDT_DESC_TSS_HI  4
+#define GDT_DESC_TSS  GDT_DESC_TSS_LO
+#define GDT_DESC_OFFSET(n) ((n) * 0x8)
+
+/* We have already loaded a "known good" stack in the TSS */
+#define TSS_IST_INDEX 0x1
+
 /* convenient macro stringification */
 #define STR_EXPAND(y) #y
 #define STR(x) STR_EXPAND(x)
@@ -49,6 +61,7 @@ void kernel_hang(void);
 void kernel_wait(void);
 void kernel_waitloop(void);
 void kernel_busyloop(void);
+void kernel_postboot(void);
 
 /* interrupts.c: interrupt handling */
 void interrupts_init(void);
@@ -60,13 +73,8 @@ void irq_clear(uint8_t irq);
 void sse_enable(void);
 
 /* mem.c: low-level page alloc routines */
-void mem_init(struct multiboot_info *mb);
 uint64_t mem_max_addr(void);
 uint64_t read_cr3(void);
-
-/* serial.c: console output for debugging */
-void serial_init(void);
-void serial_putc(char a);
 
 /* time.c: clocksource */
 void time_init(void);
@@ -74,7 +82,8 @@ uint64_t time_monotonic_ms(void);
 uint64_t time_monotonic_ns(void);
 uint64_t rdtsc(void);
 uint64_t time_counts_since_startup(void);
-void sleep(uint32_t ms);
+void increment_time_count(void);
+int sleep(uint32_t seconds);
 
 /* printk.c: only has a few options: 
  *  %c   : character
@@ -135,6 +144,15 @@ void handle_virtio_interrupt(void);
 /* net.c: ping for now */
 void ping_serve(void);
 
+/* low_level.c: specifics for ukvm or virito target */
+void low_level_exit(void);
+int low_level_puts(char *buf, int n);
+
+void low_level_handle_irq(int irq);
+void low_level_handle_intr(int num);
+void low_level_interrupts_init(void);
+
+
 
 /* accessing devices via port space */
 
@@ -175,8 +193,8 @@ static inline uint64_t inq(uint16_t port_lo){
 
 
 #define PANIC(x...) do {                                   \
-        printk("PANIC: %s:%d\n", __FILE__, __LINE__);      \
-        printk(x);                                         \
+        printf("PANIC: %s:%d\n", __FILE__, __LINE__);      \
+        printf(x);                                         \
         kernel_hang();                                     \
     } while(0)
 
@@ -185,9 +203,9 @@ static inline uint64_t inq(uint16_t port_lo){
             PANIC("assertion failed: \"%s\"", #e);  \
     } while(0)
 
-#define dprintk(x...) do {                      \
+#define dprintf(x...) do {                      \
         if (dbg) {                              \
-            printk(x);                          \
+            printf(x);                          \
         }                                       \
     }while(0)
 
@@ -230,9 +248,6 @@ void  free(void *ptr);
 void *sbrk(intptr_t increment);
 void* memalign(size_t alignment, size_t bytes);
 
-
-#include "app_undefined.h"
-#include "app_stubs.h"
 
 #endif
 

@@ -793,7 +793,6 @@ static int ee_vsprintf(char *buf, const char *fmt, va_list args)
 }
 #endif
 
-	
 int vsnprintf(char *buf, size_t size,
 			  const char *fmt, va_list args) {
 	int len;
@@ -968,19 +967,18 @@ int vsnprintf(char *buf, size_t size,
 
 #define DEFAULT_BUF_LEN (15*80)
 static int ee_vprintf(const char *fmt, va_list args) {
+    /* XXX yikes, this looks like overflow waiting to happen */
     char buf[DEFAULT_BUF_LEN];
-    int n, i;
+    int n;
 
     n = vsnprintf(buf, DEFAULT_BUF_LEN, fmt, args);
 	if (n > DEFAULT_BUF_LEN)
 		PANIC("overflowed buffer!");
 	
-	for (i = 0; i < n; i++)
-		serial_putc(buf[i]);
-
-    return n;
+    return low_level_puts(buf, n);
 }
 
+/* XXX combine the next 3 */
 int printf(const char *fmt, ...){
     va_list args;
     int ret;
@@ -991,7 +989,18 @@ int printf(const char *fmt, ...){
 
     return ret;
 }
+#if 0
+int printk(const char *fmt, ...){
+    va_list args;
+    int ret;
 
+    va_start(args, fmt);
+    ret = ee_vprintf(fmt, args);
+    va_end(args);
+
+    return ret;
+}
+#endif
 int fprintf(void *stream __attribute__((__unused__)), const char *fmt, ...){
     va_list args;
     int ret;

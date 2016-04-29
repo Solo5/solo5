@@ -344,7 +344,7 @@ void ping_forever(void) {
             construct_ping(ping, virtio_net_mac);
             if ( virtio_net_xmit_packet(ping, sizeof(struct pingpkt)) )
                 PANIC("debug this!");
-            sleep(1000);
+            sleep(1);
         }
     }
     /* memset(recvbuf, 0, 1514); */

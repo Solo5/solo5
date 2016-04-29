@@ -18,23 +18,55 @@
 
 #include "kernel.h"
 
-extern void start_kernel(void);
 
+extern void start_kernel(void);
 void sleep_test(void);
 void blk_test(void);
 
-void kernel_postboot(void)
-{
+
+static void banner(void) {
+    printf("            |      ___|  \n");
+    printf("  __|  _ \\  |  _ \\ __ \\  \n");
+    printf("\\__ \\ (   | | (   |  ) | \n");
+    printf("____/\\___/ _|\\___/____/  \n");
+}
+
+
+void kernel_main(uint64_t size, uint64_t kernel_end) {
+    banner();
+
+    gdt_init();
+    interrupts_init();
+    interrupts_enable();
+
+    mem_init(size, kernel_end);
+
+    /* ocaml needs floating point */
+    sse_enable();
+
+    time_init();
+
+    //void ping_forever(void);
+    //ping_forever();
+
     start_kernel();
+
+    //ping_serve();
+    //for(;;);
+
 
 #if 0
     blk_test();
     sleep_test();
 
-    for(;;)
+    for(;;) {
         ping_serve();  /* does things if network packet comes in */
-#endif
 
+        /* need atomic condition check to do the wait */
+        //kernel_wait();
+    }
+#endif
+    
     printf("Kernel done. \nGoodbye!\n");
     kernel_hang();
 }

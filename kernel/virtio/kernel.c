@@ -18,23 +18,30 @@
 
 #include "kernel.h"
 
-extern void start_kernel(void);
-
-void sleep_test(void);
-void blk_test(void);
-
-void kernel_postboot(void)
+void kernel_main(uint32_t arg)
 {
-    start_kernel();
+    volatile int gdb = 1;
+    serial_init();
 
-#if 0
-    blk_test();
-    sleep_test();
+    printf("            |      ___|  \n");
+    printf("  __|  _ \\  |  _ \\ __ \\  \n");
+    printf("\\__ \\ (   | | (   |  ) | \n");
+    printf("____/\\___/ _|\\___/____/  \n");
 
-    for(;;)
-        ping_serve();  /* does things if network packet comes in */
-#endif
+    if (!gdb) printk("looping for gdb\n");
+    while ( gdb == 0 ); 
 
-    printf("Kernel done. \nGoodbye!\n");
-    kernel_hang();
+    /* needs to be very early as it clears the bss */
+    mem_init((struct multiboot_info *)((uint64_t)arg));
+
+    interrupts_init();
+    /* ocaml needs floating point */
+    sse_enable();
+    time_init();
+
+    pci_enumerate();
+
+    interrupts_enable();
+
+    kernel_postboot();
 }

@@ -31,46 +31,38 @@ LDLIBS=$(shell gcc -print-libgcc-file-name)
 # Platform-independent CFLAGS
 CFLAGS=$(MD_CFLAGS) -std=gnu99 -Wall -Wextra -Werror -O2 -g
 
-# MD_CFLAGS=-ffreestanding			\
-# 	  -mcmodel=large			\
-# 	  -mno-red-zone				\
-# 	  -mno-3dnow				\
-# 	  -std=gnu99 -O2 			\
-# 	  -Wall -Wextra -Werror 		\
-# 	  -D__SOLO5__				\
-# 	  -fno-PIC 				\
-# 	  -g 
-# CFLAGS=-ffreestanding			\
-# 	  -mcmodel=large			\
-# 	  -mno-red-zone				\
-# 	  -mno-3dnow				\
-# 	  -std=gnu99 -O2 			\
-# 	  -Wall -Wextra -Werror 		\
-# 	  -D__SOLO5__				\
-# 	  -fno-PIC 				\
-# 	  -g 
-# AS=x86_64-elf-as
-# CC=x86_64-elf-gcc
-# LD=x86_64-elf-gcc
-# LDFLAGS=-ffreestanding -O2 -nostdlib -lgcc -z max-page-size=0x1000 -static -fno-PIC
-# LDLIBS=-lgcc
-
-
-COBJS=\
+COMMON_COBJS=\
 ee_printf.o \
 interrupts.o \
 kernel.o \
 lib.o \
 malloc.o \
-mem.o \
-net.o \
-pci.o \
-printk.o \
-serial.o \
 stubs.o \
-time.o \
-virtio.o
 
+UKVM_COBJS=\
+$(COMMON_COBJS) \
+ukvm/gdt.o \
+ukvm/io.o \
+ukvm/kernel.o \
+ukvm/low_level.o \
+ukvm/low_level_interrupts.o \
+ukvm/mem.o \
+ukvm/time.o
+
+VIRTIO_COBJS=\
+$(COMMON_COBJS) \
+virtio/low_level.o \
+virtio/low_level_interrupts.o \
+virtio/kernel.o \
+virtio/mem.o \
+virtio/net.o \
+virtio/pci.o \
+virtio/printk.o \
+virtio/serial.o \
+virtio/time.o \
+virtio/virtio.o \
+
+COBJS=$(COMMON_COBJS) $(VIRTIO_COBJS)
 SOBJS=\
 kernel_s.o \
 mem_s.o \
@@ -81,13 +73,19 @@ kernel.h \
 ../loader/multiboot.h \
 ../loader/loader_info.h
 
-TESTS=test_hello.bin
+VIRTIO_TESTS=test_hello.virtio
+UKVM_TESTS=test_hello.ukvm
+TESTS=$(VIRTIO_TESTS) $(UKVM_TESTS)
 
-all: solo5.o $(TESTS)
+all: virtio ukvm
 
-.PHONY: solo5.lds
-solo5.lds: 
-	bash gen_ld.bash > solo5.lds
+.PHONY: virtio ukvm
+virtio: virtio/solo5.o $(VIRTIO_TESTS)
+ukvm: ukvm/solo5.o $(UKVM_TESTS)
+
+.PHONY: virtio/solo5.lds
+virtio/solo5.lds: 
+	bash virtio/gen_ld.bash > virtio/solo5.lds
 
 interrupt_vectors.s: interrupts.h
 	bash gen_interrupts.bash > interrupt_vectors.s
@@ -98,15 +96,21 @@ interrupt_vectors.s: interrupts.h
 %.o: %.c $(HEADERS)
 	$(CC) $(CFLAGS) -c $< -o $@
 
-%.bin: %.o solo5.o solo5.lds
-	$(LD) -T solo5.lds $(LDFLAGS) -o $@ solo5.o $< $(LDLIBS)
+%.ukvm: %.o ukvm/solo5.o ukvm/solo5.lds
+	$(LD) -T ukvm/solo5.lds $(LDFLAGS) -o $@ ukvm/solo5.o $< $(LDLIBS)
 
-solo5.o: $(COBJS) $(SOBJS) solo5.lds
-	$(LD) -r $(LDFLAGS) -o $@ $(COBJS) $(SOBJS) 
+%.virtio: %.o virtio/solo5.o virtio/solo5.lds
+	$(LD) -T virtio/solo5.lds $(LDFLAGS) -o $@ virtio/solo5.o $< $(LDLIBS)
+
+virtio/solo5.o: $(VIRTIO_COBJS) $(SOBJS) virtio/solo5.lds
+	$(LD) -r $(LDFLAGS) -o $@ $(VIRTIO_COBJS) $(SOBJS) 
+
+ukvm/solo5.o: $(UKVM_COBJS) $(SOBJS) ukvm/solo5.lds
+	$(LD) -r $(LDFLAGS) -o $@ $(UKVM_COBJS) $(SOBJS) 
 
 .PHONY: clean
 clean:
-	$(RM) *.o kernel 
+	$(RM) *.o virtio/*.o ukvm/*.o kernel $(TESTS)
 
 # This target is for the top-level opam-install to get MD CFLAGS
 .PHONY: print-md-cflags

@@ -1,4 +1,4 @@
-/* Copyright (c) 2015, IBM 
+/* Copyright (c) 2016, IBM 
  * Author(s): Dan Williams <djwillia@us.ibm.com> 
  *
  * Permission to use, copy, modify, and/or distribute this software
@@ -18,23 +18,18 @@
 
 #include "kernel.h"
 
-extern void start_kernel(void);
+/* in stubs.c */
+void low_level_exit(void) {
+    outl(UKVM_PORT_DBG_STACK, 0);
+}
 
-void sleep_test(void);
-void blk_test(void);
+int low_level_puts(char *buf, int n){
+    struct ukvm_puts str;
 
-void kernel_postboot(void)
-{
-    start_kernel();
+    str.data = buf;
+    str.len = n;
 
-#if 0
-    blk_test();
-    sleep_test();
+    outl(UKVM_PORT_PUTS, ukvm_ptr(&str));
 
-    for(;;)
-        ping_serve();  /* does things if network packet comes in */
-#endif
-
-    printf("Kernel done. \nGoodbye!\n");
-    kernel_hang();
+    return str.len;
 }

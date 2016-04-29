@@ -73,10 +73,10 @@ uint64_t time_monotonic_ns(void) {
 }
 
 
-/* sleep for given milliseconds */
-void sleep(uint32_t ms) {
+/* sleep for given seconds */
+int sleep(uint32_t secs) {
     /* Step 1: convert given secs to counts */
-    float counts_to_sleep = (ms/1000.) * COUNTS_PER_SEC;
+    float counts_to_sleep = secs * COUNTS_PER_SEC;
     /* Step 2: get start time */
     uint64_t initial_count = counts_since_startup;
 
@@ -88,6 +88,7 @@ void sleep(uint32_t ms) {
             (counts_since_startup - initial_count) )
         ;
 
+    return 0;
 }
 
 /* called on whenever the PIT fires (i.e. IRQ0 fires) */
@@ -148,7 +149,7 @@ void sleep_test(void) {
     int i;
     for(i = 0; i < 5; i++) {
         uint64_t tsc = rdtsc();
-        sleep(1000);
+        sleep(1);
         printf("Timer freq: %u\n", rdtsc() - tsc);
     }
 }
