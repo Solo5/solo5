@@ -15,7 +15,7 @@
 # TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 # PERFORMANCE OF THIS SOFTWARE.
 
-all: test.iso
+all: ukvm_target virtio_target
 
 .PHONY: virtio_target
 virtio_target:
@@ -29,7 +29,7 @@ ukvm_target:
 
 test.iso: virtio_target iso/boot/grub/menu.lst Makefile
 	@cp loader/loader iso/boot/
-	@cp kernel/test_hello.virtio iso/boot/kernel
+	@cp kernel/test_ping_serve.virtio iso/boot/kernel
 	@xorriso -as mkisofs -R -b boot/grub/stage2_eltorito -no-emul-boot \
 		-boot-load-size 4 -quiet -boot-info-table -o test.iso iso
 
@@ -91,7 +91,7 @@ opam-virtio-install: solo5-kernel-virtio.pc virtio_target
 	cp loader/loader $(OPAM_VIRTIO_LIBDIR)
 	cp iso/boot/grub/menu.lst $(OPAM_VIRTIO_LIBDIR)
 	cp iso/boot/grub/stage2_eltorito $(OPAM_VIRTIO_LIBDIR)
-	cp kernel/solo5.o kernel/solo5.lds $(OPAM_VIRTIO_LIBDIR)
+	cp kernel/virtio/solo5.o kernel/virtio/solo5.lds $(OPAM_VIRTIO_LIBDIR)
 	cp solo5-kernel-virtio.pc $(PREFIX)/lib/pkgconfig
 
 .PHONY: opam-virtio-uninstall
@@ -105,7 +105,7 @@ opam-ukvm-install: solo5-kernel-ukvm.pc ukvm_target
 	mkdir -p $(OPAM_UKVM_INCDIR) $(OPAM_UKVM_LIBDIR)
 	cp kernel/kernel.h $(OPAM_UKVM_INCDIR)/solo5.h
 	cp ukvm/ukvm.h $(OPAM_UKVM_INCDIR)/ukvm.h
-	cp kernel/solo5.o kernel/solo5.lds $(OPAM_UKVM_LIBDIR)
+	cp kernel/ukvm/solo5.o kernel/ukvm/solo5.lds $(OPAM_UKVM_LIBDIR)
 	cp ukvm/ukvm $(OPAM_BINDIR)
 	cp solo5-kernel-ukvm.pc $(PREFIX)/lib/pkgconfig
 

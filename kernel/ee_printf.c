@@ -989,7 +989,7 @@ int printf(const char *fmt, ...){
 
     return ret;
 }
-#if 0
+
 int printk(const char *fmt, ...){
     va_list args;
     int ret;
@@ -1000,7 +1000,7 @@ int printk(const char *fmt, ...){
 
     return ret;
 }
-#endif
+
 int fprintf(void *stream __attribute__((__unused__)), const char *fmt, ...){
     va_list args;
     int ret;

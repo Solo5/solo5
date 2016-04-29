@@ -94,11 +94,13 @@ int sleep(uint32_t seconds);
  *  %lx  : uint32_t in hex
  *  %llx : uint64_t in hex 
  */
-void printk(char *fmt, ...);
+//void printk(char *fmt, ...);
+
 
 /* ee_printf.c: a third-party printf slightly modified and with
  *              snprintf added 
  */
+int printk(const char *fmt, ...);
 int printf(const char *fmt, ...);
 int sprintf(char *str, const char *format, ...);
 int snprintf(char *str, size_t size, const char *format, ...);

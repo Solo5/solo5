@@ -57,7 +57,6 @@ virtio/kernel.o \
 virtio/mem.o \
 virtio/net.o \
 virtio/pci.o \
-virtio/printk.o \
 virtio/serial.o \
 virtio/time.o \
 virtio/virtio.o \
@@ -73,7 +72,7 @@ kernel.h \
 ../loader/multiboot.h \
 ../loader/loader_info.h
 
-VIRTIO_TESTS=test_hello.virtio
+VIRTIO_TESTS=test_hello.virtio test_ping_serve.virtio
 UKVM_TESTS=test_hello.ukvm
 TESTS=$(VIRTIO_TESTS) $(UKVM_TESTS)
 
