@@ -14,3 +14,4 @@ kernel/test_*.virtio
 ukvm/ukvm
 loader/loader
 disk.img
+test.iso
