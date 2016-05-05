@@ -102,6 +102,47 @@ For KVM/QEMU, the steps are similar except the file produced is named
 
 To exit QEMU, type `C-a x`.
 
+Debugging
+---------
+
+You can debug the unikernel running in ukvm using gdb. Start
+ukvm like this:
+
+    make gdb
+
+And then from another console start gdb and connect to the remote target
+listening at localhost:1234:
+
+    (gdb) target remote localhost:1234
+
+Here is a typical gdb session:
+
+    (gdb) target remote localhost:1234
+    Remote debugging using localhost:1234
+    kernel_main (size=536870912, kernel_end=2625536) at kernel.c:36
+    36    void kernel_main(uint64_t size, uint64_t kernel_end) {
+    (gdb) break unikernel.ml:9
+    Breakpoint 11 at 0x104c39: file unikernel.ml, line 9.
+    (gdb) c
+    Continuing.
+
+    Breakpoint 11, camlUnikernel__loop_1401 () at unikernel.ml:9
+    9            C.log c "hello";
+    (gdb) bt
+    #0  camlUnikernel__loop_1401 () at unikernel.ml:9
+    #1  0x000000000010480e in camlMain__fun_1487 () at main.ml:32
+    #2  0x0000000000178ad9 in camlCamlinternalLazy__force_lazy_block_1010 () at camlinternalLazy.ml:25
+    #3  0x00000000001049e4 in camlMain__fun_1494 () at main.ml:38
+    #4  0x0000000000178ad9 in camlCamlinternalLazy__force_lazy_block_1010 () at camlinternalLazy.ml:25
+    #5  0x0000000000104bfa in camlMain__entry () at src/core/lwt.ml:660
+    #6  0x0000000000100ed9 in caml_program ()
+    #7  0x00000000001c26a6 in caml_start_program ()
+    #8  0x0000000000000000 in ?? ()
+    (gdb) s
+
+    Breakpoint 11, camlUnikernel__loop_1401 () at unikernel.ml:9
+    9            C.log c "hello";
+
 Acknowledgements
 ----------------
 
