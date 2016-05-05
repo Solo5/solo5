@@ -95,7 +95,6 @@ struct ukvm_blkinfo blkinfo;
  */
 
 
-#define GUEST_SIZE      0x20000000 // 512 MBs
 #define GUEST_PAGE_SIZE 0x200000   // 2 MB pages in guest
 
 #define BOOT_IST    0x3000
@@ -209,6 +208,9 @@ struct _kvm_segment {
 #define KVM_32BIT_GAP_SIZE    (768 << 20)
 #define KVM_32BIT_GAP_START    (KVM_32BIT_MAX_MEM_SIZE - KVM_32BIT_GAP_SIZE)
 
+void gdb_stub_start();
+void gdb_handle_exception(int vcpufd, int sig);
+int gdb_is_pc_breakpointing(long addr);
 
 ssize_t pread_in_full(int fd, void *buf, size_t count, off_t offset)
 {
@@ -806,12 +808,18 @@ static int vcpu_loop(struct kvm_run *run, int vcpufd, uint8_t *mem,
                      int diskfd, int netfd)
 {
     int ret;
-    
+
     /* Repeatedly run code and handle VM exits. */
     while (1) {
         ret = ioctl(vcpufd, KVM_RUN, NULL);
 
         switch (run->exit_reason) {
+        case KVM_EXIT_DEBUG: {
+            struct kvm_debug_exit_arch *arch_info = &run->debug.arch;
+            if (gdb_is_pc_breakpointing(arch_info->pc))
+                gdb_handle_exception(vcpufd, 1);
+            break;
+        }
         case KVM_EXIT_HLT: {
             puts("KVM_EXIT_HLT");
             //get_and_dump_sregs(vcpufd);
@@ -936,11 +944,11 @@ int tun_alloc(char *dev, int flags)
     return fd;
 }
 
+uint8_t *mem;
 
 int main(int argc, char **argv)
 {
     int kvm, vmfd, vcpufd, diskfd, netfd, ret;
-    uint8_t *mem;
     uint8_t *tss_addr;
     struct kvm_sregs sregs;
     struct kvm_run *run;
@@ -948,13 +956,16 @@ int main(int argc, char **argv)
     uint64_t elf_entry;
     uint64_t kernel_end;
     char tun_name[IFNAMSIZ];
+    int use_gdb = 0;
 
-    if (argc != 4)
-        err(1, "usage: ukvm <elf> <disk.img> <net_iface>");
+    if (argc < 4)
+        err(1, "usage: ukvm <elf> <disk.img> <net_iface> [--gdb]");
 
     const char *elffile = argv[1];
     const char *diskfile = argv[2];
     const char *netiface = argv[3];
+    if (argc >= 5)
+        use_gdb = strcmp(argv[4], "--gdb") == 0;
 
     /* set up virtual disk */
     diskfd = open(diskfile, O_RDWR);
@@ -1078,6 +1089,17 @@ int main(int argc, char **argv)
     if (ret)
         err(1, "couldn't create event thread");
 
+    if (use_gdb) {
+        // TODO check if we have the KVM_CAP_SET_GUEST_DEBUG capbility
+        struct kvm_guest_debug debug = {
+            .control = KVM_GUESTDBG_ENABLE | KVM_GUESTDBG_SINGLESTEP,
+        };
+
+        if (ioctl(vcpufd, KVM_SET_GUEST_DEBUG, &debug) < 0)
+            printf("KVM_SET_GUEST_DEBUG failed");
+
+        gdb_stub_start(vcpufd);
+    }
 
     return vcpu_loop(run, vcpufd, mem, diskfd, netfd);
 }

@@ -20,6 +20,7 @@
 #ifndef __UKVM_H__
 #define __UKVM_H__
 
+#define GUEST_SIZE      0x20000000 // 512 MBs
 
 /* 
  * We can only send 32 bits via ports, so sending pointers will only

@@ -28,6 +28,9 @@ ukvm:
 run: ukvm kernel disk.img
 	sudo time -f"%E elapsed" ukvm/ukvm kernel/kernel disk.img tap100
 
+gdb: ukvm kernel disk.img
+	sudo time -f"%E elapsed" ukvm/ukvm kernel/kernel disk.img tap100 --gdb
+
 # nothing needs to be on the disk image, it just needs to exist
 disk.img:
 	dd if=/dev/zero of=disk.img bs=1M count=1
