@@ -111,7 +111,9 @@ ukvm like this:
     make gdb
 
 And then from another console start gdb and connect to the remote target
-listening at localhost:1234:
+listening at `localhost:1234`:
+
+    $ gdb kernel/kernel
 
     (gdb) target remote localhost:1234
 
