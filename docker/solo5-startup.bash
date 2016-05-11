@@ -1,20 +1,13 @@
 #!/bin/bash
 
-cd /home/solo5/solo5
-echo "PATH=/home/solo5/opt/cross/bin:\$PATH" >> ~/.profile
-source ~/.profile
+# get latest sample code
+(cd mirage-skeleton && git pull)
 
-# pull latest source
-git pull
+# configure virtual network tap device
+sudo ip tuntap add tap100 mode tap
+sudo ip link set tap100 up
+sudo ip addr add 10.0.0.1/24 dev tap100
 
-# configure virtual network for solo5 to be on 10.0.0.2
-sudo ./config_net.bash
-
-# pull more latest source
-cd ~/solo5-mirage
-for d in mirage mirage-block-solo5 mirage-console mirage-net-solo5 mirage-platform mirage-skeleton mirage-www mirage-bootvar-solo5 mirage-entropy ocaml-nocrypto; do
-    (cd $d && git pull)
-done
 
 # run whatever is given in CMD
 $@
