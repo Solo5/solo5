@@ -91,6 +91,23 @@ host) with:
 
     sudo docker kill solo5-kernel-ukvm
 
+Modifying the kernel
+--------------------
+
+Get the kernel source from git:
+
+    git clone https://github.com/djwillia/solo5.git
+    cd solo5
+    git checkout solo5-kernel-ukvm
+
+Pin the solo5-kernel-ukvm package:
+
+    opam pin add -y solo5-kernel-ukvm .
+
+Whenever you want to rebuild, reinstall the package via OPAM:
+
+    opam reinstall -y solo5-kernel-ukvm
+
 Acknowledgements
 ----------------
 
