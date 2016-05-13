@@ -7,7 +7,7 @@
 sudo ip tuntap add tap100 mode tap
 sudo ip link set tap100 up
 sudo ip addr add 10.0.0.1/24 dev tap100
-
+sudo ip neigh add 10.0.0.2 lladdr ${MAC} nud permanent dev tap100
 
 # run whatever is given in CMD
 $@
