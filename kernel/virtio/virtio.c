@@ -618,7 +618,7 @@ void virtio_config_network(uint16_t base) {
     printk("Found virtio network device with MAC: ");
     for (i = 0; i < 6; i++) {
         virtio_net_mac[i] = inb(base + VIRTIO_PCI_CONFIG_OFF + i);
-        printk("%b ", virtio_net_mac[i]);
+        printk("%02x ", virtio_net_mac[i]);
     }
     printk("\n");
     sprintf(virtio_net_mac_str, "%02x:%02x:%02x:%02x:%02x:%02x",
