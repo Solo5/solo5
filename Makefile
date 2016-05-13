@@ -49,7 +49,10 @@ qemu: test.iso disk.img
 	sudo qemu-system-x86_64 -s -nographic -name foo -m 1024 -cdrom test.iso -net nic,model=virtio -net tap,ifname=veth0,script=kvm-br.bash -drive file=disk.img,if=virtio -boot d
 
 kvm: test.iso disk.img
-	sudo kvm -s -nographic -name foo -m 1024 -cdrom test.iso -net nic,model=virtio -net tap,ifname=veth0,script=kvm-br.bash -drive file=disk.img,if=virtio -boot d
+	sudo kvm -s -nographic -name foo -m 1024 -boot d -cdrom test.iso \
+		 -device virtio-net,netdev=n0 \
+		 -netdev tap,id=n0,ifname=tap100,script=no,downscript=no \
+		 -drive file=disk.img,if=virtio 
 
 ukvm: ukvm_target disk.img
 	sudo ukvm/ukvm kernel/test_hello.ukvm disk.img tap100
@@ -92,15 +95,11 @@ opam-virtio-install: solo5-kernel-virtio.pc virtio_target
 	cp iso/boot/grub/menu.lst $(OPAM_VIRTIO_LIBDIR)
 	cp iso/boot/grub/stage2_eltorito $(OPAM_VIRTIO_LIBDIR)
 	cp kernel/virtio/solo5.o kernel/virtio/solo5.lds $(OPAM_VIRTIO_LIBDIR)
-	cp solo5-config-net.bash $(OPAM_BINDIR)
-	cp solo5-qemu-bridge.bash $(OPAM_BINDIR)
 	cp solo5-kernel-virtio.pc $(PREFIX)/lib/pkgconfig
 
 .PHONY: opam-virtio-uninstall
 opam-virtio-uninstall:
 	rm -rf $(OPAM_VIRTIO_INCDIR) $(OPAM_VIRTIO_LIBDIR)
-	rm -f $(OPAM_BINDIR)/solo5-config-net.bash
-	rm -f $(OPAM_BINDIR)/solo5-qemu-bridge.bash
 	rm -f $(PREFIX)/lib/pkgconfig/solo5-kernel-virtio.pc
 
 .PHONY: opam-ukvm-install
@@ -111,12 +110,10 @@ opam-ukvm-install: solo5-kernel-ukvm.pc ukvm_target
 	cp ukvm/ukvm.h $(OPAM_UKVM_INCDIR)/ukvm.h
 	cp kernel/ukvm/solo5.o kernel/ukvm/solo5.lds $(OPAM_UKVM_LIBDIR)
 	cp ukvm/ukvm $(OPAM_BINDIR)
-	cp solo5-config-net.bash $(OPAM_BINDIR)
 	cp solo5-kernel-ukvm.pc $(PREFIX)/lib/pkgconfig
 
 .PHONY: opam-ukvm-uninstall
 opam-ukvm-uninstall:
 	rm -rf $(OPAM_UKVM_INCDIR) $(OPAM_UKVM_LIBDIR)
 	rm -f $(OPAM_BINDIR)/ukvm
-	rm -f $(OPAM_BINDIR)/solo5-config-net.bash
 	rm -f $(PREFIX)/lib/pkgconfig/solo5-kernel-ukvm.pc
