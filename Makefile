@@ -33,23 +33,9 @@ test.iso: virtio_target iso/boot/grub/menu.lst Makefile
 	@xorriso -as mkisofs -R -b boot/grub/stage2_eltorito -no-emul-boot \
 		-boot-load-size 4 -quiet -boot-info-table -o test.iso iso
 
-gdb: ukvm kernel disk.img
-	sudo time -f"%E elapsed" ukvm/ukvm kernel/kernel disk.img tap100 --gdb
-
 # nothing needs to be on the disk image, it just needs to exist
 disk.img:
 	dd if=/dev/zero of=disk.img bs=1M count=1
-
-# The option:
-#     -net dump,file=net.pcap
-# dumps the network output to a file.  It can be read with:
-#     tcpdump -nr net.pcap
-# Use the option 
-#     -nographic 
-# to have serial redirected to console like Xen HVM, and use C-a x to
-# exit QEMU afterwards
-qemu: test.iso disk.img
-	sudo qemu-system-x86_64 -s -nographic -name foo -m 1024 -cdrom test.iso -net nic,model=virtio -net tap,ifname=veth0,script=kvm-br.bash -drive file=disk.img,if=virtio -boot d
 
 kvm: test.iso disk.img
 	sudo kvm -s -nographic -name foo -m 1024 -boot d -cdrom test.iso \
@@ -60,8 +46,8 @@ kvm: test.iso disk.img
 ukvm: ukvm_target disk.img
 	sudo ukvm/ukvm kernel/test_hello.ukvm disk.img tap100
 
-xen: test.iso
-	xl create -c kernel.cfg
+gdb: ukvm_target disk.img
+	sudo time -f"%E elapsed" ukvm/ukvm kernel/test_hello.ukvm disk.img tap100 --gdb
 
 clean:
 	@echo -n cleaning...

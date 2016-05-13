@@ -106,14 +106,14 @@ Debugging
 ---------
 
 You can debug the unikernel running in ukvm using gdb. Start
-ukvm like this:
+ukvm with the `--gdb` flag, like this:
 
-    make gdb
+    sudo $(which ukvm) mir-console.solo5-ukvm ~/disk.img tap100 --gdb
 
 And then from another console start gdb and connect to the remote target
 listening at `localhost:1234`:
 
-    $ gdb kernel/kernel
+    $ gdb mir-console.solo5-ukvm
 
     (gdb) target remote localhost:1234
 
