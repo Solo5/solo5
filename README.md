@@ -31,7 +31,7 @@ Trying out Solo5/Mirage on ukvm with Docker
 Or, build it yourself from the provided Dockerfile.  
 
     cd docker
-    docker build -t djwillia/solo5-kernel-ukvm .
+    docker build -t djwillia/solo5 .
 
 Once you have the image, run it as follows:
 
