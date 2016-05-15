@@ -35,7 +35,6 @@ static inline uint32_t ukvm_ptr(volatile void *p) {
 #define UKVM_PORT_CHAR      0x3f8
 #define UKVM_PORT_PUTS      0x499
 #define UKVM_PORT_NANOSLEEP 0x500
-#define UKVM_PORT_CLKSPEED  0x501
 
 #define UKVM_PORT_BLKINFO   0x502
 #define UKVM_PORT_BLKWRITE  0x503

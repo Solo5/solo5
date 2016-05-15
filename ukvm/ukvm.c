@@ -582,6 +582,24 @@ static void setup_system(int vcpufd, uint8_t * mem)
 }
 
 
+static void setup_cpuid(int kvm, int vcpufd)
+{
+    struct kvm_cpuid2 *kvm_cpuid;
+    int max_entries = 100;
+
+    kvm_cpuid = calloc(1, sizeof(*kvm_cpuid) +
+                          max_entries * sizeof(*kvm_cpuid->entries));
+    kvm_cpuid->nent = max_entries;
+
+    if (ioctl(kvm, KVM_GET_SUPPORTED_CPUID, kvm_cpuid) < 0)
+        err(1, "KVM_GET_SUPPORTED_CPUID failed");
+
+    printf("Setting the CPUID.\n");
+    if (ioctl(vcpufd, KVM_SET_CPUID2, kvm_cpuid) < 0)
+        err(1, "KVM_SET_CPUID2 failed");
+}
+
+
 static void inject_interrupt(int vcpufd, uint32_t intr)
 {
     struct kvm_interrupt irq = { intr };
@@ -676,23 +694,6 @@ void ukvm_port_nanosleep(uint8_t * mem, void *data, struct kvm_run *run)
     }
 }
 
-
-void ukvm_port_clkspeed(uint8_t * mem, void *data)
-{
-    uint32_t mem_off = *(uint32_t *) data;
-    struct ukvm_clkspeed *c = (struct ukvm_clkspeed *) (mem + mem_off);
-
-    /* Horrible hack to get cpu speed */
-    FILE *cpuinfo;
-    cpuinfo =
-        popen
-        ("cat /proc/cpuinfo | grep MHz | head -n 1 | "
-         "awk '{print $4}'| sed s/\\\\.//|sed s/$/000/",
-         "r");
-    c->clkspeed = 0;
-    fscanf(cpuinfo, "%ld", &c->clkspeed);
-    pclose(cpuinfo);
-}
 
 void ukvm_port_blkinfo(uint8_t * mem, void *data)
 {
@@ -808,7 +809,6 @@ static int vcpu_loop(struct kvm_run *run, int vcpufd, uint8_t *mem,
                      int diskfd, int netfd)
 {
     int ret;
-
     /* Repeatedly run code and handle VM exits. */
     while (1) {
         ret = ioctl(vcpufd, KVM_RUN, NULL);
@@ -836,9 +836,6 @@ static int vcpu_loop(struct kvm_run *run, int vcpufd, uint8_t *mem,
                 break;
             case UKVM_PORT_NANOSLEEP:
                 ukvm_port_nanosleep(mem, data, run);
-                break;
-            case UKVM_PORT_CLKSPEED:
-                ukvm_port_clkspeed(mem, data);
                 break;
             case UKVM_PORT_BLKINFO:
                 ukvm_port_blkinfo(mem, data);
@@ -1082,6 +1079,7 @@ int main(int argc, char **argv)
     if (run == MAP_FAILED)
         err(1, "mmap vcpu");
 
+    setup_cpuid(kvm, vcpufd);
 
     /* start event thread */
     pthread_t event_thread;

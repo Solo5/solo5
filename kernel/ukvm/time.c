@@ -19,21 +19,6 @@
 #include "kernel.h"
 #include "ukvm.h"
 
-struct ukvm_clkspeed cycles_per_sec;
-
-#define MS_PER_SEC 1000 /* milliseconds per second */
-#define NS_PER_SEC 1000000000 /* ns per second */
-
-uint64_t time_monotonic_ms(void) {
-    uint64_t now = rdtsc();
-    return (now * MS_PER_SEC) / cycles_per_sec.clkspeed;
-}
-
-uint64_t time_monotonic_ns(void) {
-    uint64_t now = rdtsc();
-    return (now * NS_PER_SEC) / cycles_per_sec.clkspeed;
-}
-
 /* sleep for given seconds */
 int sleep(uint32_t seconds) {
     struct ukvm_nanosleep t;
@@ -61,6 +46,15 @@ void sleep_test(void) {
     }
 }
 
+
 void time_init(void) {
-    outl(UKVM_PORT_CLKSPEED, ukvm_ptr(&cycles_per_sec));
+    pvclock_init();
+}
+
+uint64_t time_monotonic_ms(void) {
+    return pvclock_monotonic() / (NSEC_PER_SEC / MSEC_PER_SEC);
+}
+
+uint64_t time_monotonic_ns(void) {
+    return pvclock_monotonic();
 }
