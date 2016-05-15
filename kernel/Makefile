@@ -38,6 +38,7 @@ kernel.o \
 lib.o \
 malloc.o \
 stubs.o \
+time.o
 
 UKVM_COBJS=\
 $(COMMON_COBJS) \
