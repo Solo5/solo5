@@ -52,24 +52,33 @@
 #define MS_PER_SEC 1000 /* milliseconds per second */
 #define NS_PER_SEC 1000000000 /* ns per second */
 
+static int use_pvclock = 0;
 static volatile uint64_t counts_since_startup = 0;
 
 /* return ms since time_init() */
 uint64_t time_monotonic_ms(void) {
-    float sec_since_startup = counts_since_startup /
-        COUNTS_PER_SEC;
+    if (use_pvclock) {
+        return pvclock_monotonic() / (NSEC_PER_SEC / MSEC_PER_SEC);
+    } else {
+        float sec_since_startup = counts_since_startup /
+            COUNTS_PER_SEC;
 
-    return (uint64_t) (sec_since_startup * 
-        MS_PER_SEC);
+        return (uint64_t) (sec_since_startup *
+            MS_PER_SEC);
+    }
 }
 
 /* return ns since time_init() */
 uint64_t time_monotonic_ns(void) {
-    float sec_since_startup = counts_since_startup /
-        COUNTS_PER_SEC;
+    if (use_pvclock) {
+        return pvclock_monotonic();
+    } else {
+        float sec_since_startup = counts_since_startup /
+            COUNTS_PER_SEC;
 
-    return (uint64_t) (sec_since_startup * 
-        NS_PER_SEC);
+        return (uint64_t) (sec_since_startup *
+            NS_PER_SEC);
+    }
 }
 
 
@@ -105,6 +114,7 @@ uint64_t time_counts_since_startup(void) {
 
 /* must be called before interrupts are enabled */
 void time_init(void) {
+    use_pvclock = !pvclock_init();
 
     //NOTE(DanB): inb instruction only accepts 
     //            al as operand
