@@ -8,7 +8,7 @@ RUN sudo apt-get update \
     && sudo apt-get install -y libxen-dev time uuid-dev autoconf libgmp-dev qemu-kvm xorriso
 
 # add opam-solo5 remote
-RUN opam remote add opam-solo5 https://github.com/djwillia/opam-solo5.git
+RUN opam remote add solo5 https://github.com/djwillia/opam-solo5.git
 
 # install mirage from OPAM
 RUN opam install -y mirage
