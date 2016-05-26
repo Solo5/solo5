@@ -120,3 +120,10 @@ clean:
 print-md-cflags:
 	@echo $(MD_CFLAGS)
 
+.PHONY: print-ldflags
+print-ldflags:
+	@echo $(LDFLAGS)
+
+.PHONY: print-ldlibs
+print-ldlibs:
+	@echo $(LDLIBS)

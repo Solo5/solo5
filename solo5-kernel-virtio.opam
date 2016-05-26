@@ -7,3 +7,7 @@ remove: [make "opam-virtio-uninstall" "PREFIX=%{prefix}%"]
 depends: [
   "conf-pkg-config"
 ]
+
+conflicts: [
+  "solo5-kernel-ukvm"
+]
