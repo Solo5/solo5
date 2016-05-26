@@ -6280,3 +6280,9 @@ History:
          structure of old version,  but most details differ.)
 
 */
+
+/* Export public interfaces defined in this file */
+void *solo5_malloc(size_t) __attribute__ ((alias ("malloc")));
+void solo5_free(void *) __attribute__ ((alias ("free")));
+void *solo5_calloc(size_t, size_t) __attribute__ ((alias ("calloc")));
+void *solo5_realloc(void *, size_t) __attribute__ ((alias ("realloc")));

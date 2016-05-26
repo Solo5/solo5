@@ -18,6 +18,7 @@
 AS=as
 CC=gcc
 LD=ld
+OBJCOPY=objcopy
 # Ensure no host headers or libraries are used when building, with the
 # exception of:
 #   - Standard C headers required by C89/C99. -nostdinc removes access to these
@@ -104,9 +105,11 @@ interrupt_vectors.s: interrupts.h
 
 virtio/solo5.o: $(VIRTIO_COBJS) $(SOBJS) virtio/solo5.lds
 	$(LD) -r $(LDFLAGS) -o $@ $(VIRTIO_COBJS) $(SOBJS) 
+	$(OBJCOPY) -w -G solo5_\* -G kernel_main $@ $@
 
 ukvm/solo5.o: $(UKVM_COBJS) $(SOBJS) ukvm/solo5.lds
 	$(LD) -r $(LDFLAGS) -o $@ $(UKVM_COBJS) $(SOBJS) 
+	$(OBJCOPY) -w -G solo5_\* -G kernel_main $@ $@
 
 .PHONY: clean
 clean:

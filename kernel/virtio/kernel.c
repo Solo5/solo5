@@ -28,7 +28,7 @@ void kernel_main(uint32_t arg)
     printf("\\__ \\ (   | | (   |  ) | \n");
     printf("____/\\___/ _|\\___/____/  \n");
 
-    if (!gdb) printk("looping for gdb\n");
+    if (!gdb) printf("looping for gdb\n");
     while ( gdb == 0 ); 
 
     /* needs to be very early as it clears the bss */

@@ -189,13 +189,13 @@ static void construct_ping(struct pingpkt *p, uint8_t *mac_source) {
 
     if(0) {
         for (i = 0; i < sizeof(struct pingpkt); i++) {
-            printk("%b ", ((uint8_t *)p)[i]);
+            printf("%b ", ((uint8_t *)p)[i]);
             if (i % 8 == 7 )
-                printk("   ");
+                printf("   ");
             if (i % 16 == 15 )
-                printk("\n");
+                printf("\n");
         }
-        printk("\n");
+        printf("\n");
     }
 };
 
@@ -236,8 +236,9 @@ struct pingpkt pings[256]; /* there can actually only be 128
                               virtio_net_hdr taking up so many
                               descriptors */
 
-
-void ping_serve(void) {
+/* XXX Not a "public" API, fix this once we figure out what to do about a
+ * runtime for standalone kernel tests. */
+void solo5_ping_serve(void) {
     uint8_t *pkt = NULL;
     int i;
 

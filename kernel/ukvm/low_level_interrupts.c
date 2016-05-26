@@ -51,7 +51,7 @@ void low_level_handle_irq(int irq) {
         break;
     default:
         printf("got irq %d at 0x%lx\n", irq, 
-               time_monotonic_ms() );
+               solo5_clock_monotonic() );
         
     }
 

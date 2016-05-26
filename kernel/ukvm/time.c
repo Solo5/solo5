@@ -27,9 +27,10 @@ int sleep(uint32_t seconds) {
     t.sec_in = seconds;
     t.nsec_in = 0;
     outl(UKVM_PORT_NANOSLEEP, ukvm_ptr(&t));
+    cc_barrier();
 
-    dprintf("nanosleep = {%d %ld %ld} ms %ld ns %ld\n",
-            t.ret, t.sec_out, t.nsec_out, time_monotonic_ms(), time_monotonic_ns());
+    dprintf("nanosleep = {%d %ld %ld} ns %ld\n",
+            t.ret, t.sec_out, t.nsec_out, pvclock_monotonic());
 
     if ( t.ret < 0 )
         return t.sec_out;
@@ -51,10 +52,7 @@ void time_init(void) {
     pvclock_init();
 }
 
-uint64_t time_monotonic_ms(void) {
-    return pvclock_monotonic() / (NSEC_PER_SEC / MSEC_PER_SEC);
-}
-
-uint64_t time_monotonic_ns(void) {
+uint64_t solo5_clock_monotonic(void)
+{
     return pvclock_monotonic();
 }

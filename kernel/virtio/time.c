@@ -55,21 +55,8 @@
 static int use_pvclock = 0;
 static volatile uint64_t counts_since_startup = 0;
 
-/* return ms since time_init() */
-uint64_t time_monotonic_ms(void) {
-    if (use_pvclock) {
-        return pvclock_monotonic() / (NSEC_PER_SEC / MSEC_PER_SEC);
-    } else {
-        float sec_since_startup = counts_since_startup /
-            COUNTS_PER_SEC;
-
-        return (uint64_t) (sec_since_startup *
-            MS_PER_SEC);
-    }
-}
-
 /* return ns since time_init() */
-uint64_t time_monotonic_ns(void) {
+uint64_t solo5_clock_monotonic(void) {
     if (use_pvclock) {
         return pvclock_monotonic();
     } else {
