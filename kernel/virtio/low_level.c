@@ -31,3 +31,5 @@ int low_level_puts(char *buf, int n) {
 
     return n;
 }
+
+int solo5_console_write(const char *, size_t) __attribute__ ((alias ("low_level_puts")));

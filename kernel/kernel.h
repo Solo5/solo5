@@ -19,6 +19,8 @@
 #ifndef __KERNEL_H__
 #define __KERNEL_H__
 
+#include "solo5.h"
+
 /* This is the main header file for everything in the kernel */
 
 
@@ -57,7 +59,7 @@
 #define STR(x) STR_EXPAND(x)
 
 /* kernel.s: hang kernel, or hlt for interrupts */
-void kernel_hang(void);
+void kernel_hang(void) __attribute__((noreturn));
 void kernel_wait(void);
 void kernel_waitloop(void);
 void kernel_busyloop(void);
@@ -85,24 +87,10 @@ uint64_t time_counts_since_startup(void);
 void increment_time_count(void);
 int sleep(uint32_t seconds);
 
-/* printk.c: only has a few options: 
- *  %c   : character
- *  %s   : string
- *  %d   : int32_t in decimal
- *  %b   : uint8_t in hex
- *  %x   : uint16_t in hex
- *  %lx  : uint32_t in hex
- *  %llx : uint64_t in hex 
- */
-//void printk(char *fmt, ...);
-
-
 /* ee_printf.c: a third-party printf slightly modified and with
  *              snprintf added 
  */
-int printk(const char *fmt, ...);
 int printf(const char *fmt, ...);
-int sprintf(char *str, const char *format, ...);
 int snprintf(char *str, size_t size, const char *format, ...);
 int vsnprintf(char *buf, size_t size, const char *fmt, va_list args);
 
@@ -130,16 +118,6 @@ extern uint8_t virtio_net_mac[];
 uint8_t *virtio_net_pkt_get(int *size);  /* get a pointer to recv'd data */
 void virtio_net_pkt_put(void);      /* we're done with recv'd data */
 int virtio_net_xmit_packet(void *data, int len);
-int solo5_net_write_sync(uint8_t *data, int n);
-int solo5_net_read_sync(uint8_t *data, int *n);
-char *solo5_net_mac_str(void);
-
-/* block interface */
-int solo5_blk_write_sync(uint64_t sec, uint8_t *data, int n);
-int solo5_blk_read_sync(uint64_t sec, uint8_t *data, int *n);
-int solo5_blk_sector_size(void);
-uint64_t solo5_blk_sectors(void);
-int solo5_blk_rw(void);
 
 void handle_virtio_interrupt(void);
 
@@ -193,6 +171,8 @@ static inline uint64_t inq(uint16_t port_lo){
     return ((uint64_t)lo) | ((uint64_t)hi << 32);
 }
 
+/* compiler-only memory "barrier" */
+#define cc_barrier() __asm__ __volatile__("": : :"memory")
 
 #define PANIC(x...) do {                                   \
         printf("PANIC: %s:%d\n", __FILE__, __LINE__);      \
@@ -249,23 +229,6 @@ void *malloc(size_t bytes);
 void  free(void *ptr);
 void *sbrk(intptr_t increment);
 void* memalign(size_t alignment, size_t bytes);
-
-inline void
-x86_cpuid(uint32_t level, uint32_t *eax_out, uint32_t *ebx_out,
-		uint32_t *ecx_out, uint32_t *edx_out)
-{
-	uint32_t eax_, ebx_, ecx_, edx_;
-
-	__asm__(
-		"cpuid"
-		: "=a" (eax_), "=b" (ebx_), "=c" (ecx_), "=d" (edx_)
-		: "0" (level)
-	);
-	*eax_out = eax_;
-	*ebx_out = ebx_;
-	*ecx_out = ecx_;
-	*edx_out = edx_;
-}
 
 #define MSEC_PER_SEC    1000
 #define NSEC_PER_SEC	1000000000ULL

@@ -990,17 +990,6 @@ int printf(const char *fmt, ...){
     return ret;
 }
 
-int printk(const char *fmt, ...){
-    va_list args;
-    int ret;
-
-    va_start(args, fmt);
-    ret = ee_vprintf(fmt, args);
-    va_end(args);
-
-    return ret;
-}
-
 int fprintf(void *stream __attribute__((__unused__)), const char *fmt, ...){
     va_list args;
     int ret;
@@ -1018,17 +1007,6 @@ int snprintf(char *str, size_t size, const char *fmt, ...){
 	
     va_start(args, fmt);
     ret = vsnprintf(str, size, fmt, args);
-    va_end(args);
-
-    return ret;
-}
-
-int sprintf(char *str, const char *fmt, ...){
-    va_list args;
-	int ret;
-	
-    va_start(args, fmt);
-    ret = vsnprintf(str, SIZE_MAX, fmt, args);
     va_end(args);
 
     return ret;

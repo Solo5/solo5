@@ -1,7 +1,9 @@
-#include "kernel.h"
+#include "solo5.h"
 
 void start_kernel(void)
 {
-    printf("Hello, World!\n");
+    const char s[] = "Hello, World\n";
+
+    solo5_console_write(s, sizeof s);
 }
 
