@@ -94,10 +94,12 @@ To exit ukvm, type `C-c` in ukvm.
 ### Running on KVM/QEMU
 
 For KVM/QEMU, the steps are similar except the file produced is named
-`mir-console.iso` and the command to invokes KVM/QEMU:
+`mir-console.virtio`, which is converted to `mir-console.iso` via a
+small script before running the unikernel on KVM/QEMU:
 
     mirage configure --qemu
     make
+    solo5-build-iso.bash mir-console.virtio
     sudo kvm -s -nographic -boot d -cdrom mir-console.iso -device virtio-net,netdev=n0 -netdev tap,id=n0,ifname=tap100,script=no,downscript=no -drive file=~/disk.img,format=raw,if=virtio
 
 To exit QEMU, type `C-a x`.
