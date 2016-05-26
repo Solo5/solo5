@@ -193,6 +193,8 @@ static inline uint64_t inq(uint16_t port_lo){
     return ((uint64_t)lo) | ((uint64_t)hi << 32);
 }
 
+/* compiler-only memory "barrier" */
+#define cc_barrier() __asm__ __volatile__("": : :"memory")
 
 #define PANIC(x...) do {                                   \
         printf("PANIC: %s:%d\n", __FILE__, __LINE__);      \
