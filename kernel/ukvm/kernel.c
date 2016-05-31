@@ -19,7 +19,7 @@
 #include "kernel.h"
 
 
-extern void start_kernel(void);
+extern int start_kernel(int argc, char **argv);
 
 static void banner(void) {
     printf("            |      ___|  \n");
@@ -31,7 +31,10 @@ static void banner(void) {
 /* args are: 
    uint64_t size, uint64_t kernel_end, ...
 */
-void kernel_main(uint64_t size, uint64_t kernel_end) {
+
+void kernel_main(uint64_t size, uint64_t kernel_end, uint64_t boot_arg) {
+    struct ukvm_boot_arg_area *b = (struct ukvm_boot_arg_area *)boot_arg;
+
     banner();
     printf("size=%lx, kernel_end=%lx\n", size, kernel_end);
 
@@ -45,7 +48,10 @@ void kernel_main(uint64_t size, uint64_t kernel_end) {
     sse_enable();
     time_init();
 
-    start_kernel();
+    {
+        int ret = start_kernel(b->argc, b->argv);
+        printf("start_kernel returned with %d\n", ret);
+    }
 
     printf("Kernel done. \nGoodbye!\n");
     kernel_hang();

@@ -21,7 +21,7 @@
  *   kvmtest.c: http://lwn.net/Articles/658512/
  *   lkvm: http://github.com/clearlinux/kvmtool
  */
-
+#define _GNU_SOURCE
 #include <err.h>
 #include <fcntl.h>
 #include <linux/kvm.h>
@@ -104,6 +104,8 @@ struct ukvm_blkinfo blkinfo;
 #define BOOT_GDT    0x500
 
 #define IDT_SIZE    0x1000
+
+#define BOOT_ARG_AREA 0x4000
 
 /* Puts PML4 right after zero page but aligned to 4k */
 #define BOOT_PML4    0x9000
@@ -212,6 +214,39 @@ struct _kvm_segment {
 void gdb_stub_start();
 void gdb_handle_exception(int vcpufd, int sig);
 int gdb_is_pc_breakpointing(long addr);
+
+
+
+void boot_area_prep(uint8_t *mem,
+                    uint64_t size,
+                    uint64_t kernel_end,
+                    int argc, char **argv)
+{
+    struct ukvm_boot_arg_area *b;
+    int i;
+    
+    b = (struct ukvm_boot_arg_area *)(mem + BOOT_ARG_AREA);
+    memset(b, 0, sizeof(struct ukvm_boot_arg_area));
+    assert(argc < UKVM_BOOT_ARG_NUM - 1);
+    
+    b->argc = argc;
+    
+    /* place args */
+    for (i = 0; i < argc; i++) {
+        if (i == 0) {
+            char *name = basename(argv[0]);
+            assert(strlen(name) < UKVM_BOOT_ARG_LEN);
+            sprintf(b->strings[i].str, "%s", name);
+        } else {
+            sprintf(b->strings[i].str, "%s", argv[i]);
+        }
+        b->argv[i] = (char *)(BOOT_ARG_AREA
+                              + (i * sizeof(struct ukvm_boot_arg)));
+    }
+}
+    
+
+
 
 ssize_t pread_in_full(int fd, void *buf, size_t count, off_t offset)
 {
@@ -957,13 +992,13 @@ int main(int argc, char **argv)
     int use_gdb = 0;
 
     if (argc < 4)
-        err(1, "usage: ukvm <elf> <disk.img> <net_iface> [--gdb]");
+        err(1, "usage: ukvm <disk.img> <net_iface> <elf> [args] [--gdb]");
 
-    const char *elffile = argv[1];
-    const char *diskfile = argv[2];
-    const char *netiface = argv[3];
+    const char *diskfile = argv[1];
+    const char *netiface = argv[2];
+    const char *elffile = argv[3];
     if (argc >= 5)
-        use_gdb = strcmp(argv[4], "--gdb") == 0;
+        use_gdb = strcmp(argv[argc - 1], "--gdb") == 0;
 
     /* set up virtual disk */
     diskfd = open(diskfile, O_RDWR);
@@ -1052,6 +1087,7 @@ int main(int argc, char **argv)
      * Arguments to the kernel main are passed using the x86_64 calling
      * convention: RDI, RSI, RDX, RCX, R8, and R9
      */
+    boot_area_prep(mem, GUEST_SIZE, kernel_end, argc - 3, &argv[3]);
 
     struct kvm_regs regs = {
         .rip = elf_entry,
@@ -1061,6 +1097,7 @@ int main(int argc, char **argv)
         .rsp = GUEST_SIZE,
         .rdi = GUEST_SIZE,	// size arg in kernel main
         .rsi = kernel_end,	// kernel_end arg in kernel main
+        .rdx = BOOT_ARG_AREA,
     };
     ret = ioctl(vcpufd, KVM_SET_REGS, &regs);
     if (ret == -1)
