@@ -35,7 +35,6 @@ CFLAGS=$(MD_CFLAGS) -std=gnu99 -Wall -Wextra -Werror -O2 -g
 COMMON_COBJS=\
 ee_printf.o \
 interrupts.o \
-kernel.o \
 lib.o \
 malloc.o \
 stubs.o \
@@ -75,7 +74,7 @@ kernel.h \
 ../loader/loader_info.h
 
 VIRTIO_TESTS=test_hello.virtio test_ping_serve.virtio
-UKVM_TESTS=test_hello.ukvm
+UKVM_TESTS=test_hello.ukvm 
 TESTS=$(VIRTIO_TESTS) $(UKVM_TESTS)
 
 all: virtio ukvm

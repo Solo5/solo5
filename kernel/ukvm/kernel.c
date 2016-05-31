@@ -20,9 +20,6 @@
 
 
 extern void start_kernel(void);
-void sleep_test(void);
-void blk_test(void);
-
 
 static void banner(void) {
     printf("            |      ___|  \n");

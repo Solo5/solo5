@@ -18,6 +18,8 @@
 
 #include "kernel.h"
 
+extern void start_kernel(void);
+
 void kernel_main(uint32_t arg)
 {
     volatile int gdb = 1;
@@ -43,5 +45,8 @@ void kernel_main(uint32_t arg)
 
     interrupts_enable();
 
-    kernel_postboot();
+    start_kernel();
+
+    printf("Kernel done. \nGoodbye!\n");
+    kernel_hang();
 }
