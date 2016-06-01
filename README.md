@@ -67,7 +67,7 @@ then build it:
 You should see a file called `mir-console.solo5-ukvm`. To run the
 unikernel on ukvm:
 
-    sudo $(which ukvm) mir-console.solo5-ukvm ~/disk.img tap100
+    sudo $(which ukvm) ~/disk.img tap100 mir-console.solo5-ukvm 
 
 You should see something like this:
 
