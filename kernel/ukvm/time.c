@@ -42,8 +42,8 @@ int sleep(uint32_t seconds) {
 void sleep_test(void) {
     int i;
     for (i = 0; i < 5; i++) {
-        printf("%d ", i);
-        sleep(i);
+        sleep(1);
+        printf("%d\n", i);
     }
 }
 
@@ -55,4 +55,9 @@ void time_init(void) {
 uint64_t solo5_clock_monotonic(void)
 {
     return pvclock_monotonic();
+}
+
+/* return wall time in nsecs */
+uint64_t solo5_wall_time(void) {
+    return pvclock_monotonic() + cpu_clock_epochoffset();
 }

@@ -37,6 +37,12 @@ test.iso: virtio_target iso/boot/grub/menu.lst Makefile
 disk.img:
 	dd if=/dev/zero of=disk.img bs=1M count=1
 
+qemu: test.iso disk.img
+	sudo qemu-system-x86_64 -s -nographic -name foo -m 1024 -boot d -cdrom test.iso \
+		 -device virtio-net,netdev=n0 \
+		 -netdev tap,id=n0,ifname=tap100,script=no,downscript=no \
+		 -drive file=disk.img,if=virtio 
+
 kvm: test.iso disk.img
 	sudo kvm -s -nographic -name foo -m 1024 -boot d -cdrom test.iso \
 		 -device virtio-net,netdev=n0 \

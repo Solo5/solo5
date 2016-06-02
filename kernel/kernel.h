@@ -20,6 +20,8 @@
 #define __KERNEL_H__
 
 #include "solo5.h"
+#include "kernel.h"
+#include "clock_subr.h"
 
 /* This is the main header file for everything in the kernel */
 
@@ -233,7 +235,14 @@ void* memalign(size_t alignment, size_t bytes);
 #define MSEC_PER_SEC    1000
 #define NSEC_PER_SEC	1000000000ULL
 
+typedef unsigned long long bmk_time_t;
 int pvclock_init(void);
 uint64_t pvclock_monotonic(void);
+void cpu_block(uint64_t until);
+int tscclock_init(void);
+void i8254_init(void);
+uint64_t tscclock_monotonic(void);
+uint64_t cpu_clock_epochoffset(void);
+
 
 #endif

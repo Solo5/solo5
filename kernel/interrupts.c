@@ -187,5 +187,17 @@ void interrupt_handler(uint64_t num,
     }
 }
 
+/* keeps track of how many stacked "interrupts_disable"'s there are */
+int spldepth = 1;
 
+void interrupts_disable() {
+    __asm__ __volatile__("cli");
+    spldepth++;
+}
 
+void interrupts_enable() {
+    assert(spldepth > 0);
+
+    if (--spldepth == 0)
+        __asm__ __volatile__("sti");
+}

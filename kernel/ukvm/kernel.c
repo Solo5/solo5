@@ -54,10 +54,10 @@ void kernel_main(uint64_t size, uint64_t kernel_end) {
     //ping_serve();
     //for(;;);
 
-
 #if 0
     blk_test();
     sleep_test();
+
 
     for(;;) {
         ping_serve();  /* does things if network packet comes in */
