@@ -67,7 +67,7 @@ then build it:
 You should see a file called `mir-console.solo5-ukvm`. To run the
 unikernel on ukvm:
 
-    sudo $(which ukvm) mir-console.solo5-ukvm ~/disk.img tap100
+    sudo $(which ukvm) ~/disk.img tap100 mir-console.solo5-ukvm 
 
 You should see something like this:
 
@@ -110,7 +110,7 @@ Debugging
 You can debug the unikernel running in ukvm using gdb. Start
 ukvm with the `--gdb` flag, like this:
 
-    sudo $(which ukvm) mir-console.solo5-ukvm ~/disk.img tap100 --gdb
+    sudo $(which ukvm) ~/disk.img tap100 mir-console.solo5-ukvm --gdb
 
 And then from another console start gdb and connect to the remote target
 listening at `localhost:1234`:

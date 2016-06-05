@@ -18,6 +18,9 @@
 
 #include "kernel.h"
 
+extern int start_kernel(int argc, char **argv);
+static char *str = "solo5";
+
 void kernel_main(uint32_t arg)
 {
     volatile int gdb = 1;
@@ -43,5 +46,12 @@ void kernel_main(uint32_t arg)
 
     interrupts_enable();
 
-    kernel_postboot();
+    {
+        int argc = 1;
+        char **argv = &str;
+        start_kernel(argc, argv);
+    }
+
+    printf("Kernel done. \nGoodbye!\n");
+    kernel_hang();
 }

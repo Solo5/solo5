@@ -19,10 +19,7 @@
 #include "kernel.h"
 
 
-extern void start_kernel(void);
-void sleep_test(void);
-void blk_test(void);
-
+extern int start_kernel(int argc, char **argv);
 
 static void banner(void) {
     printf("            |      ___|  \n");
@@ -31,9 +28,15 @@ static void banner(void) {
     printf("____/\\___/ _|\\___/____/  \n");
 }
 
+/* args are: 
+   uint64_t size, uint64_t kernel_end, ...
+*/
 
-void kernel_main(uint64_t size, uint64_t kernel_end) {
+void kernel_main(uint64_t size, uint64_t kernel_end, uint64_t boot_arg) {
+    struct ukvm_boot_arg_area *b = (struct ukvm_boot_arg_area *)boot_arg;
+
     banner();
+    printf("size=%lx, kernel_end=%lx\n", size, kernel_end);
 
     gdt_init();
     interrupts_init();
@@ -41,32 +44,15 @@ void kernel_main(uint64_t size, uint64_t kernel_end) {
 
     mem_init(size, kernel_end);
 
-    /* ocaml needs floating point */
+    /* for floating point */
     sse_enable();
-
     time_init();
 
-    //void ping_forever(void);
-    //ping_forever();
-
-    start_kernel();
-
-    //ping_serve();
-    //for(;;);
-
-#if 0
-    blk_test();
-    sleep_test();
-
-
-    for(;;) {
-        ping_serve();  /* does things if network packet comes in */
-
-        /* need atomic condition check to do the wait */
-        //kernel_wait();
+    {
+        int ret = start_kernel(b->argc, b->argv);
+        printf("start_kernel returned with %d\n", ret);
     }
-#endif
-    
+
     printf("Kernel done. \nGoodbye!\n");
     kernel_hang();
 }
