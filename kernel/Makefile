@@ -38,6 +38,7 @@ interrupts.o \
 lib.o \
 malloc.o \
 stubs.o \
+clock_subr.o \
 time.o
 
 UKVM_COBJS=\

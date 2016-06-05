@@ -91,12 +91,6 @@ ss_interrupt:
     iretq
 
         
-.global interrupts_enable
-.type interrupts_enable, @function
-interrupts_enable:
-        sti
-        ret
-
 .global interrupts_enable_and_hlt
 .type interrupts_enable_and_hlt, @function
 interrupts_enable_and_hlt:
@@ -107,12 +101,6 @@ interrupts_enable_and_hlt:
         ret
 
         
-.global interrupts_disable
-.type interrupts_disable, @function
-interrupts_disable:
-        cli
-        ret
-
 .global idt_load
 .type idt_load, @function
 idt_load:
