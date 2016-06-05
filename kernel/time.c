@@ -57,14 +57,14 @@
 #define	RTC_UIP		(1<<7)
 
 /* RTC wall time offset at monotonic time base. */
-bmk_time_t rtc_epochoffset;
+uint64_t rtc_epochoffset;
 
 /*
  * TSC clock specific.
  */
 
 /* Base time values at the last call to tscclock_monotonic(). */
-static bmk_time_t time_base;
+static uint64_t time_base;
 static uint64_t tsc_base;
 
 /* Multiplier for converting TSC ticks to nsecs. (0.32) fixed point. */
@@ -177,7 +177,7 @@ uint64_t pvclock_monotonic(void) {
 static uint64_t pvclock_read_wall_clock(void)
 {
 	uint32_t version;
-	bmk_time_t wc_boot;
+	uint64_t wc_boot;
 
 	do {
 		version = pvclock_wc.version;
@@ -289,7 +289,7 @@ static inline uint8_t rtc_read(uint8_t reg) {
  * Return current RTC time. Note that due to waiting for the update cycle to
  * complete, this call may take some time.
  */
-static bmk_time_t rtc_gettimeofday(void) {
+static uint64_t rtc_gettimeofday(void) {
     struct bmk_clock_ymdhms dt;
 
     interrupts_disable();
@@ -396,7 +396,7 @@ extern int spldepth;
  * too short.
  */
 void cpu_block(uint64_t until) {
-    bmk_time_t now, delta_ns;
+    uint64_t now, delta_ns;
     uint64_t delta_ticks;
     unsigned int ticks;
     int s;

@@ -235,7 +235,6 @@ void* memalign(size_t alignment, size_t bytes);
 #define MSEC_PER_SEC    1000
 #define NSEC_PER_SEC	1000000000ULL
 
-typedef unsigned long long bmk_time_t;
 int pvclock_init(void);
 uint64_t pvclock_monotonic(void);
 void cpu_block(uint64_t until);
