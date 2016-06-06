@@ -133,3 +133,12 @@ void low_level_handle_intr(int num) {
         PANIC("got unknown processor exception 0x%x\n", num);
     };
 }
+
+
+void solo5_interrupts_disable() {
+    interrupts_disable();
+}
+
+void solo5_interrupts_enable() {
+    interrupts_enable();
+}

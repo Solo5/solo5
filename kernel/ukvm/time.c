@@ -58,6 +58,17 @@ uint64_t solo5_clock_monotonic(void)
 }
 
 /* return wall time in nsecs */
-uint64_t solo5_wall_time(void) {
+uint64_t solo5_clock_wall(void) {
     return pvclock_monotonic() + cpu_clock_epochoffset();
+}
+
+
+void solo5_cpu_block(uint64_t until_nsecs)
+{
+    struct ukvm_nanosleep t;
+
+    t.sec_in = 0;
+    t.nsec_in = until_nsecs - solo5_clock_monotonic();
+    outl(UKVM_PORT_NANOSLEEP, ukvm_ptr(&t));
+    cc_barrier();
 }
