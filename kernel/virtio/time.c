@@ -50,7 +50,7 @@ uint64_t solo5_clock_monotonic(void) {
 }
 
 /* return wall time in nsecs */
-uint64_t solo5_wall_time(void) {
+uint64_t solo5_clock_wall(void) {
     return solo5_clock_monotonic() + cpu_clock_epochoffset();
 }
 
@@ -68,6 +68,11 @@ int sleep(uint32_t secs) {
     interrupts_enable();
 
     return 0;
+}
+
+void solo5_cpu_block(uint64_t until_nsecs)
+{
+    cpu_block(until_nsecs);
 }
 
 /* called on whenever the PIT fires (i.e. IRQ0 fires) */
