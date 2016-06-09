@@ -36,7 +36,5 @@ uint64_t solo5_clock_wall(void);
 
 /* Sched related functions */
 void solo5_cpu_block(uint64_t);
-void solo5_interrupts_disable(void);
-void solo5_interrupts_enable(void);
 
 #endif

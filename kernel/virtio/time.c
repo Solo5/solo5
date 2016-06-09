@@ -59,13 +59,9 @@ int sleep(uint32_t secs) {
     uint64_t curr = solo5_clock_monotonic();
     uint64_t until = curr + NSEC_PER_SEC * (uint64_t) secs;
 
-    interrupts_disable();
-
     /* cpu_block will enable and check for interrupts */
     while (until > solo5_clock_monotonic())
         cpu_block(until);
-
-    interrupts_enable();
 
     return 0;
 }

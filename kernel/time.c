@@ -389,8 +389,6 @@ uint64_t cpu_clock_epochoffset(void) {
 }
 
 
-extern int spldepth;
-
 /*
  * Returns early if any interrupts are serviced, or if the requested delay is
  * too short.
@@ -399,9 +397,6 @@ void cpu_block(uint64_t until) {
     uint64_t now, delta_ns;
     uint64_t delta_ticks;
     unsigned int ticks;
-    int s;
-
-    assert(spldepth > 0);
 
     /*
      * Return if called too late.  Doing do ensures that the time
@@ -419,15 +414,6 @@ void cpu_block(uint64_t until) {
     delta_ns = until - now;
     delta_ticks = mul64_32(delta_ns, pit_mult);
     if (delta_ticks < PIT_MIN_DELTA) {
-        /*
-         * Since we are "spinning", quickly enable interrupts in
-         * the hopes that we might get new work and can do something
-         * else than spin.
-         */
-        __asm__ __volatile__(
-            "sti;\n"
-            "nop;\n"    /* ints are enabled 1 instr after sti */
-            "cli;\n");
         return;
     }
 
@@ -456,11 +442,5 @@ void cpu_block(uint64_t until) {
      * able to distinguish if the interrupt was the PIT interrupt
      * and no other, but this will do for now.
      */
-    s = spldepth;
-    spldepth = 0;
-    __asm__ __volatile__(
-        "sti;\n"
-        "hlt;\n"
-        "cli;\n");
-    spldepth = s;
+    __asm__ __volatile__("hlt;\n");
 }
