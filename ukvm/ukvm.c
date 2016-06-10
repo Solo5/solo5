@@ -1094,7 +1094,7 @@ int main(int argc, char **argv)
         .rax = 2,
         .rbx = 2,
         .rflags = 0x2,
-        .rsp = GUEST_SIZE,
+        .rsp = GUEST_SIZE - 8,  // x86_64 ABI requires ((rsp + 8) % 16) == 0
         .rdi = GUEST_SIZE,	// size arg in kernel main
         .rsi = kernel_end,	// kernel_end arg in kernel main
         .rdx = BOOT_ARG_AREA,
