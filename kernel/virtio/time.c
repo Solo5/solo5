@@ -99,20 +99,25 @@ void sleep_test(void) {
 
 int solo5_poll(uint64_t until_nsecs)
 {
+    int rc = 0;
+
     /*
      * cpu_block() as currently implemented will only poll for the maximum time
      * the PIT can be run in "one shot" mode. Loop until either I/O is possible
      * or the desired time has been reached.
      */
-    for (;;) {
-        if (virtio_net_pkt_poll())
-            return 1;
+    interrupts_disable();
+    do {
+        if (virtio_net_pkt_poll()) {
+            rc = 1;
+            break;
+        }
 
         cpu_block(until_nsecs);
+    } while (solo5_clock_monotonic() < until_nsecs);
+    if (!rc)
+        rc = virtio_net_pkt_poll();
+    interrupts_enable();
 
-        if (virtio_net_pkt_poll())
-            return 1;
-        else if (solo5_clock_monotonic() >= until_nsecs)
-            return 0;
-    }
+    return rc;
 }

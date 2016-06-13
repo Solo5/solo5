@@ -73,6 +73,7 @@ void interrupts_enable(void);
 void interrupts_disable(void);
 void irq_mask(uint8_t irq);
 void irq_clear(uint8_t irq);
+extern int spldepth;
 
 void sse_enable(void);
 
