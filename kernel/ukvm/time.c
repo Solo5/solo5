@@ -62,13 +62,12 @@ uint64_t solo5_clock_wall(void) {
     return pvclock_monotonic() + cpu_clock_epochoffset();
 }
 
-
-void solo5_cpu_block(uint64_t until_nsecs)
+int solo5_poll(uint64_t until_nsecs)
 {
-    struct ukvm_nanosleep t;
+    struct ukvm_poll t;
 
-    t.sec_in = 0;
-    t.nsec_in = until_nsecs - solo5_clock_monotonic();
-    outl(UKVM_PORT_NANOSLEEP, ukvm_ptr(&t));
+    t.until_nsecs = until_nsecs - solo5_clock_monotonic();
+    outl(UKVM_PORT_POLL, ukvm_ptr(&t));
     cc_barrier();
+    return t.ret;
 }

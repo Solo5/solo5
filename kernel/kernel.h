@@ -73,6 +73,7 @@ void interrupts_enable(void);
 void interrupts_disable(void);
 void irq_mask(uint8_t irq);
 void irq_clear(uint8_t irq);
+extern int spldepth;
 
 void sse_enable(void);
 
@@ -120,6 +121,7 @@ extern uint8_t virtio_net_mac[];
 uint8_t *virtio_net_pkt_get(int *size);  /* get a pointer to recv'd data */
 void virtio_net_pkt_put(void);      /* we're done with recv'd data */
 int virtio_net_xmit_packet(void *data, int len);
+int virtio_net_pkt_poll(void);      /* test if packet(s) are available */
 
 void handle_virtio_interrupt(void);
 

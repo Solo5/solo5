@@ -48,6 +48,7 @@
 #include <net/ethernet.h>
 #include <net/if.h>
 #include <linux/if_tun.h>
+#include <poll.h>
 
 
 #include "processor-flags.h"
@@ -841,6 +842,25 @@ void ukvm_port_dbg_stack(uint8_t *mem, int vcpufd){
     }
 }
 
+void ukvm_port_poll(uint8_t * mem, void *data, int netfd)
+{
+    uint32_t arg_addr = *(uint32_t *) data;
+    struct ukvm_poll *t = (struct ukvm_poll *) (mem + arg_addr);
+    struct timespec ts;
+    struct pollfd fds = { .fd = netfd, .events = POLLIN };
+
+    ts.tv_sec = t->until_nsecs / 1000000000ULL;
+    ts.tv_nsec = t->until_nsecs % 1000000000ULL;
+
+    /*
+     * Guest execution is blocked during the ppoll() call, note that interrupts
+     * will not be injected.
+     */
+    int rc = ppoll(&fds, 1, &ts, NULL);
+    assert(rc >= 0);
+    t->ret = rc;
+}
+
 static int vcpu_loop(struct kvm_run *run, int vcpufd, uint8_t *mem,
                      int diskfd, int netfd)
 {
@@ -893,6 +913,9 @@ static int vcpu_loop(struct kvm_run *run, int vcpufd, uint8_t *mem,
                 break;
             case UKVM_PORT_DBG_STACK:
                 ukvm_port_dbg_stack(mem, vcpufd);
+                break;
+            case UKVM_PORT_POLL:
+                ukvm_port_poll(mem, data, netfd);
                 break;
             default:
                 errx(1, "unhandled KVM_EXIT_IO (%x)", run->io.port);

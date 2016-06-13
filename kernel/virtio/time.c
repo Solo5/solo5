@@ -66,11 +66,6 @@ int sleep(uint32_t secs) {
     return 0;
 }
 
-void solo5_cpu_block(uint64_t until_nsecs)
-{
-    cpu_block(until_nsecs);
-}
-
 /* called on whenever the PIT fires (i.e. IRQ0 fires) */
 void increment_time_count(void) {
     counts_since_startup++;
@@ -100,4 +95,29 @@ void sleep_test(void) {
         sleep(5);
         printf("Timer freq: %u\n", rdtsc() - tsc);
     }
+}
+
+int solo5_poll(uint64_t until_nsecs)
+{
+    int rc = 0;
+
+    /*
+     * cpu_block() as currently implemented will only poll for the maximum time
+     * the PIT can be run in "one shot" mode. Loop until either I/O is possible
+     * or the desired time has been reached.
+     */
+    interrupts_disable();
+    do {
+        if (virtio_net_pkt_poll()) {
+            rc = 1;
+            break;
+        }
+
+        cpu_block(until_nsecs);
+    } while (solo5_clock_monotonic() < until_nsecs);
+    if (!rc)
+        rc = virtio_net_pkt_poll();
+    interrupts_enable();
+
+    return rc;
 }

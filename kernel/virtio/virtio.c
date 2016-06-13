@@ -739,7 +739,13 @@ void blk_test(void) {
     
 }
 
-
+int virtio_net_pkt_poll(void)
+{
+    if (recv_next_avail == ((recv_last_used * 2) % recvq.size))
+        return 0;
+    else
+        return 1;
+}
 
 uint8_t *virtio_net_pkt_get(int *size) {
     struct pkt_buffer *buf;

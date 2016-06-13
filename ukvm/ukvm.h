@@ -58,6 +58,8 @@ static inline uint32_t ukvm_ptr(volatile void *p) {
 
 #define UKVM_PORT_DBG_STACK 0x508
 
+#define UKVM_PORT_POLL      0x509
+
 
 /* UKVM_PORT_PUTS */
 struct ukvm_puts {
@@ -144,5 +146,18 @@ struct ukvm_netread {
 	int ret;
 };
 
+/*
+ * UKVM_PORT_POLL: Block until monotonic time reaches until_nsecs or I/O is
+ * possible, whichever is sooner. Returns 1 if I/O is possible, otherwise 0.
+ *
+ * TODO: Extend this interface to select which I/O events are of interest.
+ */
+struct ukvm_poll {
+    /* IN */
+    uint64_t until_nsecs;
+
+    /* OUT */
+    int ret;
+};
 
 #endif
