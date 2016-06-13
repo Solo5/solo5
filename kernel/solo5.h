@@ -35,6 +35,11 @@ uint64_t solo5_clock_monotonic(void);
 uint64_t solo5_clock_wall(void);
 
 /* Sched related functions */
-void solo5_cpu_block(uint64_t);
+/* solo5_poll(): Block until monotonic time reaches until_nsecs or I/O is
+ * possible, whichever is sooner. Returns 1 if I/O is possible, otherwise 0.
+ *
+ * TODO: Extend this interface to select which I/O events are of interest.
+ */
+int solo5_poll(uint64_t until_nsecs);
 
 #endif
