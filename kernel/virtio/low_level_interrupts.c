@@ -114,8 +114,7 @@ void low_level_handle_irq(int irq) {
     case 0xB:
         handle_virtio_interrupt();
         break;
-    case 0:
-        increment_time_count();
+    case 0: /* PIT */
         break;
     default:
         printf("got irq %d at 0x%lx\n", irq, 

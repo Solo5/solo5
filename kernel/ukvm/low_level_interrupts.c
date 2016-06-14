@@ -46,9 +46,6 @@ void low_level_interrupts_init(void) {
 
 void low_level_handle_irq(int irq) {
     switch (irq) {
-    case 0:
-        //increment_time_count();
-        break;
     default:
         printf("got irq %d at 0x%lx\n", irq, 
                solo5_clock_monotonic() );

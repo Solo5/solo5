@@ -1,3 +1,38 @@
+#include "kernel.h"
+
+/* dlmalloc configuration */
+#undef WIN32
+#define ABORT PANIC("aborting...")
+#define MORECORE_CANNOT_TRIM
+#define HAVE_MMAP 0
+#define HAVE_MREMAP 0
+#define MMAP_CLEARS 0
+#define NO_MALLINFO 1
+#define NO_MALLOC_STATS 1
+#define LACKS_UNISTD_H
+#define LACKS_FCNTL_H
+#define LACKS_SYS_PARAM_H
+#define LACKS_SYS_MMAN_H
+#define LACKS_STRINGS_H
+#define LACKS_STRING_H
+#define LACKS_SYS_TYPES_H
+#define LACKS_ERRNO_H
+#define LACKS_STDLIB_H
+#define LACKS_SCHED_H
+#define LACKS_TIME_H
+#define ABORT_ON_ASSERT_FAILURE 1
+#define MALLOC_FAILURE_ACTION PANIC("out of memory")
+
+/* return values from posix_memalign() */
+#define ENOMEM -1      /* Out of memory */
+#define EINVAL -1      /* Invalid argument */
+
+/* Export public interfaces defined in this file */
+void *solo5_malloc(size_t) __attribute__ ((alias ("malloc")));
+void solo5_free(void *) __attribute__ ((alias ("free")));
+void *solo5_calloc(size_t, size_t) __attribute__ ((alias ("calloc")));
+void *solo5_realloc(void *, size_t) __attribute__ ((alias ("realloc")));
+
 /*
   This is a version (aka dlmalloc) of malloc/free/realloc written by
   Doug Lea and released to the public domain, as explained at
@@ -520,7 +555,6 @@ MAX_RELEASE_CHECK_RATE   default: 4095 unless not HAVE_MMAP
   disable, set to MAX_SIZE_T. This may lead to a very slight speed
   improvement at the expense of carrying around more memory.
 */
-#include "kernel.h"
 
 /* Version identifier to allow people to support multiple versions */
 #ifndef DLMALLOC_VERSION
@@ -6280,9 +6314,3 @@ History:
          structure of old version,  but most details differ.)
 
 */
-
-/* Export public interfaces defined in this file */
-void *solo5_malloc(size_t) __attribute__ ((alias ("malloc")));
-void solo5_free(void *) __attribute__ ((alias ("free")));
-void *solo5_calloc(size_t, size_t) __attribute__ ((alias ("calloc")));
-void *solo5_realloc(void *, size_t) __attribute__ ((alias ("realloc")));

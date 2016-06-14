@@ -26,13 +26,7 @@
  */
 
 #include "kernel.h"
-
-/*
- * Minimum delta to sleep using PIT. Programming seems to have an overhead of
- * 3-4us, but play it safe here.
- */
-#define PIT_MIN_DELTA	16
-
+#include "clock_subr.h"
 
 #define TIMER_CNTR	0x40
 #define TIMER_MODE	0x43
@@ -57,7 +51,7 @@
 #define	RTC_UIP		(1<<7)
 
 /* RTC wall time offset at monotonic time base. */
-uint64_t rtc_epochoffset;
+static uint64_t rtc_epochoffset;
 
 /*
  * TSC clock specific.
@@ -69,165 +63,6 @@ static uint64_t tsc_base;
 
 /* Multiplier for converting TSC ticks to nsecs. (0.32) fixed point. */
 static uint32_t tsc_mult;
-
-/* Xen/KVM per-vcpu time ABI. */
-struct pvclock_vcpu_time_info {
-    uint32_t version;
-    uint32_t pad0;
-    uint64_t tsc_timestamp;
-    uint64_t system_time;
-    uint32_t tsc_to_system_mul;
-    int8_t tsc_shift;
-    uint8_t flags;
-    uint8_t pad[2];
-} __attribute__((__packed__));
-
-/* Xen/KVM wall clock ABI. */
-struct pvclock_wall_clock {
-    uint32_t version;
-    uint32_t sec;
-    uint32_t nsec;
-} __attribute__((__packed__));
-
-
-/*
- * pvclock structures shared with hypervisor.
- * TODO: These should be pointers (for Xen HVM support), but we can't use
- * bmk_pgalloc() here.
- */
-volatile struct pvclock_vcpu_time_info pvclock_ti;
-volatile struct pvclock_wall_clock pvclock_wc;
-
-static inline void
-x86_cpuid(uint32_t level, uint32_t *eax_out, uint32_t *ebx_out,
-        uint32_t *ecx_out, uint32_t *edx_out)
-{
-    uint32_t eax_, ebx_, ecx_, edx_;
-
-    __asm__(
-        "cpuid"
-        : "=a" (eax_), "=b" (ebx_), "=c" (ecx_), "=d" (edx_)
-        : "0" (level)
-    );
-    *eax_out = eax_;
-    *ebx_out = ebx_;
-    *ecx_out = ecx_;
-    *edx_out = edx_;
-}
-
-static inline uint64_t mul64_32(uint64_t a, uint32_t b) {
-    uint64_t prod;
-#if defined(__x86_64__)
-    /* For x86_64 the computation can be done using 64-bit multiply and
-     * shift. */
-    __asm__ (
-        "mul %%rdx ; "
-        "shrd $32, %%rdx, %%rax"
-        : "=a" (prod)
-        : "0" (a), "d" ((uint64_t)b)
-    );
-#elif defined(__i386__)
-    /* For i386 we compute the partial products and add them up, discarding
-     * the lower 32 bits of the product in the process. */
-    uint32_t h = (uint32_t)(a >> 32);
-    uint32_t l = (uint32_t)a;
-    uint32_t t1, t2;
-    __asm__ (
-        "mul  %5       ; "  /* %edx:%eax = (l * b)                    */
-        "mov  %4,%%eax ; "  /* %eax = h                               */
-        "mov  %%edx,%4 ; "  /* t1 = ((l * b) >> 32)                   */
-        "mul  %5       ; "  /* %edx:%eax = (h * b)                    */
-        "xor  %5,%5    ; "  /* t2 = 0                                 */
-        "add  %4,%%eax ; "  /* %eax = (h * b) + t1 (LSW)              */
-        "adc  %5,%%edx ; "  /* %edx = (h * b) + t1 (MSW)              */
-        : "=A" (prod), "=r" (t1), "=r" (t2)
-        : "a" (l), "1" (h), "2" (b)
-    );
-#else
-#error mul64_32 not supported for target architecture
-#endif
-
-    return prod;
-}
-
-
-uint64_t pvclock_monotonic(void) {
-    uint32_t version;
-    uint64_t delta, time_now;
-
-    do {
-        version = pvclock_ti.version;
-        __asm__ ("mfence" ::: "memory");
-        delta = rdtsc() - pvclock_ti.tsc_timestamp;
-        if (pvclock_ti.tsc_shift < 0)
-            delta >>= -pvclock_ti.tsc_shift;
-        else
-            delta <<= pvclock_ti.tsc_shift;
-        time_now = mul64_32(delta, pvclock_ti.tsc_to_system_mul) +
-            pvclock_ti.system_time;
-        __asm__ ("mfence" ::: "memory");
-    } while ((pvclock_ti.version & 1) || (pvclock_ti.version != version));
-
-    return time_now;
-}
-
-/*
- * Read wall time offset since system boot using PV clock.
- */
-static uint64_t pvclock_read_wall_clock(void)
-{
-	uint32_t version;
-	uint64_t wc_boot;
-
-	do {
-		version = pvclock_wc.version;
-		__asm__ ("mfence" ::: "memory");
-		wc_boot = pvclock_wc.sec * NSEC_PER_SEC;
-		wc_boot += pvclock_wc.nsec;
-		__asm__ ("mfence" ::: "memory");
-	} while ((pvclock_wc.version & 1) || (pvclock_wc.version != version));
-
-	return wc_boot;
-}
-
-int pvclock_init(void) {
-    uint32_t eax, ebx, ecx, edx;
-    uint32_t msr_kvm_system_time, msr_kvm_wall_clock;
-
-    /*
-     * Prefer new-style MSRs, and bail entirely if neither is indicated as
-     * available by CPUID.
-     */
-    x86_cpuid(0x40000001, &eax, &ebx, &ecx, &edx);
-    if (eax & (1 << 3)) {
-        msr_kvm_system_time = 0x4b564d01;
-        msr_kvm_wall_clock = 0x4b564d00;
-    }
-    else if (eax & (1 << 0)) {
-        msr_kvm_system_time = 0x12;
-        msr_kvm_wall_clock = 0x11;
-    }
-    else {
-        return 1;
-    }
-
-    printf("Initializing the KVM Paravirtualized clock.\n");
-
-    __asm__ __volatile("wrmsr" ::
-        "c" (msr_kvm_system_time),
-        "a" ((uint32_t)((uintptr_t)&pvclock_ti | 0x1)),
-        "d" ((uint32_t)((uintptr_t)&pvclock_ti >> 32))
-    );
-    __asm__ __volatile("wrmsr" ::
-        "c" (msr_kvm_wall_clock),
-        "a" ((uint32_t)((uintptr_t)&pvclock_wc)),
-        "d" ((uint32_t)((uintptr_t)&pvclock_wc >> 32))
-    );
-    /* Initialise epoch offset using wall clock time */
-    rtc_epochoffset = pvclock_read_wall_clock();
-
-    return 0;
-}
 
 /*
  * Multiplier for converting nsecs to PIT ticks. (1.32) fixed point.
@@ -314,13 +149,6 @@ static uint64_t rtc_gettimeofday(void) {
 }
 
 /*
- * Initialise i8254 timer channel 0 to mode 4 (one shot).
- */
-void i8254_init() {
-    outb(TIMER_MODE, TIMER_SEL0 | TIMER_ONESHOT | TIMER_16BIT);
-}
-
-/*
  * Beturn monotonic time using TSC clock.
  */
 uint64_t tscclock_monotonic(void) {
@@ -378,16 +206,26 @@ int tscclock_init(void) {
      */
     time_base = mul64_32(tsc_base, tsc_mult);
 
+    /*
+     * Initialise i8254 timer channel 0 to mode 4 (one shot).
+     */
+    outb(TIMER_MODE, TIMER_SEL0 | TIMER_ONESHOT | TIMER_16BIT);
+
     return 0;
 }
 
 /*
  * Return epoch offset (wall time offset to monotonic clock start).
  */
-uint64_t cpu_clock_epochoffset(void) {
+uint64_t tscclock_epochoffset(void) {
 	return rtc_epochoffset;
 }
 
+/*
+ * Minimum delta to sleep using PIT. Programming seems to have an overhead of
+ * 3-4us, but play it safe here.
+ */
+#define PIT_MIN_DELTA	16
 
 /*
  * Returns early if any interrupts are serviced, or if the requested delay is
