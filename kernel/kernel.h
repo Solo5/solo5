@@ -98,17 +98,12 @@ int snprintf(char *str, size_t size, const char *format, ...);
 int vsnprintf(char *buf, size_t size, const char *fmt, va_list args);
 
 /* lib.c: expect this to grow... */
-void memcheck(const void *ptr, uint8_t c, size_t size);
 void *memset(void *ptr, uint8_t c, size_t size);
 void *memcpy(void *dst, const void *src, size_t size);
 void *memmove(void *dst, const void *src, size_t n);
 int memcmp(const void *s1, const void *s2, size_t n);
 char *strcpy(char *dst, const char *src);
 size_t strlen(const char *s);
-int isxdigit(int c);
-int abs(int j);
-long int labs(long int j);
-long long int llabs(long long int j);
 
 /* pci.c: only enumerate for now */
 void pci_enumerate(void);

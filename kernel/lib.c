@@ -76,17 +76,6 @@ char *strcpy(char *dst, const char *src) {
     return dst;
 }
 
-char *strncpy(char *dest, const char *src, size_t n) {
-    size_t i;
-
-    for (i = 0; i < n && src[i] != '\0'; i++)
-        dest[i] = src[i];
-    for ( ; i < n; i++)
-        dest[i] = '\0';
-
-    return dest;
-}
-
 size_t strlen(const char *s) {
     int n = 0;
 
@@ -97,81 +86,3 @@ size_t strlen(const char *s) {
 
     return n;
 }
-
-int isdigit(int c) {
-    /* not a character */
-    if (( c >= 128 ) || ( c < 0 ))
-        return 0;
-
-    if (((char)c >= '0') && ((char)c <= '9'))
-        return 1;
-
-    return 0;
-}
-
-int toupper(int c) {
-    if (((char)c >= 'a') && ((char)c <= 'z'))
-        return c - ('a' - 'A');
-
-    return c;
-}
-
-int isxdigit(int c) {
-
-    /* not a character */
-    if (( c >= 128 ) || ( c < 0 ))
-        return 0;
-
-    if (((char)c >= '0') && ((char)c <= '9'))
-        return 1;
-
-    if (((char)c >= 'a') && ((char)c <= 'f'))
-        return 1;
-
-    if (((char)c >= 'A') && ((char)c <= 'F'))
-        return 1;
-
-    return 0;
-}
-
-/**  COPIED FROM MINIOS:
- * simple_strtoul - convert a string to an unsigned long
- * @cp: The start of the string
- * @endp: A pointer to the end of the parsed string will be placed here
- * @base: The number base to use
- */
-unsigned long simple_strtoul(const char *cp,char **endp,unsigned int base)
-{
-    unsigned long result = 0,value;
-
-    if (!base) {
-        base = 10;
-        if (*cp == '0') {
-            base = 8;
-            cp++;
-            if ((*cp == 'x') && isxdigit(cp[1])) {
-                cp++;
-                base = 16;
-            }
-        }
-    }
-    while (isxdigit(*cp) &&
-           (value = isdigit(*cp) ? *cp-'0' : toupper(*cp)-'A'+10) < base) {
-        result = result*base + value;
-        cp++;
-    }
-    if (endp)
-        *endp = (char *)cp;
-    return result;
-}
-
-int abs(int j) {
-    return (j > 0) ? j : (-1 * j);
-}
-long int labs(long int j) {
-    return (j > 0) ? j : (-1 * j);
-}
-long long int llabs(long long int j) {
-    return (j > 0) ? j : (-1 * j);
-}
-

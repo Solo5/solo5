@@ -90,17 +90,6 @@ ss_interrupt:
     movq $0x0, 32(%rsp)
     iretq
 
-        
-.global interrupts_enable_and_hlt
-.type interrupts_enable_and_hlt, @function
-interrupts_enable_and_hlt:
-        sti
-        hlt                     # sti executes one instrution before
-                                # turning interrups back on, so there 
-                                # is no race to halt
-        ret
-
-        
 .global idt_load
 .type idt_load, @function
 idt_load:
