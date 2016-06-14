@@ -75,11 +75,18 @@ void irq_mask(uint8_t irq);
 void irq_clear(uint8_t irq);
 extern int spldepth;
 
-void sse_enable(void);
-
-/* mem.c: low-level page alloc routines */
+/* mem.c, mem.s: low-level page alloc routines */
 uint64_t mem_max_addr(void);
 uint64_t read_cr3(void);
+void *sbrk(intptr_t increment);
+void sse_enable(void);
+
+/* malloc.c: memory allocation */
+void *malloc(size_t bytes);
+void  free(void *ptr);
+void *calloc(size_t nmemb, size_t size);
+void *realloc(void *ptr, size_t size);
+void* memalign(size_t alignment, size_t bytes);
 
 /* time.c: clocksource */
 void time_init(void);
@@ -198,37 +205,6 @@ static inline uint64_t inq(uint16_t port_lo){
     }while(0)
 
 
-/* dlmalloc configuration */
-#undef WIN32
-#define ABORT PANIC("aborting...")
-#define MORECORE_CANNOT_TRIM
-#define HAVE_MMAP 0
-#define HAVE_MREMAP 0
-#define MMAP_CLEARS 0
-#define NO_MALLINFO 1
-#define NO_MALLOC_STATS 1
-#define LACKS_UNISTD_H
-#define LACKS_FCNTL_H
-#define LACKS_SYS_PARAM_H
-#define LACKS_SYS_MMAN_H
-#define LACKS_STRINGS_H
-#define LACKS_STRING_H
-#define LACKS_SYS_TYPES_H
-#define LACKS_ERRNO_H
-#define LACKS_STDLIB_H
-#define LACKS_SCHED_H
-#define LACKS_TIME_H
-#define ABORT_ON_ASSERT_FAILURE 1
-#define MALLOC_FAILURE_ACTION do { } while (0);
-
-#define ENOMEM          12      /* Out of memory */
-#define EINVAL          22      /* Invalid argument */
-
-void *malloc(size_t bytes);
-void  free(void *ptr);
-void *sbrk(intptr_t increment);
-void* memalign(size_t alignment, size_t bytes);
-
 #define MSEC_PER_SEC    1000
 #define NSEC_PER_SEC	1000000000ULL
 
@@ -239,6 +215,5 @@ int tscclock_init(void);
 void i8254_init(void);
 uint64_t tscclock_monotonic(void);
 uint64_t cpu_clock_epochoffset(void);
-
 
 #endif
