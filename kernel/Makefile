@@ -38,8 +38,7 @@ interrupts.o \
 lib.o \
 malloc.o \
 stubs.o \
-clock_subr.o \
-time.o
+pvclock.o
 
 UKVM_COBJS=\
 $(COMMON_COBJS) \
@@ -62,6 +61,8 @@ virtio/pci.o \
 virtio/serial.o \
 virtio/time.o \
 virtio/virtio.o \
+virtio/tscclock.o \
+virtio/clock_subr.o
 
 COBJS=$(COMMON_COBJS) $(VIRTIO_COBJS)
 SOBJS=\

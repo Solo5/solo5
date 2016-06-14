@@ -20,8 +20,6 @@
 #define __KERNEL_H__
 
 #include "solo5.h"
-#include "kernel.h"
-#include "clock_subr.h"
 
 /* This is the main header file for everything in the kernel */
 
@@ -133,7 +131,10 @@ void low_level_handle_irq(int irq);
 void low_level_handle_intr(int num);
 void low_level_interrupts_init(void);
 
-
+/* pvclock.c: KVM paravirtualized clock */
+int pvclock_init(void);
+uint64_t pvclock_monotonic(void);
+uint64_t pvclock_epochoffset(void);
 
 /* accessing devices via port space */
 
@@ -172,6 +173,19 @@ static inline uint64_t inq(uint16_t port_lo){
     return ((uint64_t)lo) | ((uint64_t)hi << 32);
 }
 
+static inline uint64_t mul64_32(uint64_t a, uint32_t b) {
+    uint64_t prod;
+
+    __asm__ (
+        "mul %%rdx ; "
+        "shrd $32, %%rdx, %%rax"
+        : "=a" (prod)
+        : "0" (a), "d" ((uint64_t)b)
+    );
+
+    return prod;
+}
+
 /* compiler-only memory "barrier" */
 #define cc_barrier() __asm__ __volatile__("": : :"memory")
 
@@ -200,15 +214,6 @@ static inline uint64_t inq(uint16_t port_lo){
     }while(0)
 
 
-#define MSEC_PER_SEC    1000
 #define NSEC_PER_SEC	1000000000ULL
-
-int pvclock_init(void);
-uint64_t pvclock_monotonic(void);
-void cpu_block(uint64_t until);
-int tscclock_init(void);
-void i8254_init(void);
-uint64_t tscclock_monotonic(void);
-uint64_t cpu_clock_epochoffset(void);
 
 #endif
