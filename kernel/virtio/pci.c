@@ -70,6 +70,9 @@ static void virtio_config(uint32_t config_addr) {
     PCI_CONF_READ(uint16_t, &pci.iobar, config_addr, IOBAR);
     PCI_CONF_READ(uint8_t, &pci.interrupt_line, config_addr, INTERRUPT_LINE);
 
+    printf("virtio_config: device_id=%x, interrupt_line=%x\n", pci.device_id,
+            pci.interrupt_line);
+
     /* we only support one net device and one blk device */
     switch(pci.device_id) {
     case PCI_CONF_SUBSYS_NET:
