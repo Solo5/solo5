@@ -19,37 +19,8 @@
 #include "kernel.h"
 #include "ukvm.h"
 
-/* sleep for given seconds */
-int sleep(uint32_t seconds) {
-    struct ukvm_nanosleep t;
-    int dbg = 0;
-
-    t.sec_in = seconds;
-    t.nsec_in = 0;
-    outl(UKVM_PORT_NANOSLEEP, ukvm_ptr(&t));
-    cc_barrier();
-
-    dprintf("nanosleep = {%d %ld %ld} ns %ld\n",
-            t.ret, t.sec_out, t.nsec_out, pvclock_monotonic());
-
-    if ( t.ret < 0 )
-        return t.sec_out;
-
-    return 0;
-}
-
-/* sleep for given seconds */
-void sleep_test(void) {
-    int i;
-    for (i = 0; i < 5; i++) {
-        sleep(1);
-        printf("%d\n", i);
-    }
-}
-
-
 void time_init(void) {
-    pvclock_init();
+    assert(pvclock_init() == 0);
 }
 
 uint64_t solo5_clock_monotonic(void)
@@ -59,7 +30,7 @@ uint64_t solo5_clock_monotonic(void)
 
 /* return wall time in nsecs */
 uint64_t solo5_clock_wall(void) {
-    return pvclock_monotonic() + cpu_clock_epochoffset();
+    return pvclock_monotonic() + pvclock_epochoffset();
 }
 
 int solo5_poll(uint64_t until_nsecs)

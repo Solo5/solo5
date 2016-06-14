@@ -90,12 +90,7 @@ void* memalign(size_t alignment, size_t bytes);
 
 /* time.c: clocksource */
 void time_init(void);
-uint64_t time_monotonic_ms(void);
-uint64_t time_monotonic_ns(void);
 uint64_t rdtsc(void);
-uint64_t time_counts_since_startup(void);
-void increment_time_count(void);
-int sleep(uint32_t seconds);
 
 /* ee_printf.c: a third-party printf slightly modified and with
  *              snprintf added 
