@@ -111,7 +111,8 @@ void irq_clear(uint8_t irq) {
 }
 void low_level_handle_irq(int irq) {
     switch (irq) {
-    case 0xB:
+    case 0x0a:
+    case 0x0b:
         handle_virtio_interrupt();
         break;
     case 0: /* PIT */
