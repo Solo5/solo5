@@ -30,7 +30,7 @@ MD_CFLAGS=-nostdinc -isystem $(GCC_INSTALL_DIR)include \
 LDFLAGS=-nostdlib -z max-page-size=0x1000 -static
 LDLIBS=$(shell gcc -print-libgcc-file-name)
 # Platform-independent CFLAGS
-CFLAGS=$(MD_CFLAGS) -std=gnu99 -Wall -Wextra -Werror -O0 -g
+CFLAGS=$(MD_CFLAGS) -std=gnu99 -Wall -Wextra -Werror -O2 -g
 
 COMMON_COBJS=\
 ee_printf.o \
