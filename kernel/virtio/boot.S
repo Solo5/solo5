@@ -168,5 +168,19 @@ ENTRY(_start64)
 	pushq $0x0
 
 	call kernel_main
+
+	cli
 	hlt
 END(_start64)
+
+ENTRY(bounce_stack)
+	movq %rdi, %rsp
+
+	pushq $0x0
+	pushq $0x0
+
+	call *%rsi
+
+	cli
+	hlt
+END(bounce_stack)

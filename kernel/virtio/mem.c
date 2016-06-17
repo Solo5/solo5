@@ -24,8 +24,8 @@
  * 0x0          0xfffff         Unused
  * 0x100000     (_end)          Kernel code and data
  * (heap_start) (heap_top)      Heap
- * (%rsp)       (stack_start)   Stack
- * (max_addr)                   Top of RAM, currently limited to 1GB
+ * (%rsp)       (max_addr)      Stack
+ *                              Top of RAM, currently limited to 1GB
  */
 #define MEM_START 0x100000
 #define MEM_MAX_ADDR 0x40000000

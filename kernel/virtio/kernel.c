@@ -21,6 +21,9 @@
 extern int start_kernel(int argc, char **argv);
 static char *str = "solo5";
 
+extern void bounce_stack(uint64_t stack_start, void (*tramp)(void));
+static void kernel_main2(void) __attribute__((noreturn));
+
 void kernel_main(uint32_t arg)
 {
     volatile int gdb = 1;
@@ -34,9 +37,16 @@ void kernel_main(uint32_t arg)
     if (!gdb) printf("looping for gdb\n");
     while ( gdb == 0 ); 
 
-    /* needs to be very early as it clears the bss */
+    /*
+     * Initialise memory map, then immediately switch stack to top of RAM.
+     * Indirectly calls kernel_main2().
+     */
     mem_init((struct multiboot_info *)((uint64_t)arg));
+    bounce_stack(mem_max_addr(), kernel_main2);
+}
 
+static void kernel_main2(void)
+{
     interrupts_init();
     /* ocaml needs floating point */
     sse_enable();
