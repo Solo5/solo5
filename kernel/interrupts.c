@@ -17,20 +17,6 @@
  */
 
 #include "kernel.h"
-/* Interrupt handling on the x86_64 involves setting up the IDT
- * (interrupt descriptor table) to point to handlers that are called
- * when the processor generates an interrupt.
- *
- * The set up of the IDT is intimately related to the the GDT (global
- * descriptor table) and TSS (task segment selector), which have been
- * set up for us by the loader.
- *
- * For 64-bit execution, we want to have a NULL SS (segments aren't
- * used anyway and seem to confuse the CPU on returning from
- * interrupts).  To do this we change the SS value on the stack before
- * returning from the first interrupt at setup time.  It's a bit of a
- * nasty hack, called the "SS hack" below.
- */
 
 #define IDT_NUM_ENTRIES 256
 #define IDT_TYPE_INT64 0xe00   
@@ -79,15 +65,6 @@ struct qw idt[IDT_NUM_ENTRIES] ALIGN_64_BIT;
         SET_IDT_ENTRY(n, intaddr);                                    \
     } while(0)
 
-/* The SS_HACK entry is for the ugly hack to get the SS to have a null
-   descriptor. */
-#define SET_SS_HACK_IDT_ENTRY(n) do {                                       \
-        extern void ss_interrupt(void);                                \
-        uint64_t intaddr = (uint64_t) &ss_interrupt;                   \
-        SET_IDT_ENTRY(n, intaddr);                                      \
-    } while(0);
-
-
 static void idt_init(void) {
     /* processor exceptions */
     SET_INTR_IDT_ENTRY(INTR_EXCEPTION_DIVIDE_ERROR);
@@ -129,12 +106,60 @@ static void idt_init(void) {
     SET_INTR_IDT_ENTRY(INTR_IRQ_14);
     SET_INTR_IDT_ENTRY(INTR_IRQ_15);
 
-    /* SS hack */
-    SET_SS_HACK_IDT_ENTRY(INTR_SS_HACK);
-
     /* user defined interrupts */
     SET_INTR_IDT_ENTRY(INTR_USER_1);
     SET_INTR_IDT_ENTRY(INTR_USER_TIMER);
+}
+
+/*
+ * GDT is defined and loaded by boot.S (virtio) or gdt.c (ukvm).
+ */
+extern uint64_t cpu_gdt64[];
+
+struct tss {
+    uint32_t reserved;
+    uint64_t rsp[3];
+    uint64_t reserved2;
+    uint64_t ist[7];
+    uint64_t reserved3;
+    uint16_t reserved4;
+    uint16_t iomap_base;
+} __attribute__((packed)) cpu_tss;
+
+struct tss_desc {
+    uint64_t limit_lo:16;
+    uint64_t base_lo:24;
+    uint64_t type:5;
+    uint64_t dpl:2;
+    uint64_t p:1;
+    uint64_t limit_hi:4;
+    uint64_t unused:3;
+    uint64_t gran:1;
+    uint64_t base_hi:40;
+    uint64_t reserved:8;
+    uint64_t zero:5;
+    uint64_t reserved1:19;
+} __attribute__((packed));
+
+static char cpu_intrstack[4096];
+extern void tss_load(uint16_t tss);
+
+static void tss_init(void)
+{
+    struct tss_desc *td = (void *)&cpu_gdt64[GDT_DESC_TSS_LO];
+
+    cpu_tss.ist[0] = (uint64_t)&cpu_intrstack;
+    td->limit_lo = sizeof(cpu_tss);
+    td->base_lo = (uint64_t)&cpu_tss;
+    td->type = 0x9;
+    td->dpl = 0;
+    td->p = 1;
+    td->limit_hi = 0;
+    td->gran = 0;
+    td->base_hi = (uint64_t)&cpu_tss >> 24;
+    td->zero = 0;
+
+    tss_load(GDT_DESC_TSS_LO*8);
 }
 
 void interrupts_init(void) {
@@ -149,6 +174,7 @@ void interrupts_init(void) {
 
     idt_init();
     idt_load((uint64_t) &idtptr);
+    tss_init();
 
     low_level_interrupts_init();
 }

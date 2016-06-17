@@ -78,12 +78,8 @@ static void PIC_remap(int offset1, int offset2)
     outb(PIC1_DATA, a1);   // restore saved masks.
     outb(PIC2_DATA, a2);
 }
-void low_level_interrupts_init(void) {
-    
-    /* The SS_HACK interrupt triggers the SS hack to get our SS into a
-       NULL descriptor, which is what we want for 64-bit execution */
-    __asm__ __volatile__("int $"STR(INTR_SS_HACK) ::); 
 
+void low_level_interrupts_init(void) {
     PIC_remap(INTR_IRQ_MASTER, INTR_IRQ_SLAVE);
 }
 

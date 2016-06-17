@@ -30,7 +30,7 @@ MD_CFLAGS=-nostdinc -isystem $(GCC_INSTALL_DIR)include \
 LDFLAGS=-nostdlib -z max-page-size=0x1000 -static
 LDLIBS=$(shell gcc -print-libgcc-file-name)
 # Platform-independent CFLAGS
-CFLAGS=$(MD_CFLAGS) -std=gnu99 -Wall -Wextra -Werror -O2 -g
+CFLAGS=$(MD_CFLAGS) -std=gnu99 -Wall -Wextra -Werror -O0 -g
 
 COMMON_COBJS=\
 ee_printf.o \
@@ -52,6 +52,7 @@ ukvm/time.o
 
 VIRTIO_COBJS=\
 $(COMMON_COBJS) \
+virtio/boot.o \
 virtio/low_level.o \
 virtio/low_level_interrupts.o \
 virtio/kernel.o \
@@ -71,9 +72,7 @@ mem_s.o \
 interrupts_s.o
 
 HEADERS=\
-kernel.h \
-../loader/multiboot.h \
-../loader/loader_info.h
+kernel.h
 
 VIRTIO_TESTS=test_hello.virtio test_ping_serve.virtio
 UKVM_TESTS=test_hello.ukvm 
@@ -85,10 +84,6 @@ all: virtio ukvm
 virtio: virtio/solo5.o $(VIRTIO_TESTS)
 ukvm: ukvm/solo5.o $(UKVM_TESTS)
 
-.PHONY: virtio/solo5.lds
-virtio/solo5.lds: 
-	bash virtio/gen_ld.bash > virtio/solo5.lds
-
 interrupt_vectors.s: interrupts.h
 	bash gen_interrupts.bash > interrupt_vectors.s
 
@@ -98,6 +93,9 @@ interrupt_vectors.s: interrupts.h
 %.o: %.c $(HEADERS)
 	$(CC) $(CFLAGS) -c $< -o $@
 
+%.o: %.S $(HEADERS)
+	$(CC) $(CFLAGS) -DASM_FILE -c $< -o $@
+
 %.ukvm: %.o ukvm/solo5.o ukvm/solo5.lds
 	$(LD) -T ukvm/solo5.lds $(LDFLAGS) -o $@ ukvm/solo5.o $< $(LDLIBS)
 
@@ -106,7 +104,7 @@ interrupt_vectors.s: interrupts.h
 
 virtio/solo5.o: $(VIRTIO_COBJS) $(SOBJS) virtio/solo5.lds
 	$(LD) -r $(LDFLAGS) -o $@ $(VIRTIO_COBJS) $(SOBJS) 
-	$(OBJCOPY) -w -G solo5_\* -G kernel_main $@ $@
+	$(OBJCOPY) -w -G solo5_\* -G _start $@ $@
 
 ukvm/solo5.o: $(UKVM_COBJS) $(SOBJS) ukvm/solo5.lds
 	$(LD) -r $(LDFLAGS) -o $@ $(UKVM_COBJS) $(SOBJS) 

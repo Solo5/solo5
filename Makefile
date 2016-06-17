@@ -19,7 +19,6 @@ all: ukvm_target virtio_target
 
 .PHONY: virtio_target
 virtio_target:
-	make -C loader
 	make -C kernel virtio
 
 .PHONY: ukvm_target
@@ -28,7 +27,6 @@ ukvm_target:
 	make -C kernel ukvm
 
 test.iso: virtio_target iso/boot/grub/menu.lst Makefile
-	@cp loader/loader iso/boot/
 	@cp kernel/test_ping_serve.virtio iso/boot/kernel
 	@xorriso -as mkisofs -R -b boot/grub/stage2_eltorito -no-emul-boot \
 		-boot-load-size 4 -quiet -boot-info-table -o test.iso iso
@@ -57,10 +55,9 @@ gdb: ukvm_target disk.img
 
 clean:
 	@echo -n cleaning...
-	@make -C loader clean
 	@make -C kernel clean
 	@make -C ukvm clean
-	@rm -f test.iso iso/boot/kernel iso/boot/loader
+	@rm -f test.iso iso/boot/kernel
 	@rm -f solo5-kernel-virtio.pc
 	@rm -f solo5-kernel-ukvm.pc
 	@echo done
@@ -88,7 +85,6 @@ KERNEL_LDLIBS=$(shell make -sC kernel print-ldlibs)
 opam-virtio-install: solo5-kernel-virtio.pc virtio_target
 	mkdir -p $(OPAM_VIRTIO_INCDIR) $(OPAM_VIRTIO_LIBDIR)
 	cp kernel/solo5.h $(OPAM_VIRTIO_INCDIR)/solo5.h
-	cp loader/loader $(OPAM_VIRTIO_LIBDIR)
 	cp iso/boot/grub/menu.lst $(OPAM_VIRTIO_LIBDIR)
 	cp iso/boot/grub/stage2_eltorito $(OPAM_VIRTIO_LIBDIR)
 	cp kernel/virtio/solo5.o kernel/virtio/solo5.lds $(OPAM_VIRTIO_LIBDIR)
