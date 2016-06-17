@@ -2,5 +2,4 @@ default 0
 timeout 0
 
 title	kernel
-kernel	/boot/loader
-module  /boot/kernel
+kernel	/boot/kernel

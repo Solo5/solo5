@@ -79,17 +79,6 @@ interrupt\n:
 
 .include "interrupt_vectors.s"
         
-## For 64-bit execution, we want to have a NULL SS (segments aren't
-## used anyway and seem to confuse the CPU on returning from
-## interrupts).  To do this we change the SS value on the stack before
-## returning from the first interrupt at setup time.  It's a bit of a
-## nasty hack.
-.global ss_interrupt
-.type ss_interrupt, @function
-ss_interrupt:
-    movq $0x0, 32(%rsp)
-    iretq
-
 .global idt_load
 .type idt_load, @function
 idt_load:

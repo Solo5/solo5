@@ -71,9 +71,6 @@
 #define INTR_IRQ_14     0x2e /* no error code */
 #define INTR_IRQ_15     0x2f /* no error code */
 
-/* the SS hack */
-#define INTR_SS_HACK    0x30 
-
 /* user defined interrupts: 0x31 - ... */
 #define INTR_USER_1     0x31 /* no error code */
 #define INTR_USER_TIMER 0x32 /* no error code */

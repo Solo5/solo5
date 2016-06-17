@@ -2,8 +2,7 @@
 #define __VIRTIO_KERNEL_H__
 
 #include "../kernel.h"
-#include "../../loader/multiboot.h"
-#include "../../loader/loader_info.h"
+#include "multiboot.h"
 
 void mem_init(struct multiboot_info *mb);
 

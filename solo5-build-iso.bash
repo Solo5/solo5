@@ -11,7 +11,6 @@ LIBDIR=`pkg-config --variable=libdir solo5-kernel-virtio`
 mkdir -p /tmp/iso/boot/grub
 cp $LIBDIR/menu.lst /tmp/iso/boot/grub
 cp $LIBDIR/stage2_eltorito /tmp/iso/boot/grub
-cp $LIBDIR/loader /tmp/iso/boot/
 cp $FILE /tmp/iso/boot/kernel
 
 xorriso -as mkisofs -R -b boot/grub/stage2_eltorito -no-emul-boot -boot-load-size 4 -quiet -boot-info-table -o $ISO /tmp/iso

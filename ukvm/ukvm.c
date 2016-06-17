@@ -99,12 +99,7 @@ struct ukvm_blkinfo blkinfo;
 
 #define GUEST_PAGE_SIZE 0x200000   // 2 MB pages in guest
 
-#define BOOT_IST    0x3000
-#define BOOT_TSS    0x2000
-#define BOOT_IDT    0x1000
 #define BOOT_GDT    0x500
-
-#define IDT_SIZE    0x1000
 
 #define BOOT_ARG_AREA 0x4000
 
@@ -116,9 +111,7 @@ struct ukvm_blkinfo blkinfo;
 #define BOOT_GDT_NULL    0
 #define BOOT_GDT_CODE    1
 #define BOOT_GDT_DATA    2
-#define BOOT_GDT_TSS     3
-#define BOOT_GDT_TSS2    4
-#define BOOT_GDT_MAX     5
+#define BOOT_GDT_MAX     3
 #define GDT_DESC_OFFSET(n) ((n) * 0x8)
 
 #define GDT_GET_BASE(x)                         \
@@ -138,37 +131,6 @@ struct ukvm_blkinfo blkinfo;
      (((limit) & _AC(0x000f0000,ULL)) << (48-16)) | \
      (((base)  & _AC(0x00ffffff,ULL)) << 16) |      \
      (((limit) & _AC(0x0000ffff,ULL))))
-
-
-struct __attribute__ ((__packed__)) tss {
-    uint32_t reserved;
-    uint32_t rsp0_lo;
-    uint32_t rsp0_hi;
-    uint32_t rsp1_lo;
-    uint32_t rsp1_hi;
-    uint32_t rsp2_lo;
-    uint32_t rsp2_hi;
-    uint32_t reserved2;
-    uint32_t reserved3;
-    uint32_t ist1_lo;
-    uint32_t ist1_hi;
-    uint32_t ist2_lo;
-    uint32_t ist2_hi;
-    uint32_t ist3_lo;
-    uint32_t ist3_hi;
-    uint32_t ist4_lo;
-    uint32_t ist4_hi;
-    uint32_t ist5_lo;
-    uint32_t ist5_hi;
-    uint32_t ist6_lo;
-    uint32_t ist6_hi;
-    uint32_t ist7_lo;
-    uint32_t ist7_hi;
-    uint32_t reserved4;
-    uint32_t reserved5;
-    uint16_t reserved6;
-    uint16_t iomap_base;
-};
 
 struct _kvm_segment {
     __u64 base;
@@ -464,7 +426,6 @@ static void dump_sregs(struct kvm_sregs *sregs)
     print_segment("tr ", &sregs->tr);
     print_segment("ldt", &sregs->ldt);
     print_dtable("gdt", &sregs->gdt);
-    print_dtable("idt", &sregs->idt);
 }
 
 static void get_and_dump_sregs(int vcpufd)
@@ -479,34 +440,17 @@ static void get_and_dump_sregs(int vcpufd)
     dump_sregs(&sregs);
 }
 
-static void setup_system_tss(struct kvm_sregs *sregs,
-                             uint8_t * mem,
-                             uint64_t off)
-{
-    struct tss *tss = (struct tss *) (mem + off);
-
-    memset(tss, 0, sizeof(struct tss));
-    tss->ist1_lo = tss->rsp0_lo = (uint32_t) BOOT_IST;
-    tss->ist1_hi = tss->rsp0_hi = 0;
-    tss->iomap_base = sizeof(struct tss);
-}
-
 static void setup_system_gdt(struct kvm_sregs *sregs,
                              uint8_t *mem,
                              uint64_t off)
 {
     uint64_t *gdt = (uint64_t *) (mem + off);
-    struct kvm_segment data_seg, code_seg, tss_seg;
+    struct kvm_segment data_seg, code_seg;
 
     /* flags, base, limit */
     gdt[BOOT_GDT_NULL] = GDT_ENTRY(0, 0, 0);
     gdt[BOOT_GDT_CODE] = GDT_ENTRY(0xA09B, 0, 0xFFFFF);
     gdt[BOOT_GDT_DATA] = GDT_ENTRY(0xC093, 0, 0xFFFFF);
-    //gdt[BOOT_GDT_CODE] = GDT_ENTRY(0xA09b, 0, 0xFFFFF);
-    //gdt[BOOT_GDT_DATA] = GDT_ENTRY(0x809a, 0, 0xFFFFF);
-    //gdt[BOOT_GDT_TSS ] = GDT_ENTRY(0x808B, 0, 0xFFFFF);
-    gdt[BOOT_GDT_TSS] = GDT_ENTRY(0x008B, BOOT_TSS, 0x67);
-    gdt[BOOT_GDT_TSS2] = GDT_ENTRY(0, 0, 0);
 
     if (0) {
         size_t i;
@@ -516,12 +460,6 @@ static void setup_system_gdt(struct kvm_sregs *sregs,
             if (i % 8 == 7)
                 printf("\n");
         }
-        /* printk("tss @ 0x%lx \n", &tss); */
-        /* for (i = 0; i < sizeof(tss); i++) { */
-        /*     printk("%02x", *((uint8_t *)&tss + i)); */
-        /*     if (i % 8 == 7) */
-        /*         printk("\n"); */
-        /* } */
     }
 
     sregs->gdt.base = off;
@@ -529,7 +467,6 @@ static void setup_system_gdt(struct kvm_sregs *sregs,
 
     GDT_TO_KVM_SEGMENT(code_seg, gdt, BOOT_GDT_CODE);
     GDT_TO_KVM_SEGMENT(data_seg, gdt, BOOT_GDT_DATA);
-    GDT_TO_KVM_SEGMENT(tss_seg, gdt, BOOT_GDT_TSS);
 
     sregs->cs = code_seg;
     sregs->ds = data_seg;
@@ -537,63 +474,6 @@ static void setup_system_gdt(struct kvm_sregs *sregs,
     sregs->fs = data_seg;
     sregs->gs = data_seg;
     sregs->ss = data_seg;
-    sregs->tr = tss_seg;
-}
-
-/* the interrupt stack is the first entry in the TSS */
-#define IDT_IST 0x1
-#define IDT_TYPE_INT64  0xe00
-#define IDT_TYPE_TRAP64 0xf00
-#define IDT_PRESENT 0x8000
-#define IDT_HANDLER_SEGMENT (GDT_DESC_OFFSET(BOOT_GDT_CODE))
-#define SET_IDT_ENTRY(base, n, a) do {                                  \
-        uint32_t *entry = (uint32_t *)((uint64_t)base + n * (sizeof(uint32_t) * 4)); \
-        *entry++ = (IDT_HANDLER_SEGMENT << 16) | (a & 0xffff);          \
-        *entry++ = (a & 0xffff0000)                                     \
-            | IDT_PRESENT | IDT_TYPE_INT64 | IDT_IST;                   \
-        *entry++ = a >> 32;                                             \
-        *entry = 0;                                                     \
-    } while(0)
-
-static void set_idt_entry(uint64_t base, int n, uint64_t addr)
-{
-    uint32_t *entry = (uint32_t *) (base + (n * (sizeof(uint32_t) * 4)));
-    *entry++ = (IDT_HANDLER_SEGMENT << 16) | (addr & 0xffff);
-    *entry++ =
-        (addr & 0xffff0000) | IDT_PRESENT | IDT_TYPE_INT64 | IDT_IST;
-    *entry++ = addr >> 32;
-    *entry = 0;
-}
-
-static void setup_system_idt(struct kvm_sregs *sregs,
-                             uint8_t *mem,
-                             uint64_t off)
-{
-    uint64_t *idt = (uint64_t *) (mem + off);
-    memset(idt, 0, IDT_SIZE);
-#if 1
-    /* hardcoded where divide-by-zero is */
-    // SET_IDT_ENTRY((uint64_t)idt, 0, 0x10a30c);
-    /* hardcoded where divide-by-zero is */
-    // set_idt_entry((uint64_t)idt, 0, 0x10a32c);
-    //
-    /* hardcoded where divide-by-zero is */
-    set_idt_entry((uint64_t) idt, 0, 0x1b3c89);
-    if (0) {
-        int i;
-        printf("setting IDT: ");
-        for (i = 0; i < 16; i++)
-            printf("%02x", mem[off + i]);
-        printf("\n");
-    }
-#else
-    /* set up memory */
-    *idt = 0;
-#endif
-
-    /* set up cpu */
-    sregs->idt.base = off;
-    sregs->idt.limit = IDT_SIZE - 1;
 }
 
 static void setup_system(int vcpufd, uint8_t * mem)
@@ -607,7 +487,6 @@ static void setup_system(int vcpufd, uint8_t * mem)
         err(1, "KVM_GET_SREGS");
 
     setup_system_gdt(&sregs, mem, BOOT_GDT);
-    setup_system_idt(&sregs, mem, BOOT_IDT);
     setup_system_page_tables(&sregs, mem);
     setup_system_64bit(&sregs);
 
@@ -1005,7 +884,6 @@ uint8_t *mem;
 int main(int argc, char **argv)
 {
     int kvm, vmfd, vcpufd, diskfd, netfd, ret;
-    uint8_t *tss_addr;
     struct kvm_sregs sregs;
     struct kvm_run *run;
     size_t mmap_size;
@@ -1090,11 +968,6 @@ int main(int argc, char **argv)
     /* ret = ioctl(vmfd, KVM_CREATE_IRQCHIP); */
     /* if (ret == -1) */
     /*     err(1, "KVM_CREATE_IRQCHIP"); */
-
-    /* needed for intel processors to hold the ept identity table? */
-    /* ret = ioctl(vmfd, KVM_SET_TSS_ADDR, 0xfffbd000); */
-    /* if (ret == -1) */
-    /*     err(1, "KVM_SET_TSS_ADDR"); */
 
     vcpufd = ioctl(vmfd, KVM_CREATE_VCPU, (unsigned long) 0);
     if (vcpufd == -1)
