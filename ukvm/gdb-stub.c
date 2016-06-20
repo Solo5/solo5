@@ -277,8 +277,7 @@ int hex(char ch)
 }
 
 
-static char remcomInBuffer[BUFMAX];
-static char remcomOutBuffer[BUFMAX];
+static unsigned char remcomInBuffer[BUFMAX];
 
 
 /* scan for the sequence $<data>#<checksum>     */
@@ -345,7 +344,7 @@ unsigned char *getpacket(void)
 
 /* send the packet in buffer.  */
 
-void putpacket(unsigned char *buffer)
+void putpacket(char *buffer)
 {
     unsigned char checksum;
     int count;
@@ -357,7 +356,7 @@ void putpacket(unsigned char *buffer)
         checksum = 0;
         count = 0;
 
-        while (ch = buffer[count]) {
+        while ((ch = buffer[count])) {
             putDebugChar(ch);
             checksum += ch;
             count += 1;
@@ -434,28 +433,6 @@ char *hex2mem(char *buf, char *mem, int count)
 }
 
 
-static int hexToLong(char **ptr, long *longValue)
-{
-    int numChars = 0;
-    int hexValue;
-
-    *longValue = 0;
-
-    while (**ptr) {
-        hexValue = hex(**ptr);
-        if (hexValue < 0)
-            break;
-
-        *longValue = (*longValue << 4) | hexValue;
-        numChars++;
-
-        (*ptr)++;
-    }
-
-    return numChars;
-}
-
-
 int gdb_is_pc_breakpointing(uint64_t addr)
 {
     int i;
@@ -497,7 +474,7 @@ int gdb_remove_breakpoint(uint64_t addr)
 
 void gdb_handle_exception(int vcpufd, int sig)
 {
-    char *buffer;
+    unsigned char *buffer;
     char obuf[4096];
     int ne = 0;
 
@@ -529,13 +506,13 @@ void gdb_handle_exception(int vcpufd, int sig)
             int len;
             char *ebuf;
 
-            addr = strtoull(&buffer[1], &ebuf, 16);
+            addr = strtoull((char *)&buffer[1], &ebuf, 16);
             len = strtoul(ebuf + 1, NULL, 16);
 
             if ((addr + len) >= GUEST_SIZE)
                 memset(obuf, '0', len);
             else
-                mem2hex(mem + addr, obuf, len);
+                mem2hex((char *)mem + addr, obuf, len);
             putpacket(obuf);
             break;
         }
@@ -545,8 +522,7 @@ void gdb_handle_exception(int vcpufd, int sig)
         }
         case 'g': {
             struct kvm_regs regs;
-            struct kvm_sregs sregs;
-            int i, ret;
+            int ret;
 
             ret = ioctl(vcpufd, KVM_GET_REGS, &regs);
             if (ret == -1)
@@ -598,9 +574,9 @@ void gdb_handle_exception(int vcpufd, int sig)
         case 'Z': {
             // insert a breakpoint
             char *ebuf;
-            uint64_t type = strtoull(buffer + 1, &ebuf, 16);
+            //uint64_t type = strtoull(buffer + 1, &ebuf, 16);
             uint64_t addr = strtoull(ebuf + 1, &ebuf, 16);
-            uint64_t len = strtoull(ebuf + 1, &ebuf, 16);
+            //uint64_t len = strtoull(ebuf + 1, &ebuf, 16);
             gdb_insert_breakpoint(addr);
             putpacket("OK");
             break;
@@ -608,9 +584,9 @@ void gdb_handle_exception(int vcpufd, int sig)
         case 'z': {
             // remove a breakpoint
             char *ebuf;
-            uint64_t type = strtoull(buffer + 1, &ebuf, 16);
+            //uint64_t type = strtoull(buffer + 1, &ebuf, 16);
             uint64_t addr = strtoull(ebuf + 1, &ebuf, 16);
-            uint64_t len = strtoull(ebuf + 1, &ebuf, 16);
+            //uint64_t len = strtoull(ebuf + 1, &ebuf, 16);
             gdb_remove_breakpoint(addr);
             putpacket("OK");
             break;

@@ -1,7 +1,12 @@
 all: ukvm
 
-ukvm: ukvm.c ukvm.h misc.h gdb-stub.c
-	gcc -o ukvm ukvm.c gdb-stub.c -lpthread -lrt
+CC=gcc
+CFLAGS=-Wall -Werror
+OBJS=ukvm.o gdb-stub.o
+HEADERS=ukvm.h misc.h processor-flags.h
+
+ukvm: $(OBJS) $(HEADERS)
+	gcc -o $@ $(OBJS) -lpthread -lrt
 
 clean:
-	rm -f ukvm
+	rm -f ukvm $(OBJS)
