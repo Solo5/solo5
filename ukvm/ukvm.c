@@ -259,7 +259,6 @@ static void load_code(const char *file,	  /* IN */
                       uint64_t * p_end    /* OUT */ )
 {
     int fd_kernel;
-    int ret = 0;
     ssize_t numb;
     size_t buflen;
     Elf64_Off ph_off;
@@ -304,7 +303,7 @@ static void load_code(const char *file,	  /* IN */
      * ALIGN_UP(p_memsz, p_align) bytes on memory.
      */
     for (ph_i = 0; ph_i < ph_cnt; ph_i++) {
-        char *dst;
+        uint8_t *dst;
         size_t _end;
         size_t offset = phdr[ph_i].p_offset;
         size_t filesz = phdr[ph_i].p_filesz;
@@ -383,12 +382,12 @@ static void setup_system_page_tables(struct kvm_sregs *sregs, uint8_t * mem)
     sregs->cr0 |= X86_CR0_PG;
 }
 
+#if 0
 static void print_dtable(const char *name, struct kvm_dtable *dtable)
 {
     printf(" %s                 %016lx  %08hx\n",
            name, (uint64_t) dtable->base, (uint16_t) dtable->limit);
 }
-
 
 static void print_segment(const char *name, struct kvm_segment *seg)
 {
@@ -398,7 +397,6 @@ static void print_segment(const char *name, struct kvm_segment *seg)
          (uint32_t) seg->limit, (uint8_t) seg->type, seg->present,
          seg->dpl, seg->db, seg->s, seg->l, seg->g, seg->avl);
 }
-
 
 static void dump_sregs(struct kvm_sregs *sregs)
 {
@@ -439,6 +437,7 @@ static void get_and_dump_sregs(int vcpufd)
 
     dump_sregs(&sregs);
 }
+#endif
 
 static void setup_system_gdt(struct kvm_sregs *sregs,
                              uint8_t *mem,
@@ -552,6 +551,8 @@ static void *event_loop(void *arg)
             pthread_mutex_unlock(&interrupt_mutex);
         }
     }
+
+    return NULL;
 }
 
 
@@ -667,8 +668,6 @@ void ukvm_port_netwrite(uint8_t * mem, void *data, int netfd)
 {
     uint32_t mem_off = *(uint32_t *) data;
     struct ukvm_netwrite *wr = (struct ukvm_netwrite *) (mem + mem_off);
-    uint8_t *ptr = mem + (uint64_t) wr->data;
-    int i;
     int ret;
     
     wr->ret = 0;
@@ -681,7 +680,6 @@ void ukvm_port_netread(uint8_t * mem, void *data, int netfd)
 {
     uint32_t mem_off = *(uint32_t *) data;
     struct ukvm_netread *rd = (struct ukvm_netread *) (mem + mem_off);
-    uint8_t *ptr = mem + (uint64_t) rd->data;
     struct timeval zero;
     fd_set netset;
     int ret;
@@ -744,9 +742,14 @@ static int vcpu_loop(struct kvm_run *run, int vcpufd, uint8_t *mem,
                      int diskfd, int netfd)
 {
     int ret;
+
     /* Repeatedly run code and handle VM exits. */
     while (1) {
         ret = ioctl(vcpufd, KVM_RUN, NULL);
+	if (ret < 0 &&
+		(errno != EINTR && errno != EAGAIN)) {
+	    err(1, "KVM_RUN failed");
+	}
 
         switch (run->exit_reason) {
         case KVM_EXIT_DEBUG: {
@@ -824,6 +827,8 @@ static int vcpu_loop(struct kvm_run *run, int vcpufd, uint8_t *mem,
             errx(1, "exit_reason = 0x%x", run->exit_reason);
         }
     }
+
+    return 0; /* XXX Refactor return code paths in the above code */
 }
 
 
@@ -884,7 +889,6 @@ uint8_t *mem;
 int main(int argc, char **argv)
 {
     int kvm, vmfd, vcpufd, diskfd, netfd, ret;
-    struct kvm_sregs sregs;
     struct kvm_run *run;
     size_t mmap_size;
     uint64_t elf_entry;
