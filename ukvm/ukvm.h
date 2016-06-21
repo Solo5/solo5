@@ -22,16 +22,10 @@
 
 #define GUEST_SIZE      0x20000000 // 512 MBs
 
-#define UKVM_BOOT_ARG_LEN  0x60
-#define UKVM_BOOT_ARG_NUM  32
-struct ukvm_boot_arg {
-    char str[UKVM_BOOT_ARG_LEN];
-};
-struct ukvm_boot_arg_area {
-    /* strings must be on top */
-    struct ukvm_boot_arg strings[UKVM_BOOT_ARG_NUM]; 
-    int argc;
-    char *argv[UKVM_BOOT_ARG_NUM];
+struct ukvm_boot_info {
+    uint64_t mem_size;		/* Memory size in bytes */
+    uint64_t kernel_end;	/* Address of end of kernel */
+    uint64_t cmdline;		/* Address of command line (C string) */
 };
 
 /* 
