@@ -18,11 +18,11 @@
 
 #include "kernel.h"
 
-extern int start_kernel(int argc, char **argv);
-static char *str = "solo5";
-
+extern int start_kernel(char *cmdline);
 extern void bounce_stack(uint64_t stack_start, void (*tramp)(void));
 static void kernel_main2(void) __attribute__((noreturn));
+
+static char cmdline[8192];
 
 void kernel_main(uint32_t arg)
 {
@@ -38,10 +38,41 @@ void kernel_main(uint32_t arg)
     while ( gdb == 0 ); 
 
     /*
+     * The multiboot structures may be anywhere in memory, so take a copy of
+     * the command line before we initialise memory allocation.
+     */
+    struct multiboot_info *mi = (struct multiboot_info *)(uint64_t)arg;
+    if (mi->flags & MULTIBOOT_INFO_CMDLINE) {
+        char *mi_cmdline = (char *)(uint64_t)mi->cmdline;
+        size_t cmdline_len = strlen(mi_cmdline);
+
+        /*
+         * Skip the first token in the cmdline as it is an opaque "name" for
+         * the kernel coming from the bootloader.
+         */
+        for (; *mi_cmdline; mi_cmdline++, cmdline_len--) {
+            if (*mi_cmdline == ' ') {
+                mi_cmdline++;
+                cmdline_len--;
+                break;
+            }
+        }
+
+        if (cmdline_len >= sizeof cmdline) {
+            cmdline_len = sizeof cmdline - 1;
+            printf("kernel_main: warning: command line too long, truncated\n");
+        }
+        memcpy(cmdline, mi_cmdline, cmdline_len);
+    }
+    else {
+        cmdline[0] = 0;
+    }
+
+    /*
      * Initialise memory map, then immediately switch stack to top of RAM.
      * Indirectly calls kernel_main2().
      */
-    mem_init((struct multiboot_info *)((uint64_t)arg));
+    mem_init(mi);
     bounce_stack(mem_max_addr(), kernel_main2);
 }
 
@@ -56,11 +87,8 @@ static void kernel_main2(void)
 
     interrupts_enable();
 
-    {
-        int argc = 1;
-        char **argv = &str;
-        start_kernel(argc, argv);
-    }
+    int ret = start_kernel(cmdline);
+    printf("start_kernel returned with %d\n", ret);
 
     printf("Kernel done. \nGoodbye!\n");
     kernel_hang();

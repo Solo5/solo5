@@ -19,7 +19,7 @@
 #include "kernel.h"
 
 
-extern int start_kernel(int argc, char **argv);
+extern int start_kernel(char *cmdline);
 
 static void banner(void) {
     printf("            |      ___|  \n");
@@ -32,26 +32,23 @@ static void banner(void) {
    uint64_t size, uint64_t kernel_end, ...
 */
 
-void kernel_main(uint64_t size, uint64_t kernel_end, uint64_t boot_arg) {
-    struct ukvm_boot_arg_area *b = (struct ukvm_boot_arg_area *)boot_arg;
-
+void kernel_main(struct ukvm_boot_info *bi)
+{
     banner();
-    printf("size=%lx, kernel_end=%lx\n", size, kernel_end);
+    printf("mem_size=%lx, kernel_end=%lx\n", bi->mem_size, bi->kernel_end);
 
     gdt_init();
     interrupts_init();
     interrupts_enable();
 
-    mem_init(size, kernel_end);
+    mem_init(bi->mem_size, bi->kernel_end);
 
     /* for floating point */
     sse_enable();
     time_init();
 
-    {
-        int ret = start_kernel(b->argc, b->argv);
-        printf("start_kernel returned with %d\n", ret);
-    }
+    int ret = start_kernel((char *)bi->cmdline);
+    printf("start_kernel returned with %d\n", ret);
 
     printf("Kernel done. \nGoodbye!\n");
     kernel_hang();

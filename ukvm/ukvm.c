@@ -59,54 +59,27 @@
 
 struct ukvm_blkinfo blkinfo;
 
-
-/*           _ loaded elf file (linker script dictates location) */
-/* 0x100000 | */
-/* 0x09fc00 |_ memory hole */
-/* ########    <-- 0x94c00 unused */
-/* 0x00B000  _ */
-/* 0x00A000 |_ PDPTE entries (present, rw, 1GB page size, points to 0) */
-/* 0x009000 |_ PML4 entry (present, rw, points to PDPTE) */
-/* ########    <-- 0x200 unused */
-/* 0x008e00  _ */
-/* 0x008000 |  <-- bootstrap stack (yikes: will destroy boot info) */
-/* 0x007e00 |_ boot info (1 page) */
-/* ########    <-- 0x78d8 unused */
-/* 0x000528  _ */
-/* 0x000520 |_ idt (is blank)  (yikes: overlaps 2nd half of tss entry in gdt) */
-/* 0x000500 |_ gdt (contains correct code/data/ but tss points to 0) */
-
-
-/*           _ loaded elf file (linker script dictates location) 
- * 0x100000 | 
- * 0x09fc00 |_ memory hole 
- * ########    <-- 0x94c00 unused 
- * 0x00B000  _ 
- * 0x00A000 |_ PDPTE entries (present, rw, 1GB page size, points to 0) 
- * 0x009000 |_ PML4 entry (present, rw, points to PDPTE) 
- * ########    <-- 0x200 unused 
- * 0x008e00  _ 
- * 0x008000 |  <-- bootstrap stack (yikes: will destroy boot info) 
- * 0x007e00 |_ boot info (1 page) 
- * ########  _ <--  unused 
- * 0x003000 |  space for interrupt stack
- * 0x002067 |_
- * 0x002000 |_ tss structure
- * 0x001000 |_ idt 
- * 0x000500 |_ gdt (contains correct code/data/ but tss points to 0) 
+/*
+ * Memory map:
+ *
+ * 0x100000    loaded elf file (linker script dictates location)
+ * ########    unused
+ * 0x013000
+ * 0x012000    bootstrap pde
+ * 0x011000    bootstrap pdpte
+ * 0x010000    bootstrap pml4
+ * ########    command line arguments
+ * 0x002000    ukvm_boot_info
+ * 0x001000    bootstrap gdt (contains correct code/data/ but tss points to 0)
  */
-
 
 #define GUEST_PAGE_SIZE 0x200000   // 2 MB pages in guest
 
-#define BOOT_GDT    0x500
-
-#define BOOT_ARG_AREA 0x4000
-
-/* Puts PML4 right after zero page but aligned to 4k */
-#define BOOT_PML4    0x9000
-#define BOOT_PDPTE   0xA000
-#define BOOT_PDE     0xB000
+#define BOOT_GDT     0x1000
+#define BOOT_INFO    0x2000
+#define BOOT_PML4    0x10000
+#define BOOT_PDPTE   0x11000
+#define BOOT_PDE     0x12000
 
 #define BOOT_GDT_NULL    0
 #define BOOT_GDT_CODE    1
@@ -178,38 +151,32 @@ void gdb_stub_start();
 void gdb_handle_exception(int vcpufd, int sig);
 int gdb_is_pc_breakpointing(long addr);
 
-
-
-void boot_area_prep(uint8_t *mem,
+void setup_boot_info(uint8_t *mem,
                     uint64_t size,
                     uint64_t kernel_end,
                     int argc, char **argv)
 {
-    struct ukvm_boot_arg_area *b;
-    int i;
-    
-    b = (struct ukvm_boot_arg_area *)(mem + BOOT_ARG_AREA);
-    memset(b, 0, sizeof(struct ukvm_boot_arg_area));
-    assert(argc < UKVM_BOOT_ARG_NUM - 1);
-    
-    b->argc = argc;
-    
-    /* place args */
-    for (i = 0; i < argc; i++) {
-        if (i == 0) {
-            char *name = basename(argv[0]);
-            assert(strlen(name) < UKVM_BOOT_ARG_LEN);
-            sprintf(b->strings[i].str, "%s", name);
-        } else {
-            sprintf(b->strings[i].str, "%s", argv[i]);
+    struct ukvm_boot_info *bi = (struct ukvm_boot_info *)(mem + BOOT_INFO);
+    uint64_t cmdline = BOOT_INFO + sizeof (struct ukvm_boot_info);
+    size_t cmdline_free = BOOT_PML4 - cmdline - 1;
+    char *cmdline_p = (char *)(mem + cmdline);
+
+    bi->mem_size = size;
+    bi->kernel_end = kernel_end;
+    bi->cmdline = cmdline;
+    cmdline_p[0] = 0;
+
+    for (; *argv; argc--, argv++) {
+        size_t alen = snprintf(cmdline_p, cmdline_free, "%s%s", *argv,
+                (argc > 1) ? " " : "");
+        if (alen >= size) {
+            warnx("command line too long, truncated");
+            break;
         }
-        b->argv[i] = (char *)(BOOT_ARG_AREA
-                              + (i * sizeof(struct ukvm_boot_arg)));
+        cmdline_free -= alen;
+        cmdline_p += alen;
     }
 }
-    
-
-
 
 ssize_t pread_in_full(int fd, void *buf, size_t count, off_t offset)
 {
@@ -274,7 +241,7 @@ static void load_code(const char *file,	  /* IN */
     *p_end = 0;
 
     fd_kernel = open(file, O_RDONLY);
-    if (!fd_kernel)
+    if (fd_kernel == -1)
         err(1, "couldn't open elf");
 
     numb = pread_in_full(fd_kernel, &hdr, sizeof(Elf64_Ehdr), 0);
@@ -746,10 +713,10 @@ static int vcpu_loop(struct kvm_run *run, int vcpufd, uint8_t *mem,
     /* Repeatedly run code and handle VM exits. */
     while (1) {
         ret = ioctl(vcpufd, KVM_RUN, NULL);
-	if (ret < 0 &&
-		(errno != EINTR && errno != EAGAIN)) {
-	    err(1, "KVM_RUN failed");
-	}
+        if (ret < 0 &&
+                (errno != EINTR && errno != EAGAIN)) {
+            err(1, "KVM_RUN failed");
+        }
 
         switch (run->exit_reason) {
         case KVM_EXIT_DEBUG: {
@@ -896,14 +863,22 @@ int main(int argc, char **argv)
     char tun_name[IFNAMSIZ];
     int use_gdb = 0;
 
+    /* TODO: Replace this with a proper argument parser */
     if (argc < 4)
-        err(1, "usage: ukvm <disk.img> <net_iface> <elf> [args] [--gdb]");
+        err(1, "usage: ukvm <disk.img> <net_iface> <elf> [--gdb] [args]");
 
     const char *diskfile = argv[1];
     const char *netiface = argv[2];
     const char *elffile = argv[3];
-    if (argc >= 5)
-        use_gdb = strcmp(argv[argc - 1], "--gdb") == 0;
+    argc -= 4;
+    argv += 4;
+    if (argc >= 1) {
+        use_gdb = strcmp(argv[0], "--gdb") == 0;
+        if (use_gdb) {
+            argc--;
+            argv++;
+        }
+    }
 
     /* set up virtual disk */
     diskfd = open(diskfile, O_RDWR);
@@ -977,9 +952,11 @@ int main(int argc, char **argv)
     if (vcpufd == -1)
         err(1, "KVM_CREATE_VCPU");
 
-
     /* Setup x86 system registers and memory. */
     setup_system(vcpufd, mem);
+
+    /* Setup ukvm_boot_info and command line */
+    setup_boot_info(mem, GUEST_SIZE, kernel_end, argc, argv);
 
     /*
      * Initialize registers: instruction pointer for our code, addends,
@@ -987,17 +964,13 @@ int main(int argc, char **argv)
      * Arguments to the kernel main are passed using the x86_64 calling
      * convention: RDI, RSI, RDX, RCX, R8, and R9
      */
-    boot_area_prep(mem, GUEST_SIZE, kernel_end, argc - 3, &argv[3]);
-
     struct kvm_regs regs = {
         .rip = elf_entry,
         .rax = 2,
         .rbx = 2,
         .rflags = 0x2,
         .rsp = GUEST_SIZE - 8,  // x86_64 ABI requires ((rsp + 8) % 16) == 0
-        .rdi = GUEST_SIZE,	// size arg in kernel main
-        .rsi = kernel_end,	// kernel_end arg in kernel main
-        .rdx = BOOT_ARG_AREA,
+        .rdi = BOOT_INFO,       // size arg in kernel main
     };
     ret = ioctl(vcpufd, KVM_SET_REGS, &regs);
     if (ret == -1)
