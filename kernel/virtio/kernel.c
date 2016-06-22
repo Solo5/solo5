@@ -18,7 +18,6 @@
 
 #include "kernel.h"
 
-extern int start_kernel(char *cmdline);
 extern void bounce_stack(uint64_t stack_start, void (*tramp)(void));
 static void kernel_main2(void) __attribute__((noreturn));
 
@@ -87,8 +86,8 @@ static void kernel_main2(void)
 
     interrupts_enable();
 
-    int ret = start_kernel(cmdline);
-    printf("start_kernel returned with %d\n", ret);
+    int ret = solo5_app_main(cmdline);
+    printf("solo5_app_main() returned with %d\n", ret);
 
     printf("Kernel done. \nGoodbye!\n");
     kernel_hang();

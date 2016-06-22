@@ -18,19 +18,12 @@
 
 #include "kernel.h"
 
-
-extern int start_kernel(char *cmdline);
-
 static void banner(void) {
     printf("            |      ___|  \n");
     printf("  __|  _ \\  |  _ \\ __ \\  \n");
     printf("\\__ \\ (   | | (   |  ) | \n");
     printf("____/\\___/ _|\\___/____/  \n");
 }
-
-/* args are: 
-   uint64_t size, uint64_t kernel_end, ...
-*/
 
 void kernel_main(struct ukvm_boot_info *bi)
 {
@@ -47,8 +40,8 @@ void kernel_main(struct ukvm_boot_info *bi)
     sse_enable();
     time_init();
 
-    int ret = start_kernel((char *)bi->cmdline);
-    printf("start_kernel returned with %d\n", ret);
+    int ret = solo5_app_main((char *)bi->cmdline);
+    printf("solo5_app_main() returned with %d\n", ret);
 
     printf("Kernel done. \nGoodbye!\n");
     kernel_hang();

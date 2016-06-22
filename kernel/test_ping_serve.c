@@ -2,7 +2,7 @@
 
 extern void solo5_ping_serve(void); /* XXX */
 
-int start_kernel(char *cmdline __attribute__((unused)))
+int solo5_app_main(char *cmdline __attribute__((unused)))
 {
     const char s[] = "Hello, World\n";
 
