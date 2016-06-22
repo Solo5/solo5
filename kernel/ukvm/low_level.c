@@ -20,7 +20,6 @@
 
 /* in stubs.c */
 void low_level_exit(void) {
-    outl(UKVM_PORT_DBG_STACK, 0);
 }
 
 int low_level_puts(char *buf, int n){
