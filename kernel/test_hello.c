@@ -1,8 +1,6 @@
 #include "solo5.h"
 
-#define UNUSED(x) (void)(x)
-
-int start_kernel(char *cmdline)
+int solo5_app_main(char *cmdline)
 {
     const char s[] = "Hello, World\nCommand line is: ";
 
@@ -17,4 +15,3 @@ int start_kernel(char *cmdline)
 
     return 0;
 }
-

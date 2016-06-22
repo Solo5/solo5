@@ -6,6 +6,9 @@
 
 /* Solo5 public APIs */
 
+/* Application entry point */
+int solo5_app_main(char *cmdline);
+
 /* Network */
 int solo5_net_write_sync(uint8_t *data, int n);
 int solo5_net_read_sync(uint8_t *data, int *n);
