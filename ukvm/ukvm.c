@@ -58,6 +58,7 @@
 
 
 struct ukvm_blkinfo blkinfo;
+struct ukvm_netinfo netinfo;
 
 /*
  * Memory map:
@@ -627,8 +628,7 @@ void ukvm_port_netinfo(uint8_t * mem, void *data)
     uint32_t mem_off = *(uint32_t *) data;
     struct ukvm_netinfo *info = (struct ukvm_netinfo *) (mem + mem_off);
 
-    printf("%s: WARNING: returning hardcoded MAC\n", __FILE__);
-    strcpy(info->mac_str, "52:54:00:12:34:56");
+    memcpy(info->mac_str, netinfo.mac_str, sizeof netinfo.mac_str);
 }
 
 void ukvm_port_netwrite(uint8_t * mem, void *data, int netfd)
@@ -900,6 +900,23 @@ int main(int argc, char **argv)
         perror("Allocating interface");
         exit(1);
     }
+    /* generate a random, locally-administered and unicast MAC address */
+    int rfd = open("/dev/urandom", O_RDONLY);
+    if (rfd == -1)
+        err(1, "Could not open /dev/urandom");
+    uint8_t guest_mac[6];
+    ret = read(rfd, guest_mac, sizeof guest_mac);
+    assert(ret == sizeof guest_mac);
+    close(rfd);
+    guest_mac[0] &= 0xfe;
+    guest_mac[0] |= 0x02;
+    snprintf(netinfo.mac_str, sizeof netinfo.mac_str,
+            "%02x:%02x:%02x:%02x:%02x:%02x",
+            guest_mac[0], guest_mac[1], guest_mac[2],
+            guest_mac[3], guest_mac[4], guest_mac[5]);
+
+    printf("Providing network: %s, guest address %s\n", tun_name,
+            netinfo.mac_str);
 
     kvm = open("/dev/kvm", O_RDWR | O_CLOEXEC);
     if (kvm == -1)
