@@ -851,6 +851,12 @@ int tun_alloc(char *dev, int flags)
     return fd;
 }
 
+void sig_handler(int signo)
+{
+    printf("Received SIGINT. Exiting\n");
+    exit(0);
+}
+
 uint8_t *mem;
 
 int main(int argc, char **argv)
@@ -879,6 +885,9 @@ int main(int argc, char **argv)
             argv++;
         }
     }
+
+    if (signal(SIGINT, sig_handler) == SIG_ERR)
+        err(1, "Can not catch SIGINT");
 
     /* set up virtual disk */
     diskfd = open(diskfile, O_RDWR);
