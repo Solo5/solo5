@@ -19,7 +19,11 @@ needed" for the unikernel to run.  It has the potential to provide a
 thinner interface to the guest unikernel (thinner than either a
 container or a VM), a simpler I/O interface (e.g., packet send rather
 than virtio), and better performance due to its simplicity (e.g., fast
-boot).
+boot). Check out our
+[paper](https://www.usenix.org/system/files/conference/hotcloud16/hotcloud16_williams.pdf)
+and
+[presentation](https://www.usenix.org/sites/default/files/conference/protected-files/hotcloud16_slides_williams.pdf)
+from USENIX HotCloud '16 for more information.
 
 So far, we have a small monitor implementation that is not yet
 modular, but demonstrates some dramatically simple interfaces and a
