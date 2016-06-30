@@ -15,10 +15,10 @@
 # TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 # PERFORMANCE OF THIS SOFTWARE.
 
-AS=as
-CC=gcc
-LD=ld
-OBJCOPY=objcopy
+AS?=as
+CC?=gcc
+LD?=ld
+OBJCOPY?=objcopy
 # Ensure no host headers or libraries are used when building, with the
 # exception of:
 #   - Standard C headers required by C89/C99. -nostdinc removes access to these
