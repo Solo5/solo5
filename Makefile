@@ -72,9 +72,9 @@ OPAM_VIRTIO_INCDIR=$(PREFIX)/include/solo5-kernel-virtio/include
 
 # We want the MD CFLAGS, LDFLAGS and LDLIBS in the .pc file, where they can be
 # picked up by the Mirage tool / other downstream consumers.
-KERNEL_MD_CFLAGS=$(shell make -sC kernel print-md-cflags)
-KERNEL_LDFLAGS=$(shell make -sC kernel print-ldflags)
-KERNEL_LDLIBS=$(shell make -sC kernel print-ldlibs)
+KERNEL_MD_CFLAGS=$(shell $(MAKE) -sC kernel print-md-cflags)
+KERNEL_LDFLAGS=$(shell $(MAKE) -sC kernel print-ldflags)
+KERNEL_LDLIBS=$(shell $(MAKE) -sC kernel print-ldlibs)
 %.pc: %.pc.in 
 	sed <$< > $@ \
 	    -e 's#!CFLAGS!#$(KERNEL_MD_CFLAGS)#g;' \
