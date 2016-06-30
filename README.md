@@ -121,10 +121,18 @@ the unikernel into an ISO image.
 
 # Running Mirage/Solo5 unikernels with Docker
 
-Use
-[docker-unikernel-runner](https://github.com/mato/docker-unikernel-runner),
-which integrates seamlessly with Docker networking and runs the
-unikernel and hypervisor in a container.
+[Unikernel runner](https://github.com/mato/docker-unikernel-runner)
+integrates seamlessly with Docker networking and runs the unikernel and
+`ukvm` in a container. Running the `stackv4` example is as simple as:
+
+    docker run -ti --rm \
+        --device=/dev/kvm:/dev/kvm \
+        --device=/dev/net/tun:/dev/net/tun \
+        --cap-add=NET_ADMIN mir-stackv4-ukvm
+
+Refer to the
+[documentation](https://github.com/mato/docker-unikernel-runner/blob/master/README.md)
+for details.
 
 # Debugging on ukvm
 
@@ -168,7 +176,7 @@ Here is a typical gdb session:
     Breakpoint 11, camlUnikernel__loop_1401 () at unikernel.ml:9
     9            C.log c "hello";
 
-# Developing Solo5 or ukvm
+# Developing Solo5 and ukvm
 
 If you'd like to develop Solo5, ukvm and/or investigate porting other
 unikernels to use Solo5 as a base layer, the public APIs are defined in
