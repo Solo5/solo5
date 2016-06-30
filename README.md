@@ -3,11 +3,13 @@
     \__ \ (   | | (   |  ) | 
     ____/\___/ _|\___/____/  
 
-The Solo5 Unikernel
--------------------
+# About Solo5
 
-The Solo5 unikernel is most useful to run MirageOS, either on KVM/QEMU
-or on a specialized "unikernel monitor" called `ukvm`.  
+Solo5 is most useful as a "base layer" to run
+[MirageOS](https://mirage.io/) unikernels, either on KVM/QEMU or on a
+specialized "unikernel monitor" called `ukvm`.
+
+# About ukvm
 
 `ukvm` runs as a Linux process and uses KVM.  The goal of `ukvm` is to
 be a small, modular monitor, in which its functionality and interfaces
@@ -23,89 +25,108 @@ So far, we have a small monitor implementation that is not yet
 modular, but demonstrates some dramatically simple interfaces and a
 fast boot time.
 
-Trying out Solo5/Mirage on ukvm or KVM/QEMU with Docker
--------------------------------------------------------
+# Building Mirage/Solo5 unikernels
 
-    docker pull djwillia/solo5-mirage
+These instructions assume that you have an OCaml (4.02.3 or newer)
+development environment with the OPAM package manager installed. If you
+are developing with Docker, you can use the one of the pre-built
+`ocaml/opam` [images](https://hub.docker.com/r/ocaml/opam/).
 
-Or, build it yourself from the provided Dockerfile.  
+Mirage/Solo5 supports two different targets to `mirage configure`:
 
-    cd docker
-    docker build -t djwillia/solo5-mirage .
+1. `ukvm`: A specialized "unikernel monitor" which runs on Linux
+   (`x86_64`) and uses KVM directly via `/dev/kvm`.
+2. `virtio`: An `x86_64` system with `virtio` network and disk
+   interfaces. Use this target for QEMU/KVM, plain QEMU or other
+   hypervisors (see below).
 
-Once you have the image, run it as follows:
+Start with a fresh OPAM switch for the Mirage/Solo5 target you will be
+using: (If you are using the pre-built Docker images you can skip this
+step.)
 
-    docker run -d --privileged --name solo5-mirage -t djwillia/solo5-mirage
+    opam switch --alias-of 4.03.0 mirage-solo5-ukvm
 
-We run the container as a privileged container because it will be
-starting configuring the virtual network and starting VMs
-(specifically Solo5/Mirage unikernels).  A `docker ps` will show an
-instance of the `solo5-mirage` image running.  We can get a login
-shell in the container using:
+Add the OPAM repository for Mirage/Solo5:
 
-    docker exec -it solo5-mirage /bin/bash -l
+    opam repo add solo5 git://github.com/djwillia/opam-solo5
 
-The mirage-skeleton directory with sample mirage applications has
-already been checked out.  For more information about these
-applications, check out the [Mirage tutorials](https://mirage.io/wiki/hello-world). To build and run the `hello world` application:
+If you will be using the `ukvm` target, ensure that a "Linux kernel
+headers" package is installed. For Debian-based distributions this is
+`linux-libc-dev`, for Alpine Linux this is `linux-headers`.
 
-    cd ~/mirage-skeleton/console
+Install Mirage/Solo5:
 
-First we will describe how to build and run unikernels on ukvm, but
-the process for QEMU is similar.
+    opam depext -i mirage
 
-### Running on ukvm
+Clone the MirageOS example applications repository:
 
-Use the `mirage` tool to configure for ukvm, 
+    git clone https://github.com/mirage/mirage-skeleton
 
+Build the `stackv4` example:
+
+    cd mirage-skeleton/stackv4
     mirage configure --ukvm
-
-then build it:
-
     make
 
-You should see a file called `mir-console.solo5-ukvm`. To run the
-unikernel on ukvm:
+This will build the unikernel as `mir-stackv4.ukvm` or
+`mir-stackv4.virtio`, depending on which target you selected.
 
-    sudo $(which ukvm) ~/disk.img tap100 mir-console.solo5-ukvm 
+# Running Mirage/Solo5 unikernels directly
 
-You should see something like this:
+These examples show how to run Mirage/Solo5 unikernels directly.  If
+you'd like to use Docker instead, skip to the next section.
 
-    Providing disk: 0 sectors @ 512 = 0 bytes
-                |      ___|
-      __|  _ \  |  _ \ __ \
-    \__ \ (   | | (   |  ) |
-    ____/\___/ _|\___/____/
-    Solo5: new bindings
-    hello
-    world
-    hello
-    world
-    hello
-    world
-    hello
-    world
-    Kernel done.
-    Goodbye!
-    KVM_EXIT_HLT
+**Setting up networking for ukvm or qemu on Linux**
 
-To exit ukvm, type `C-c` in ukvm.
+The following examples assume you have successfully built the MirageOS
+`stackv4` application, and use the default networking configuration for
+the unikernel (a static IP address of `10.0.0.2/24`). Run the `stackv4`
+unikernel with an argument of `--help=plain` to see the options for
+modifying this.
 
-### Running on KVM/QEMU
+Before using either ukvm or qemu, set up the `tap100` interface we will
+use to talk to the unikernel:
 
-For KVM/QEMU, the steps are similar except the file produced is named
-`mir-console.virtio`, which is converted to `mir-console.iso` via a
-small script before running the unikernel on KVM/QEMU:
+    ip tuntap add tap100 mode tap
+    ip addr add 10.0.0.1/24 dev tap100
+    ip link set dev tap100 up
 
-    mirage configure --qemu
-    make
-    solo5-build-iso.bash mir-console.virtio
-    sudo kvm -s -nographic -boot d -cdrom mir-console.iso -device virtio-net,netdev=n0 -netdev tap,id=n0,ifname=tap100,script=no,downscript=no -drive file=~/disk.img,format=raw,if=virtio
+**Running with ukvm on Linux**
 
-To exit QEMU, type `C-a x`.
+To launch the unikernel:
 
-Debugging
----------
+    ukvm /dev/zero tap100 ./mir-stackv4.ukvm
+
+Use `^C` to terminate the unikernel.
+
+**Running with qemu on Linux**
+
+To launch the unikernel:
+
+    qemu-system-x86_64 -nographic -vga none -kernel ./mir-stackv4.virtio \
+        -device virtio-net,netdev=n0 \
+        -netdev tap,id=n0,ifname=tap100,script=no,downscript=no
+
+Use `^A x` to terminate the unikernel.
+
+**Running virtio unikernels with other hypervisors**
+
+The `virtio` target produces a unikernel that uses the multiboot
+protocol for booting. If your hypervisor can boot a multiboot-compliant
+kernel directly then this is the preferred method.
+
+If your hypervisor requires a full "disk image" to boot, look at the
+`solo5-build-iso.bash` script for an example of how to embed GRUB and
+the unikernel into an ISO image.
+
+# Running Mirage/Solo5 unikernels with Docker
+
+Use
+[docker-unikernel-runner](https://github.com/mato/docker-unikernel-runner),
+which integrates seamlessly with Docker networking and runs the
+unikernel and hypervisor in a container.
+
+# Debugging on ukvm
 
 You can debug the unikernel running in ukvm using gdb. Start
 ukvm with the `--gdb` flag, like this:
@@ -147,8 +168,17 @@ Here is a typical gdb session:
     Breakpoint 11, camlUnikernel__loop_1401 () at unikernel.ml:9
     9            C.log c "hello";
 
-Acknowledgements
-----------------
+# Developing Solo5 or ukvm
+
+If you'd like to develop Solo5, ukvm and/or investigate porting other
+unikernels to use Solo5 as a base layer, the public APIs are defined in
+`kernel/solo5.h` and `ukvm/ukvm.h`. These interfaces are still evolving
+and subject to change.
+
+We also have some simple standalone unikernels written in C to test
+Solo5, see `kernel/test_*` for these.
+
+# Acknowledgements
 
 `ukvm` was originally written by Dan Williams and Ricardo Koller.  The
 Solo5 kernel was originally written by Dan Williams.  The OPAM
