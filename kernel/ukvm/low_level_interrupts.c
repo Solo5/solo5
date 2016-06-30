@@ -1,5 +1,5 @@
-/* Copyright (c) 2016, IBM 
- * Author(s): Dan Williams <djwillia@us.ibm.com> 
+/* Copyright (c) 2016, IBM
+ * Author(s): Dan Williams <djwillia@us.ibm.com>
  *
  * Permission to use, copy, modify, and/or distribute this software
  * for any purpose with or without fee is hereby granted, provided
@@ -32,30 +32,32 @@
 
 
 #define PIC_EOI 0x20/* End-of-interrupt command code */
- 
+
 void irq_eoi(unsigned char irq)
 {
-    if(!IRQ_ON_MASTER(irq))
+    if (!IRQ_ON_MASTER(irq))
         outb(PIC2_COMMAND, PIC_EOI);
- 
+
     outb(PIC1_COMMAND, PIC_EOI);
 }
 
-void low_level_interrupts_init(void) {
+void low_level_interrupts_init(void)
+{
 }
 
-void low_level_handle_irq(int irq) {
+void low_level_handle_irq(int irq)
+{
     switch (irq) {
     default:
-        printf("got irq %d at 0x%lx\n", irq, 
-               solo5_clock_monotonic() );
-        
+        printf("got irq %d at 0x%lx\n", irq,
+               solo5_clock_monotonic());
     }
 
     irq_eoi(irq);
 }
 
-void low_level_handle_intr(int num) {
+void low_level_handle_intr(int num)
+{
     switch (num) {
     case INTR_USER_TIMER:
         printf("I");

@@ -1,16 +1,16 @@
-/****************************************************************************
-
-                THIS SOFTWARE IS NOT COPYRIGHTED
-
-   HP offers the following for use in the public domain.  HP makes no
-   warranty with regard to the software or it's performance and the
-   user accepts the software "AS IS" with all faults.
-
-   HP DISCLAIMS ANY WARRANTIES, EXPRESS OR IMPLIED, WITH REGARD
-   TO THIS SOFTWARE INCLUDING BUT NOT LIMITED TO THE WARRANTIES
-   OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
-
-****************************************************************************/
+/*************************************************************************** *
+ *
+ *              THIS SOFTWARE IS NOT COPYRIGHTED
+ *
+ * HP offers the following for use in the public domain.  HP makes no
+ * warranty with regard to the software or it's performance and the
+ * user accepts the software "AS IS" with all faults.
+ *
+ * HP DISCLAIMS ANY WARRANTIES, EXPRESS OR IMPLIED, WITH REGARD
+ * TO THIS SOFTWARE INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+ *
+***************************************************************************/
 
 /****************************************************************************
  *  Header: remcom.c,v 1.34 91/03/09 12:29:49 glenne Exp $
@@ -110,7 +110,7 @@
 
 static int listen_socket_fd;
 static int socket_fd;
-static int stepping = 0;
+static int stepping;
 
 #define MAX_BREAKPOINTS    8
 static uint64_t breakpoints[MAX_BREAKPOINTS];
@@ -133,33 +133,29 @@ static void wait_for_connect(int portn)
     opt = 1;
     r = setsockopt(listen_socket_fd, SOL_SOCKET, SO_REUSEADDR, &opt,
                    sizeof(opt));
-    if (r == -1) {
+    if (r == -1)
         perror("setsockopt(SO_REUSEADDR) failed");
-    }
 
-    memset(&sockaddr, '\000', sizeof sockaddr);
+    memset(&sockaddr, '\000', sizeof(sockaddr));
     sockaddr.sin_family = AF_INET;
     sockaddr.sin_port = htons(portn);
     sockaddr.sin_addr.s_addr = htonl(INADDR_ANY);
 
     r = bind(listen_socket_fd, (struct sockaddr *) &sockaddr,
              sizeof(sockaddr));
-    if (r == -1) {
+    if (r == -1)
         perror("Failed to bind socket");
-    }
 
     r = listen(listen_socket_fd, 0);
-    if (r == -1) {
+    if (r == -1)
         perror("Failed to listen on socket");
-    }
 
-    sockaddr_len = sizeof sockaddr;
-    socket_fd =
-        accept(listen_socket_fd, (struct sockaddr *) &sockaddr,
-               &sockaddr_len);
-    if (socket_fd == -1) {
+    sockaddr_len = sizeof(sockaddr);
+    socket_fd = accept(listen_socket_fd, (struct sockaddr *) &sockaddr,
+                       &sockaddr_len);
+    if (socket_fd == -1)
         perror("Failed to accept on socket");
-    }
+
     close(listen_socket_fd);
 
     protoent = getprotobyname("tcp");
@@ -172,10 +168,11 @@ static void wait_for_connect(int portn)
     opt = 1;
     r = setsockopt(socket_fd, protoent->p_proto, TCP_NODELAY, &opt,
                    sizeof(opt));
-    if (r == -1) {
+    if (r == -1)
         perror("setsockopt(TCP_NODELAY) failed");
-    }
+
     int ip = sockaddr.sin_addr.s_addr;
+
     printf("GDB Connected to %d.%d.%d.%d\n", ip & 0xff, (ip >> 8) & 0xff,
            (ip >> 16) & 0xff, (ip >> 24) & 0xff);
 }
@@ -186,6 +183,7 @@ void gdb_handle_exception(int, int);
 void gdb_stub_start(int vcpufd)
 {
     int i;
+
     for (i = 0; i < MAX_BREAKPOINTS; i++)
         breakpoints[i] = 0;
 
@@ -195,11 +193,14 @@ void gdb_stub_start(int vcpufd)
 
 
 static char buf[4096], *bufptr = buf;
-static void flush_debug_buffer()
+static void flush_debug_buffer(void)
 {
     char *p = buf;
+
     while (p != bufptr) {
-        int n = send(socket_fd, p, bufptr - p, 0);
+        int n;
+
+        n = send(socket_fd, p, bufptr - p, 0);
         if (n == -1) {
             perror("error on debug socket: %m");
             break;
@@ -212,26 +213,26 @@ static void flush_debug_buffer()
 
 void putDebugChar(int ch)
 {
-    if (bufptr == buf + sizeof buf)
+    if (bufptr == buf + sizeof(buf))
         flush_debug_buffer();
     *bufptr++ = ch;
 }
 
 
-int getDebugChar()
+int getDebugChar(void)
 {
     char ch;
 
     recv(socket_fd, &ch, 1, 0);
 
-    return (ch);
+    return ch;
 }
 
 
 /************************************************************************/
 /* BUFMAX defines the maximum number of characters in inbound/outbound buffers*/
 /* at least NUMREGBYTES*2 are needed for register packets */
-#define BUFMAX 400 * 4
+#define BUFMAX (400 * 4)
 
 int remote_debug;
 /*  debug >  0 prints ill-formed commands in valid packets & checksum errors */
@@ -246,7 +247,7 @@ static const char hexchars[] = "0123456789abcdef";
 /* Number of bytes of registers.  */
 #define NUMREGBYTES (NUMREGS * 8)
 
-// list is here: gdb/amd64-linux-nat.c
+/* list is here: gdb/amd64-linux-nat.c */
 enum regnames {
     RAX, RBX, RCX, RDX,
     RSI, RDI, RBP, RSP,
@@ -292,9 +293,10 @@ unsigned char *getpacket(void)
 
     while (1) {
         /* wait around for the start character, ignore all other characters */
-        while ((ch = getDebugChar()) != '$');
+        while ((ch = getDebugChar()) != '$')
+            ;
 
-      retry:
+retry:
         checksum = 0;
         xmitcsum = -1;
         count = 0;
@@ -366,8 +368,7 @@ void putpacket(char *buffer)
         putDebugChar(hexchars[checksum >> 4]);
         putDebugChar(hexchars[checksum % 16]);
         flush_debug_buffer();
-    }
-    while (getDebugChar() != '+');
+    } while (getDebugChar() != '+');
 }
 
 void debug_error(char *format, char *parm)
@@ -378,8 +379,9 @@ void debug_error(char *format, char *parm)
 
 
 /* Indicate to caller of mem2hex or hex2mem that there has been an
-   error.  */
-static volatile int mem_err = 0;
+ * error.
+ */
+static volatile int mem_err;
 
 void set_mem_err(void)
 {
@@ -387,9 +389,10 @@ void set_mem_err(void)
 }
 
 /* These are separate functions so that they are so short and sweet
-   that the compiler won't save any registers (if there is a fault
-   to mem_fault, they won't get restored, so there better not be any
-   saved).  */
+ * that the compiler won't save any registers (if there is a fault to
+ * mem_fault, they won't get restored, so there better not be any
+ * saved).
+ */
 int get_char(char *addr)
 {
     return *addr;
@@ -413,7 +416,7 @@ char *mem2hex(char *mem, char *buf, int count)
         *buf++ = hexchars[ch % 16];
     }
     *buf = 0;
-    return (buf);
+    return buf;
 }
 
 
@@ -429,7 +432,7 @@ char *hex2mem(char *buf, char *mem, int count)
         ch = ch + hex(*buf++);
         set_char(mem++, ch);
     }
-    return (mem);
+    return mem;
 }
 
 
@@ -451,6 +454,7 @@ int gdb_is_pc_breakpointing(uint64_t addr)
 int gdb_insert_breakpoint(uint64_t addr)
 {
     int i;
+
     for (i = 0; i < MAX_BREAKPOINTS; i++) {
         if (breakpoints[i] == 0) {
             breakpoints[i] = addr;
@@ -464,6 +468,7 @@ int gdb_insert_breakpoint(uint64_t addr)
 int gdb_remove_breakpoint(uint64_t addr)
 {
     int i;
+
     for (i = 0; i < MAX_BREAKPOINTS; i++) {
         if (addr == breakpoints[i])
             breakpoints[i] = 0;
@@ -486,16 +491,15 @@ void gdb_handle_exception(int vcpufd, int sig)
     while (ne == 0) {
         buffer = getpacket();
 
-        //printf("command: %s\n", buffer);
         switch (buffer[0]) {
         case 's': {
             stepping = 1;
             return;
         }
         case 'c': {
-            // Disable stepping for the next instruction
+            /* Disable stepping for the next instruction */
             stepping = 0;
-            return; // Continue with program
+            return; /* Continue with program */
         }
         case 'M': {
             putpacket("OK");
@@ -550,7 +554,7 @@ void gdb_handle_exception(int vcpufd, int sig)
             registers[RIP] = regs.rip;
             registers[EFLAGS] = regs.rflags;
 
-            // TODO what about others like cs and ss?
+            /* TODO what about others like cs and ss? */
 
             mem2hex((char *) registers, obuf, NUMREGBYTES);
 
@@ -567,26 +571,24 @@ void gdb_handle_exception(int vcpufd, int sig)
             break;
         }
         case 'q': {
-            // not supported
+            /* not supported */
             putpacket("");
             break;
         }
         case 'Z': {
-            // insert a breakpoint
+            /* insert a breakpoint */
             char *ebuf;
-            //uint64_t type = strtoull(buffer + 1, &ebuf, 16);
             uint64_t addr = strtoull(ebuf + 1, &ebuf, 16);
-            //uint64_t len = strtoull(ebuf + 1, &ebuf, 16);
+
             gdb_insert_breakpoint(addr);
             putpacket("OK");
             break;
         }
         case 'z': {
-            // remove a breakpoint
+            /* remove a breakpoint */
             char *ebuf;
-            //uint64_t type = strtoull(buffer + 1, &ebuf, 16);
             uint64_t addr = strtoull(ebuf + 1, &ebuf, 16);
-            //uint64_t len = strtoull(ebuf + 1, &ebuf, 16);
+
             gdb_remove_breakpoint(addr);
             putpacket("OK");
             break;

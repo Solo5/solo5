@@ -1,5 +1,5 @@
-/* Copyright (c) 2015, IBM 
- * Author(s): Dan Williams <djwillia@us.ibm.com> 
+/* Copyright (c) 2015, IBM
+ * Author(s): Dan Williams <djwillia@us.ibm.com>
  *
  * Permission to use, copy, modify, and/or distribute this software
  * for any purpose with or without fee is hereby granted, provided
@@ -19,7 +19,7 @@
 #include "kernel.h"
 
 #define IDT_NUM_ENTRIES 256
-#define IDT_TYPE_INT64 0xe00   
+#define IDT_TYPE_INT64 0xe00
 #define IDT_TYPE_TRAP64 0xf00
 #define IDT_PRESENT 0x8000
 #define IDT_HANDLER_SEGMENT (GDT_DESC_OFFSET(GDT_DESC_CODE))
@@ -56,16 +56,17 @@ struct qw idt[IDT_NUM_ENTRIES] ALIGN_64_BIT;
         idt[n].hi1 = (a & 0xffff0000)                                   \
             | IDT_PRESENT | IDT_TYPE_INT64 | IDT_IST;                   \
         idt[n].lo1 = (IDT_HANDLER_SEGMENT << 16) | (a & 0xffff);        \
-    } while(0)
+    } while (0)
 
 #define INTR_STR(x) interrupt##x
 #define SET_INTR_IDT_ENTRY(n) do {                                    \
         extern void INTR_STR(n)(void);                                \
         uint64_t intaddr = (uint64_t) &INTR_STR(n);                   \
         SET_IDT_ENTRY(n, intaddr);                                    \
-    } while(0)
+    } while (0)
 
-static void idt_init(void) {
+static void idt_init(void)
+{
     /* processor exceptions */
     SET_INTR_IDT_ENTRY(INTR_EXCEPTION_DIVIDE_ERROR);
     SET_INTR_IDT_ENTRY(INTR_EXCEPTION_DEBUG);
@@ -162,7 +163,8 @@ static void tss_init(void)
     tss_load(GDT_DESC_TSS_LO*8);
 }
 
-void interrupts_init(void) {
+void interrupts_init(void)
+{
     struct idtptr idtptr;
 
     /* initialize IDT "pointer" */
@@ -181,9 +183,10 @@ void interrupts_init(void) {
 
 void interrupt_handler(uint64_t num,
                        uint64_t errorcode,
-                       uint64_t rip) {
+                       uint64_t rip)
+{
 
-    if ( INTR_IS_EXCEPTION(num) ) {
+    if (INTR_IS_EXCEPTION(num)) {
         printf("exception from rip=0x%lx\n", rip);
         switch (num) {
         case INTR_EXCEPTION_DIVIDE_ERROR:
@@ -206,7 +209,7 @@ void interrupt_handler(uint64_t num,
 
 
     } else {
-        if ( INTR_IS_IRQ(num) )
+        if (INTR_IS_IRQ(num))
             low_level_handle_irq(num - INTR_IRQ_0);
         else
             low_level_handle_intr(num);
@@ -216,12 +219,14 @@ void interrupt_handler(uint64_t num,
 /* keeps track of how many stacked "interrupts_disable"'s there are */
 int spldepth = 1;
 
-void interrupts_disable() {
+void interrupts_disable(void)
+{
     __asm__ __volatile__("cli");
     spldepth++;
 }
 
-void interrupts_enable() {
+void interrupts_enable(void)
+{
     assert(spldepth > 0);
 
     if (--spldepth == 0)

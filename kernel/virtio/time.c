@@ -1,5 +1,5 @@
-/* Copyright (c) 2015, IBM 
- * Author(s): Dan Williams <djwillia@us.ibm.com> 
+/* Copyright (c) 2015, IBM
+ * Author(s): Dan Williams <djwillia@us.ibm.com>
  *
  * Permission to use, copy, modify, and/or distribute this software
  * for any purpose with or without fee is hereby granted, provided
@@ -23,10 +23,11 @@
  * available, otherwise the TSC is used. CPU blocking-when-idle is performed
  * using the PIT via cpu_block() in tscclock.c.
  */
-static int use_pvclock = 0;
+static int use_pvclock;
 
 /* return ns since time_init() */
-uint64_t solo5_clock_monotonic(void) {
+uint64_t solo5_clock_monotonic(void)
+{
     if (use_pvclock)
         return pvclock_monotonic();
     else
@@ -34,7 +35,8 @@ uint64_t solo5_clock_monotonic(void) {
 }
 
 /* return wall time in nsecs */
-uint64_t solo5_clock_wall(void) {
+uint64_t solo5_clock_wall(void)
+{
     if (use_pvclock)
         return pvclock_monotonic() + pvclock_epochoffset();
     else
@@ -42,12 +44,12 @@ uint64_t solo5_clock_wall(void) {
 }
 
 /* must be called before interrupts are enabled */
-void time_init(void) {
+void time_init(void)
+{
     use_pvclock = !pvclock_init();
 
-    if (!use_pvclock) {
+    if (!use_pvclock)
         assert(tscclock_init() == 0);
-    }
 }
 
 int solo5_poll(uint64_t until_nsecs)

@@ -1,6 +1,6 @@
-/* Copyright (c) 2015, IBM 
- * Author(s): Dan Williams <djwillia@us.ibm.com> 
- *            Ricardo Koller <kollerr@us.ibm.com> 
+/* Copyright (c) 2015, IBM
+ * Author(s): Dan Williams <djwillia@us.ibm.com>
+ *            Ricardo Koller <kollerr@us.ibm.com>
  *
  * Permission to use, copy, modify, and/or distribute this software
  * for any purpose with or without fee is hereby granted, provided
@@ -74,7 +74,7 @@ struct ukvm_netinfo netinfo;
  * 0x001000    bootstrap gdt (contains correct code/data/ but tss points to 0)
  */
 
-#define GUEST_PAGE_SIZE 0x200000   // 2 MB pages in guest
+#define GUEST_PAGE_SIZE 0x200000   /* 2 MB pages in guest */
 
 #define BOOT_GDT     0x1000
 #define BOOT_INFO    0x2000
@@ -88,23 +88,23 @@ struct ukvm_netinfo netinfo;
 #define BOOT_GDT_MAX     3
 #define GDT_DESC_OFFSET(n) ((n) * 0x8)
 
-#define GDT_GET_BASE(x)                         \
-    (( (x) & 0xFF00000000000000) >> 32) |       \
-    (( (x) & 0x000000FF00000000) >> 16) |       \
-    (( (x) & 0x00000000FFFF0000) >> 16)
+#define GDT_GET_BASE(x) (                      \
+    (((x) & 0xFF00000000000000) >> 32) |       \
+    (((x) & 0x000000FF00000000) >> 16) |       \
+    (((x) & 0x00000000FFFF0000) >> 16))
 
-#define GDT_GET_LIMIT(x) (__u32)(                                       \
-                                 (( (x) & 0x000F000000000000) >> 32) |  \
-                                 (( (x) & 0x000000000000FFFF)))
+#define GDT_GET_LIMIT(x) (__u32)(                                      \
+                                 (((x) & 0x000F000000000000) >> 32) |  \
+                                 (((x) & 0x000000000000FFFF)))
 
 /* Constructor for a conventional segment GDT (or LDT) entry */
 /* This is a macro so it can be used in initializers */
 #define GDT_ENTRY(flags, base, limit)               \
-    ((((base)  & _AC(0xff000000,ULL)) << (56-24)) | \
-     (((flags) & _AC(0x0000f0ff,ULL)) << 40) |      \
-     (((limit) & _AC(0x000f0000,ULL)) << (48-16)) | \
-     (((base)  & _AC(0x00ffffff,ULL)) << 16) |      \
-     (((limit) & _AC(0x0000ffff,ULL))))
+    ((((base)  & _AC(0xff000000, ULL)) << (56-24)) | \
+     (((flags) & _AC(0x0000f0ff, ULL)) << 40) |      \
+     (((limit) & _AC(0x000f0000, ULL)) << (48-16)) | \
+     (((base)  & _AC(0x00ffffff, ULL)) << 16) |      \
+     (((limit) & _AC(0x0000ffff, ULL))))
 
 struct _kvm_segment {
     __u64 base;
@@ -117,14 +117,14 @@ struct _kvm_segment {
 };
 
 
-#define GDT_GET_G(x)   (__u8)(( (x) & 0x0080000000000000) >> 55)
-#define GDT_GET_DB(x)  (__u8)(( (x) & 0x0040000000000000) >> 54)
-#define GDT_GET_L(x)   (__u8)(( (x) & 0x0020000000000000) >> 53)
-#define GDT_GET_AVL(x) (__u8)(( (x) & 0x0010000000000000) >> 52)
-#define GDT_GET_P(x)   (__u8)(( (x) & 0x0000800000000000) >> 47)
-#define GDT_GET_DPL(x) (__u8)(( (x) & 0x0000600000000000) >> 45)
-#define GDT_GET_S(x)   (__u8)(( (x) & 0x0000100000000000) >> 44)
-#define GDT_GET_TYPE(x)(__u8)(( (x) & 0x00000F0000000000) >> 40)
+#define GDT_GET_G(x)   (__u8)(((x) & 0x0080000000000000) >> 55)
+#define GDT_GET_DB(x)  (__u8)(((x) & 0x0040000000000000) >> 54)
+#define GDT_GET_L(x)   (__u8)(((x) & 0x0020000000000000) >> 53)
+#define GDT_GET_AVL(x) (__u8)(((x) & 0x0010000000000000) >> 52)
+#define GDT_GET_P(x)   (__u8)(((x) & 0x0000800000000000) >> 47)
+#define GDT_GET_DPL(x) (__u8)(((x) & 0x0000600000000000) >> 45)
+#define GDT_GET_S(x)   (__u8)(((x) & 0x0000100000000000) >> 44)
+#define GDT_GET_TYPE(x)(__u8)(((x) & 0x00000F0000000000) >> 40)
 
 
 
@@ -142,13 +142,13 @@ struct _kvm_segment {
         seg.l = GDT_GET_L(gdt_ent);             \
         seg.g = GDT_GET_G(gdt_ent);             \
         seg.avl = GDT_GET_AVL(gdt_ent);         \
-    } while (0);
+    } while (0)
 
 #define KVM_32BIT_MAX_MEM_SIZE  (1ULL << 32)
 #define KVM_32BIT_GAP_SIZE    (768 << 20)
 #define KVM_32BIT_GAP_START    (KVM_32BIT_MAX_MEM_SIZE - KVM_32BIT_GAP_SIZE)
 
-void gdb_stub_start();
+void gdb_stub_start(int vcpufd);
 void gdb_handle_exception(int vcpufd, int sig);
 int gdb_is_pc_breakpointing(long addr);
 
@@ -158,7 +158,7 @@ void setup_boot_info(uint8_t *mem,
                     int argc, char **argv)
 {
     struct ukvm_boot_info *bi = (struct ukvm_boot_info *)(mem + BOOT_INFO);
-    uint64_t cmdline = BOOT_INFO + sizeof (struct ukvm_boot_info);
+    uint64_t cmdline = BOOT_INFO + sizeof(struct ukvm_boot_info);
     size_t cmdline_free = BOOT_PML4 - cmdline - 1;
     char *cmdline_p = (char *)(mem + cmdline);
 
@@ -186,7 +186,7 @@ ssize_t pread_in_full(int fd, void *buf, size_t count, off_t offset)
 
     while (count > 0) {
         ssize_t nr;
-        
+
         nr = pread(fd, p, count, offset);
         if (nr <= 0) {
             if (total > 0)
@@ -221,10 +221,8 @@ ssize_t pread_in_full(int fd, void *buf, size_t count, off_t offset)
  *   |             |  [PROT_EXEC|READ]  |                | PROT_NONE  |
  *
  */
-static void load_code(const char *file,	  /* IN */
-                      uint8_t * mem,      /* IN */
-                      uint64_t * p_entry, /* OUT */
-                      uint64_t * p_end    /* OUT */ )
+static void load_code(const char *file, uint8_t *mem,     /* IN */
+                      uint64_t *p_entry, uint64_t *p_end) /* OUT */
 {
     int fd_kernel;
     ssize_t numb;
@@ -236,9 +234,9 @@ static void load_code(const char *file,	  /* IN */
     Elf64_Phdr *phdr = NULL;
     Elf64_Ehdr hdr;
 
-    // elf entry point (on physical memory)
+    /* elf entry point (on physical memory) */
     *p_entry = 0;
-    // highest byte of the program (on physical memory)
+    /* highest byte of the program (on physical memory) */
     *p_end = 0;
 
     fd_kernel = open(file, O_RDONLY);
@@ -246,23 +244,21 @@ static void load_code(const char *file,	  /* IN */
         err(1, "couldn't open elf");
 
     numb = pread_in_full(fd_kernel, &hdr, sizeof(Elf64_Ehdr), 0);
-    if (numb < 0 || (size_t) numb != sizeof(Elf64_Ehdr)) {
+    if (numb < 0 || (size_t) numb != sizeof(Elf64_Ehdr))
         err(1, "unable to read ELF64 hdr");
-    }
+
     ph_off = hdr.e_phoff;
     ph_entsz = hdr.e_phentsize;
     ph_cnt = hdr.e_phnum;
     buflen = ph_entsz * ph_cnt;
 
     phdr = malloc(buflen);
-    if (!phdr) {
+    if (!phdr)
         err(1, "unable to allocate program header buffer\n");
-    }
 
     numb = pread_in_full(fd_kernel, phdr, buflen, ph_off);
-    if (numb < 0 || (size_t) numb != buflen) {
+    if (numb < 0 || (size_t) numb != buflen)
         err(1, "unable to read program header");
-    }
 
     /*
      * Load all segments with the LOAD directive from the elf file at offset
@@ -282,21 +278,19 @@ static void load_code(const char *file,	  /* IN */
         if ((phdr[ph_i].p_type & PT_LOAD) == 0)
             continue;
 
-        // XXX this won't work after having the two memory slots
+        /* XXX this won't work after having the two memory slots */
         assert(GUEST_SIZE < KVM_32BIT_GAP_SIZE);
         dst = mem + paddr;
 
         numb = pread_in_full(fd_kernel, dst, filesz, offset);
-        if (numb < 0 || (size_t) numb != filesz) {
+        if (numb < 0 || (size_t) numb != filesz)
             err(1, "unable to load segment");
-        }
 
         memset(mem + paddr + filesz, 0, memsz - filesz);
 
-        // Protect the executable code
-        if (phdr[ph_i].p_flags & ELF_SEGMENT_X) {
+        /* Protect the executable code */
+        if (phdr[ph_i].p_flags & ELF_SEGMENT_X)
             mprotect((void *) dst, memsz, PROT_EXEC | PROT_READ);
-        }
 
         _end = ALIGN_UP(paddr + memsz, align);
         if (_end > *p_end)
@@ -321,7 +315,7 @@ static void setup_system_64bit(struct kvm_sregs *sregs)
 }
 
 
-static void setup_system_page_tables(struct kvm_sregs *sregs, uint8_t * mem)
+static void setup_system_page_tables(struct kvm_sregs *sregs, uint8_t *mem)
 {
     uint64_t *pml4 = (uint64_t *) (mem + BOOT_PML4);
     uint64_t *pdpte = (uint64_t *) (mem + BOOT_PDPTE);
@@ -359,11 +353,12 @@ static void print_dtable(const char *name, struct kvm_dtable *dtable)
 
 static void print_segment(const char *name, struct kvm_segment *seg)
 {
-    printf
-        (" %s       %04hx      %016lx  %08x  %02hhx    %x %x   %x  %x %x %x %x\n",
-         name, (uint16_t) seg->selector, (uint64_t) seg->base,
-         (uint32_t) seg->limit, (uint8_t) seg->type, seg->present,
-         seg->dpl, seg->db, seg->s, seg->l, seg->g, seg->avl);
+    printf(" %s       %04hx      %016lx  %08x  %02hhx    ",
+           name, (uint16_t) seg->selector, (uint64_t) seg->base,
+           (uint32_t) seg->limit, (uint8_t) seg->type);
+    printf("%x %x   %x  %x %x %x %x\n",
+           seg->present, seg->dpl, seg->db, seg->s,
+           seg->l, seg->g, seg->avl);
 }
 
 static void dump_sregs(struct kvm_sregs *sregs)
@@ -381,7 +376,8 @@ static void dump_sregs(struct kvm_sregs *sregs)
     printf(" cr4: %016lx   cr8: %016lx\n", cr4, cr8);
     printf("\n Segment registers:\n");
     printf(" ------------------\n");
-    printf(" register  selector  base              limit     type  p dpl db s l g avl\n");
+    printf(" register  selector  base             ");
+    printf(" limit     type  p dpl db s l g avl\n");
 
     print_segment("cs ", &sregs->cs);
     print_segment("ss ", &sregs->ss);
@@ -421,7 +417,8 @@ static void setup_system_gdt(struct kvm_sregs *sregs,
 
     if (0) {
         size_t i;
-        printf("gdt @ 0x%x \n", BOOT_GDT);
+
+        printf("gdt @ 0x%x\n", BOOT_GDT);
         for (i = 0; i < 40; i++) {
             printf("%02x", *((uint8_t *) gdt + i));
             if (i % 8 == 7)
@@ -443,7 +440,7 @@ static void setup_system_gdt(struct kvm_sregs *sregs,
     sregs->ss = data_seg;
 }
 
-static void setup_system(int vcpufd, uint8_t * mem)
+static void setup_system(int vcpufd, uint8_t *mem)
 {
     struct kvm_sregs sregs;
     int ret;
@@ -457,7 +454,7 @@ static void setup_system(int vcpufd, uint8_t * mem)
     setup_system_page_tables(&sregs, mem);
     setup_system_64bit(&sregs);
 
-    //dump_sregs(&sregs);
+    /* dump_sregs(&sregs); */
 
     ret = ioctl(vcpufd, KVM_SET_SREGS, &sregs);
     if (ret == -1)
@@ -488,6 +485,7 @@ static void inject_interrupt(int vcpufd, uint32_t intr)
     struct kvm_interrupt irq = { intr };
 
     int ret = ioctl(vcpufd, KVM_INTERRUPT, &irq);
+
     if (ret) {
         printf("ret = %d\n", ret);
         printf("errno = %d\n", errno);
@@ -524,17 +522,17 @@ static void *event_loop(void *arg)
 }
 
 
-void ukvm_port_puts(uint8_t * mem, void *data)
+void ukvm_port_puts(uint8_t *mem, void *data)
 {
     uint32_t mem_off = *(uint32_t *) data;
     struct ukvm_puts *p = (struct ukvm_puts *) (mem + mem_off);
 
     printf("%.*s", p->len, (char *) (mem + (uint64_t) p->data));
-    //putchar(*(char *)data);
+    /* putchar(*(char *)data); */
 }
 
 
-void ukvm_port_nanosleep(uint8_t * mem, void *data, struct kvm_run *run)
+void ukvm_port_nanosleep(uint8_t *mem, void *data, struct kvm_run *run)
 {
     uint32_t arg_addr = *(uint32_t *) data;
     struct ukvm_nanosleep *t = (struct ukvm_nanosleep *) (mem + arg_addr);
@@ -580,7 +578,7 @@ void ukvm_port_nanosleep(uint8_t * mem, void *data, struct kvm_run *run)
 }
 
 
-void ukvm_port_blkinfo(uint8_t * mem, void *data)
+void ukvm_port_blkinfo(uint8_t *mem, void *data)
 {
     uint32_t mem_off = *(uint32_t *) data;
     struct ukvm_blkinfo *info = (struct ukvm_blkinfo *) (mem + mem_off);
@@ -591,7 +589,7 @@ void ukvm_port_blkinfo(uint8_t * mem, void *data)
 }
 
 
-void ukvm_port_blkwrite(uint8_t * mem, void *data, int diskfd)
+void ukvm_port_blkwrite(uint8_t *mem, void *data, int diskfd)
 {
     uint32_t mem_off = *(uint32_t *) data;
     struct ukvm_blkwrite *wr = (struct ukvm_blkwrite *) (mem + mem_off);
@@ -607,7 +605,7 @@ void ukvm_port_blkwrite(uint8_t * mem, void *data, int diskfd)
 }
 
 
-void ukvm_port_blkread(uint8_t * mem, void *data, int diskfd)
+void ukvm_port_blkread(uint8_t *mem, void *data, int diskfd)
 {
     uint32_t mem_off = *(uint32_t *) data;
     struct ukvm_blkread *rd = (struct ukvm_blkread *) (mem + mem_off);
@@ -623,27 +621,27 @@ void ukvm_port_blkread(uint8_t * mem, void *data, int diskfd)
 }
 
 
-void ukvm_port_netinfo(uint8_t * mem, void *data)
+void ukvm_port_netinfo(uint8_t *mem, void *data)
 {
     uint32_t mem_off = *(uint32_t *) data;
     struct ukvm_netinfo *info = (struct ukvm_netinfo *) (mem + mem_off);
 
-    memcpy(info->mac_str, netinfo.mac_str, sizeof netinfo.mac_str);
+    memcpy(info->mac_str, netinfo.mac_str, sizeof(netinfo.mac_str));
 }
 
-void ukvm_port_netwrite(uint8_t * mem, void *data, int netfd)
+void ukvm_port_netwrite(uint8_t *mem, void *data, int netfd)
 {
     uint32_t mem_off = *(uint32_t *) data;
     struct ukvm_netwrite *wr = (struct ukvm_netwrite *) (mem + mem_off);
     int ret;
-    
+
     wr->ret = 0;
     ret = write(netfd, mem + (uint64_t) wr->data, wr->len);
     assert(wr->len == ret);
 }
 
 
-void ukvm_port_netread(uint8_t * mem, void *data, int netfd)
+void ukvm_port_netread(uint8_t *mem, void *data, int netfd)
 {
     uint32_t mem_off = *(uint32_t *) data;
     struct ukvm_netread *rd = (struct ukvm_netread *) (mem + mem_off);
@@ -666,12 +664,13 @@ void ukvm_port_netread(uint8_t * mem, void *data, int netfd)
 }
 
 
-void ukvm_port_dbg_stack(uint8_t *mem, int vcpufd){
+void ukvm_port_dbg_stack(uint8_t *mem, int vcpufd)
+{
     struct kvm_regs regs;
     int ret;
     uint64_t i;
     int cnt = 0;
-    
+
     ret = ioctl(vcpufd, KVM_GET_REGS, &regs);
     if (ret == -1)
         err(1, "KVM_GET_REGS");
@@ -682,16 +681,17 @@ void ukvm_port_dbg_stack(uint8_t *mem, int vcpufd){
     while ((i < GUEST_SIZE) && (cnt++ < DBG_DEPTH)) {
         if (*(uint64_t *)(mem + i) != 0)
             printf("0x%lx: 0x%lx\n", i, *(uint64_t *)(mem + i));
-        i -=8;
+        i -= 8;
     }
 }
 
-void ukvm_port_poll(uint8_t * mem, void *data, int netfd)
+void ukvm_port_poll(uint8_t *mem, void *data, int netfd)
 {
     uint32_t arg_addr = *(uint32_t *) data;
     struct ukvm_poll *t = (struct ukvm_poll *) (mem + arg_addr);
     struct timespec ts;
     struct pollfd fds = { .fd = netfd, .events = POLLIN };
+    int rc;
 
     ts.tv_sec = t->until_nsecs / 1000000000ULL;
     ts.tv_nsec = t->until_nsecs % 1000000000ULL;
@@ -700,7 +700,7 @@ void ukvm_port_poll(uint8_t * mem, void *data, int netfd)
      * Guest execution is blocked during the ppoll() call, note that interrupts
      * will not be injected.
      */
-    int rc = ppoll(&fds, 1, &ts, NULL);
+    rc = ppoll(&fds, 1, &ts, NULL);
     assert(rc >= 0);
     t->ret = rc;
 }
@@ -721,20 +721,21 @@ static int vcpu_loop(struct kvm_run *run, int vcpufd, uint8_t *mem,
         switch (run->exit_reason) {
         case KVM_EXIT_DEBUG: {
             struct kvm_debug_exit_arch *arch_info = &run->debug.arch;
+
             if (gdb_is_pc_breakpointing(arch_info->pc))
                 gdb_handle_exception(vcpufd, 1);
             break;
         }
         case KVM_EXIT_HLT: {
             puts("KVM_EXIT_HLT");
-            //get_and_dump_sregs(vcpufd);
+            /* get_and_dump_sregs(vcpufd); */
             return 0;
         }
         case KVM_EXIT_IO: {
             uint8_t *data = (uint8_t *)run + run->io.data_offset;
 
-            assert( run->io.direction == KVM_EXIT_IO_OUT );
-    
+            assert(run->io.direction == KVM_EXIT_IO_OUT);
+
             switch (run->io.port) {
             case UKVM_PORT_PUTS:
                 ukvm_port_puts(mem, data);
@@ -774,7 +775,7 @@ static int vcpu_loop(struct kvm_run *run, int vcpufd, uint8_t *mem,
         case KVM_EXIT_IRQ_WINDOW_OPEN: {
             run->request_interrupt_window = 0;
             inject_interrupt(vcpufd, INTR_USER_TIMER);
-            //inject_interrupt(vcpufd, 0x31);
+            /* inject_interrupt(vcpufd, 0x31); */
             break;
         }
         case KVM_EXIT_INTR: {
@@ -786,10 +787,11 @@ static int vcpu_loop(struct kvm_run *run, int vcpufd, uint8_t *mem,
             break;
         }
         case KVM_EXIT_FAIL_ENTRY:
-            errx(1, "KVM_EXIT_FAIL_ENTRY: hardware_entry_failure_reason = 0x%llx",
-                 (unsigned long long)run->fail_entry.hardware_entry_failure_reason);
+            errx(1, "KVM_EXIT_FAIL_ENTRY: hw_entry_failure_reason = 0x%llx",
+                 run->fail_entry.hardware_entry_failure_reason);
         case KVM_EXIT_INTERNAL_ERROR:
-            errx(1, "KVM_EXIT_INTERNAL_ERROR: suberror = 0x%x", run->internal.suberror);
+            errx(1, "KVM_EXIT_INTERNAL_ERROR: suberror = 0x%x",
+                 run->internal.suberror);
         default:
             errx(1, "exit_reason = 0x%x", run->exit_reason);
         }
@@ -818,9 +820,9 @@ int tun_alloc(char *dev, int flags)
      */
 
     /* open the clone device */
-    if ((fd = open(clonedev, O_RDWR)) < 0) {
+    fd = open(clonedev, O_RDWR);
+    if (fd < 0)
         return fd;
-    }
 
     /* preparation of the struct ifr, of type "struct ifreq" */
     memset(&ifr, 0, sizeof(ifr));
@@ -830,12 +832,14 @@ int tun_alloc(char *dev, int flags)
     if (*dev) {
         /* if a device name was specified, put it in the structure; otherwise,
          * the kernel will try to allocate the "next" device of the
-         * specified type */
+         * specified type
+         */
         strncpy(ifr.ifr_name, dev, IFNAMSIZ);
     }
 
     /* try to create the device */
-    if ((err = ioctl(fd, TUNSETIFF, (void *) &ifr)) < 0) {
+    err = ioctl(fd, TUNSETIFF, (void *) &ifr);
+    if (err < 0) {
         close(fd);
         return err;
     }
@@ -843,11 +847,13 @@ int tun_alloc(char *dev, int flags)
     /* if the operation was successful, write back the name of the
      * interface to the variable "dev", so the caller can know
      * it. Note that the caller MUST reserve space in *dev (see calling
-     * code below) */
+     * code below)
+     */
     strcpy(dev, ifr.ifr_name);
 
     /* this is the special file descriptor that the caller will use to talk
-     * with the virtual interface */
+     * with the virtual interface
+     */
     return fd;
 }
 
@@ -876,6 +882,7 @@ int main(int argc, char **argv)
     const char *diskfile = argv[1];
     const char *netiface = argv[2];
     const char *elffile = argv[3];
+
     argc -= 4;
     argv += 4;
     if (argc >= 1) {
@@ -911,15 +918,17 @@ int main(int argc, char **argv)
     }
     /* generate a random, locally-administered and unicast MAC address */
     int rfd = open("/dev/urandom", O_RDONLY);
+
     if (rfd == -1)
         err(1, "Could not open /dev/urandom");
     uint8_t guest_mac[6];
-    ret = read(rfd, guest_mac, sizeof guest_mac);
-    assert(ret == sizeof guest_mac);
+
+    ret = read(rfd, guest_mac, sizeof(guest_mac));
+    assert(ret == sizeof(guest_mac));
     close(rfd);
     guest_mac[0] &= 0xfe;
     guest_mac[0] |= 0x02;
-    snprintf(netinfo.mac_str, sizeof netinfo.mac_str,
+    snprintf(netinfo.mac_str, sizeof(netinfo.mac_str),
             "%02x:%02x:%02x:%02x:%02x:%02x",
             guest_mac[0], guest_mac[1], guest_mac[2],
             guest_mac[3], guest_mac[4], guest_mac[5]);
@@ -938,13 +947,13 @@ int main(int argc, char **argv)
     if (ret != 12)
         errx(1, "KVM_GET_API_VERSION %d, expected 12", ret);
 
-    vmfd = ioctl(kvm, KVM_CREATE_VM, (unsigned long) 0);
+    vmfd = ioctl(kvm, KVM_CREATE_VM, 0);
     if (vmfd == -1)
         err(1, "KVM_CREATE_VM");
 
     /*
      * TODO If the guest size is larger than ~4GB, we need two region
-     * slots: one before the pci gap, and one after it. 
+     * slots: one before the pci gap, and one after it.
      * Reference: kvmtool x86/kvm.c:kvm__init_ram()
      */
     assert(GUEST_SIZE < KVM_32BIT_GAP_SIZE);
@@ -974,7 +983,7 @@ int main(int argc, char **argv)
     /* if (ret == -1) */
     /*     err(1, "KVM_CREATE_IRQCHIP"); */
 
-    vcpufd = ioctl(vmfd, KVM_CREATE_VCPU, (unsigned long) 0);
+    vcpufd = ioctl(vmfd, KVM_CREATE_VCPU, 0);
     if (vcpufd == -1)
         err(1, "KVM_CREATE_VCPU");
 
@@ -995,8 +1004,8 @@ int main(int argc, char **argv)
         .rax = 2,
         .rbx = 2,
         .rflags = 0x2,
-        .rsp = GUEST_SIZE - 8,  // x86_64 ABI requires ((rsp + 8) % 16) == 0
-        .rdi = BOOT_INFO,       // size arg in kernel main
+        .rsp = GUEST_SIZE - 8,  /* x86_64 ABI requires ((rsp + 8) % 16) == 0 */
+        .rdi = BOOT_INFO,       /* size arg in kernel main */
     };
     ret = ioctl(vcpufd, KVM_SET_REGS, &regs);
     if (ret == -1)
@@ -1020,12 +1029,13 @@ int main(int argc, char **argv)
 
     /* start event thread */
     pthread_t event_thread;
+
     ret = pthread_create(&event_thread, NULL, event_loop, (void *) run);
     if (ret)
         err(1, "couldn't create event thread");
 
     if (use_gdb) {
-        // TODO check if we have the KVM_CAP_SET_GUEST_DEBUG capbility
+        /* TODO check if we have the KVM_CAP_SET_GUEST_DEBUG capbility */
         struct kvm_guest_debug debug = {
             .control = KVM_GUESTDBG_ENABLE | KVM_GUESTDBG_SINGLESTEP,
         };
