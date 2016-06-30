@@ -19,12 +19,12 @@ all: ukvm_target virtio_target
 
 .PHONY: virtio_target
 virtio_target:
-	make -C kernel virtio
+	$(MAKE) -C kernel virtio
 
 .PHONY: ukvm_target
 ukvm_target:
-	make -C ukvm
-	make -C kernel ukvm
+	$(MAKE) -C ukvm
+	$(MAKE) -C kernel ukvm
 
 test.iso: virtio_target iso/boot/grub/menu.lst Makefile
 	@cp kernel/test_ping_serve.virtio iso/boot/kernel
@@ -55,8 +55,8 @@ gdb: ukvm_target disk.img
 
 clean:
 	@echo -n cleaning...
-	@make -C kernel clean
-	@make -C ukvm clean
+	@$(MAKE) -C kernel clean
+	@$(MAKE) -C ukvm clean
 	@rm -f test.iso iso/boot/kernel
 	@rm -f solo5-kernel-virtio.pc
 	@rm -f solo5-kernel-ukvm.pc

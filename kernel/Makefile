@@ -24,11 +24,11 @@ OBJCOPY=objcopy
 #   - Standard C headers required by C89/C99. -nostdinc removes access to these
 #     so get it back by asking GCC for its installation directory.
 #   - The static libgcc.a (compiler runtime) installed by the host GCC.
-GCC_INSTALL_DIR=$(shell LANG=C gcc -print-search-dirs | sed -n -e 's/install: \(.*\)/\1/p')
+GCC_INSTALL_DIR=$(shell LANG=C $(CC) -print-search-dirs | sed -n -e 's/install: \(.*\)/\1/p')
 MD_CFLAGS=-nostdinc -isystem $(GCC_INSTALL_DIR)include \
 	  -ffreestanding -mno-red-zone -mno-3dnow
 LDFLAGS=-nostdlib -z max-page-size=0x1000 -static
-LDLIBS=$(shell gcc -print-libgcc-file-name)
+LDLIBS=$(shell $(CC) -print-libgcc-file-name)
 # Platform-independent CFLAGS
 CFLAGS=$(MD_CFLAGS) -std=gnu99 -Wall -Wextra -Werror -O2 -g
 
