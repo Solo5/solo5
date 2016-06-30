@@ -19,12 +19,12 @@ all: ukvm_target virtio_target
 
 .PHONY: virtio_target
 virtio_target:
-	make -C kernel virtio
+	$(MAKE) -C kernel virtio
 
 .PHONY: ukvm_target
 ukvm_target:
-	make -C ukvm
-	make -C kernel ukvm
+	$(MAKE) -C ukvm
+	$(MAKE) -C kernel ukvm
 
 test.iso: virtio_target iso/boot/grub/menu.lst Makefile
 	@cp kernel/test_ping_serve.virtio iso/boot/kernel
@@ -55,8 +55,8 @@ gdb: ukvm_target disk.img
 
 clean:
 	@echo -n cleaning...
-	@make -C kernel clean
-	@make -C ukvm clean
+	@$(MAKE) -C kernel clean
+	@$(MAKE) -C ukvm clean
 	@rm -f test.iso iso/boot/kernel
 	@rm -f solo5-kernel-virtio.pc
 	@rm -f solo5-kernel-ukvm.pc
@@ -72,9 +72,9 @@ OPAM_VIRTIO_INCDIR=$(PREFIX)/include/solo5-kernel-virtio/include
 
 # We want the MD CFLAGS, LDFLAGS and LDLIBS in the .pc file, where they can be
 # picked up by the Mirage tool / other downstream consumers.
-KERNEL_MD_CFLAGS=$(shell make -sC kernel print-md-cflags)
-KERNEL_LDFLAGS=$(shell make -sC kernel print-ldflags)
-KERNEL_LDLIBS=$(shell make -sC kernel print-ldlibs)
+KERNEL_MD_CFLAGS=$(shell $(MAKE) -sC kernel print-md-cflags)
+KERNEL_LDFLAGS=$(shell $(MAKE) -sC kernel print-ldflags)
+KERNEL_LDLIBS=$(shell $(MAKE) -sC kernel print-ldlibs)
 %.pc: %.pc.in 
 	sed <$< > $@ \
 	    -e 's#!CFLAGS!#$(KERNEL_MD_CFLAGS)#g;' \
