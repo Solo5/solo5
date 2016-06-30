@@ -190,6 +190,9 @@ and subject to change.
 We also have some simple standalone unikernels written in C to test
 Solo5, see `kernel/test_*` for these.
 
+The best place for discussions about Solo5 and/or `ukvm` is to post to
+<https://devel.unikernel.org/> or the [MirageOS-devel mailing list](http://lists.xenproject.org/cgi-bin/mailman/listinfo/mirageos-devel).
+
 # Acknowledgements
 
 `ukvm` was originally written by Dan Williams and Ricardo Koller.  The
