@@ -190,8 +190,9 @@ and subject to change.
 We also have some simple standalone unikernels written in C to test
 Solo5, see `kernel/test_*` for these.
 
-The best place for discussions about Solo5 and/or `ukvm` is to post to
-<https://devel.unikernel.org/> or the [MirageOS-devel mailing list](http://lists.xenproject.org/cgi-bin/mailman/listinfo/mirageos-devel).
+The best place for Mirage-related discussions about Solo5 and/or
+`ukvm` is to post to the [MirageOS-devel mailing list](http://lists.xenproject.org/cgi-bin/mailman/listinfo/mirageos-devel),
+with general Solo5/`ukvm` discussions on <https://devel.unikernel.org/>.
 
 # Acknowledgements
 
