@@ -3,12 +3,13 @@
     \__ \ (   | | (   |  ) | 
     ____/\___/ _|\___/____/  
 
-# The Solo5 Unikernel
+# About Solo5
 
-The Solo5 unikernel is most useful to run
-[MirageOS](https://mirage.io/), either on KVM/QEMU/any `virtio`
-compliant hypervisor or on a specialized "unikernel monitor" called
-`ukvm`.  
+Solo5 is most useful as a "base layer" to run
+[MirageOS](https://mirage.io/) unikernels, either on KVM/QEMU or on a
+specialized "unikernel monitor" called `ukvm`.
+
+# About ukvm
 
 `ukvm` runs as a Linux process and uses KVM.  The goal of `ukvm` is to
 be a small, modular monitor, in which its functionality and interfaces
@@ -173,6 +174,9 @@ If you'd like to develop Solo5, ukvm and/or investigate porting other
 unikernels to use Solo5 as a base layer, the public APIs are defined in
 `kernel/solo5.h` and `ukvm/ukvm.h`. These interfaces are still evolving
 and subject to change.
+
+We also have some simple standalone unikernels written in C to test
+Solo5, see `kernel/test_*` for these.
 
 # Acknowledgements
 
