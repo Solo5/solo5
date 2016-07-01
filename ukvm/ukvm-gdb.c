@@ -1,6 +1,6 @@
-/*************************************************************************** *
+/***************************************************************************
  *
- *              THIS SOFTWARE IS NOT COPYRIGHTED
+ *                THIS SOFTWARE IS NOT COPYRIGHTED
  *
  * HP offers the following for use in the public domain.  HP makes no
  * warranty with regard to the software or it's performance and the
@@ -10,7 +10,7 @@
  * TO THIS SOFTWARE INCLUDING BUT NOT LIMITED TO THE WARRANTIES
  * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  *
-***************************************************************************/
+ **************************************************************************/
 
 /****************************************************************************
  *  Header: remcom.c,v 1.34 91/03/09 12:29:49 glenne Exp $
@@ -106,7 +106,9 @@
 #include <linux/kvm.h>
 
 #include "ukvm.h"
+#include "ukvm_modules.h"
 
+static int use_gdb;
 
 static int listen_socket_fd;
 static int socket_fd;
@@ -178,20 +180,6 @@ static void wait_for_connect(int portn)
 }
 
 
-void gdb_handle_exception(int, int);
-
-void gdb_stub_start(int vcpufd)
-{
-    int i;
-
-    for (i = 0; i < MAX_BREAKPOINTS; i++)
-        breakpoints[i] = 0;
-
-    wait_for_connect(1234);
-    gdb_handle_exception(vcpufd, 0);
-}
-
-
 static char buf[4096], *bufptr = buf;
 static void flush_debug_buffer(void)
 {
@@ -237,8 +225,6 @@ int getDebugChar(void)
 int remote_debug;
 /*  debug >  0 prints ill-formed commands in valid packets & checksum errors */
 
-extern uint8_t *mem;
-
 static const char hexchars[] = "0123456789abcdef";
 
 /* Number of registers.  */
@@ -274,7 +260,7 @@ int hex(char ch)
         return (ch - '0');
     if ((ch >= 'A') && (ch <= 'F'))
         return (ch - 'A' + 10);
-    return (-1);
+    return -1;
 }
 
 
@@ -293,8 +279,10 @@ unsigned char *getpacket(void)
 
     while (1) {
         /* wait around for the start character, ignore all other characters */
-        while ((ch = getDebugChar()) != '$')
-            ;
+        do {
+            ch = getDebugChar();
+        } while (ch != '$');
+
 
 retry:
         checksum = 0;
@@ -358,10 +346,12 @@ void putpacket(char *buffer)
         checksum = 0;
         count = 0;
 
-        while ((ch = buffer[count])) {
+        ch = buffer[count];
+        while (ch) {
             putDebugChar(ch);
             checksum += ch;
             count += 1;
+            ch = buffer[count];
         }
 
         putDebugChar('#');
@@ -378,9 +368,7 @@ void debug_error(char *format, char *parm)
 }
 
 
-/* Indicate to caller of mem2hex or hex2mem that there has been an
- * error.
- */
+/* Indicate to caller of mem2hex or hex2mem that there has been an error. */
 static volatile int mem_err;
 
 void set_mem_err(void)
@@ -477,7 +465,7 @@ int gdb_remove_breakpoint(uint64_t addr)
 }
 
 
-void gdb_handle_exception(int vcpufd, int sig)
+void gdb_handle_exception(uint8_t *mem, int vcpufd, int sig)
 {
     unsigned char *buffer;
     char obuf[4096];
@@ -578,7 +566,13 @@ void gdb_handle_exception(int vcpufd, int sig)
         case 'Z': {
             /* insert a breakpoint */
             char *ebuf;
-            uint64_t addr = strtoull(ebuf + 1, &ebuf, 16);
+            uint64_t addr;
+            uint64_t type __attribute__((__unused__));
+            uint64_t len __attribute__((__unused__));
+
+            type = strtoull((char *)buffer + 1, &ebuf, 16);
+            addr = strtoull(ebuf + 1, &ebuf, 16);
+            len = strtoull(ebuf + 1, &ebuf, 16);
 
             gdb_insert_breakpoint(addr);
             putpacket("OK");
@@ -587,7 +581,13 @@ void gdb_handle_exception(int vcpufd, int sig)
         case 'z': {
             /* remove a breakpoint */
             char *ebuf;
-            uint64_t addr = strtoull(ebuf + 1, &ebuf, 16);
+            uint64_t addr;
+            uint64_t type __attribute__((__unused__));
+            uint64_t len __attribute__((__unused__));
+
+            type = strtoull((char *)buffer + 1, &ebuf, 16);
+            addr = strtoull(ebuf + 1, &ebuf, 16);
+            len = strtoull(ebuf + 1, &ebuf, 16);
 
             gdb_remove_breakpoint(addr);
             putpacket("OK");
@@ -610,3 +610,76 @@ void gdb_handle_exception(int vcpufd, int sig)
 
     return;
 }
+
+static void gdb_stub_start(int vcpufd, uint8_t *mem)
+{
+    int i;
+
+    for (i = 0; i < MAX_BREAKPOINTS; i++)
+        breakpoints[i] = 0;
+
+    wait_for_connect(1234);
+    gdb_handle_exception(mem, vcpufd, 0);
+}
+
+
+
+static int handle_exit(struct kvm_run *run, int vcpufd, uint8_t *mem)
+{
+    struct kvm_debug_exit_arch *arch_info;
+
+    if (run->exit_reason != KVM_EXIT_DEBUG)
+        return -1;
+
+    arch_info = &run->debug.arch;
+    if (gdb_is_pc_breakpointing(arch_info->pc))
+        gdb_handle_exception(mem, vcpufd, 1);
+
+    return 0;
+}
+
+static int setup(int vcpufd, uint8_t *mem)
+{
+    if (!use_gdb)
+        return 0;
+
+    /* TODO check if we have the KVM_CAP_SET_GUEST_DEBUG capbility */
+    struct kvm_guest_debug debug = {
+        .control = KVM_GUESTDBG_ENABLE | KVM_GUESTDBG_SINGLESTEP,
+    };
+
+    if (ioctl(vcpufd, KVM_SET_GUEST_DEBUG, &debug) < 0)
+        printf("KVM_SET_GUEST_DEBUG failed");
+
+    gdb_stub_start(vcpufd, mem);
+
+    return 0;
+}
+
+static int handle_cmdarg(char *cmdarg)
+{
+    if (strncmp("--gdb", cmdarg, 5))
+        return -1;
+
+    use_gdb = 1;
+
+    return 0;
+}
+
+static int get_fd(void)
+{
+    return 0; /* no events for poll */
+}
+
+static char *usage(void)
+{
+    return "--gdb";
+}
+
+struct ukvm_module ukvm_gdb = {
+    .get_fd = get_fd,
+    .handle_exit = handle_exit,
+    .handle_cmdarg = handle_cmdarg,
+    .setup = setup,
+    .usage = usage
+};

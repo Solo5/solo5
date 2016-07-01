@@ -1,0 +1,10 @@
+UKVM_MODULE_OBJS= \
+ukvm-blk.o \
+ukvm-gdb.o \
+ukvm-net.o \
+
+UKVM_MODULE_FLAGS= \
+-DUKVM_MODULE_BLK \
+-DUKVM_MODULE_GDB \
+-DUKVM_MODULE_NET \
+
