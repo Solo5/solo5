@@ -4,35 +4,37 @@ ENTRY(_start)
 
 SECTIONS {
     . = 0x100000;
-    
+    _begin = .;
+
     .bootstrap :
     {
         *(.bootstrap)
     }
 
-    .text BLOCK(4K) : ALIGN(4K)
+    .text ALIGN(0x1000):
     {
         *(.text)
+	*(.text.*)
     }
 
-    /* Read-only data. */
-    .rodata BLOCK(4K) : ALIGN(4K)
+    .rodata ALIGN(0x1000):
     {
         *(.rodata)
+	*(.rodata.*)
     }
 
-    /* Read-write data (initialized) */
-    .data BLOCK(4K) : ALIGN(4K)
+    .data ALIGN(0x1000):
     {
         *(.data)
+	*(.data.*)
     }
     _edata = .;
 
-    /* Read-write data (uninitialized) */
-    .bss BLOCK(4K) : ALIGN(4K)
+    .bss ALIGN(0x1000):
     {
-        *(COMMON)
         *(.bss)
+	*(.bss.*)
+        *(COMMON)
     }
     _ebss = .;
     _end = .;
