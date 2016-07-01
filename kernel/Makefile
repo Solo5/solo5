@@ -16,7 +16,7 @@
 # PERFORMANCE OF THIS SOFTWARE.
 
 AS?=as
-CC?=gcc
+CC?=cc
 LD?=ld
 OBJCOPY?=objcopy
 # Ensure no host headers or libraries are used when building, with the
