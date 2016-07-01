@@ -237,7 +237,7 @@ struct __attribute__((__packed__)) virtio_net_hdr {
 	uint16_t csum_offset;	/* Offset after that to place checksum */
 };
 
-static struct virtio_net_hdr virtio_net_hdr = {0};
+static struct virtio_net_hdr virtio_net_hdr = {0, 0, 0, 0, 0, 0};
 static uint16_t virtio_net_pci_base; /* base in PCI config space */
 static uint16_t virtio_blk_pci_base; /* base in PCI config space */
 
