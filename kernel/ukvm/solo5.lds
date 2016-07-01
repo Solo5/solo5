@@ -1,39 +1,36 @@
 ENTRY(kernel_main)
 
 SECTIONS {
+
+    /* kernel at 1MB */
     . = 0x100000;
-    _begin = .;
 
-    .bootstrap :
-    {
-        *(.bootstrap)
-    }
+	.text BLOCK(4K) : ALIGN(4K)
+	{
+		*(.text)
+	}
 
-    .text ALIGN(0x1000):
-    {
-        *(.text)
-	*(.text.*)
-    }
+	/* Read-only data. */
+	.rodata BLOCK(4K) : ALIGN(4K)
+	{
+		*(.rodata)
+	}
 
-    .rodata ALIGN(0x1000):
-    {
-        *(.rodata)
-	*(.rodata.*)
-    }
+	/* Read-write data (initialized) */
+	.data BLOCK(4K) : ALIGN(4K)
+	{
+		*(.data)
+	}
 
-    .data ALIGN(0x1000):
-    {
-        *(.data)
-	*(.data.*)
-    }
-    _edata = .;
+	/* Read-write data (uninitialized) */
+    bss_start = .;
+	.bss BLOCK(4K) : ALIGN(4K)
+	{
+		*(COMMON)
+		*(.bss)
+	}
+    bss_end = .;
 
-    .bss ALIGN(0x1000):
-    {
-        *(.bss)
-	*(.bss.*)
-        *(COMMON)
-    }
-    _ebss = .;
-    _end = .;
+	/* The compiler may produce other sections, by default it will put them in
+	   a segment with the same name. Simply add stuff here as needed. */
 }

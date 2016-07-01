@@ -27,7 +27,7 @@ OBJCOPY?=objcopy
 GCC_INCLUDE_DIR=$(shell $(CC) -print-file-name=include)
 MD_CFLAGS=-nostdinc -isystem $(GCC_INCLUDE_DIR) \
 	  -ffreestanding -mno-red-zone -mno-3dnow
-LDFLAGS=-nostdlib -static --nmagic
+LDFLAGS=-nostdlib -z max-page-size=0x1000 -static
 LDLIBS=$(shell $(CC) -print-libgcc-file-name)
 # Platform-independent CFLAGS
 CFLAGS=$(MD_CFLAGS) -std=gnu99 -Wall -Wextra -Werror -O2 -g

@@ -1,40 +1,36 @@
-OUTPUT_FORMAT("elf64-x86-64", "elf64-x86-64", "elf64-x86-64")
-OUTPUT_ARCH(i386:x86-64)
 ENTRY(_start)
 
 SECTIONS {
     . = 0x100000;
-    _begin = .;
-
+    
     .bootstrap :
     {
         *(.bootstrap)
     }
 
-    .text ALIGN(0x1000):
+    .text BLOCK(4K) : ALIGN(4K)
     {
         *(.text)
-	*(.text.*)
     }
 
-    .rodata ALIGN(0x1000):
+    /* Read-only data. */
+    .rodata BLOCK(4K) : ALIGN(4K)
     {
         *(.rodata)
-	*(.rodata.*)
     }
 
-    .data ALIGN(0x1000):
+    /* Read-write data (initialized) */
+    .data BLOCK(4K) : ALIGN(4K)
     {
         *(.data)
-	*(.data.*)
     }
     _edata = .;
 
-    .bss ALIGN(0x1000):
+    /* Read-write data (uninitialized) */
+    .bss BLOCK(4K) : ALIGN(4K)
     {
-        *(.bss)
-	*(.bss.*)
         *(COMMON)
+        *(.bss)
     }
     _ebss = .;
     _end = .;
