@@ -1,5 +1,5 @@
-/* Copyright (c) 2015, IBM 
- * Author(s): Dan Williams <djwillia@us.ibm.com> 
+/* Copyright (c) 2015, IBM
+ * Author(s): Dan Williams <djwillia@us.ibm.com>
  *
  * Permission to use, copy, modify, and/or distribute this software
  * for any purpose with or without fee is hereby granted, provided
@@ -26,21 +26,25 @@ static char cmdline[8192];
 void kernel_main(uint32_t arg)
 {
     volatile int gdb = 1;
+
     serial_init();
 
-    printf("            |      ___|  \n");
-    printf("  __|  _ \\  |  _ \\ __ \\  \n");
-    printf("\\__ \\ (   | | (   |  ) | \n");
-    printf("____/\\___/ _|\\___/____/  \n");
+    printf("            |      ___|\n");
+    printf("  __|  _ \\  |  _ \\ __ \\\n");
+    printf("\\__ \\ (   | | (   |  ) |\n");
+    printf("____/\\___/ _|\\___/____/\n");
 
-    if (!gdb) printf("looping for gdb\n");
-    while ( gdb == 0 ); 
+    if (!gdb)
+        printf("looping for gdb\n");
+    while (gdb == 0)
+        ;
 
     /*
      * The multiboot structures may be anywhere in memory, so take a copy of
      * the command line before we initialise memory allocation.
      */
     struct multiboot_info *mi = (struct multiboot_info *)(uint64_t)arg;
+
     if (mi->flags & MULTIBOOT_INFO_CMDLINE) {
         char *mi_cmdline = (char *)(uint64_t)mi->cmdline;
         size_t cmdline_len = strlen(mi_cmdline);
@@ -57,13 +61,12 @@ void kernel_main(uint32_t arg)
             }
         }
 
-        if (cmdline_len >= sizeof cmdline) {
-            cmdline_len = sizeof cmdline - 1;
+        if (cmdline_len >= sizeof(cmdline)) {
+            cmdline_len = sizeof(cmdline) - 1;
             printf("kernel_main: warning: command line too long, truncated\n");
         }
         memcpy(cmdline, mi_cmdline, cmdline_len);
-    }
-    else {
+    } else {
         cmdline[0] = 0;
     }
 
@@ -77,6 +80,8 @@ void kernel_main(uint32_t arg)
 
 static void kernel_main2(void)
 {
+    int ret;
+
     interrupts_init();
     /* ocaml needs floating point */
     sse_enable();
@@ -86,9 +91,9 @@ static void kernel_main2(void)
 
     interrupts_enable();
 
-    int ret = solo5_app_main(cmdline);
+    ret = solo5_app_main(cmdline);
     printf("solo5_app_main() returned with %d\n", ret);
 
-    printf("Kernel done. \nGoodbye!\n");
+    printf("Kernel done.\nGoodbye!\n");
     kernel_hang();
 }

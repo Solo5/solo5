@@ -1,5 +1,5 @@
-/* Copyright (c) 2016, IBM 
- * Author(s): Dan Williams <djwillia@us.ibm.com> 
+/* Copyright (c) 2016, IBM
+ * Author(s): Dan Williams <djwillia@us.ibm.com>
  *
  * Permission to use, copy, modify, and/or distribute this software
  * for any purpose with or without fee is hereby granted, provided
@@ -19,10 +19,12 @@
 #include "kernel.h"
 
 /* in stubs.c */
-void low_level_exit(void) {
+void low_level_exit(void)
+{
 }
 
-int low_level_puts(char *buf, int n){
+int low_level_puts(char *buf, int n)
+{
     struct ukvm_puts str;
 
     str.data = buf;
@@ -33,4 +35,5 @@ int low_level_puts(char *buf, int n){
     return str.len;
 }
 
-int solo5_console_write(const char *, size_t) __attribute__ ((alias ("low_level_puts")));
+int solo5_console_write(const char *, size_t)
+    __attribute__ ((alias("low_level_puts")));

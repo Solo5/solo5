@@ -1,5 +1,5 @@
-/* Copyright (c) 2015, IBM 
- * Author(s): Dan Williams <djwillia@us.ibm.com> 
+/* Copyright (c) 2015, IBM
+ * Author(s): Dan Williams <djwillia@us.ibm.com>
  *
  * Permission to use, copy, modify, and/or distribute this software
  * for any purpose with or without fee is hereby granted, provided
@@ -19,7 +19,8 @@
 #include "kernel.h"
 #include "ukvm.h"
 
-void time_init(void) {
+void time_init(void)
+{
     assert(pvclock_init() == 0);
 }
 
@@ -29,7 +30,8 @@ uint64_t solo5_clock_monotonic(void)
 }
 
 /* return wall time in nsecs */
-uint64_t solo5_clock_wall(void) {
+uint64_t solo5_clock_wall(void)
+{
     return pvclock_monotonic() + pvclock_epochoffset();
 }
 

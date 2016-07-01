@@ -1,5 +1,5 @@
-/* Copyright (c) 2015, IBM 
- * Author(s): Dan Williams <djwillia@us.ibm.com> 
+/* Copyright (c) 2015, IBM
+ * Author(s): Dan Williams <djwillia@us.ibm.com>
  *
  * Permission to use, copy, modify, and/or distribute this software
  * for any purpose with or without fee is hereby granted, provided
@@ -48,7 +48,7 @@
     _conf_data = ((inl(PCI_CONFIG_DATA) >> PCI_CONF_##s##_SHFT)      \
                   & PCI_CONF_##s##_MASK);                            \
     *(ret) = (type) _conf_data;                                      \
-} while (0);
+} while (0)
 
 
 struct pci_config_info {
@@ -63,7 +63,8 @@ uint32_t blk_devices_found;
 #define PCI_CONF_SUBSYS_NET 1
 #define PCI_CONF_SUBSYS_BLK 2
 
-static void virtio_config(uint32_t config_addr) {
+static void virtio_config(uint32_t config_addr)
+{
     struct pci_config_info pci;
 
     PCI_CONF_READ(uint16_t, &pci.device_id, config_addr, SUBSYS_ID);
@@ -74,25 +75,28 @@ static void virtio_config(uint32_t config_addr) {
             pci.interrupt_line);
 
     /* we only support one net device and one blk device */
-    switch(pci.device_id) {
+    switch (pci.device_id) {
     case PCI_CONF_SUBSYS_NET:
-        if ( !net_devices_found++ ) virtio_config_network(pci.iobar);
+        if (!net_devices_found++)
+            virtio_config_network(pci.iobar);
         break;
     case PCI_CONF_SUBSYS_BLK:
-        if ( !blk_devices_found++ ) virtio_config_block(pci.iobar);
+        if (!blk_devices_found++)
+            virtio_config_block(pci.iobar);
         break;
     default:
         printf("Found unknown virtio device!\n");
         return;
     }
 
-    irq_clear(pci.interrupt_line);    
+    irq_clear(pci.interrupt_line);
 }
 
 
 #define VENDOR_QUMRANET_VIRTIO 0x1af4
 
-void pci_enumerate(void) {
+void pci_enumerate(void)
+{
     uint32_t bus;
     uint32_t device;
 
@@ -101,7 +105,7 @@ void pci_enumerate(void) {
             uint32_t config_addr, config_data;
             uint16_t vendor_id;
 
-            config_addr= (PCI_ENABLE_BIT)
+            config_addr = (PCI_ENABLE_BIT)
                 | (bus << PCI_BUS_SHIFT)
                 | (device << PCI_DEVICE_SHIFT);
 
@@ -109,8 +113,8 @@ void pci_enumerate(void) {
             config_data = inl(PCI_CONFIG_DATA);
 
             vendor_id = config_data & 0xffff;
-            
-            if ( vendor_id == VENDOR_QUMRANET_VIRTIO ) {
+
+            if (vendor_id == VENDOR_QUMRANET_VIRTIO) {
                 virtio_config(config_addr);
                 if (net_devices_found + blk_devices_found == 2)
                     goto done_pci_enum;

@@ -1,5 +1,5 @@
-/* Copyright (c) 2015, IBM 
- * Author(s): Dan Williams <djwillia@us.ibm.com> 
+/* Copyright (c) 2015, IBM
+ * Author(s): Dan Williams <djwillia@us.ibm.com>
  *
  * Permission to use, copy, modify, and/or distribute this software
  * for any purpose with or without fee is hereby granted, provided
@@ -24,12 +24,14 @@ static uint64_t heap_start;
 static uint64_t heap_top;
 static uint64_t max_addr;
 
-uint64_t mem_max_addr(void) {
+uint64_t mem_max_addr(void)
+{
     return max_addr;
 }
 
-void mem_init(uint64_t size, uint64_t kernel_end) {
-    // Let's give 0x500000 Bytes to the stack
+void mem_init(uint64_t size, uint64_t kernel_end)
+{
+    /* Let's give 0x500000 Bytes to the stack */
     uint64_t stack_start = size - 0x500000;
 
     assert(size > 0x500000);
@@ -39,10 +41,11 @@ void mem_init(uint64_t size, uint64_t kernel_end) {
 }
 
 /* for malloc */
-void *sbrk(intptr_t increment) { 
+void *sbrk(intptr_t increment)
+{
     uint64_t ret;
 
-    if ( increment == 0 )
+    if (increment == 0)
         return (void *)heap_top;
 
     assert(increment >= PAGE_SIZE);
@@ -52,5 +55,5 @@ void *sbrk(intptr_t increment) {
     heap_top += increment;
     assert(heap_top < max_addr);
 
-    return (void *)ret; 
+    return (void *)ret;
 }

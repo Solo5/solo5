@@ -1,5 +1,5 @@
-/* Copyright (c) 2015, IBM 
- * Author(s): Dan Williams <djwillia@us.ibm.com> 
+/* Copyright (c) 2015, IBM
+ * Author(s): Dan Williams <djwillia@us.ibm.com>
  *
  * Permission to use, copy, modify, and/or distribute this software
  * for any purpose with or without fee is hereby granted, provided
@@ -24,7 +24,7 @@
  * The format is pretty self-explanatory:
  *
  * #define name vector comment
- * 
+ *
  * The main gotcha is that the comment is mandatory and specifies
  * whether an error code is pushed onto the stack by the processor.
  * Any user defined interrupt will have no error code.
@@ -32,26 +32,26 @@
 
 /* processor exceptions: 0x0 - 0x13 */
 #define INTR_EXCEPTION_DIVIDE_ERROR  0x00 /* no error code */
-#define INTR_EXCEPTION_DEBUG         0x01 /* no error code */ 
-#define INTR_EXCEPTION_NMI           0x02 /* no error code */ 
-#define INTR_EXCEPTION_BREAKPOINT    0x03 /* no error code */ 
-#define INTR_EXCEPTION_OVERFLOW      0x04 /* no error code */ 
-#define INTR_EXCEPTION_BOUND         0x05 /* no error code */ 
-#define INTR_EXCEPTION_INVALID_OP    0x06 /* no error code */ 
-#define INTR_EXCEPTION_DEVICE        0x07 /* no error code */ 
-#define INTR_EXCEPTION_DBL_FAULT     0x08 /* error code */ 
+#define INTR_EXCEPTION_DEBUG         0x01 /* no error code */
+#define INTR_EXCEPTION_NMI           0x02 /* no error code */
+#define INTR_EXCEPTION_BREAKPOINT    0x03 /* no error code */
+#define INTR_EXCEPTION_OVERFLOW      0x04 /* no error code */
+#define INTR_EXCEPTION_BOUND         0x05 /* no error code */
+#define INTR_EXCEPTION_INVALID_OP    0x06 /* no error code */
+#define INTR_EXCEPTION_DEVICE        0x07 /* no error code */
+#define INTR_EXCEPTION_DBL_FAULT     0x08 /* error code */
 #define INTR_EXCEPTION_COPROC_SEG    0x09 /* no error code */
-#define INTR_EXCEPTION_INVALID_TSS   0x0a /* error code */ 
-#define INTR_EXCEPTION_SEGMENT       0x0b /* error code */ 
-#define INTR_EXCEPTION_STACK         0x0c /* error code */ 
-#define INTR_EXCEPTION_GPF           0x0d /* error code */ 
-#define INTR_EXCEPTION_PF            0x0e /* error code */ 
+#define INTR_EXCEPTION_INVALID_TSS   0x0a /* error code */
+#define INTR_EXCEPTION_SEGMENT       0x0b /* error code */
+#define INTR_EXCEPTION_STACK         0x0c /* error code */
+#define INTR_EXCEPTION_GPF           0x0d /* error code */
+#define INTR_EXCEPTION_PF            0x0e /* error code */
 
 #define INTR_EXCEPTION_FPU           0x10 /* no error code */
 #define INTR_EXCEPTION_ALIGN         0x11 /* error code */
-#define INTR_EXCEPTION_MACHINE_CHK   0x12 /* no error code */ 
-#define INTR_EXCEPTION_SIMD_FP       0x13 /* no error code */ 
-#define INTR_EXCEPTION_VIRT          0x14 /* no error code */ 
+#define INTR_EXCEPTION_MACHINE_CHK   0x12 /* no error code */
+#define INTR_EXCEPTION_SIMD_FP       0x13 /* no error code */
+#define INTR_EXCEPTION_VIRT          0x14 /* no error code */
 
 /* remapped irqs */
 #define INTR_IRQ_0      0x20 /* no error code */

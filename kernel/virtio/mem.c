@@ -1,5 +1,5 @@
-/* Copyright (c) 2015, IBM 
- * Author(s): Dan Williams <djwillia@us.ibm.com> 
+/* Copyright (c) 2015, IBM
+ * Author(s): Dan Williams <djwillia@us.ibm.com>
  *
  * Permission to use, copy, modify, and/or distribute this software
  * for any purpose with or without fee is hereby granted, provided
@@ -34,11 +34,13 @@ static uint64_t heap_start;
 static uint64_t heap_top;
 static uint64_t max_addr;
 
-uint64_t mem_max_addr(void) {
+uint64_t mem_max_addr(void)
+{
     return max_addr;
 }
 
-void mem_init(struct multiboot_info *mb) {
+void mem_init(struct multiboot_info *mb)
+{
     multiboot_memory_map_t *m;
     uint32_t offset;
     extern char _end[];
@@ -70,10 +72,11 @@ void mem_init(struct multiboot_info *mb) {
 }
 
 /* for malloc */
-void *sbrk(intptr_t increment) { 
+void *sbrk(intptr_t increment)
+{
     uint64_t ret;
 
-    if ( increment == 0 )
+    if (increment == 0)
         return (void *)heap_top;
 
     assert(increment >= PAGE_SIZE);
@@ -82,5 +85,5 @@ void *sbrk(intptr_t increment) {
     ret = heap_top;
     heap_top += increment;
 
-    return (void *)ret; 
+    return (void *)ret;
 }

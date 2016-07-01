@@ -1,7 +1,8 @@
 #include "kernel.h"
 
 /* ukvm net interface */
-int solo5_net_write_sync(uint8_t *data, int n) {
+int solo5_net_write_sync(uint8_t *data, int n)
+{
     volatile struct ukvm_netwrite wr;
 
     wr.data = data;
@@ -14,7 +15,8 @@ int solo5_net_write_sync(uint8_t *data, int n) {
     return wr.ret;
 }
 
-int solo5_net_read_sync(uint8_t *data, int *n) {
+int solo5_net_read_sync(uint8_t *data, int *n)
+{
     volatile struct ukvm_netread rd;
 
     rd.data = data;
@@ -29,7 +31,8 @@ int solo5_net_read_sync(uint8_t *data, int *n) {
 }
 
 static char mac_str[18];
-char *solo5_net_mac_str(void) {
+char *solo5_net_mac_str(void)
+{
     volatile struct ukvm_netinfo info;
 
     outl(UKVM_PORT_NETINFO, ukvm_ptr(&info));
@@ -40,7 +43,8 @@ char *solo5_net_mac_str(void) {
 }
 
 /* ukvm block interface */
-int solo5_blk_write_sync(uint64_t sec, uint8_t *data, int n) {
+int solo5_blk_write_sync(uint64_t sec, uint8_t *data, int n)
+{
     volatile struct ukvm_blkwrite wr;
 
     wr.sector = sec;
@@ -54,7 +58,8 @@ int solo5_blk_write_sync(uint64_t sec, uint8_t *data, int n) {
     return wr.ret;
 }
 
-int solo5_blk_read_sync(uint64_t sec, uint8_t *data, int *n) {
+int solo5_blk_read_sync(uint64_t sec, uint8_t *data, int *n)
+{
     volatile struct ukvm_blkread rd;
 
     rd.sector = sec;
@@ -69,7 +74,8 @@ int solo5_blk_read_sync(uint64_t sec, uint8_t *data, int *n) {
     return rd.ret;
 }
 
-int solo5_blk_sector_size(void) {
+int solo5_blk_sector_size(void)
+{
     volatile struct ukvm_blkinfo info;
 
     outl(UKVM_PORT_BLKINFO, ukvm_ptr(&info));
@@ -78,7 +84,8 @@ int solo5_blk_sector_size(void) {
     return info.sector_size;
 }
 
-uint64_t solo5_blk_sectors(void) {
+uint64_t solo5_blk_sectors(void)
+{
     volatile struct ukvm_blkinfo info;
 
     outl(UKVM_PORT_BLKINFO, ukvm_ptr(&info));
@@ -87,7 +94,8 @@ uint64_t solo5_blk_sectors(void) {
     return info.num_sectors;
 }
 
-int solo5_blk_rw(void) {
+int solo5_blk_rw(void)
+{
     volatile struct ukvm_blkinfo info;
 
     outl(UKVM_PORT_BLKINFO, ukvm_ptr(&info));

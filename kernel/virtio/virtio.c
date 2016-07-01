@@ -1,5 +1,5 @@
-/* Copyright (c) 2015, IBM 
- * Author(s): Dan Williams <djwillia@us.ibm.com> 
+/* Copyright (c) 2015, IBM
+ * Author(s): Dan Williams <djwillia@us.ibm.com>
  *
  * Permission to use, copy, modify, and/or distribute this software
  * for any purpose with or without fee is hereby granted, provided
@@ -27,12 +27,14 @@
 #define VIRTIO_PCI_QUEUE_NOTIFY		16   /* 16-bit r/w */
 
 /* How many bits to shift physical queue address written to QUEUE_PFN.
- * 12 is historical, and due to x86 page size. */
+ * 12 is historical, and due to x86 page size.
+ */
 #define VIRTIO_PCI_QUEUE_ADDR_SHIFT	12
 
 
 /* The status register lets us tell the device where we are in
-   initialization */
+ * initialization
+ */
 #define VIRTIO_PCI_STATUS		    18   /* 8-bit r/w */
 #define VIRTIO_PCI_STATUS_ACK	    0x1  /* we recognize device as virtio */
 #define VIRTIO_PCI_STATUS_DRIVER    0x2  /* we want to drive it */
@@ -41,7 +43,8 @@
 
 /* Reading the value will return the current contents of the interrupt
  * status register and will also clear it.  This is effectively a
- * read-and-acknowledge. */
+ * read-and-acknowledge.
+ */
 #define VIRTIO_PCI_ISR			    19   /* 8-bit r/o */
 #define VIRTIO_PCI_ISR_HAS_INTR		0x1  /* interrupt is for this device */
 #define VIRTIO_PCI_ISR_CONFIG		0x2  /* config change bit */
@@ -54,19 +57,22 @@
 #define VIRTIO_F_RING_EVENT_IDX (1 << 28)
 
 /* The feature bitmap for virtio net */
-#define VIRTIO_NET_F_CSUM	0	/* Host handles pkts w/ partial csum */
-#define VIRTIO_NET_F_GUEST_CSUM	1	/* Guest handles pkts w/ partial csum */
-#define VIRTIO_NET_F_MAC	(1 << 5)	/* Host has given MAC address. */
+#define VIRTIO_NET_F_CSUM	0     /* Host handles pkts w/ partial csum */
+#define VIRTIO_NET_F_GUEST_CSUM	1 /* Guest handles pkts w/ partial csum */
+#define VIRTIO_NET_F_MAC (1 << 5) /* Host has given MAC address. */
 
 
-#define VRING_DESC_F_NEXT	1 /* Buffer continues via the next field. */
-#define VRING_DESC_F_WRITE	2 /* Buffer is write-only (otherwise read-only). */
-#define VRING_DESC_F_INDIRECT	4 /* Buffer contains a list of buffer descriptors. */
+/* Buffer continues via the next field. */
+#define VRING_DESC_F_NEXT     1
+/* Buffer is write-only (otherwise read-only). */
+#define VRING_DESC_F_WRITE    2
+/* Buffer contains a list of buffer descriptors. */
+#define VRING_DESC_F_INDIRECT 4
 
 #define VIRTIO_BLK_ID_BYTES       20
-#define VIRTIO_BLK_T_IN           0 
-#define VIRTIO_BLK_T_OUT          1 
-#define VIRTIO_BLK_T_SCSI_CMD     2 
+#define VIRTIO_BLK_T_IN           0
+#define VIRTIO_BLK_T_OUT          1
+#define VIRTIO_BLK_T_SCSI_CMD     2
 #define VIRTIO_BLK_T_SCSI_CMD_OUT 3
 #define VIRTIO_BLK_T_FLUSH        4
 #define VIRTIO_BLK_T_FLUSH_OUT    5
@@ -97,45 +103,45 @@ struct virtio_blk_hdr {
 struct virtio_blk_req {
     struct virtio_blk_hdr hdr;
     uint8_t data[VIRTIO_BLK_SECTOR_SIZE];
+
     volatile uint8_t status;
     volatile uint8_t hw_used;
 };
 struct virtio_blk_req blk_bufs[128];
 
 struct __attribute__((__packed__)) vring_desc {
-	uint64_t addr; 	/* Address (guest-physical). */
-	uint32_t len; 	/* Length. */
-	uint16_t flags; /* The flags as indicated above. */
-	uint16_t next;  /* Next field if flags & NEXT */
+    uint64_t addr;   /* Address (guest-physical). */
+    uint32_t len;    /* Length. */
+    uint16_t flags;  /* The flags as indicated above. */
+    uint16_t next;   /* Next field if flags & NEXT */
 };
 
 struct __attribute__((__packed__)) vring_avail_elem {
-	uint16_t val;
+    uint16_t val;
 };
 
 struct __attribute__((__packed__)) vring_avail {
-	uint16_t flags;
-	uint16_t idx;
-	struct vring_avail_elem ring[0];
-    // uint16_t used_event;
+    uint16_t flags;
+    uint16_t idx;
+    struct vring_avail_elem ring[0];
 };
 
 /* u32 is used here for ids for padding reasons. */
 struct __attribute__((__packed__)) vring_used_elem {
-	uint32_t id;  /* Index of start of used descriptor chain. */
-	uint32_t len; /* Total len of the desc chain which was used (written to) */
+    uint32_t id;  /* Index of start of used descriptor chain. */
+    uint32_t len; /* Total len of the desc chain which was used (written to) */
 };
 
 struct __attribute__((__packed__)) vring_used {
-	uint16_t flags;
-	uint16_t idx;
-	struct vring_used_elem ring[0];
-    // uint16_t avail_event;
+    uint16_t flags;
+    uint16_t idx;
+    struct vring_used_elem ring[0];
 };
 
 /* The vring is one of these irritating layouts that we can't just
-   struct out because of variable length fields.  Instead, we use
-   these offsets and _get functions  */
+ *  struct out because of variable length fields.  Instead, we use
+ *  these offsets and _get functions.
+ */
 
 #define VRING_OFF_DESC(q)  0
 #define VRING_OFF_AVAIL(q) ((q) * sizeof(struct vring_desc))
@@ -154,28 +160,33 @@ struct vring {
     void *vring;
 };
 
-struct vring_desc *vring_desc_get(struct vring *vring, int i) {
-    return (struct vring_desc *) (vring->vring 
-                                  + VRING_OFF_DESC(vring->size) 
-                                  + (i * sizeof(struct vring_desc)));
+struct vring_desc *vring_desc_get(struct vring *vring, int i)
+{
+    return (struct vring_desc *)(vring->vring
+                                 + VRING_OFF_DESC(vring->size)
+                                 + (i * sizeof(struct vring_desc)));
 }
-struct vring_avail *vring_avail_get(struct vring *vring) {
-    return (struct vring_avail *) (vring->vring 
-                                   + VRING_OFF_AVAIL(vring->size));
+struct vring_avail *vring_avail_get(struct vring *vring)
+{
+    return (struct vring_avail *)(vring->vring
+                                  + VRING_OFF_AVAIL(vring->size));
 }
-struct vring_avail_elem *vring_avail_elem_get(struct vring *vring, int i) {
-    return (struct vring_avail_elem *) (vring->vring 
-                                        + VRING_OFF_AVAIL_RING(vring->size)
-                                        + (i * sizeof(struct vring_avail_elem)));
+struct vring_avail_elem *vring_avail_elem_get(struct vring *vring, int i)
+{
+    return (struct vring_avail_elem *)(vring->vring
+                                       + VRING_OFF_AVAIL_RING(vring->size)
+                                       + (i * sizeof(struct vring_avail_elem)));
 }
-struct vring_used *vring_used_get(struct vring *vring) {
-    return (struct vring_used *) (vring->vring 
-                                  + VRING_OFF_USED(vring->size));
+struct vring_used *vring_used_get(struct vring *vring)
+{
+    return (struct vring_used *)(vring->vring
+                                 + VRING_OFF_USED(vring->size));
 }
-struct vring_used_elem *vring_used_elem_get(struct vring *vring, int i) {
-    return (struct vring_used_elem *) (vring->vring 
-                                       + VRING_OFF_USED_RING(vring->size) 
-                                       + (i * sizeof(struct vring_used_elem)));
+struct vring_used_elem *vring_used_elem_get(struct vring *vring, int i)
+{
+    return (struct vring_used_elem *)(vring->vring
+                                      + VRING_OFF_USED_RING(vring->size)
+                                      + (i * sizeof(struct vring_used_elem)));
 }
 
 #define VRING_NET_QUEUE_SIZE 256
@@ -208,20 +219,21 @@ static struct vring blkq = {
 /* This header comes first in the scatter-gather list.
  * If VIRTIO_F_ANY_LAYOUT is not negotiated, it must
  * be the first element of the scatter-gather list.  If you don't
- * specify GSO or CSUM features, you can simply ignore the header. */
+ * specify GSO or CSUM features, you can simply ignore the header.
+ */
 struct __attribute__((__packed__)) virtio_net_hdr {
-#define VIRTIO_NET_HDR_F_NEEDS_CSUM	1	// Use csum_start, csum_offset
-#define VIRTIO_NET_HDR_F_DATA_VALID	2	// Csum is valid
-	uint8_t flags;
-#define VIRTIO_NET_HDR_GSO_NONE		0	// Not a GSO frame
-#define VIRTIO_NET_HDR_GSO_TCPV4	1	// GSO frame, IPv4 TCP (TSO)
-#define VIRTIO_NET_HDR_GSO_UDP		3	// GSO frame, IPv4 UDP (UFO)
-#define VIRTIO_NET_HDR_GSO_TCPV6	4	// GSO frame, IPv6 TCP
-#define VIRTIO_NET_HDR_GSO_ECN		0x80	// TCP has ECN set
-	uint8_t gso_type;
-	uint16_t hdr_len;		/* Ethernet + IP + tcp/udp hdrs */
-	uint16_t gso_size;		/* Bytes to append to hdr_len per frame */
-	uint16_t csum_start;	/* Position to start checksumming from */
+#define VIRTIO_NET_HDR_F_NEEDS_CSUM	1   /* Use csum_start, csum_offset */
+#define VIRTIO_NET_HDR_F_DATA_VALID	2	/* Csum is valid */
+    uint8_t flags;
+#define VIRTIO_NET_HDR_GSO_NONE		0	/* Not a GSO frame */
+#define VIRTIO_NET_HDR_GSO_TCPV4	1	/* GSO frame, IPv4 TCP (TSO) */
+#define VIRTIO_NET_HDR_GSO_UDP		3	/* GSO frame, IPv4 UDP (UFO) */
+#define VIRTIO_NET_HDR_GSO_TCPV6	4	/* GSO frame, IPv6 TCP */
+#define VIRTIO_NET_HDR_GSO_ECN		0x80	/* TCP has ECN set */
+    uint8_t gso_type;
+    uint16_t hdr_len;		/* Ethernet + IP + tcp/udp hdrs */
+    uint16_t gso_size;		/* Bytes to append to hdr_len per frame */
+    uint16_t csum_start;	/* Position to start checksumming from */
 	uint16_t csum_offset;	/* Offset after that to place checksum */
 };
 
@@ -232,69 +244,72 @@ static uint16_t virtio_blk_pci_base; /* base in PCI config space */
 uint8_t virtio_net_mac[6];
 static char virtio_net_mac_str[18];
 
-static uint32_t xmit_next_avail = 0;
-static uint32_t recv_next_avail = 0;
-static uint32_t xmit_last_used = 0;
-static uint32_t recv_last_used = 0;
+static uint32_t xmit_next_avail;
+static uint32_t recv_next_avail;
+static uint32_t xmit_last_used;
+static uint32_t recv_last_used;
 
-static uint32_t blk_next_avail = 0;
-static uint32_t blk_last_used = 0;
+static uint32_t blk_next_avail;
+static uint32_t blk_last_used;
 
 /* WARNING: called in interrupt context */
-static void check_blk(void) {
+static void check_blk(void)
+{
     volatile struct vring_used_elem *e;
     struct vring_desc *desc;
     int dbg = 0;
 
-    for(;;) {
+    for (;;) {
         uint16_t data_idx;
         struct virtio_blk_req *req;
 
-        if ( (vring_used_get(&blkq)->idx % blkq.size) == blk_last_used) {
+        if ((vring_used_get(&blkq)->idx % blkq.size) == blk_last_used)
             break;
-        }
 
         e = vring_used_elem_get(&blkq, blk_last_used % blkq.size);
         desc = vring_desc_get(&blkq, e->id); /* the virtio_blk header */
         req = (struct virtio_blk_req *)desc->addr;
 
-        if (dbg) printf("INTR: BLK: desc=0x%p: type=%d sector=%d\n", 
-                        desc->addr, req->hdr.type, req->hdr.sector);
+        if (dbg)
+            printf("INTR: BLK: desc=0x%p: type=%d sector=%d\n",
+                   desc->addr, req->hdr.type, req->hdr.sector);
 
         req->hw_used = 1;
 
         data_idx = desc->next;
         desc = vring_desc_get(&blkq, data_idx); /* the data buffer */
 
-        if (dbg) printf("INTR: BLK: desc=0x%p data=%08x...\n", 
-                        desc->addr, *(uint32_t *)desc->addr);
+        if (dbg)
+            printf("INTR: BLK: desc=0x%p data=%08x...\n",
+                   desc->addr, *(uint32_t *)desc->addr);
 
         data_idx = desc->next;
         desc = vring_desc_get(&blkq, data_idx); /* the status */
 
-        if (dbg) printf("INTR: BLK: desc=0x%p status=%d\n", 
-                        desc->addr, *(uint8_t *)desc->addr);
+        if (dbg)
+            printf("INTR: BLK: desc=0x%p status=%d\n",
+                   desc->addr, *(uint8_t *)desc->addr);
 
-        if (dbg) printf("REAP: 0x%p next_avail %d last_used %d\n", 
-                        desc->addr, blk_next_avail, blk_last_used);
+        if (dbg)
+            printf("REAP: 0x%p next_avail %d last_used %d\n",
+                   desc->addr, blk_next_avail, blk_last_used);
 
-        
         blk_last_used = (blk_last_used + 1) % blkq.size;
     }
 }
 
 /* WARNING: called in interrupt context */
-static void check_xmit(void) {
+static void check_xmit(void)
+{
     volatile struct vring_used_elem *e;
     struct vring_desc *desc;
     int dbg = 0;
 
-    for(;;) {
+    for (;;) {
         uint16_t data_idx;
-        
-        if ( (vring_used_get(&xmitq)->idx % xmitq.size) == xmit_last_used) {
+
+        if ((vring_used_get(&xmitq)->idx % xmitq.size) == xmit_last_used)
             break;
-        }
 
         e = vring_used_elem_get(&xmitq, xmit_last_used % xmitq.size);
         desc = vring_desc_get(&xmitq, e->id); /* the virtio_net header */
@@ -302,118 +317,122 @@ static void check_xmit(void) {
         desc = vring_desc_get(&xmitq, data_idx); /* the data buffer */
 
         if (dbg)
-            printf("REAP: 0x%p next_avail %d last_used %d\n", 
+            printf("REAP: 0x%p next_avail %d last_used %d\n",
                    desc->addr, xmit_next_avail, xmit_last_used);
 
         xmit_last_used = (xmit_last_used + 1) % xmitq.size;
     }
 }
 
-static void recv_load_desc(void) {
+static void recv_load_desc(void)
+{
     struct vring_desc *desc;
     struct vring_avail *avail;
-    
+
     /* it seems like we need one descriptor for the virtio header */
     desc = vring_desc_get(&recvq, recv_next_avail);
     desc->addr = (uint64_t)&virtio_net_hdr;
     desc->len = sizeof(virtio_net_hdr);
     desc->next = recv_next_avail + 1;
     desc->flags = VRING_DESC_F_NEXT | VRING_DESC_F_WRITE;
-    
+
     /* and a separate one for the actual packet */
     desc = vring_desc_get(&recvq, recv_next_avail + 1);
     desc->addr = (uint64_t)recv_bufs[recv_next_avail/2].data;
     desc->len = PKT_BUFFER_LEN;
     desc->flags = VRING_DESC_F_WRITE;
-    
+
     avail = vring_avail_get(&recvq);
     /* Memory barriers should be unnecessary with one processor */
-    vring_avail_elem_get(&recvq, avail->idx % recvq.size)->val 
+    vring_avail_elem_get(&recvq, avail->idx % recvq.size)->val
         = recv_next_avail;
     avail->idx++;
     recv_next_avail = (recv_next_avail + 2) % recvq.size;
 }
 
 /* WARNING: called in interrupt context */
-static void check_recv(void) {
+static void check_recv(void)
+{
     volatile struct vring_used_elem *e;
     struct vring_desc *desc;
     int i;
 
-    for(;;) {
+    for (;;) {
         uint16_t data_idx;
 
-        if ( (vring_used_get(&recvq)->idx % recvq.size) == recv_last_used) {
+        if ((vring_used_get(&recvq)->idx % recvq.size) == recv_last_used)
             break;
-        }
 
         e = vring_used_elem_get(&recvq, recv_last_used % recvq.size);
         desc = vring_desc_get(&recvq, e->id); /* the virtio_net header */
         data_idx = desc->next;
         desc = vring_desc_get(&recvq, data_idx); /* the data buffer */
 
-        if(0)printf("RECV: 0x%p next_avail %d last_used %d\n", 
-		    desc->addr, recv_next_avail, recv_last_used);
+        if (0)
+            printf("RECV: 0x%p next_avail %d last_used %d\n",
+                   desc->addr, recv_next_avail, recv_last_used);
 
         /* record actual packet len */
-        ((struct pkt_buffer *)desc->addr)->len = e->len - sizeof(struct virtio_net_hdr);
-        
+        ((struct pkt_buffer *)desc->addr)->len = e->len
+            - sizeof(struct virtio_net_hdr);
+
         if (0) {
-        printf("recv pkt:\n");
-        for (i = 0; i < 64; i++) {
-            printf("%02x ", ((uint8_t *)desc->addr)[i]);
-            if ((i % 8) == 7)
-                printf(" ");
-            if ((i % 16) == 15)
-                printf("\n");
-        }
+            printf("recv pkt:\n");
+            for (i = 0; i < 64; i++) {
+                printf("%02x ", ((uint8_t *)desc->addr)[i]);
+                if ((i % 8) == 7)
+                    printf(" ");
+                if ((i % 16) == 15)
+                    printf("\n");
+            }
         }
 
         recv_last_used = (recv_last_used + 1) % recvq.size;
-
-        //recv_load_desc();
     }
 }
 
 /* WARNING: called in interrupt context */
-void handle_virtio_interrupt(void) {
+void handle_virtio_interrupt(void)
+{
     uint8_t isr_status_net = inb(virtio_net_pci_base + VIRTIO_PCI_ISR);
     uint8_t isr_status_blk = inb(virtio_blk_pci_base + VIRTIO_PCI_ISR);
 
-    if ( isr_status_net & VIRTIO_PCI_ISR_HAS_INTR ) {
+    if (isr_status_net & VIRTIO_PCI_ISR_HAS_INTR) {
         check_xmit();
         check_recv();
-    } else if ( isr_status_blk & VIRTIO_PCI_ISR_HAS_INTR ) {
+    } else if (isr_status_blk & VIRTIO_PCI_ISR_HAS_INTR) {
         check_blk();
-    } 
+    }
 }
 
 
-static void recv_setup(void) {
+static void recv_setup(void)
+{
     do {
         recv_load_desc();
     } while (recv_next_avail != 0);
 
-    outw(virtio_net_pci_base + VIRTIO_PCI_QUEUE_NOTIFY, VIRTQ_RECV);    
+    outw(virtio_net_pci_base + VIRTIO_PCI_QUEUE_NOTIFY, VIRTQ_RECV);
 }
 
 /* performance note: we perform a copy into the xmit buffer */
-int virtio_net_xmit_packet(void *data, int len) {
+int virtio_net_xmit_packet(void *data, int len)
+{
     struct vring_desc *desc;
     struct vring_avail *avail;
     int dbg = 0;
 
-    if (((xmit_next_avail + 2) % xmitq.size) 
-        == ((xmit_last_used * 2) % xmitq.size)) { 
-        printf("xmit buffer full! next_avail:%d last_used:%d\n", 
-               xmit_next_avail, xmit_last_used);  
-            return -1;  
+    if (((xmit_next_avail + 2) % xmitq.size)
+        == ((xmit_last_used * 2) % xmitq.size)) {
+        printf("xmit buffer full! next_avail:%d last_used:%d\n",
+               xmit_next_avail, xmit_last_used);
+            return -1;
     }
 
     /* we perform a copy into the xmit buffer to make reclaiming easy */
     assert(len <= PKT_BUFFER_LEN);
     memcpy(xmit_bufs[xmit_next_avail/2].data, data, len);
-    
+
     /* it seems like we need one descriptor for the virtio header */
     /* should be able to be pulled out (i.e., not set every time) */
     desc = vring_desc_get(&xmitq, xmit_next_avail);
@@ -429,58 +448,59 @@ int virtio_net_xmit_packet(void *data, int len) {
     desc->flags = 0;
 
     if (dbg)
-        atomic_printf("XMIT: 0x%p next_avail %d last_used %d\n", 
+        atomic_printf("XMIT: 0x%p next_avail %d last_used %d\n",
                       desc->addr, xmit_next_avail, xmit_last_used);
 
     avail = vring_avail_get(&xmitq);
     /* Memory barriers should be unnecessary with one processor */
-    vring_avail_elem_get(&xmitq, avail->idx % xmitq.size)->val 
+    vring_avail_elem_get(&xmitq, avail->idx % xmitq.size)->val
         = xmit_next_avail;
 
     avail->idx++;
     xmit_next_avail = (xmit_next_avail + 2) % xmitq.size;
-    outw(virtio_net_pci_base + VIRTIO_PCI_QUEUE_NOTIFY, VIRTQ_XMIT);    
+    outw(virtio_net_pci_base + VIRTIO_PCI_QUEUE_NOTIFY, VIRTQ_XMIT);
 
     return 0;
 }
 
 
-static struct virtio_blk_req *virtio_blk_op(uint32_t type, 
-                                            uint64_t sector, 
-                                            void *data, int len) {
+static struct virtio_blk_req *virtio_blk_op(uint32_t type,
+                                            uint64_t sector,
+                                            void *data, int len)
+{
     struct vring_desc *desc;
     struct vring_avail *avail;
     struct virtio_blk_req *req;
     int dbg = 0;
 
-    if (((blk_next_avail + 3) % blkq.size) 
-        == ((blk_last_used * 3 ) % blkq.size)) { 
-        printf("blk buffer full! next_avail:%d last_used:%d\n", 
-               blk_next_avail, blk_last_used);  
-            return NULL;  
+    if (((blk_next_avail + 3) % blkq.size)
+        == ((blk_last_used * 3) % blkq.size)) {
+        printf("blk buffer full! next_avail:%d last_used:%d\n",
+               blk_next_avail, blk_last_used);
+        return NULL;
     }
 
     /* we perform a copy into the blk buffer to make reclaiming easy */
     assert(len <= VIRTIO_BLK_SECTOR_SIZE);
     req = &blk_bufs[blk_next_avail/3];
 
-    if ( req->hw_used ) {
+    if (req->hw_used) {
         printf("blk buffer full! no unused buffers!\n");
         return NULL;
     }
 
-    
     req->hdr.type = type;
     req->hdr.ioprio = 0;
     req->hdr.sector = sector;
     req->hw_used = 0;
 
-    if ( type == VIRTIO_BLK_T_OUT )
+    if (type == VIRTIO_BLK_T_OUT)
         memcpy(req->data, data, len);
 
     /* it seems like we need 3 descriptors for a single req */
 
-    if (dbg) atomic_printf("REQ BLK: 0x%p type=%d\n", req, req->hdr.type);
+    if (dbg)
+        atomic_printf("REQ BLK: 0x%p type=%d\n", req, req->hdr.type);
 
 
     /* the header */
@@ -490,20 +510,21 @@ static struct virtio_blk_req *virtio_blk_op(uint32_t type,
     desc->next = (blk_next_avail + 1) % blkq.size;
     desc->flags = VRING_DESC_F_NEXT;
 
-    if (dbg) atomic_printf("REQ BLK: hdr at 0x%x\n", desc->addr);
+    if (dbg)
+        atomic_printf("REQ BLK: hdr at 0x%x\n", desc->addr);
 
     /* the data */
     desc = vring_desc_get(&blkq, (blk_next_avail + 1) % blkq.size);
     desc->addr = (uint64_t)req->data;
-    //desc->len = VIRTIO_BLK_SECTOR_SIZE;
     desc->len = len;
     desc->next = (blk_next_avail + 2) % blkq.size;
     desc->flags = VRING_DESC_F_NEXT;
-    if ( type == VIRTIO_BLK_T_IN )
+    if (type == VIRTIO_BLK_T_IN)
         desc->flags |= VRING_DESC_F_WRITE;
 
-    if (dbg) atomic_printf("REQ BLK: data at 0x%x data=%08x...\n", 
-                           desc->addr, *(uint32_t *)desc->addr);
+    if (dbg)
+        atomic_printf("REQ BLK: data at 0x%x data=%08x...\n",
+                      desc->addr, *(uint32_t *)desc->addr);
 
     /* the status */
     desc = vring_desc_get(&blkq, (blk_next_avail + 2) % blkq.size);
@@ -512,51 +533,59 @@ static struct virtio_blk_req *virtio_blk_op(uint32_t type,
     desc->next = 0;
     desc->flags = VRING_DESC_F_WRITE;
 
-    if (dbg) atomic_printf("REQ BLK: status at 0x%x\n", desc->addr);
+    if (dbg)
+        atomic_printf("REQ BLK: status at 0x%x\n", desc->addr);
 
-    if (dbg) atomic_printf("BLK: 0x%p next_avail %d last_used %d\n", 
-                           desc->addr, blk_next_avail, blk_last_used);
+    if (dbg)
+        atomic_printf("BLK: 0x%p next_avail %d last_used %d\n",
+                      desc->addr, blk_next_avail, blk_last_used);
 
     avail = vring_avail_get(&blkq);
     /* Memory barriers should be unnecessary with one processor */
-    vring_avail_elem_get(&blkq, avail->idx % blkq.size)->val 
+    vring_avail_elem_get(&blkq, avail->idx % blkq.size)->val
         = blk_next_avail;
 
     avail->idx++;
     blk_next_avail = (blk_next_avail + 3) % blkq.size;
-    outw(virtio_blk_pci_base + VIRTIO_PCI_QUEUE_NOTIFY, VIRTQ_BLK);    
+    outw(virtio_blk_pci_base + VIRTIO_PCI_QUEUE_NOTIFY, VIRTQ_BLK);
 
     return req;
 }
 
 #if 0
-static struct virtio_blk_req *virtio_blk_flush(uint64_t sector){
+static struct virtio_blk_req *virtio_blk_flush(uint64_t sector)
+{
     return virtio_blk_op(VIRTIO_BLK_T_FLUSH, sector, data, len);
 }
 #endif
-static struct virtio_blk_req *virtio_blk_write(uint64_t sector, void *data, int len){
+static struct virtio_blk_req *virtio_blk_write(uint64_t sector,
+                                               void *data, int len)
+{
     return virtio_blk_op(VIRTIO_BLK_T_OUT, sector, data, len);
 }
-static struct virtio_blk_req *virtio_blk_read(uint64_t sector, int len) {
+static struct virtio_blk_req *virtio_blk_read(uint64_t sector, int len)
+{
     return virtio_blk_op(VIRTIO_BLK_T_IN, sector, NULL, len);
 }
 
-void virtio_config_block(uint16_t base) {
+void virtio_config_block(uint16_t base)
+{
     uint8_t ready_for_init = VIRTIO_PCI_STATUS_ACK | VIRTIO_PCI_STATUS_DRIVER;
     uint32_t host_features, guest_features;
     uint32_t queue_size;
     int i;
     int dbg = 1;
-    
+
     outb(base + VIRTIO_PCI_STATUS, ready_for_init);
 
     host_features = inl(base + VIRTIO_PCI_HOST_FEATURES);
 
-    if (dbg){
+    if (dbg) {
         uint32_t hf = host_features;
+
         printf("host features: %x: ", hf);
         for (i = 0; i < 32; i++) {
-            if ( hf & 0x1 )
+            if (hf & 0x1)
                 printf("%d ", i);
             hf = hf >> 1;
         }
@@ -568,7 +597,7 @@ void virtio_config_block(uint16_t base) {
     outl(base + VIRTIO_PCI_GUEST_FEATURES, guest_features);
 
     virtio_blk_sectors = inq(base + VIRTIO_PCI_CONFIG_OFF);
-    printf("Found virtio block device with capacity: %d * %d = %d\n", 
+    printf("Found virtio block device with capacity: %d * %d = %d\n",
            virtio_blk_sectors, VIRTIO_BLK_SECTOR_SIZE,
            virtio_blk_sectors * VIRTIO_BLK_SECTOR_SIZE);
 
@@ -581,28 +610,30 @@ void virtio_config_block(uint16_t base) {
     outb(base + VIRTIO_PCI_STATUS, VIRTIO_PCI_STATUS_DRIVER_OK);
 
     outb(base + VIRTIO_PCI_QUEUE_SEL, 0);
-    outw(base + VIRTIO_PCI_QUEUE_PFN, (uint64_t)blkq.vring 
+    outw(base + VIRTIO_PCI_QUEUE_PFN, (uint64_t)blkq.vring
          >> VIRTIO_PCI_QUEUE_ADDR_SHIFT);
 
     virtio_blk_pci_base = base;
 }
 
-void virtio_config_network(uint16_t base) {
+void virtio_config_network(uint16_t base)
+{
     uint8_t ready_for_init = VIRTIO_PCI_STATUS_ACK | VIRTIO_PCI_STATUS_DRIVER;
     uint32_t host_features, guest_features;
     uint16_t queue_size;
     int i;
     int dbg = 0;
-    
+
     outb(base + VIRTIO_PCI_STATUS, ready_for_init);
 
     host_features = inl(base + VIRTIO_PCI_HOST_FEATURES);
 
-    if (dbg){
+    if (dbg) {
         uint32_t hf = host_features;
+
         printf("host features: %x: ", hf);
         for (i = 0; i < 32; i++) {
-            if ( hf & 0x1 )
+            if (hf & 0x1)
                 printf("%d ", i);
             hf = hf >> 1;
         }
@@ -614,7 +645,7 @@ void virtio_config_network(uint16_t base) {
     /* only negotiate that the mac was set for now */
     guest_features = VIRTIO_NET_F_MAC;
     outl(base + VIRTIO_PCI_GUEST_FEATURES, guest_features);
-    
+
     printf("Found virtio network device with MAC: ");
     for (i = 0; i < 6; i++) {
         virtio_net_mac[i] = inb(base + VIRTIO_PCI_CONFIG_OFF + i);
@@ -622,15 +653,15 @@ void virtio_config_network(uint16_t base) {
     }
     printf("\n");
     snprintf(virtio_net_mac_str,
-            sizeof virtio_net_mac_str,
-            "%02x:%02x:%02x:%02x:%02x:%02x",
-            virtio_net_mac[0],
-            virtio_net_mac[1],
-            virtio_net_mac[2],
-            virtio_net_mac[3],
-            virtio_net_mac[4],
-            virtio_net_mac[5]);
-    
+             sizeof(virtio_net_mac_str),
+             "%02x:%02x:%02x:%02x:%02x:%02x",
+             virtio_net_mac[0],
+             virtio_net_mac[1],
+             virtio_net_mac[2],
+             virtio_net_mac[3],
+             virtio_net_mac[4],
+             virtio_net_mac[5]);
+
     /* check that 2 256 entry virtqueues are here (recv and transmit) */
     for (i = 0; i > 2; i++) {
         outw(base + VIRTIO_PCI_QUEUE_SEL, i);
@@ -655,19 +686,22 @@ void virtio_config_network(uint16_t base) {
 
 static uint8_t blk_sector[VIRTIO_BLK_SECTOR_SIZE];
 
-static int virtio_blk_write_sync(uint64_t sector, void *data, int len) {
+static int virtio_blk_write_sync(uint64_t sector, void *data, int len)
+{
     struct virtio_blk_req *req;
     int ret = -1;
 
     req = virtio_blk_write(sector, data, len);
-    if ( !req )
+    if (!req)
         return ret;
 
-    while ( !req->hw_used );  /* XXX need timeout or something,
-                                 because this can hang... sync should
-                                 probably go away anyway */
-    
-    if ( req->status == VIRTIO_BLK_S_OK )
+    /* XXX need timeout or something, because this can hang... sync
+     * should probably go away anyway
+     */
+    while (!req->hw_used)
+        ;
+
+    if (req->status == VIRTIO_BLK_S_OK)
         ret = 0;
 
     req->hw_used = 0;  /* allow reuse of the blk_buf */
@@ -675,32 +709,36 @@ static int virtio_blk_write_sync(uint64_t sector, void *data, int len) {
     return ret;
 }
 
-static int virtio_blk_read_sync(uint64_t sector, void *data, int *len) {
+static int virtio_blk_read_sync(uint64_t sector, void *data, int *len)
+{
     struct virtio_blk_req *req;
     int ret = -1;
 
-    if ( *len < VIRTIO_BLK_SECTOR_SIZE )
+    if (*len < VIRTIO_BLK_SECTOR_SIZE)
         return ret;
 
     req = virtio_blk_read(sector, VIRTIO_BLK_SECTOR_SIZE);
-    if ( !req )
+    if (!req)
         return ret;
-    
-    while ( !req->hw_used );  /* XXX need timeout or something,
-                                 because this can hang... sync should
-                                 probably go away anyway */
-    
-    if ( req->status == VIRTIO_BLK_S_OK ) {
+
+    /* XXX need timeout or something, because this can hang... sync
+     * should probably go away anyway
+     */
+    while (!req->hw_used)
+        ;
+
+    if (req->status == VIRTIO_BLK_S_OK) {
         ret = 0;
         memcpy(data, req->data, *len);
     }
 
-    req->hw_used = 0;  /* allow reuse of the blk_buf */    
+    req->hw_used = 0;  /* allow reuse of the blk_buf */
 
     return ret;
 }
 
-void blk_test(void) {
+void blk_test(void)
+{
     struct virtio_blk_req *req;
     uint8_t filler = 0;
     int i;
@@ -711,32 +749,33 @@ void blk_test(void) {
 
         filler++;
         memset(blk_sector, filler, VIRTIO_BLK_SECTOR_SIZE);
-    
+
         req = virtio_blk_write(0, blk_sector, VIRTIO_BLK_SECTOR_SIZE);
-        if ( !req )
+        if (!req)
             return;
 
-        while ( !req->hw_used );
+        while (!req->hw_used)
+            ;
 
-        assert( req->status == VIRTIO_BLK_S_OK );
+        assert(req->status == VIRTIO_BLK_S_OK);
         req->hw_used = 0;  /* allow reuse of the blk_buf */
 
 
         req = virtio_blk_read(0, VIRTIO_BLK_SECTOR_SIZE);
-        if ( !req )
+        if (!req)
             return;
 
-        while ( !req->hw_used );
+        while (!req->hw_used)
+            ;
 
-        assert( req->status == VIRTIO_BLK_S_OK );
-        for ( i = 0; i < VIRTIO_BLK_SECTOR_SIZE; i++ )
-            assert( req->data[i] == blk_sector[i] );
+        assert(req->status == VIRTIO_BLK_S_OK);
+        for (i = 0; i < VIRTIO_BLK_SECTOR_SIZE; i++)
+            assert(req->data[i] == blk_sector[i]);
 
-        req->hw_used = 0;  /* allow reuse of the blk_buf */    
+        req->hw_used = 0;  /* allow reuse of the blk_buf */
         printf(".");
     }
     printf("Done\n");
-    
 }
 
 int virtio_net_pkt_poll(void)
@@ -747,10 +786,11 @@ int virtio_net_pkt_poll(void)
         return 1;
 }
 
-uint8_t *virtio_net_pkt_get(int *size) {
+uint8_t *virtio_net_pkt_get(int *size)
+{
     struct pkt_buffer *buf;
 
-    if (recv_next_avail == ((recv_last_used * 2) % recvq.size)) 
+    if (recv_next_avail == ((recv_last_used * 2) % recvq.size))
         return NULL;
 
     buf = &recv_bufs[recv_next_avail/2];
@@ -758,38 +798,46 @@ uint8_t *virtio_net_pkt_get(int *size) {
 
     return buf->data;
 }
-void virtio_net_pkt_put(void) {
+void virtio_net_pkt_put(void)
+{
     recv_load_desc();
 }
 
 
 
-int solo5_blk_write_sync(uint64_t sec, uint8_t *data, int n) {
+int solo5_blk_write_sync(uint64_t sec, uint8_t *data, int n)
+{
     return virtio_blk_write_sync(sec, data, n);
 }
-int solo5_blk_read_sync(uint64_t sec, uint8_t *data, int *n) {
+int solo5_blk_read_sync(uint64_t sec, uint8_t *data, int *n)
+{
     return virtio_blk_read_sync(sec, data, n);
 }
-int solo5_blk_sector_size(void) {
+int solo5_blk_sector_size(void)
+{
     return VIRTIO_BLK_SECTOR_SIZE;
 }
-uint64_t solo5_blk_sectors(void) {
+uint64_t solo5_blk_sectors(void)
+{
     return virtio_blk_sectors;
 }
-int solo5_blk_rw(void) {
+int solo5_blk_rw(void)
+{
     return 1;
 }
 
 
-int solo5_net_write_sync(uint8_t *data, int n) {
+int solo5_net_write_sync(uint8_t *data, int n)
+{
     return virtio_net_xmit_packet(data, n);
 }
-int solo5_net_read_sync(uint8_t *data, int *n) {
+int solo5_net_read_sync(uint8_t *data, int *n)
+{
     uint8_t *pkt;
     int len = *n;
-    
+
     pkt = virtio_net_pkt_get(&len);
-    if ( !pkt )
+    if (!pkt)
         return -1;
 
     assert(len <= *n);
@@ -802,6 +850,7 @@ int solo5_net_read_sync(uint8_t *data, int *n) {
 
     return 0;
 }
-char *solo5_net_mac_str(void) {
+char *solo5_net_mac_str(void)
+{
     return virtio_net_mac_str;
 }

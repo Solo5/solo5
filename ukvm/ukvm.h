@@ -1,6 +1,6 @@
-/* Copyright (c) 2015, IBM 
- * Author(s): Dan Williams <djwillia@us.ibm.com> 
- *            Ricardo Koller <kollerr@us.ibm.com> 
+/* Copyright (c) 2015, IBM
+ * Author(s): Dan Williams <djwillia@us.ibm.com>
+ *            Ricardo Koller <kollerr@us.ibm.com>
  *
  * Permission to use, copy, modify, and/or distribute this software
  * for any purpose with or without fee is hereby granted, provided
@@ -20,7 +20,7 @@
 #ifndef __UKVM_H__
 #define __UKVM_H__
 
-#define GUEST_SIZE      0x20000000 // 512 MBs
+#define GUEST_SIZE      0x20000000 /* 512 MBs */
 
 struct ukvm_boot_info {
     uint64_t mem_size;		/* Memory size in bytes */
@@ -28,12 +28,13 @@ struct ukvm_boot_info {
     uint64_t cmdline;		/* Address of command line (C string) */
 };
 
-/* 
+/*
  * We can only send 32 bits via ports, so sending pointers will only
  * work for 32-bit addresses.  If we have unikernels with more than
  * 4GB of memory, we could be in trouble.
  */
-static inline uint32_t ukvm_ptr(volatile void *p) {
+static inline uint32_t ukvm_ptr(volatile void *p)
+{
 	assert((((uint64_t)p) & 0xffffffff00000000) == 0);
 	return (uint32_t)((uint64_t)p & 0xffffffff);
 }
@@ -94,7 +95,7 @@ struct ukvm_blkwrite {
 	uint64_t sector;
 	void *data;
 	int len;
-	
+
 	/* OUT */
 	int ret;
 };
@@ -107,7 +108,7 @@ struct ukvm_blkread {
 
 	/* IN/OUT */
 	int len;
-	
+
 	/* OUT */
 	int ret;
 };
@@ -123,7 +124,7 @@ struct ukvm_netwrite {
 	/* IN */
 	void *data;
 	int len;
-	
+
 	/* OUT */
 	int ret;
 };
@@ -135,7 +136,7 @@ struct ukvm_netread {
 
 	/* IN/OUT */
 	int len;
-	
+
 	/* OUT */
 	int ret;
 };
