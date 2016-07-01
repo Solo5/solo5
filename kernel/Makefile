@@ -110,6 +110,12 @@ ukvm/solo5.o: $(UKVM_COBJS) $(SOBJS) ukvm/solo5.lds
 	$(LD) -r $(LDFLAGS) -o $@ $(UKVM_COBJS) $(SOBJS) 
 	$(OBJCOPY) -w -G solo5_\* -G kernel_main $@ $@
 
+test_hello.virtio: test_hello.o
+
+test_hello.ukvm: test_hello.o
+
+test_ping_serve.virtio: test_ping_serve.o
+
 .PHONY: clean
 clean:
 	$(RM) *.o virtio/*.o ukvm/*.o kernel $(TESTS)
