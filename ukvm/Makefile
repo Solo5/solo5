@@ -1,6 +1,6 @@
 all: ukvm
 
-CC?=gcc
+CC?=cc
 CFLAGS=-Wall -Werror -std=c99 -O2 -g
 OBJS=ukvm.o gdb-stub.o
 HEADERS=ukvm.h misc.h processor-flags.h
