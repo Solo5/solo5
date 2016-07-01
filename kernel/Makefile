@@ -27,7 +27,7 @@ OBJCOPY?=objcopy
 GCC_INSTALL_DIR=$(shell LANG=C $(CC) -print-search-dirs | sed -n -e 's/install: \(.*\)/\1/p')
 MD_CFLAGS=-nostdinc -isystem $(GCC_INSTALL_DIR)include \
 	  -ffreestanding -mno-red-zone -mno-3dnow
-LDFLAGS=-nostdlib -z max-page-size=0x1000 -static
+LDFLAGS=-nostdlib -static --nmagic
 LDLIBS=$(shell $(CC) -print-libgcc-file-name)
 # Platform-independent CFLAGS
 CFLAGS=$(MD_CFLAGS) -std=gnu99 -Wall -Wextra -Werror -O2 -g
