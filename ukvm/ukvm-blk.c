@@ -86,9 +86,9 @@ static int handle_exit(struct kvm_run *run, int vcpufd, uint8_t *mem)
 
 static int handle_cmdarg(char *cmdarg)
 {
-    if (strncmp("disk=", cmdarg, 5))
+    if (strncmp("--disk=", cmdarg, 7))
         return -1;
-    diskfile = cmdarg + 5;
+    diskfile = cmdarg + 7;
 
     return 0;
 }
@@ -121,7 +121,7 @@ static int get_fd(void)
 
 static char *usage(void)
 {
-    return "blk=<disk.img>";
+    return "--disk=IMAGE (file exposed to the unikernel as a raw block device)";
 }
 
 struct ukvm_module ukvm_blk = {

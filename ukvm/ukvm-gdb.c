@@ -673,7 +673,7 @@ static int get_fd(void)
 
 static char *usage(void)
 {
-    return "--gdb";
+    return "--gdb (optional flag for running in a gdb debug session)";
 }
 
 struct ukvm_module ukvm_gdb = {

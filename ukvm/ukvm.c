@@ -59,8 +59,9 @@ struct ukvm_module *modules[] = {
 #ifdef UKVM_MODULE_GDB
     &ukvm_gdb,
 #endif
+    NULL,
 };
-#define NUM_MODULES (sizeof(modules) / sizeof(struct ukvm_module *))
+#define NUM_MODULES ((sizeof(modules) / sizeof(struct ukvm_module *)) - 1)
 
 /*
  * Memory map:
@@ -175,6 +176,7 @@ void setup_boot_info(uint8_t *mem,
         cmdline_free -= alen;
         cmdline_p += alen;
     }
+
 }
 
 ssize_t pread_in_full(int fd, void *buf, size_t count, off_t offset)
@@ -727,6 +729,20 @@ void sig_handler(int signo)
     exit(0);
 }
 
+static void usage(const char *prog)
+{
+    int m;
+
+    printf("usage: %s [ CORE OPTIONS ] [ MODULE OPTIONS ] KERNEL", prog);
+    printf(" [ -- ] [ ARGS ]\n");
+    printf("Core options:\n");
+    printf("    --help (display this help)\n");
+    printf("Compiled-in module options:\n");
+    for (m = 0; m < NUM_MODULES; m++)
+        printf("    %s\n", modules[m]->usage());
+    exit(1);
+}
+
 int main(int argc, char **argv)
 {
     int kvm, vmfd, vcpufd, ret;
@@ -735,36 +751,43 @@ int main(int argc, char **argv)
     size_t mmap_size;
     uint64_t elf_entry;
     uint64_t kernel_end;
-    int num_args = 0;
-    char *first_arg;
-    int i;
+    const char *prog;
+    const char *elffile;
+    int matched;
 
-    if (argc < 2) {
-        int m;
+    prog = basename(*argv);
+    argc--;
+    argv++;
 
-        printf("usage: ukvm <elf> [args] --");
-        for (m = 0; m < NUM_MODULES; m++)
-            printf(" %s", modules[m]->usage());
-        printf("\n");
-        return 1;
-    }
+    if (argc < 1)
+        usage(prog);
 
-    const char *elffile = argv[1];
-
-    first_arg = argv[2];
-    for (i = 2; i < argc; i++) {
-        if (!strcmp("--", argv[i]))
-            break;
-        num_args++;
-    }
-
-    printf("Found %d args (%d left)\n", num_args, argc - num_args - 3);
-    for (i = num_args + 3; i < argc; i++) {
+    do {
         int j;
 
-        for (j = 0; j < NUM_MODULES; j++)
-            if (!modules[j]->handle_cmdarg(argv[i]))
+        if (!strcmp("--help", *argv))
+            usage(prog);
+
+        matched = 0;
+        for (j = 0; j < NUM_MODULES; j++) {
+            if (!modules[j]->handle_cmdarg(*argv)) {
+                matched = 1;
+                argc--;
+                argv++;
                 break;
+            }
+        }
+    } while (matched);
+
+    elffile = *argv;
+    argc--;
+    argv++;
+
+    if (argc) {
+        if (strcmp("--", *argv))
+            usage(prog);
+        argc--;
+        argv++;
     }
 
     if (signal(SIGINT, sig_handler) == SIG_ERR)
@@ -825,7 +848,7 @@ int main(int argc, char **argv)
     setup_system(vcpufd, mem);
 
     /* Setup ukvm_boot_info and command line */
-    setup_boot_info(mem, GUEST_SIZE, kernel_end, num_args, &first_arg);
+    setup_boot_info(mem, GUEST_SIZE, kernel_end, argc, argv);
 
     /*
      * Initialize registers: instruction pointer for our code, addends,

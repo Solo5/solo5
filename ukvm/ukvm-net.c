@@ -154,9 +154,9 @@ static int handle_exit(struct kvm_run *run, int vcpufd, uint8_t *mem)
 
 static int handle_cmdarg(char *cmdarg)
 {
-    if (strncmp("net=", cmdarg, 4))
+    if (strncmp("--net=", cmdarg, 6))
         return -1;
-    netiface = cmdarg + 4;
+    netiface = cmdarg + 6;
     return 0;
 }
 
@@ -206,7 +206,7 @@ static int get_fd(void)
 
 static char *usage(void)
 {
-    return "net=<tap100>";
+    return "--net=TAP (host tap device for guest network interface)";
 }
 
 struct ukvm_module ukvm_net = {
