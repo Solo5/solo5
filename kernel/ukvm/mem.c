@@ -40,20 +40,22 @@ void mem_init(uint64_t size, uint64_t kernel_end)
     heap_top = heap_start;
 }
 
-/* for malloc */
+/*
+ * Called by dlmalloc to allocate or free memory.
+ */
 void *sbrk(intptr_t increment)
 {
-    uint64_t ret;
+    uint64_t prev, brk;
+    prev = brk = heap_top;
 
-    if (increment == 0)
-        return (void *)heap_top;
+    /*
+     * dlmalloc guarantees increment values less than half of size_t, so this
+     * is safe from overflow.
+     */
+    brk += increment;
+    if (brk >= max_addr || brk < heap_start)
+        return (void *)-1;
 
-    assert(increment >= PAGE_SIZE);
-    assert((increment % PAGE_SIZE) == 0);
-
-    ret = heap_top;
-    heap_top += increment;
-    assert(heap_top < max_addr);
-
-    return (void *)ret;
+    heap_top = brk;
+    return (void *)prev;
 }
