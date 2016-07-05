@@ -2,8 +2,7 @@
 
 /* dlmalloc configuration */
 #undef WIN32
-#define ABORT PANIC("aborting...")
-#define MORECORE_CANNOT_TRIM
+#define ABORT PANIC("dlmalloc: aborting...")
 #define HAVE_MMAP 0
 #define HAVE_MREMAP 0
 #define MMAP_CLEARS 0
@@ -21,7 +20,7 @@
 #define LACKS_SCHED_H
 #define LACKS_TIME_H
 #define ABORT_ON_ASSERT_FAILURE 1
-#define MALLOC_FAILURE_ACTION PANIC("out of memory")
+#define MALLOC_FAILURE_ACTION ;
 
 /* return values from posix_memalign() */
 #define ENOMEM -1      /* Out of memory */
