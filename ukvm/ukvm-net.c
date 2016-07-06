@@ -11,9 +11,6 @@
 
 /* for net */
 #include <sys/socket.h>
-#include <linux/if_packet.h>
-#include <net/ethernet.h>
-#include <net/if.h>
 #include <linux/if.h>
 #include <linux/if_tun.h>
 #include <fcntl.h>
