@@ -42,9 +42,9 @@ int solo5_poll(uint64_t until_nsecs)
 
     now = solo5_clock_monotonic();
     if (until_nsecs <= now)
-        t.until_nsecs = 0;
+        t.timeout_nsecs = 0;
     else
-        t.until_nsecs = until_nsecs - now;
+        t.timeout_nsecs = until_nsecs - now;
     outl(UKVM_PORT_POLL, ukvm_ptr(&t));
     cc_barrier();
     return t.ret;
