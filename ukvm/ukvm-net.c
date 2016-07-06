@@ -5,6 +5,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <assert.h>
+#include <errno.h>
 
 #include <sys/select.h>
 
@@ -45,7 +46,7 @@ static int tun_alloc(char *dev, int flags)
      */
 
     /* open the clone device */
-    fd = open(clonedev, O_RDWR);
+    fd = open(clonedev, O_RDWR | O_NONBLOCK);
     if (fd < 0)
         return fd;
 
@@ -105,21 +106,13 @@ static void ukvm_port_netread(uint8_t *mem, void *data)
 {
     uint32_t mem_off = *(uint32_t *) data;
     struct ukvm_netread *rd = (struct ukvm_netread *) (mem + mem_off);
-    struct timeval zero;
-    fd_set netset;
-    int ret;
 
-    FD_ZERO(&netset);
-    FD_SET(netfd, &netset);
-    zero.tv_sec = 0;
-    zero.tv_usec = 0;
-    ret = select(netfd + 1, &netset, NULL, NULL, &zero);
-    if (ret <= 0) {
+    rd->len = read(netfd, mem + (uint64_t) rd->data, rd->len);
+    if (rd->len == -1 && errno == EAGAIN) {
         rd->ret = -1;
         return;
     }
-
-    rd->len = read(netfd, mem + (uint64_t) rd->data, rd->len);
+    assert(rd->len > 0);
     rd->ret = 0;
 }
 
