@@ -693,8 +693,8 @@ void ukvm_port_poll(uint8_t *mem, void *data, int netfd)
     struct pollfd fds = { .fd = netfd, .events = POLLIN };
     int rc;
 
-    ts.tv_sec = t->until_nsecs / 1000000000ULL;
-    ts.tv_nsec = t->until_nsecs % 1000000000ULL;
+    ts.tv_sec = t->timeout_nsecs / 1000000000ULL;
+    ts.tv_nsec = t->timeout_nsecs % 1000000000ULL;
 
     /*
      * Guest execution is blocked during the ppoll() call, note that interrupts
