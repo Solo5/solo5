@@ -142,14 +142,14 @@ struct ukvm_netread {
 };
 
 /*
- * UKVM_PORT_POLL: Block until monotonic time reaches until_nsecs or I/O is
- * possible, whichever is sooner. Returns 1 if I/O is possible, otherwise 0.
+ * UKVM_PORT_POLL: Block until timeout_nsecs have passed or I/O is possible,
+ * whichever is sooner. Returns 1 if I/O is possible, otherwise 0.
  *
  * TODO: Extend this interface to select which I/O events are of interest.
  */
 struct ukvm_poll {
     /* IN */
-    uint64_t until_nsecs;
+    uint64_t timeout_nsecs;
 
     /* OUT */
     int ret;
