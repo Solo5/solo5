@@ -779,6 +779,11 @@ int main(int argc, char **argv)
         }
     } while (matched);
 
+    if (*argv[0] == '-') {
+        printf("Invalid option: %s\n", *argv);
+        return 1;
+    }
+
     elffile = *argv;
     argc--;
     argv++;
