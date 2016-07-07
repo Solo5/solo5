@@ -716,10 +716,13 @@ int setup_modules(int vcpufd, uint8_t *mem)
 {
     int i;
 
-    for (i = 0; i < NUM_MODULES; i++)
-        if (modules[i]->setup(vcpufd, mem))
+    for (i = 0; i < NUM_MODULES; i++) {
+        if (modules[i]->setup(vcpufd, mem)) {
+            printf("Please check you have correctly specified:\n %s\n",
+                   modules[i]->usage());
             return -1;
-
+        }
+    }
     return 0;
 }
 
