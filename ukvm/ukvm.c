@@ -41,24 +41,27 @@
 #include <assert.h>
 #include <signal.h>
 #include <pthread.h>
-
-/* for net */
-#include <sys/socket.h>
-#include <linux/if_packet.h>
-#include <net/ethernet.h>
-#include <net/if.h>
-#include <linux/if_tun.h>
 #include <poll.h>
-
 
 #include "processor-flags.h"
 #include "../kernel/interrupts.h"
 #include "ukvm.h"
+#include "ukvm_modules.h"
 #include "misc.h"
 
-
-struct ukvm_blkinfo blkinfo;
-struct ukvm_netinfo netinfo;
+struct ukvm_module *modules[] = {
+#ifdef UKVM_MODULE_BLK
+    &ukvm_blk,
+#endif
+#ifdef UKVM_MODULE_NET
+    &ukvm_net,
+#endif
+#ifdef UKVM_MODULE_GDB
+    &ukvm_gdb,
+#endif
+    NULL,
+};
+#define NUM_MODULES ((sizeof(modules) / sizeof(struct ukvm_module *)) - 1)
 
 /*
  * Memory map:
@@ -148,10 +151,6 @@ struct _kvm_segment {
 #define KVM_32BIT_GAP_SIZE    (768 << 20)
 #define KVM_32BIT_GAP_START    (KVM_32BIT_MAX_MEM_SIZE - KVM_32BIT_GAP_SIZE)
 
-void gdb_stub_start(int vcpufd);
-void gdb_handle_exception(int vcpufd, int sig);
-int gdb_is_pc_breakpointing(long addr);
-
 void setup_boot_info(uint8_t *mem,
                     uint64_t size,
                     uint64_t kernel_end,
@@ -177,6 +176,7 @@ void setup_boot_info(uint8_t *mem,
         cmdline_free -= alen;
         cmdline_p += alen;
     }
+
 }
 
 ssize_t pread_in_full(int fd, void *buf, size_t count, off_t offset)
@@ -577,93 +577,6 @@ void ukvm_port_nanosleep(uint8_t *mem, void *data, struct kvm_run *run)
     }
 }
 
-
-void ukvm_port_blkinfo(uint8_t *mem, void *data)
-{
-    uint32_t mem_off = *(uint32_t *) data;
-    struct ukvm_blkinfo *info = (struct ukvm_blkinfo *) (mem + mem_off);
-
-    info->sector_size = blkinfo.sector_size;
-    info->num_sectors = blkinfo.num_sectors;
-    info->rw = blkinfo.rw;
-}
-
-
-void ukvm_port_blkwrite(uint8_t *mem, void *data, int diskfd)
-{
-    uint32_t mem_off = *(uint32_t *) data;
-    struct ukvm_blkwrite *wr = (struct ukvm_blkwrite *) (mem + mem_off);
-    int ret;
-
-    wr->ret = -1;
-    if (wr->sector < blkinfo.num_sectors) {
-        lseek(diskfd, blkinfo.sector_size * wr->sector, SEEK_SET);
-        ret = write(diskfd, mem + (uint64_t) wr->data, wr->len);
-        assert(ret == wr->len);
-        wr->ret = 0;
-    }
-}
-
-
-void ukvm_port_blkread(uint8_t *mem, void *data, int diskfd)
-{
-    uint32_t mem_off = *(uint32_t *) data;
-    struct ukvm_blkread *rd = (struct ukvm_blkread *) (mem + mem_off);
-    int ret;
-
-    rd->ret = -1;
-    if (rd->sector < blkinfo.num_sectors) {
-        lseek(diskfd, blkinfo.sector_size * rd->sector, SEEK_SET);
-        ret = read(diskfd, mem + (uint64_t) rd->data, rd->len);
-        assert(ret == rd->len);
-        rd->ret = 0;
-    }
-}
-
-
-void ukvm_port_netinfo(uint8_t *mem, void *data)
-{
-    uint32_t mem_off = *(uint32_t *) data;
-    struct ukvm_netinfo *info = (struct ukvm_netinfo *) (mem + mem_off);
-
-    memcpy(info->mac_str, netinfo.mac_str, sizeof(netinfo.mac_str));
-}
-
-void ukvm_port_netwrite(uint8_t *mem, void *data, int netfd)
-{
-    uint32_t mem_off = *(uint32_t *) data;
-    struct ukvm_netwrite *wr = (struct ukvm_netwrite *) (mem + mem_off);
-    int ret;
-
-    wr->ret = 0;
-    ret = write(netfd, mem + (uint64_t) wr->data, wr->len);
-    assert(wr->len == ret);
-}
-
-
-void ukvm_port_netread(uint8_t *mem, void *data, int netfd)
-{
-    uint32_t mem_off = *(uint32_t *) data;
-    struct ukvm_netread *rd = (struct ukvm_netread *) (mem + mem_off);
-    struct timeval zero;
-    fd_set netset;
-    int ret;
-
-    FD_ZERO(&netset);
-    FD_SET(netfd, &netset);
-    zero.tv_sec = 0;
-    zero.tv_usec = 0;
-    ret = select(netfd + 1, &netset, NULL, NULL, &zero);
-    if (ret <= 0) {
-        rd->ret = -1;
-        return;
-    }
-
-    rd->len = read(netfd, mem + (uint64_t) rd->data, rd->len);
-    rd->ret = 0;
-}
-
-
 void ukvm_port_dbg_stack(uint8_t *mem, int vcpufd)
 {
     struct kvm_regs regs;
@@ -685,47 +598,64 @@ void ukvm_port_dbg_stack(uint8_t *mem, int vcpufd)
     }
 }
 
-void ukvm_port_poll(uint8_t *mem, void *data, int netfd)
+void ukvm_port_poll(uint8_t *mem, void *data)
 {
     uint32_t arg_addr = *(uint32_t *) data;
     struct ukvm_poll *t = (struct ukvm_poll *) (mem + arg_addr);
     struct timespec ts;
-    struct pollfd fds = { .fd = netfd, .events = POLLIN };
-    int rc;
+    int rc, i, num_fds = 0;
+    struct pollfd fds[NUM_MODULES];  /* we only support at most one
+                                      * instance per module for now
+                                      */
+
+    for (i = 0; i < NUM_MODULES; i++) {
+        int fd = modules[i]->get_fd();
+
+        if (fd) {
+            fds[num_fds].fd = fd;
+            fds[num_fds].events = POLLIN;
+            num_fds += 1;
+        }
+    }
+
 
     ts.tv_sec = t->timeout_nsecs / 1000000000ULL;
     ts.tv_nsec = t->timeout_nsecs % 1000000000ULL;
 
     /*
-     * Guest execution is blocked during the ppoll() call, note that interrupts
-     * will not be injected.
+     * Guest execution is blocked during the ppoll() call, note that
+     * interrupts will not be injected.
      */
-    rc = ppoll(&fds, 1, &ts, NULL);
+    rc = ppoll(fds, num_fds, &ts, NULL);
     assert(rc >= 0);
     t->ret = rc;
 }
 
-static int vcpu_loop(struct kvm_run *run, int vcpufd, uint8_t *mem,
-                     int diskfd, int netfd)
+static int vcpu_loop(struct kvm_run *run, int vcpufd, uint8_t *mem)
 {
     int ret;
 
     /* Repeatedly run code and handle VM exits. */
     while (1) {
+        int i, handled = 0;
+
         ret = ioctl(vcpufd, KVM_RUN, NULL);
         if (ret < 0 &&
                 (errno != EINTR && errno != EAGAIN)) {
             err(1, "KVM_RUN failed");
         }
 
-        switch (run->exit_reason) {
-        case KVM_EXIT_DEBUG: {
-            struct kvm_debug_exit_arch *arch_info = &run->debug.arch;
-
-            if (gdb_is_pc_breakpointing(arch_info->pc))
-                gdb_handle_exception(vcpufd, 1);
-            break;
+        for (i = 0; i < NUM_MODULES; i++) {
+            if (!modules[i]->handle_exit(run, vcpufd, mem)) {
+                handled = 1;
+                break;
+            }
         }
+
+        if (handled)
+            continue;
+
+        switch (run->exit_reason) {
         case KVM_EXIT_HLT: {
             puts("KVM_EXIT_HLT");
             /* get_and_dump_sregs(vcpufd); */
@@ -743,29 +673,11 @@ static int vcpu_loop(struct kvm_run *run, int vcpufd, uint8_t *mem,
             case UKVM_PORT_NANOSLEEP:
                 ukvm_port_nanosleep(mem, data, run);
                 break;
-            case UKVM_PORT_BLKINFO:
-                ukvm_port_blkinfo(mem, data);
-                break;
-            case UKVM_PORT_BLKWRITE:
-                ukvm_port_blkwrite(mem, data, diskfd);
-                break;
-            case UKVM_PORT_BLKREAD:
-                ukvm_port_blkread(mem, data, diskfd);
-                break;
-            case UKVM_PORT_NETINFO:
-                ukvm_port_netinfo(mem, data);
-                break;
-            case UKVM_PORT_NETWRITE:
-                ukvm_port_netwrite(mem, data, netfd);
-                break;
-            case UKVM_PORT_NETREAD:
-                ukvm_port_netread(mem, data, netfd);
-                break;
             case UKVM_PORT_DBG_STACK:
                 ukvm_port_dbg_stack(mem, vcpufd);
                 break;
             case UKVM_PORT_POLL:
-                ukvm_port_poll(mem, data, netfd);
+                ukvm_port_poll(mem, data);
                 break;
             default:
                 errx(1, "unhandled KVM_EXIT_IO (%x)", run->io.port);
@@ -800,61 +712,18 @@ static int vcpu_loop(struct kvm_run *run, int vcpufd, uint8_t *mem,
     return 0; /* XXX Refactor return code paths in the above code */
 }
 
-
-/*
- * Create or reuse a TUN or TAP device named 'dev'.
- *
- * Copied from kernel docs: Documentation/networking/tuntap.txt
- */
-int tun_alloc(char *dev, int flags)
+int setup_modules(int vcpufd, uint8_t *mem)
 {
-    struct ifreq ifr;
-    int fd, err;
-    char *clonedev = "/dev/net/tun";
+    int i;
 
-    /* Arguments taken by the function:
-     *
-     * char *dev: the name of an interface (or '\0'). MUST have enough
-     *   space to hold the interface name if '\0' is passed
-     * int flags: interface flags (eg, IFF_TUN etc.)
-     */
-
-    /* open the clone device */
-    fd = open(clonedev, O_RDWR);
-    if (fd < 0)
-        return fd;
-
-    /* preparation of the struct ifr, of type "struct ifreq" */
-    memset(&ifr, 0, sizeof(ifr));
-
-    ifr.ifr_flags = flags;	/* IFF_TUN or IFF_TAP, plus maybe IFF_NO_PI */
-
-    if (*dev) {
-        /* if a device name was specified, put it in the structure; otherwise,
-         * the kernel will try to allocate the "next" device of the
-         * specified type
-         */
-        strncpy(ifr.ifr_name, dev, IFNAMSIZ);
+    for (i = 0; i < NUM_MODULES; i++) {
+        if (modules[i]->setup(vcpufd, mem)) {
+            printf("Please check you have correctly specified:\n %s\n",
+                   modules[i]->usage());
+            return -1;
+        }
     }
-
-    /* try to create the device */
-    err = ioctl(fd, TUNSETIFF, (void *) &ifr);
-    if (err < 0) {
-        close(fd);
-        return err;
-    }
-
-    /* if the operation was successful, write back the name of the
-     * interface to the variable "dev", so the caller can know
-     * it. Note that the caller MUST reserve space in *dev (see calling
-     * code below)
-     */
-    strcpy(dev, ifr.ifr_name);
-
-    /* this is the special file descriptor that the caller will use to talk
-     * with the virtual interface
-     */
-    return fd;
+    return 0;
 }
 
 void sig_handler(int signo)
@@ -863,78 +732,74 @@ void sig_handler(int signo)
     exit(0);
 }
 
-uint8_t *mem;
+static void usage(const char *prog)
+{
+    int m;
+
+    printf("usage: %s [ CORE OPTIONS ] [ MODULE OPTIONS ] KERNEL", prog);
+    printf(" [ -- ] [ ARGS ]\n");
+    printf("Core options:\n");
+    printf("    --help (display this help)\n");
+    printf("Compiled-in module options:\n");
+    for (m = 0; m < NUM_MODULES; m++)
+        printf("    %s\n", modules[m]->usage());
+    exit(1);
+}
 
 int main(int argc, char **argv)
 {
-    int kvm, vmfd, vcpufd, diskfd, netfd, ret;
+    int kvm, vmfd, vcpufd, ret;
+    uint8_t *mem;
     struct kvm_run *run;
     size_t mmap_size;
     uint64_t elf_entry;
     uint64_t kernel_end;
-    char tun_name[IFNAMSIZ];
-    int use_gdb = 0;
+    const char *prog;
+    const char *elffile;
+    int matched;
 
-    /* TODO: Replace this with a proper argument parser */
-    if (argc < 4)
-        err(1, "usage: ukvm <disk.img> <net_iface> <elf> [--gdb] [args]");
+    prog = basename(*argv);
+    argc--;
+    argv++;
 
-    const char *diskfile = argv[1];
-    const char *netiface = argv[2];
-    const char *elffile = argv[3];
+    if (argc < 1)
+        usage(prog);
 
-    argc -= 4;
-    argv += 4;
-    if (argc >= 1) {
-        use_gdb = strcmp(argv[0], "--gdb") == 0;
-        if (use_gdb) {
-            argc--;
-            argv++;
+    do {
+        int j;
+
+        if (!strcmp("--help", *argv))
+            usage(prog);
+
+        matched = 0;
+        for (j = 0; j < NUM_MODULES; j++) {
+            if (!modules[j]->handle_cmdarg(*argv)) {
+                matched = 1;
+                argc--;
+                argv++;
+                break;
+            }
         }
+    } while (matched);
+
+    if (*argv[0] == '-') {
+        printf("Invalid option: %s\n", *argv);
+        return 1;
+    }
+
+    elffile = *argv;
+    argc--;
+    argv++;
+
+    if (argc) {
+        if (strcmp("--", *argv))
+            usage(prog);
+        argc--;
+        argv++;
     }
 
     if (signal(SIGINT, sig_handler) == SIG_ERR)
         err(1, "Can not catch SIGINT");
-
-    /* set up virtual disk */
-    diskfd = open(diskfile, O_RDWR);
-    if (diskfd == -1)
-        err(1, "couldn't open disk");
-
-    blkinfo.sector_size = 512;
-    blkinfo.num_sectors = lseek(diskfd, 0, SEEK_END) / 512;
-    blkinfo.rw = 1;
-
-    printf("Providing disk: %ld sectors @ %d = %ld bytes\n",
-           blkinfo.num_sectors, blkinfo.sector_size,
-           blkinfo.num_sectors * blkinfo.sector_size);
-
-    /* set up virtual network */
-    strcpy(tun_name, netiface);
-    netfd = tun_alloc(tun_name, IFF_TAP | IFF_NO_PI);	/* TAP interface */
-    if (netfd < 0) {
-        perror("Allocating interface");
-        exit(1);
-    }
-    /* generate a random, locally-administered and unicast MAC address */
-    int rfd = open("/dev/urandom", O_RDONLY);
-
-    if (rfd == -1)
-        err(1, "Could not open /dev/urandom");
-    uint8_t guest_mac[6];
-
-    ret = read(rfd, guest_mac, sizeof(guest_mac));
-    assert(ret == sizeof(guest_mac));
-    close(rfd);
-    guest_mac[0] &= 0xfe;
-    guest_mac[0] |= 0x02;
-    snprintf(netinfo.mac_str, sizeof(netinfo.mac_str),
-            "%02x:%02x:%02x:%02x:%02x:%02x",
-            guest_mac[0], guest_mac[1], guest_mac[2],
-            guest_mac[3], guest_mac[4], guest_mac[5]);
-
-    printf("Providing network: %s, guest address %s\n", tun_name,
-            netinfo.mac_str);
 
     kvm = open("/dev/kvm", O_RDWR | O_CLOEXEC);
     if (kvm == -1)
@@ -1034,17 +899,8 @@ int main(int argc, char **argv)
     if (ret)
         err(1, "couldn't create event thread");
 
-    if (use_gdb) {
-        /* TODO check if we have the KVM_CAP_SET_GUEST_DEBUG capbility */
-        struct kvm_guest_debug debug = {
-            .control = KVM_GUESTDBG_ENABLE | KVM_GUESTDBG_SINGLESTEP,
-        };
+    if (setup_modules(vcpufd, mem))
+        errx(1, "couldn't setup modules");
 
-        if (ioctl(vcpufd, KVM_SET_GUEST_DEBUG, &debug) < 0)
-            printf("KVM_SET_GUEST_DEBUG failed");
-
-        gdb_stub_start(vcpufd);
-    }
-
-    return vcpu_loop(run, vcpufd, mem, diskfd, netfd);
+    return vcpu_loop(run, vcpufd, mem);
 }

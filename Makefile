@@ -48,10 +48,10 @@ kvm: test.iso disk.img
 		 -drive file=disk.img,if=virtio 
 
 ukvm: ukvm_target disk.img
-	sudo ukvm/ukvm disk.img tap100 kernel/test_hello.ukvm
+	sudo ukvm/ukvm --disk=disk.img --net=tap100 kernel/test_hello.ukvm
 
 gdb: ukvm_target disk.img
-	sudo time -f"%E elapsed" ukvm/ukvm kernel/test_hello.ukvm disk.img tap100 --gdb
+	sudo time -f"%E elapsed" ukvm/ukvm --disk=disk.img --net=tap100 --gdb kernel/test_hello.ukvm 
 
 clean:
 	@echo -n cleaning...
