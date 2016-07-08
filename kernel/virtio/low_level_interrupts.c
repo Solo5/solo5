@@ -115,13 +115,21 @@ void irq_clear(uint8_t irq)
     port = IRQ_PORT(irq);
     outb(port, inb(port) & ~(1 << IRQ_OFFSET(irq)));
 }
+
 void low_level_handle_irq(int irq)
 {
+    int i;
+    int n = sizeof(solo5_devices) / sizeof(solo5_device);
+
+    for (i = 0; i < n; i++) {
+        if (solo5_devices[i].irq_num == irq) {
+            solo5_devices[i].irq_handler();
+            irq_eoi(irq);
+            return;
+        }
+    }
+
     switch (irq) {
-    case 0x0a:
-    case 0x0b:
-        handle_virtio_interrupt();
-        break;
     case 0: /* PIT */
         break;
     default:

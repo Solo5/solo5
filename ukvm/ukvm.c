@@ -49,6 +49,8 @@
 #include "ukvm_modules.h"
 #include "misc.h"
 
+// FIXME: the order of devices has to match the one in solo5_devices in ukvm/kernel.c
+
 struct ukvm_module *modules[] = {
 #ifdef UKVM_MODULE_BLK
     &ukvm_blk,
@@ -608,16 +610,18 @@ void ukvm_port_poll(uint8_t *mem, void *data)
                                       * instance per module for now
                                       */
 
+
+    // FIXME: the order of devices has to match the one in solo5_devices in ukvm/kernel.c
+
     for (i = 0; i < NUM_MODULES; i++) {
         int fd = modules[i]->get_fd();
 
         if (fd) {
             fds[num_fds].fd = fd;
-            fds[num_fds].events = POLLIN;
+            fds[num_fds].events = t->events[i];
             num_fds += 1;
         }
     }
-
 
     ts.tv_sec = t->timeout_nsecs / 1000000000ULL;
     ts.tv_nsec = t->timeout_nsecs % 1000000000ULL;
@@ -629,6 +633,18 @@ void ukvm_port_poll(uint8_t *mem, void *data)
     rc = ppoll(fds, num_fds, &ts, NULL);
     assert(rc >= 0);
     t->ret = rc;
+
+    for (i = 0, num_fds = 0; i < NUM_MODULES; i++) {
+        int fd = modules[i]->get_fd();
+
+	if (fd) {
+	    t->revents[i] = (int)fds[num_fds].revents;
+	    num_fds += 1;
+
+            if (t->revents[i] == POLLIN)
+	        modules[i]->handle_exit_cleanup();
+	}
+    }
 }
 
 static int vcpu_loop(struct kvm_run *run, int vcpufd, uint8_t *mem)
@@ -716,10 +732,13 @@ int setup_modules(int vcpufd, uint8_t *mem)
 {
     int i;
 
-    for (i = 0; i < NUM_MODULES; i++)
-        if (modules[i]->setup(vcpufd, mem))
+    for (i = 0; i < NUM_MODULES; i++) {
+        if (modules[i]->setup(vcpufd, mem)) {
+            printf("Please check you have correctly specified:\n %s\n",
+                   modules[i]->usage());
             return -1;
-
+        }
+    }
     return 0;
 }
 
@@ -778,6 +797,11 @@ int main(int argc, char **argv)
             }
         }
     } while (matched);
+
+    if (*argv[0] == '-') {
+        printf("Invalid option: %s\n", *argv);
+        return 1;
+    }
 
     elffile = *argv;
     argc--;

@@ -26,6 +26,20 @@ static void banner(void)
     printf("____/\\___/ _|\\___/____/\n");
 }
 
+
+solo5_device solo5_devices[2] = {
+    {
+        .poll_event_idx = 0,
+        .type = SOLO5_BLK,
+        .info = NULL
+    },
+    {
+        .poll_event_idx = 1,
+        .type = SOLO5_NET,
+        .info = NULL
+    }
+};
+
 void kernel_main(struct ukvm_boot_info *bi)
 {
     int ret;
@@ -36,6 +50,9 @@ void kernel_main(struct ukvm_boot_info *bi)
     gdt_init();
     interrupts_init();
     interrupts_enable();
+
+    printf("Number of devices: %d\n",
+           sizeof(solo5_devices) / sizeof(solo5_device));
 
     mem_init(bi->mem_size, bi->kernel_end);
 

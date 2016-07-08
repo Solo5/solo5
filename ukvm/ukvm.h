@@ -144,15 +144,16 @@ struct ukvm_netread {
 /*
  * UKVM_PORT_POLL: Block until timeout_nsecs have passed or I/O is possible,
  * whichever is sooner. Returns 1 if I/O is possible, otherwise 0.
- *
- * TODO: Extend this interface to select which I/O events are of interest.
  */
 struct ukvm_poll {
     /* IN */
     uint64_t timeout_nsecs;
 
     /* OUT */
-    int ret;
+    int ret; // 0 means timeout and that the values in events[] have no meaning
+#define MAX_MODULES	16
+    int events[MAX_MODULES];
+    int revents[MAX_MODULES];
 };
 
 #endif

@@ -23,6 +23,25 @@ static void kernel_main2(void) __attribute__((noreturn));
 
 static char cmdline[8192];
 
+
+solo5_device solo5_devices[2] = {
+    {
+        .poll_event_idx = 0,
+        .type = SOLO5_BLK,
+        .irq_num = -1, /* will be updated in pci_enumerate */
+        .irq_handler = handle_virtio_interrupt,
+        .info = NULL
+    },
+    {
+        .poll_event_idx = 1,
+        .type = SOLO5_NET,
+        .irq_num = -1, /* will be updated in pci_enumerate */
+        .irq_handler = handle_virtio_interrupt,
+        .info = NULL
+    }
+};
+
+
 void kernel_main(uint32_t arg)
 {
     volatile int gdb = 1;

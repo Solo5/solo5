@@ -77,6 +77,7 @@ void mem_init(struct multiboot_info *mb)
 void *sbrk(intptr_t increment)
 {
     uint64_t prev, brk;
+
     prev = brk = heap_top;
 
     /*
