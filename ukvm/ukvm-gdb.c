@@ -676,9 +676,15 @@ static char *usage(void)
     return "--gdb (optional flag for running in a gdb debug session)";
 }
 
+static int handle_exit_cleanup(void)
+{
+    return 0;
+}
+
 struct ukvm_module ukvm_gdb = {
     .get_fd = get_fd,
     .handle_exit = handle_exit,
+    .handle_exit_cleanup = handle_exit_cleanup,
     .handle_cmdarg = handle_cmdarg,
     .setup = setup,
     .usage = usage

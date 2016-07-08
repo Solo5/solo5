@@ -1,3 +1,5 @@
+#define _GNU_SOURCE
+#include <sys/syscall.h>
 #include <err.h>
 #include <fcntl.h>
 #include <linux/kvm.h>
@@ -13,7 +15,16 @@
 
 static struct ukvm_blkinfo blkinfo;
 static char *diskfile;
-static int diskfd;
+static int fd;
+static int afd; // for eventfd and to be used by the main poll in ukvm.c
+
+/******************************************/
+int eventfd_aio_write(int fd, int afd, u_int64_t off,
+                      void *data, int len);
+int eventfd_aio_read(int fd, int afd, u_int64_t off,
+                     void *data, int len);
+/******************************************/
+
 
 static void ukvm_port_blkinfo(uint8_t *mem, void *data)
 {
@@ -33,10 +44,10 @@ static void ukvm_port_blkwrite(uint8_t *mem, void *data)
 
     wr->ret = -1;
     if (wr->sector < blkinfo.num_sectors) {
-        lseek(diskfd, blkinfo.sector_size * wr->sector, SEEK_SET);
-        ret = write(diskfd, mem + (uint64_t) wr->data, wr->len);
-        assert(ret == wr->len);
-        wr->ret = 0;
+        ret = eventfd_aio_write(fd, afd,
+                                blkinfo.sector_size * wr->sector,
+                                mem + (uint64_t) wr->data, wr->len);
+        wr->ret = ret;
     }
 }
 
@@ -48,10 +59,10 @@ static void ukvm_port_blkread(uint8_t *mem, void *data)
 
     rd->ret = -1;
     if (rd->sector < blkinfo.num_sectors) {
-        lseek(diskfd, blkinfo.sector_size * rd->sector, SEEK_SET);
-        ret = read(diskfd, mem + (uint64_t) rd->data, rd->len);
-        assert(ret == rd->len);
-        rd->ret = 0;
+        ret = eventfd_aio_read(fd, afd,
+                               blkinfo.sector_size * rd->sector,
+                               mem + (uint64_t) rd->data, rd->len);
+        rd->ret = ret;
     }
 }
 
@@ -93,18 +104,43 @@ static int handle_cmdarg(char *cmdarg)
     return 0;
 }
 
+/*
+ * This were good at the time of 2.6.21-rc5.mm4 ...
+ */
+#ifndef __NR_eventfd
+#if defined(__x86_64__)
+#define __NR_eventfd 283
+#elif defined(__i386__)
+#define __NR_eventfd 323
+#else
+#error Cannot detect your architecture!
+#endif
+#endif
+
+
+int eventfd(int count)
+{
+	return syscall(__NR_eventfd, count);
+}
+
+int eventfd_aio_setup(char *testfn, int afd);
+
 static int setup(int vcpufd, uint8_t *mem)
 {
     if (diskfile == NULL)
         return -1;
 
+    if ((afd = eventfd(0)) == -1) {
+        perror("eventfd");
+        return 2;
+    }
+
     /* set up virtual disk */
-    diskfd = open(diskfile, O_RDWR);
-    if (diskfd == -1)
-        err(1, "couldn't open disk %s", diskfile);
+    fd = eventfd_aio_setup(diskfile, afd);
+    printf("afd=%d fd=%d\n", afd, fd);
 
     blkinfo.sector_size = 512;
-    blkinfo.num_sectors = lseek(diskfd, 0, SEEK_END) / 512;
+    blkinfo.num_sectors = lseek(fd, 0, SEEK_END) / 512;
     blkinfo.rw = 1;
 
     printf("Providing disk: %ld sectors @ %d = %ld bytes\n",
@@ -116,7 +152,7 @@ static int setup(int vcpufd, uint8_t *mem)
 
 static int get_fd(void)
 {
-    return 0; /* no fd for poll to sleep on (synchronous) */
+    return afd;
 }
 
 static char *usage(void)
@@ -124,10 +160,21 @@ static char *usage(void)
     return "--disk=IMAGE (file exposed to the unikernel as a raw block device)";
 }
 
+
+static int handle_exit_cleanup(void)
+{
+    uint64_t eval = 0;
+    if (read(afd, &eval, sizeof(eval)) != sizeof(eval))
+	perror("read");
+    //fprintf(stdout, "done! %llu\n", (unsigned long long) eval);
+    return 0;
+}
+
 struct ukvm_module ukvm_blk = {
     .get_fd = get_fd,
     .handle_exit = handle_exit,
     .handle_cmdarg = handle_cmdarg,
+    .handle_exit_cleanup = handle_exit_cleanup,
     .setup = setup,
     .usage = usage
 };

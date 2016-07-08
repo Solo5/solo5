@@ -27,6 +27,7 @@ int solo5_net_read_sync(uint8_t *data, int *n)
     cc_barrier();
 
     *n = rd.len;
+
     return rd.ret;
 }
 
@@ -43,7 +44,7 @@ char *solo5_net_mac_str(void)
 }
 
 /* ukvm block interface */
-int solo5_blk_write_sync(uint64_t sec, uint8_t *data, int n)
+int solo5_blk_write_async(uint64_t sec, uint8_t *data, int n)
 {
     volatile struct ukvm_blkwrite wr;
 
@@ -57,21 +58,51 @@ int solo5_blk_write_sync(uint64_t sec, uint8_t *data, int n)
 
     return wr.ret;
 }
+int solo5_blk_write_sync(uint64_t sec, uint8_t *data, int n)
+{
+    int ret = solo5_blk_write_async(sec, data, n);
+    short events[3] = {SOLO5_POLLIN, 0, 0};
+    solo5_poll(solo5_clock_monotonic() + 1e9, events, NULL);
+    return ret;
+}
+
+
+// FIXME: the one and only request
+// this is our "ring" of requests. With size of ring = 1
+static volatile struct ukvm_blkread only_one_rd;
+
+int solo5_blk_read_async_submit(uint64_t sec, int *n)
+{
+    only_one_rd.sector = sec;
+    only_one_rd.data = malloc(*n);
+    only_one_rd.len = *n;
+    only_one_rd.ret = 0;
+
+    outl(UKVM_PORT_BLKREAD, ukvm_ptr(&only_one_rd));
+    cc_barrier();
+
+    return 0;
+}
+
+int solo5_blk_read_async_complete(uint8_t *data, int *n)
+{
+    // TODO: avoid this copy by having submit get the *data arg
+    *n = only_one_rd.len;
+    memcpy(data, only_one_rd.data, *n);
+    return only_one_rd.ret;
+}
 
 int solo5_blk_read_sync(uint64_t sec, uint8_t *data, int *n)
 {
-    volatile struct ukvm_blkread rd;
-
-    rd.sector = sec;
-    rd.data = data;
-    rd.len = *n;
-    rd.ret = 0;
-
-    outl(UKVM_PORT_BLKREAD, ukvm_ptr(&rd));
-    cc_barrier();
-
-    *n = rd.len;
-    return rd.ret;
+    int ret = solo5_blk_read_async_submit(sec, n);
+    // TODO: our "channel" is 0
+    short events[3] = {SOLO5_POLLIN, 0, 0};
+    short revents[3];
+    solo5_poll(solo5_clock_monotonic() + 1e9, events, revents);
+    printf("revents: %d %d %d\n", events[0], events[1], events[2]);
+    assert(events[0] == SOLO5_POLLIN);
+    ret = solo5_blk_read_async_complete(data, n);
+    return ret;
 }
 
 int solo5_blk_sector_size(void)

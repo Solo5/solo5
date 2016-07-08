@@ -214,7 +214,8 @@ static struct vring blkq = {
     .vring = (void *)blk_data,
 };
 
-
+// is our one and only blk IO request completed
+static int inflight_io_completed = 0;
 
 /* This header comes first in the scatter-gather list.
  * If VIRTIO_F_ANY_LAYOUT is not negotiated, it must
@@ -275,6 +276,9 @@ static void check_blk(void)
                    desc->addr, req->hdr.type, req->hdr.sector);
 
         req->hw_used = 1;
+
+        // TODO
+        inflight_io_completed = 1;
 
         data_idx = desc->next;
         desc = vring_desc_get(&blkq, data_idx); /* the data buffer */
@@ -494,6 +498,9 @@ static struct virtio_blk_req *virtio_blk_op(uint32_t type,
     req->hdr.sector = sector;
     req->hw_used = 0;
 
+    // TODO
+    inflight_io_completed = 0;
+
     if (type == VIRTIO_BLK_T_OUT)
         memcpy(req->data, data, len);
 
@@ -686,7 +693,7 @@ void virtio_config_network(uint16_t base)
 
 static uint8_t blk_sector[VIRTIO_BLK_SECTOR_SIZE];
 
-static int virtio_blk_write_sync(uint64_t sector, void *data, int len)
+static int virtio_blk_write_async(uint64_t sector, void *data, int len)
 {
     struct virtio_blk_req *req;
     int ret = -1;
@@ -694,22 +701,30 @@ static int virtio_blk_write_sync(uint64_t sector, void *data, int len)
     req = virtio_blk_write(sector, data, len);
     if (!req)
         return ret;
+    return 0;
+}
+int virtio_blk_write_sync(uint64_t sec, uint8_t *data, int n)
+{
+    int ret;
+    short events[NUM_DEVICES] = {1, 0, 0};
+    short revents[NUM_DEVICES];
 
-    /* XXX need timeout or something, because this can hang... sync
-     * should probably go away anyway
-     */
-    while (!req->hw_used)
-        ;
+    ret = virtio_blk_write_async(sec, data, n);
+    if (ret == -1)
+        return ret;
 
-    if (req->status == VIRTIO_BLK_S_OK)
-        ret = 0;
+    solo5_poll(solo5_clock_monotonic() + 1e9, events, revents);
 
-    req->hw_used = 0;  /* allow reuse of the blk_buf */
+    printf("revents %d %d %d\n", revents[0], revents[1], revents[2]);
+
+    // TODO
+    inflight_io_completed = 0;
 
     return ret;
+
 }
 
-static int virtio_blk_read_sync(uint64_t sector, void *data, int *len)
+static int virtio_blk_read_async_submit(uint64_t sector, int *len)
 {
     struct virtio_blk_req *req;
     int ret = -1;
@@ -721,11 +736,21 @@ static int virtio_blk_read_sync(uint64_t sector, void *data, int *len)
     if (!req)
         return ret;
 
-    /* XXX need timeout or something, because this can hang... sync
-     * should probably go away anyway
-     */
-    while (!req->hw_used)
-        ;
+    return 0;
+}
+
+// FIXME: this assumes that we have one and only request
+static int virtio_blk_read_async_complete(void *data, int *len)
+{
+    volatile struct vring_used_elem *e;
+    struct vring_desc *desc;
+    struct virtio_blk_req *req;
+    int ret = 0;
+
+    // FIXME: read the one and only request
+    e = vring_used_elem_get(&blkq, blk_last_used % blkq.size);
+    desc = vring_desc_get(&blkq, e->id); /* the virtio_blk header */
+    req = (struct virtio_blk_req *)desc->addr;
 
     if (req->status == VIRTIO_BLK_S_OK) {
         ret = 0;
@@ -734,8 +759,31 @@ static int virtio_blk_read_sync(uint64_t sector, void *data, int *len)
 
     req->hw_used = 0;  /* allow reuse of the blk_buf */
 
+    // TODO
+    inflight_io_completed = 0;
+
     return ret;
 }
+
+int virtio_blk_read_sync(uint64_t sec, uint8_t *data, int *len)
+{
+    int ret;
+
+    // TODO: first item will be disk
+    short events[NUM_DEVICES] = {1, 0, 0};
+    short revents[NUM_DEVICES];
+
+    ret = virtio_blk_read_async_submit(sec, len);
+    if (ret == -1)
+        return ret;
+
+    solo5_poll(solo5_clock_monotonic() + 1e9, events, revents);
+
+    printf("revents %d %d %d\n", revents[0], revents[1], revents[2]);
+
+    return virtio_blk_read_async_complete(data, len);
+}
+
 
 void blk_test(void)
 {
@@ -760,6 +808,8 @@ void blk_test(void)
         assert(req->status == VIRTIO_BLK_S_OK);
         req->hw_used = 0;  /* allow reuse of the blk_buf */
 
+        // TODO
+        inflight_io_completed = 0;
 
         req = virtio_blk_read(0, VIRTIO_BLK_SECTOR_SIZE);
         if (!req)
@@ -773,6 +823,10 @@ void blk_test(void)
             assert(req->data[i] == blk_sector[i]);
 
         req->hw_used = 0;  /* allow reuse of the blk_buf */
+
+        // TODO
+        inflight_io_completed = 0;
+
         printf(".");
     }
     printf("Done\n");
@@ -805,14 +859,34 @@ void virtio_net_pkt_put(void)
 
 
 
-int solo5_blk_write_sync(uint64_t sec, uint8_t *data, int n)
+int solo5_blk_read_async_submit(uint64_t sec, int *n)
 {
-    return virtio_blk_write_sync(sec, data, n);
+    return virtio_blk_read_async_submit(sec, n);
 }
 int solo5_blk_read_sync(uint64_t sec, uint8_t *data, int *n)
 {
     return virtio_blk_read_sync(sec, data, n);
 }
+int solo5_blk_read_async_complete(uint8_t *data, int *n)
+{
+    return virtio_blk_read_async_complete(data, n);
+}
+
+int solo5_blk_write_async(uint64_t sec, uint8_t *data, int n)
+{
+    return virtio_blk_write_async(sec, data, n);
+}
+int solo5_blk_write_sync(uint64_t sec, uint8_t *data, int n)
+{
+    return virtio_blk_write_sync(sec, data, n);
+}
+
+
+int virtio_blk_completed(void)
+{
+    return inflight_io_completed;
+}
+
 int solo5_blk_sector_size(void)
 {
     return VIRTIO_BLK_SECTOR_SIZE;
