@@ -693,95 +693,106 @@ void virtio_config_network(uint16_t base)
 
 static uint8_t blk_sector[VIRTIO_BLK_SECTOR_SIZE];
 
-static int virtio_blk_write_async(uint64_t sector, void *data, int len)
+static struct virtio_blk_req *virtio_blk_write_async(uint64_t sector, void *data, int len)
 {
-    struct virtio_blk_req *req;
-    int ret = -1;
-
-    req = virtio_blk_write(sector, data, len);
-    if (!req)
-        return ret;
-    return 0;
-}
-int virtio_blk_write_sync(uint64_t sec, uint8_t *data, int n)
-{
-    int ret;
-    short events[NUM_DEVICES] = {1, 0, 0};
-    short revents[NUM_DEVICES];
-
-    ret = virtio_blk_write_async(sec, data, n);
-    if (ret == -1)
-        return ret;
-
-    solo5_poll(solo5_clock_monotonic() + 1e9, events, revents);
-
-    printf("revents %d %d %d\n", revents[0], revents[1], revents[2]);
-
-    // TODO
-    inflight_io_completed = 0;
-
-    return ret;
-
+    return virtio_blk_write(sector, data, len);
 }
 
-static int virtio_blk_read_async_submit(uint64_t sector, int *len)
+static int virtio_blk_write_async_complete(solo5_request req, int *len)
 {
-    struct virtio_blk_req *req;
-    int ret = -1;
-
-    if (*len < VIRTIO_BLK_SECTOR_SIZE)
-        return ret;
-
-    req = virtio_blk_read(sector, VIRTIO_BLK_SECTOR_SIZE);
-    if (!req)
-        return ret;
-
-    return 0;
-}
-
-// FIXME: this assumes that we have one and only request
-static int virtio_blk_read_async_complete(void *data, int *len)
-{
-    volatile struct vring_used_elem *e;
-    struct vring_desc *desc;
-    struct virtio_blk_req *req;
+    struct virtio_blk_req *virtio_req;
     int ret = 0;
 
-    // FIXME: read the one and only request
-    e = vring_used_elem_get(&blkq, blk_last_used % blkq.size);
-    desc = vring_desc_get(&blkq, e->id); /* the virtio_blk header */
-    req = (struct virtio_blk_req *)desc->addr;
+    virtio_req = (struct virtio_blk_req *) req._req;
 
-    if (req->status == VIRTIO_BLK_S_OK) {
+    if (virtio_req->status == VIRTIO_BLK_S_OK) {
         ret = 0;
-        memcpy(data, req->data, *len);
     }
 
-    req->hw_used = 0;  /* allow reuse of the blk_buf */
+    virtio_req->hw_used = 0;  /* allow reuse of the blk_buf */
+
+    // FIXME: get len
+    len = len;
 
     // TODO
     inflight_io_completed = 0;
 
     return ret;
 }
+
+
+int virtio_blk_write_sync(uint64_t sec, uint8_t *data, int n)
+{
+    struct virtio_blk_req *virtio_req;
+    solo5_request solo5_req;
+    short revents[SOLO5_NUM_DEVICES];
+    short events[SOLO5_NUM_DEVICES];
+    int idx_first_blk = solo5_get_first_disk()->poll_event_idx;
+
+    virtio_req = virtio_blk_write_async(sec, data, n);
+    solo5_req._req = (void *) virtio_req;
+
+    memset(events, 0, SOLO5_NUM_DEVICES * sizeof(events));
+    events[idx_first_blk] = SOLO5_POLLIN;
+    solo5_poll(solo5_clock_monotonic() + 1e9, events, revents);
+
+    printf("revents %d %d\n", revents[0], revents[1]);
+
+    // TODO
+    inflight_io_completed = 0;
+
+    return virtio_blk_write_async_complete(solo5_req, &n);
+}
+
+static struct virtio_blk_req *virtio_blk_read_async_submit(uint64_t sector, int *len)
+{
+    if (*len < VIRTIO_BLK_SECTOR_SIZE)
+        return NULL;
+
+    return virtio_blk_read(sector, VIRTIO_BLK_SECTOR_SIZE);
+}
+
+static int virtio_blk_read_async_complete(solo5_request req, void *data, int *len)
+{
+    struct virtio_blk_req *virtio_req;
+    int ret = 0;
+
+    virtio_req = (struct virtio_blk_req *) req._req;
+
+    if (virtio_req->status == VIRTIO_BLK_S_OK) {
+        ret = 0;
+        memcpy(data, virtio_req->data, *len);
+    }
+
+    virtio_req->hw_used = 0;  /* allow reuse of the blk_buf */
+
+    // TODO
+    inflight_io_completed = 0;
+
+    return ret;
+}
+
+
+
 
 int virtio_blk_read_sync(uint64_t sec, uint8_t *data, int *len)
 {
-    int ret;
+    struct virtio_blk_req *virtio_req;
+    solo5_request solo5_req;
+    short events[SOLO5_NUM_DEVICES];
+    short revents[SOLO5_NUM_DEVICES];
+    int idx_first_blk = solo5_get_first_disk()->poll_event_idx;
 
-    // TODO: first item will be disk
-    short events[NUM_DEVICES] = {1, 0, 0};
-    short revents[NUM_DEVICES];
+    virtio_req = virtio_blk_read_async_submit(sec, len);
+    solo5_req._req = (void *) virtio_req;
 
-    ret = virtio_blk_read_async_submit(sec, len);
-    if (ret == -1)
-        return ret;
-
+    memset(events, 0, SOLO5_NUM_DEVICES * sizeof(events));
+    events[idx_first_blk] = SOLO5_POLLIN;
     solo5_poll(solo5_clock_monotonic() + 1e9, events, revents);
 
-    printf("revents %d %d %d\n", revents[0], revents[1], revents[2]);
+    printf("revents %d %d\n", revents[0], revents[1]);
 
-    return virtio_blk_read_async_complete(data, len);
+    return virtio_blk_read_async_complete(solo5_req, data, len);
 }
 
 
@@ -859,26 +870,34 @@ void virtio_net_pkt_put(void)
 
 
 
-int solo5_blk_read_async_submit(uint64_t sec, int *n)
+solo5_request solo5_blk_read_async_submit(uint64_t sec, int *n)
 {
-    return virtio_blk_read_async_submit(sec, n);
+    solo5_request req;
+    req._req = (void *) virtio_blk_read_async_submit(sec, n);
+    return req;
 }
 int solo5_blk_read_sync(uint64_t sec, uint8_t *data, int *n)
 {
     return virtio_blk_read_sync(sec, data, n);
 }
-int solo5_blk_read_async_complete(uint8_t *data, int *n)
+int solo5_blk_read_async_complete(solo5_request req, uint8_t *data, int *n)
 {
-    return virtio_blk_read_async_complete(data, n);
+    return virtio_blk_read_async_complete(req, data, n);
 }
 
-int solo5_blk_write_async(uint64_t sec, uint8_t *data, int n)
+solo5_request solo5_blk_write_async(uint64_t sec, uint8_t *data, int n)
 {
-    return virtio_blk_write_async(sec, data, n);
+    solo5_request req;
+    req._req = (void *) virtio_blk_write_async(sec, data, n);
+    return req;
 }
 int solo5_blk_write_sync(uint64_t sec, uint8_t *data, int n)
 {
     return virtio_blk_write_sync(sec, data, n);
+}
+int solo5_blk_write_async_complete(solo5_request req, int *n)
+{
+    return virtio_blk_write_async_complete(req, n);
 }
 
 
@@ -901,11 +920,11 @@ int solo5_blk_rw(void)
 }
 
 
-int solo5_net_write_sync(uint8_t *data, int n)
+int solo5_net_write_sync(__attribute__((__unused__)) uint64_t off, uint8_t *data, int n)
 {
     return virtio_net_xmit_packet(data, n);
 }
-int solo5_net_read_sync(uint8_t *data, int *n)
+int solo5_net_read_sync(__attribute__((__unused__)) uint64_t off, uint8_t *data, int *n)
 {
     uint8_t *pkt;
     int len = *n;

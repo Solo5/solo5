@@ -49,6 +49,8 @@
 #include "ukvm_modules.h"
 #include "misc.h"
 
+// FIXME: the order of devices has to match the one in solo5_devices in ukvm/kernel.c
+
 struct ukvm_module *modules[] = {
 #ifdef UKVM_MODULE_BLK
     &ukvm_blk,
@@ -607,6 +609,9 @@ void ukvm_port_poll(uint8_t *mem, void *data)
     struct pollfd fds[NUM_MODULES];  /* we only support at most one
                                       * instance per module for now
                                       */
+
+
+    // FIXME: the order of devices has to match the one in solo5_devices in ukvm/kernel.c
 
     for (i = 0; i < NUM_MODULES; i++) {
         int fd = modules[i]->get_fd();

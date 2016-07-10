@@ -26,6 +26,28 @@ static void banner(void)
     printf("____/\\___/ _|\\___/____/\n");
 }
 
+
+struct solo5_device_t solo5_devices[2] = {
+    {
+        .poll_event_idx = 0,
+        .type = SOLO5_BLK,
+        .sync_read = solo5_blk_read_sync,
+        .sync_write = solo5_blk_write_sync,
+        .async_read = solo5_blk_read_async_submit,
+        .async_write = solo5_blk_write_async,
+        .async_read_result = solo5_blk_read_async_complete,
+        .async_write_result = solo5_blk_write_async_complete,
+        .info = NULL
+    },
+    {
+        .poll_event_idx = 1,
+        .type = SOLO5_NET,
+        .sync_read = solo5_net_read_sync,
+        .sync_write = solo5_net_write_sync,
+        .info = NULL
+    }
+};
+
 void kernel_main(struct ukvm_boot_info *bi)
 {
     int ret;
@@ -36,6 +58,9 @@ void kernel_main(struct ukvm_boot_info *bi)
     gdt_init();
     interrupts_init();
     interrupts_enable();
+
+    printf("Number of devices: %d\n",
+           sizeof(solo5_devices) / sizeof(struct solo5_device_t));
 
     mem_init(bi->mem_size, bi->kernel_end);
 

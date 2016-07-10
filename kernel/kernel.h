@@ -120,9 +120,8 @@ int virtio_net_xmit_packet(void *data, int len);
 int virtio_net_pkt_poll(void);      /* test if packet(s) are available */
 
 /* 
- * TODO: to have the same behavior as ukvm, we handle a single IO in flight
- * at a time. So asking for blk_completed is asking if the one and only
- * possible IO is completed.
+ * TODO: for now, we handle a single IO in flight at a time. So asking for
+ * blk_completed is asking if the one and only possible IO is completed.
 */
 int virtio_blk_completed(void);      /* test if the IO was completed */
 
@@ -234,9 +233,5 @@ static inline uint64_t mul64_32(uint64_t a, uint32_t b)
 
 
 #define NSEC_PER_SEC	1000000000ULL
-
-// TODO: should be dynamic
-#define NUM_DEVICES 3
-
 
 #endif
