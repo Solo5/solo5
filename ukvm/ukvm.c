@@ -169,7 +169,7 @@ void setup_boot_info(uint8_t *mem,
     for (; *argv; argc--, argv++) {
         size_t alen = snprintf(cmdline_p, cmdline_free, "%s%s", *argv,
                 (argc > 1) ? " " : "");
-        if (alen >= size) {
+        if (alen >= cmdline_free) {
             warnx("command line too long, truncated");
             break;
         }
