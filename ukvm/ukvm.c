@@ -780,7 +780,10 @@ int main(int argc, char **argv)
                 break;
             }
         }
-    } while (matched);
+    } while (matched && *argv);
+
+    if (!*argv)
+        usage(prog);
 
     if (*argv[0] == '-') {
         printf("Invalid option: %s\n", *argv);
