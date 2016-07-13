@@ -70,16 +70,14 @@ OPAM_UKVM_INCDIR=$(PREFIX)/include/solo5-kernel-ukvm/include
 OPAM_VIRTIO_LIBDIR=$(PREFIX)/lib/solo5-kernel-virtio
 OPAM_VIRTIO_INCDIR=$(PREFIX)/include/solo5-kernel-virtio/include
 
-# We want the MD CFLAGS, LDFLAGS and LDLIBS in the .pc file, where they can be
+# We want the MD CFLAGS and LDFLAGS in the .pc file, where they can be
 # picked up by the Mirage tool / other downstream consumers.
 KERNEL_MD_CFLAGS=$(shell $(MAKE) -sC kernel print-md-cflags)
 KERNEL_LDFLAGS=$(shell $(MAKE) -sC kernel print-ldflags)
-KERNEL_LDLIBS=$(shell $(MAKE) -sC kernel print-ldlibs)
-%.pc: %.pc.in 
+%.pc: %.pc.in
 	sed <$< > $@ \
 	    -e 's#!CFLAGS!#$(KERNEL_MD_CFLAGS)#g;' \
-	    -e 's#!LDFLAGS!#$(KERNEL_LDFLAGS)#g;' \
-	    -e 's#!LDLIBS!#$(KERNEL_LDLIBS)#g;'
+	    -e 's#!LDFLAGS!#$(KERNEL_LDFLAGS)#g;'
 
 .PHONY: opam-virtio-install
 opam-virtio-install: solo5-kernel-virtio.pc virtio_target

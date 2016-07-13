@@ -8,4 +8,3 @@ Name: solo5-kernel-virtio
 Version: 0.1
 Description: Solo5 unikernel base (virtio target)
 Cflags: !CFLAGS! -I${includedir}
-Libs: !LDLIBS!
