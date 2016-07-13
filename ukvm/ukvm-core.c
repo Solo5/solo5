@@ -44,7 +44,7 @@
 #include <poll.h>
 
 #include "processor-flags.h"
-#include "../kernel/interrupts.h"
+//#include "../kernel/interrupts.h"
 #include "ukvm.h"
 #include "ukvm_modules.h"
 #include "misc.h"
@@ -479,7 +479,7 @@ static void setup_cpuid(int kvm, int vcpufd)
         err(1, "KVM_SET_CPUID2 failed");
 }
 
-
+#if 0
 static void inject_interrupt(int vcpufd, uint32_t intr)
 {
     struct kvm_interrupt irq = { intr };
@@ -492,7 +492,7 @@ static void inject_interrupt(int vcpufd, uint32_t intr)
         err(1, "KVM_INTERRUPT");
     }
 }
-
+#endif
 
 static pthread_cond_t sleep_cv = PTHREAD_COND_INITIALIZER;
 static pthread_mutex_t interrupt_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -686,7 +686,7 @@ static int vcpu_loop(struct kvm_run *run, int vcpufd, uint8_t *mem)
         }
         case KVM_EXIT_IRQ_WINDOW_OPEN: {
             run->request_interrupt_window = 0;
-            inject_interrupt(vcpufd, INTR_USER_TIMER);
+            /* inject_interrupt(vcpufd, INTR_USER_TIMER); */
             /* inject_interrupt(vcpufd, 0x31); */
             break;
         }

@@ -1,0 +1,89 @@
+AS?=as
+CC?=cc
+LD?=ld
+OBJCOPY?=objcopy
+# Ensure no host headers or libraries are used when building, with the
+# exception of:
+#   - Standard C headers required by C89/C99. -nostdinc removes access to these
+#     so get it back by asking GCC for its installation directory.
+#   - The static libgcc.a (compiler runtime) installed by the host GCC.
+GCC_INCLUDE_DIR=$(shell $(CC) -print-file-name=include)
+MD_CFLAGS=-nostdinc -isystem $(GCC_INCLUDE_DIR) \
+	  -ffreestanding -mno-red-zone -mno-3dnow
+LDFLAGS=-nostdlib -z max-page-size=0x1000 -static
+LDLIBS=$(shell $(CC) -print-libgcc-file-name)
+# Platform-independent CFLAGS
+CFLAGS=$(MD_CFLAGS) -std=gnu99 -Wall -Wextra -Werror -O2 -g
+
+COMMON_COBJS=\
+ee_printf.o \
+interrupts.o \
+lib.o \
+malloc.o \
+stubs.o \
+pvclock.o
+
+UKVM_COBJS=\
+$(COMMON_COBJS) \
+ukvm/gdt.o \
+ukvm/io.o \
+ukvm/kernel.o \
+ukvm/low_level.o \
+ukvm/low_level_interrupts.o \
+ukvm/mem.o \
+ukvm/time.o
+
+COBJS=$(COMMON_COBJS) $(VIRTIO_COBJS)
+SOBJS=\
+kernel_s.o \
+mem_s.o \
+interrupts_s.o
+
+HEADERS=\
+kernel.h
+
+UKVM_SRC=../ukvm
+UKVM_MODULES=
+
+all: test_hello.ukvm ukvm-bin
+
+Makefile.ukvm: $(UKVM_SRC)/ukvm-configure
+	$(UKVM_SRC)/ukvm-configure $(UKVM_SRC) $(UKVM_MODULES)
+
+include Makefile.ukvm
+
+interrupt_vectors.s: interrupts.h
+	bash gen_interrupts.bash > interrupt_vectors.s
+
+%_s.o: %.s interrupt_vectors.s
+	$(AS) $< -o $@
+
+%.o: %.c $(HEADERS)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+%.o: %.S $(HEADERS)
+	$(CC) $(CFLAGS) -DASM_FILE -c $< -o $@
+
+test_hello.ukvm: test_hello.o ukvm/solo5.o ukvm/solo5.lds
+	$(LD) -T ukvm/solo5.lds $(LDFLAGS) -o $@ ukvm/solo5.o $< $(LDLIBS)
+
+ukvm/solo5.o: $(UKVM_COBJS) $(SOBJS) ukvm/solo5.lds
+	$(LD) -r $(LDFLAGS) -o $@ $(UKVM_COBJS) $(SOBJS) 
+	$(OBJCOPY) -w -G solo5_\* -G kernel_main $@ $@
+
+.PHONY: clean
+clean: ukvm-clean
+	$(RM) *.o ukvm/*.o kernel $(TESTS) Makefile.ukvm
+
+# This target is for the top-level opam-install to get MD CFLAGS
+.PHONY: print-md-cflags
+print-md-cflags:
+	@echo $(MD_CFLAGS)
+
+.PHONY: print-ldflags
+print-ldflags:
+	@echo $(LDFLAGS)
+
+.PHONY: print-ldlibs
+print-ldlibs:
+	@echo $(LDLIBS)
