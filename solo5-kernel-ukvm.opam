@@ -1,4 +1,10 @@
 opam-version: "1.2"
+maintainer:   "martin@lucina.net"
+homepage:     "https://github.com/solo5/solo5"
+bug-reports:  "https://github.com/solo5/solo5/issues"
+dev-repo:     "https://github.com/solo5/solo5.git"
+authors:      [ "Dan Williams <djwillia@us.ibm.com>" "Martin Lucina <martin@lucina.net>" "Ricardo Koller <kollerr@us.ibm.com>"]
+license:      "ISC"
 
 build:  [make "ukvm_target"]
 install:[make "opam-ukvm-install" "PREFIX=%{prefix}%"]
@@ -10,4 +16,16 @@ depends: [
 
 conflicts: [
   "solo5-kernel-virtio"
+]
+
+depexts: [
+  [["debian"] ["linux-libc-dev"]]
+  [["ubuntu"] ["linux-libc-dev"]]
+  [["alpine"] ["linux-headers"]]
+  [["fedora"] ["kernel-headers"]]
+  [["rhel"] ["kernel-headers"]]
+]
+
+available: [
+  ocaml-version >= "4.02.3" & arch = "x86_64" & os = "linux"
 ]
