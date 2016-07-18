@@ -52,7 +52,7 @@ step.)
 
 Add the OPAM repository for Mirage/Solo5:
 
-    opam repo add solo5 git://github.com/djwillia/opam-solo5
+    opam repo add solo5 git://github.com/solo5/opam-solo5
 
 If you will be using the `ukvm` target, ensure that a "Linux kernel
 headers" package is installed. For Debian-based distributions this is
