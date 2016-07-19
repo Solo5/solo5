@@ -25,10 +25,6 @@ and
 [presentation](https://www.usenix.org/sites/default/files/conference/protected-files/hotcloud16_slides_williams.pdf)
 from USENIX HotCloud '16 for more information.
 
-So far, we have a small monitor implementation that is not yet
-modular, but demonstrates some dramatically simple interfaces and a
-fast boot time.
-
 # Building Mirage/Solo5 unikernels
 
 These instructions assume that you have an OCaml (4.02.3 or newer)
@@ -72,8 +68,9 @@ Build the `stackv4` example:
     mirage configure --ukvm
     make
 
-This will build the unikernel as `mir-stackv4.ukvm` or
-`mir-stackv4.virtio`, depending on which target you selected.
+This will build the unikernel as `mir-stackv4.ukvm` (with a `ukvm-bin`
+in the same directory) or `mir-stackv4.virtio`, depending on which
+target you selected.
 
 # Running Mirage/Solo5 unikernels directly
 
@@ -97,9 +94,14 @@ use to talk to the unikernel:
 
 **Running with ukvm on Linux**
 
+A specialized monitor called `ukvm-bin` is generated as part of the
+build process, so the command line arguments may differ depending on
+the needs of the unikernel.  To see the arguments, run `ukvm-bin` with
+no arguments or `--help`.
+
 To launch the unikernel:
 
-    ukvm /dev/zero tap100 ./mir-stackv4.ukvm
+    ukvm-bin --net=tap100 ./mir-stackv4.ukvm
 
 Use `^C` to terminate the unikernel.
 
@@ -138,12 +140,35 @@ Refer to the
 [documentation](https://github.com/mato/docker-unikernel-runner/blob/master/README.md)
 for details.
 
+# Developing Solo5 and ukvm
+
+If you'd like to develop Solo5, ukvm and/or investigate porting other
+unikernels to use Solo5 as a base layer, the public APIs are defined in
+`kernel/solo5.h` and `ukvm/ukvm.h`. These interfaces are still evolving
+and subject to change.
+
+We also have some simple standalone unikernels written in C to test
+Solo5, see `tests` for these.
+
+The coding style for this project is "Linux with 4 spaces instead of
+tabs".  The modified `checkpatch.pl` script helps give hints about
+what violates this style.
+
+The best place for Mirage-related discussions about Solo5 and/or
+`ukvm` is to post to the [MirageOS-devel mailing list](http://lists.xenproject.org/cgi-bin/mailman/listinfo/mirageos-devel),
+with general Solo5/`ukvm` discussions on <https://devel.unikernel.org/>.
+
 # Debugging on ukvm
 
-You can debug the unikernel running in ukvm using gdb. Start
-ukvm with the `--gdb` flag, like this:
+You can debug the unikernel running in ukvm using gdb, but need to
+build a `ukvm-bin` with gdb support.  To do so, edit the Makefile
+(generated in the case of Mirage), and add `gdb` to the `UKVM_MODULES`
+make variable.  Then, running `make ukvm-bin` should build a version
+with gdb support.
 
-    sudo $(which ukvm) ~/disk.img tap100 mir-console.solo5-ukvm --gdb
+Start ukvm with the `--gdb` flag, like this:
+
+    ukvm-bin mir-console.solo5-ukvm --gdb
 
 And then from another console start gdb and connect to the remote target
 listening at `localhost:1234`:
@@ -179,24 +204,6 @@ Here is a typical gdb session:
 
     Breakpoint 11, camlUnikernel__loop_1401 () at unikernel.ml:9
     9            C.log c "hello";
-
-# Developing Solo5 and ukvm
-
-If you'd like to develop Solo5, ukvm and/or investigate porting other
-unikernels to use Solo5 as a base layer, the public APIs are defined in
-`kernel/solo5.h` and `ukvm/ukvm.h`. These interfaces are still evolving
-and subject to change.
-
-We also have some simple standalone unikernels written in C to test
-Solo5, see `kernel/test_*` for these.
-
-The coding style for this project is "Linux with 4 spaces instead of
-tabs".  The modified `checkpatch.pl` script helps give hints about
-what violates this style.
-
-The best place for Mirage-related discussions about Solo5 and/or
-`ukvm` is to post to the [MirageOS-devel mailing list](http://lists.xenproject.org/cgi-bin/mailman/listinfo/mirageos-devel),
-with general Solo5/`ukvm` discussions on <https://devel.unikernel.org/>.
 
 # Acknowledgements
 
