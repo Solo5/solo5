@@ -1,51 +1,5 @@
 UKVM_TARGETS=test_hello.ukvm ukvm-bin
 VIRTIO_TARGETS=test_hello.virtio
-all: $(UKVM_TARGETS) $(VIRTIO_TARGETS)
-
-SOLO5_DIR=../../kernel
-UKVM_SRC=../../ukvm
 UKVM_MODULES=
 
-CC?=cc
-LD?=ld
-OBJCOPY?=objcopy
-# Ensure no host headers or libraries are used when building, with the
-# exception of:
-#   - Standard C headers required by C89/C99. -nostdinc removes access to these
-#     so get it back by asking GCC for its installation directory.
-#   - The static libgcc.a (compiler runtime) installed by the host GCC.
-GCC_INCLUDE_DIR=$(shell $(CC) -print-file-name=include)
-MD_CFLAGS=-nostdinc -isystem $(GCC_INCLUDE_DIR) \
-	  -ffreestanding -mno-red-zone -mno-3dnow
-LDFLAGS=-nostdlib -z max-page-size=0x1000 -static
-LDLIBS=$(shell $(CC) -print-libgcc-file-name)
-# Platform-independent CFLAGS
-CFLAGS=$(MD_CFLAGS) -std=gnu99 -Wall -Wextra -Werror -O2 -g
-
-CFLAGS+=-I$(SOLO5_DIR)
-
-Makefile.ukvm: $(UKVM_SRC)/ukvm-configure
-	$(UKVM_SRC)/ukvm-configure $(UKVM_SRC) $(UKVM_MODULES)
-
-include Makefile.ukvm
-
-%.o: %.c $(HEADERS)
-	$(CC) $(CFLAGS) -c $< -o $@
-
-%.ukvm: %.o $(SOLO5_DIR)/ukvm/solo5.lds $(SOLO5_DIR)/ukvm/solo5.o
-	$(LD) -T $(SOLO5_DIR)/ukvm/solo5.lds \
-			 $(LDFLAGS) -o $@ $(SOLO5_DIR)/ukvm/solo5.o $< $(LDLIBS)
-
-%.virtio: %.o $(SOLO5_DIR)/virtio/solo5.lds $(SOLO5_DIR)/virtio/solo5.o
-	$(LD) -T $(SOLO5_DIR)/virtio/solo5.lds \
-			 $(LDFLAGS) -o $@ $(SOLO5_DIR)/virtio/solo5.o $< $(LDLIBS)
-
-$(SOLO5_DIR)/ukvm/solo5.o: 
-	$(MAKE) -C $(SOLO5_DIR) ukvm
-
-$(SOLO5_DIR)/virtio/solo5.o: 
-	$(MAKE) -C $(SOLO5_DIR) virtio
-
-.PHONY: clean
-clean: ukvm-clean
-	$(RM) *.o $(UKVM_TARGETS) Makefile.ukvm $(VIRTIO_TARGETS)
+include ../Makefile.tests
