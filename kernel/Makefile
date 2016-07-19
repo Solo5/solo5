@@ -72,8 +72,8 @@ interrupts_s.o
 HEADERS=\
 kernel.h
 
-VIRTIO_TESTS=test_hello.virtio test_ping_serve.virtio
-UKVM_TESTS=test_hello.ukvm 
+VIRTIO_TESTS=test_hello.virtio test_ping_serve.virtio test_blk.virtio
+UKVM_TESTS=test_hello.ukvm test_blk.ukvm
 TESTS=$(VIRTIO_TESTS) $(UKVM_TESTS)
 
 all: virtio ukvm
@@ -113,6 +113,11 @@ test_hello.virtio: test_hello.o
 test_hello.ukvm: test_hello.o
 
 test_ping_serve.virtio: test_ping_serve.o
+
+test_blk.virtio: test_blk.o
+
+test_blk.ukvm: test_blk.o
+
 
 .PHONY: clean
 clean:

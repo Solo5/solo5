@@ -35,10 +35,18 @@ uint64_t solo5_clock_wall(void)
     return pvclock_monotonic() + pvclock_epochoffset();
 }
 
-int solo5_poll(uint64_t until_nsecs)
+int solo5_poll(uint64_t until_nsecs, short *events, short *revents)
 {
     struct ukvm_poll t;
     uint64_t now;
+
+    memset(t.events, 0, SOLO5_NUM_DEVICES * sizeof(short));
+
+    if (events) {
+        // FIXME: remove the printf
+        printf("events: %d %d\n", events[0], events[1]);
+        memcpy(t.events, events, SOLO5_NUM_DEVICES * sizeof(short));
+    }
 
     now = solo5_clock_monotonic();
     if (until_nsecs <= now)
@@ -47,5 +55,8 @@ int solo5_poll(uint64_t until_nsecs)
         t.timeout_nsecs = until_nsecs - now;
     outl(UKVM_PORT_POLL, ukvm_ptr(&t));
     cc_barrier();
+
+    memcpy(revents, t.revents, SOLO5_NUM_DEVICES * sizeof(short));
+
     return t.ret;
 }

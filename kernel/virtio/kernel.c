@@ -23,6 +23,33 @@ static void kernel_main2(void) __attribute__((noreturn));
 
 static char cmdline[8192];
 
+
+struct solo5_device_t solo5_devices[2] = {
+    {
+        .poll_event_idx = 0,
+        .type = SOLO5_BLK,
+        .sync_read = solo5_blk_read_sync,
+        .sync_write = solo5_blk_write_sync,
+        .async_read = solo5_blk_read_async_submit,
+        .async_write = solo5_blk_write_async,
+        .async_read_result = solo5_blk_read_async_complete,
+        .async_write_result = solo5_blk_write_async_complete,
+        .irq_num = -1, // will be updated in pci_enumerate
+        .irq_handler = handle_virtio_interrupt,
+        .info = NULL
+    },
+    {
+        .poll_event_idx = 1,
+        .type = SOLO5_NET,
+        .sync_read = solo5_net_read_sync,
+        .sync_write = solo5_net_write_sync,
+        .irq_num = -1, // will be updated in pci_enumerate
+        .irq_handler = handle_virtio_interrupt,
+        .info = NULL
+    }
+};
+
+
 void kernel_main(uint32_t arg)
 {
     volatile int gdb = 1;

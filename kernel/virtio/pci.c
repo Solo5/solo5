@@ -66,6 +66,8 @@ uint32_t blk_devices_found;
 static void virtio_config(uint32_t config_addr)
 {
     struct pci_config_info pci;
+    int i;
+    int n = sizeof(solo5_devices) / sizeof(struct solo5_device_t);
 
     PCI_CONF_READ(uint16_t, &pci.device_id, config_addr, SUBSYS_ID);
     PCI_CONF_READ(uint16_t, &pci.iobar, config_addr, IOBAR);
@@ -73,6 +75,11 @@ static void virtio_config(uint32_t config_addr)
 
     printf("virtio_config: device_id=%x, interrupt_line=%x\n", pci.device_id,
             pci.interrupt_line);
+
+    // FIXME: this assumes that all devices are PCI based, and that all of
+    // them use the same interrupt line
+    for (i = 0; i < n; i++)
+        solo5_devices[i].irq_num = pci.interrupt_line;
 
     /* we only support one net device and one blk device */
     switch (pci.device_id) {

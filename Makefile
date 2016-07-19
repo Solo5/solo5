@@ -27,7 +27,7 @@ ukvm_target:
 	$(MAKE) -C kernel ukvm
 
 test.iso: virtio_target iso/boot/grub/menu.lst Makefile
-	@cp kernel/test_ping_serve.virtio iso/boot/kernel
+	@cp kernel/test_blk.virtio iso/boot/kernel
 	@xorriso -as mkisofs -R -b boot/grub/stage2_eltorito -no-emul-boot \
 		-boot-load-size 4 -quiet -boot-info-table -o test.iso iso
 
@@ -48,7 +48,7 @@ kvm: test.iso disk.img
 		 -drive file=disk.img,if=virtio 
 
 ukvm: ukvm_target disk.img
-	sudo ukvm/ukvm --disk=disk.img --net=tap100 kernel/test_hello.ukvm
+	sudo ukvm/ukvm --disk=disk.img --net=tap100 kernel/test_blk.ukvm
 
 gdb: ukvm_target disk.img
 	sudo time -f"%E elapsed" ukvm/ukvm --disk=disk.img --net=tap100 --gdb kernel/test_hello.ukvm 

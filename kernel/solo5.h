@@ -4,19 +4,29 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "devices.h"
+
 /* Solo5 public APIs */
 
 /* Application entry point */
 int solo5_app_main(char *cmdline);
 
 /* Network */
-int solo5_net_write_sync(uint8_t *data, int n);
-int solo5_net_read_sync(uint8_t *data, int *n);
+struct solo5_device_t *solo5_get_first_netiface(void);
+
+int solo5_net_write_sync(uint64_t unused, uint8_t *data, int n);
+int solo5_net_read_sync(uint64_t unused, uint8_t *data, int *n);
 char *solo5_net_mac_str(void);
 
 /* Block */
+struct solo5_device_t *solo5_get_first_disk(void);
+
 int solo5_blk_write_sync(uint64_t sec, uint8_t *data, int n);
 int solo5_blk_read_sync(uint64_t sec, uint8_t *data, int *n);
+solo5_request solo5_blk_write_async(uint64_t sec, uint8_t *data, int n);
+solo5_request solo5_blk_read_async_submit(uint64_t sec, int *n);
+int solo5_blk_read_async_complete(solo5_request req, uint8_t *data, int *n);
+int solo5_blk_write_async_complete(solo5_request req, int *n);
 int solo5_blk_sector_size(void);
 uint64_t solo5_blk_sectors(void);
 int solo5_blk_rw(void);
@@ -40,9 +50,8 @@ uint64_t solo5_clock_wall(void);
 /* Sched related functions */
 /* solo5_poll(): Block until monotonic time reaches until_nsecs or I/O is
  * possible, whichever is sooner. Returns 1 if I/O is possible, otherwise 0.
- *
- * TODO: Extend this interface to select which I/O events are of interest.
  */
-int solo5_poll(uint64_t until_nsecs);
+#define SOLO5_POLLIN	1
+int solo5_poll(uint64_t until_nsecs, short *events, short *revents);
 
 #endif
