@@ -1,0 +1,14 @@
+AS?=as
+CC?=cc
+LD?=ld
+OBJCOPY?=objcopy
+# Ensure no host headers or libraries are used when building, with the
+# exception of:
+#   - Standard C headers required by C89/C99. -nostdinc removes access to these
+#     so get it back by asking GCC for its installation directory.
+GCC_INCLUDE_DIR=$(shell $(CC) -print-file-name=include)
+MD_CFLAGS=-nostdinc -isystem $(GCC_INCLUDE_DIR) \
+	  -ffreestanding -mno-red-zone -mno-3dnow
+LDFLAGS=-nostdlib -z max-page-size=0x1000 -static
+# Platform-independent CFLAGS
+CFLAGS=$(MD_CFLAGS) -std=gnu99 -Wall -Wextra -Werror -O2 -g
