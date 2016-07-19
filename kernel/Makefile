@@ -23,12 +23,10 @@ OBJCOPY?=objcopy
 # exception of:
 #   - Standard C headers required by C89/C99. -nostdinc removes access to these
 #     so get it back by asking GCC for its installation directory.
-#   - The static libgcc.a (compiler runtime) installed by the host GCC.
 GCC_INCLUDE_DIR=$(shell $(CC) -print-file-name=include)
 MD_CFLAGS=-nostdinc -isystem $(GCC_INCLUDE_DIR) \
 	  -ffreestanding -mno-red-zone -mno-3dnow
 LDFLAGS=-nostdlib -z max-page-size=0x1000 -static
-LDLIBS=$(shell $(CC) -print-libgcc-file-name)
 # Platform-independent CFLAGS
 CFLAGS=$(MD_CFLAGS) -std=gnu99 -Wall -Wextra -Werror -O2 -g
 
@@ -97,10 +95,10 @@ interrupt_vectors.s: interrupts.h
 	$(CC) $(CFLAGS) -DASM_FILE -c $< -o $@
 
 %.ukvm: %.o ukvm/solo5.o ukvm/solo5.lds
-	$(LD) -T ukvm/solo5.lds $(LDFLAGS) -o $@ ukvm/solo5.o $< $(LDLIBS)
+	$(LD) -T ukvm/solo5.lds $(LDFLAGS) -o $@ ukvm/solo5.o $<
 
 %.virtio: %.o virtio/solo5.o virtio/solo5.lds
-	$(LD) -T virtio/solo5.lds $(LDFLAGS) -o $@ virtio/solo5.o $< $(LDLIBS)
+	$(LD) -T virtio/solo5.lds $(LDFLAGS) -o $@ virtio/solo5.o $<
 
 virtio/solo5.o: $(VIRTIO_COBJS) $(SOBJS) virtio/solo5.lds
 	$(LD) -r $(LDFLAGS) -o $@ $(VIRTIO_COBJS) $(SOBJS) 
@@ -128,7 +126,3 @@ print-md-cflags:
 .PHONY: print-ldflags
 print-ldflags:
 	@echo $(LDFLAGS)
-
-.PHONY: print-ldlibs
-print-ldlibs:
-	@echo $(LDLIBS)
