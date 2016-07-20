@@ -15,20 +15,7 @@
 # TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 # PERFORMANCE OF THIS SOFTWARE.
 
-AS?=as
-CC?=cc
-LD?=ld
-OBJCOPY?=objcopy
-# Ensure no host headers or libraries are used when building, with the
-# exception of:
-#   - Standard C headers required by C89/C99. -nostdinc removes access to these
-#     so get it back by asking GCC for its installation directory.
-GCC_INCLUDE_DIR=$(shell $(CC) -print-file-name=include)
-MD_CFLAGS=-nostdinc -isystem $(GCC_INCLUDE_DIR) \
-	  -ffreestanding -mno-red-zone -mno-3dnow
-LDFLAGS=-nostdlib -z max-page-size=0x1000 -static
-# Platform-independent CFLAGS
-CFLAGS=$(MD_CFLAGS) -std=gnu99 -Wall -Wextra -Werror -O2 -g
+include Makefile.common
 
 COMMON_COBJS=\
 ee_printf.o \
@@ -72,15 +59,11 @@ interrupts_s.o
 HEADERS=\
 kernel.h
 
-VIRTIO_TESTS=test_hello.virtio test_ping_serve.virtio
-UKVM_TESTS=test_hello.ukvm 
-TESTS=$(VIRTIO_TESTS) $(UKVM_TESTS)
-
 all: virtio ukvm
 
 .PHONY: virtio ukvm
-virtio: virtio/solo5.o $(VIRTIO_TESTS)
-ukvm: ukvm/solo5.o $(UKVM_TESTS)
+virtio: virtio/solo5.o 
+ukvm: ukvm/solo5.o 
 
 interrupt_vectors.s: interrupts.h
 	bash gen_interrupts.bash > interrupt_vectors.s
@@ -94,12 +77,6 @@ interrupt_vectors.s: interrupts.h
 %.o: %.S $(HEADERS)
 	$(CC) $(CFLAGS) -DASM_FILE -c $< -o $@
 
-%.ukvm: %.o ukvm/solo5.o ukvm/solo5.lds
-	$(LD) -T ukvm/solo5.lds $(LDFLAGS) -o $@ ukvm/solo5.o $<
-
-%.virtio: %.o virtio/solo5.o virtio/solo5.lds
-	$(LD) -T virtio/solo5.lds $(LDFLAGS) -o $@ virtio/solo5.o $<
-
 virtio/solo5.o: $(VIRTIO_COBJS) $(SOBJS) virtio/solo5.lds
 	$(LD) -r $(LDFLAGS) -o $@ $(VIRTIO_COBJS) $(SOBJS) 
 	$(OBJCOPY) -w -G solo5_\* -G _start $@ $@
@@ -108,15 +85,9 @@ ukvm/solo5.o: $(UKVM_COBJS) $(SOBJS) ukvm/solo5.lds
 	$(LD) -r $(LDFLAGS) -o $@ $(UKVM_COBJS) $(SOBJS) 
 	$(OBJCOPY) -w -G solo5_\* -G kernel_main $@ $@
 
-test_hello.virtio: test_hello.o
-
-test_hello.ukvm: test_hello.o
-
-test_ping_serve.virtio: test_ping_serve.o
-
 .PHONY: clean
 clean:
-	$(RM) *.o virtio/*.o ukvm/*.o kernel $(TESTS)
+	$(RM) *.o virtio/*.o ukvm/*.o kernel 
 
 # This target is for the top-level opam-install to get MD CFLAGS
 .PHONY: print-md-cflags

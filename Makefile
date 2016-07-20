@@ -15,7 +15,7 @@
 # TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 # PERFORMANCE OF THIS SOFTWARE.
 
-all: ukvm_target virtio_target
+all: ukvm_target virtio_target tests
 
 .PHONY: virtio_target
 virtio_target:
@@ -23,8 +23,11 @@ virtio_target:
 
 .PHONY: ukvm_target
 ukvm_target:
-	$(MAKE) -C ukvm
 	$(MAKE) -C kernel ukvm
+
+.PHONY: tests
+tests:
+	$(MAKE) -C tests
 
 test.iso: virtio_target iso/boot/grub/menu.lst Makefile
 	@cp kernel/test_ping_serve.virtio iso/boot/kernel
@@ -56,7 +59,7 @@ gdb: ukvm_target disk.img
 clean:
 	@echo -n cleaning...
 	@$(MAKE) -C kernel clean
-	@$(MAKE) -C ukvm clean
+	@$(MAKE) -C tests clean
 	@rm -f test.iso iso/boot/kernel
 	@rm -f solo5-kernel-virtio.pc
 	@rm -f solo5-kernel-ukvm.pc
@@ -104,7 +107,9 @@ opam-ukvm-install: solo5-kernel-ukvm.pc ukvm_target
 	cp ukvm/ukvm.h $(OPAM_UKVM_INCDIR)/ukvm.h
 	cp kernel/ukvm/solo5.o kernel/ukvm/solo5.lds $(OPAM_UKVM_LIBDIR)
 	mkdir -p $(OPAM_BINDIR)
-	cp ukvm/ukvm $(OPAM_BINDIR)
+	mkdir -p $(OPAM_UKVM_LIBDIR)/src
+	cp -R ukvm $(OPAM_UKVM_LIBDIR)/src
+	cp ukvm/ukvm-configure $(OPAM_BINDIR)
 	mkdir -p $(PREFIX)/lib/pkgconfig
 	cp solo5-kernel-ukvm.pc $(PREFIX)/lib/pkgconfig
 
