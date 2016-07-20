@@ -3,11 +3,8 @@
 *.pcap
 cscope.*
 iso/boot/kernel
-kernel.iso
 kernel/kernel
 kernel/interrupt_vectors.s
-kernel/test_*.ukvm
-kernel/test_*.virtio
-ukvm/ukvm
-disk.img
-test.iso
+tests/*/*.ukvm
+tests/*/*.virtio
+tests/*/ukvm-bin

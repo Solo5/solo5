@@ -6,7 +6,7 @@ dev-repo:     "https://github.com/solo5/solo5.git"
 authors:      [ "Dan Williams <djwillia@us.ibm.com>" "Martin Lucina <martin@lucina.net>" "Ricardo Koller <kollerr@us.ibm.com>"]
 license:      "ISC"
 
-build:  [make "ukvm_target"]
+build:  [make "ukvm"]
 install:[make "opam-ukvm-install" "PREFIX=%{prefix}%"]
 remove: [make "opam-ukvm-uninstall" "PREFIX=%{prefix}%"]
 
