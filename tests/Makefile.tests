@@ -1,4 +1,8 @@
-all: $(UKVM_TARGETS) $(VIRTIO_TARGETS)
+.PHONY: ukvm
+ukvm: $(UKVM_TARGETS)
+
+.PHONY: virtio
+virtio:	$(VIRTIO_TARGETS)
 
 SOLO5_DIR=../../kernel
 UKVM_SRC=../../ukvm
@@ -8,7 +12,6 @@ CFLAGS+=-I$(SOLO5_DIR)
 
 %.o: %.c $(HEADERS)
 	$(CC) $(CFLAGS) -c $< -o $@
-
 
 ifdef UKVM_TARGETS
 Makefile.ukvm: $(UKVM_SRC)/ukvm-configure
@@ -26,8 +29,6 @@ else
 .PHONY: ukvm-clean
 endif
 
-
-
 ifdef VIRTIO_TARGETS
 %.virtio: %.o $(SOLO5_DIR)/virtio/solo5.lds $(SOLO5_DIR)/virtio/solo5.o
 	$(LD) -T $(SOLO5_DIR)/virtio/solo5.lds \
@@ -36,7 +37,6 @@ ifdef VIRTIO_TARGETS
 $(SOLO5_DIR)/virtio/solo5.o: 
 	$(MAKE) -C $(SOLO5_DIR) virtio
 endif
-
 
 .PHONY: clean
 clean: ukvm-clean

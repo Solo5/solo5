@@ -6,7 +6,7 @@ dev-repo:     "https://github.com/solo5/solo5.git"
 authors:      [ "Dan Williams <djwillia@us.ibm.com>" "Martin Lucina <martin@lucina.net>" "Ricardo Koller <kollerr@us.ibm.com>"]
 license:      "ISC"
 
-build:  [make "virtio_target"]
+build:  [make "virtio"]
 install:[make "opam-virtio-install" "PREFIX=%{prefix}%"]
 remove: [make "opam-virtio-uninstall" "PREFIX=%{prefix}%"]
 

@@ -1,17 +1,24 @@
 TESTDIRS=test_hello test_ping_serve
 
-TESTS=$(subst test, _test, $(TESTDIRS))
+UKVM_TESTS=$(subst test, _test_ukvm, $(TESTDIRS))
+VIRTIO_TESTS=$(subst test, _test_virtio, $(TESTDIRS))
 CLEANS=$(subst test, _clean, $(TESTDIRS))
 
-all: $(TESTS)
+all: $(UKVM_TESTS) $(VIRTIO_TESTS)
+
+ukvm: $(UKVM_TESTS)
+
+virtio: $(VIRTIO_TESTS)
+
 clean: $(CLEANS)
 
 .PHONY: force_it
 
-_test_%: force_it
-	make -C $(subst _test, test, $@)
+_test_ukvm%: force_it
+	$(MAKE) -C $(subst _test_ukvm, test, $@) ukvm
+
+_test_virtio%: force_it
+	$(MAKE) -C $(subst _test_virtio, test, $@) virtio
 
 _clean_%: force_it
-	make -C $(subst _clean, test, $@) clean
-
-
+	$(MAKE) -C $(subst _clean, test, $@) clean
