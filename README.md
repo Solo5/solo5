@@ -101,7 +101,7 @@ no arguments or `--help`.
 
 To launch the unikernel:
 
-    ukvm-bin --net=tap100 ./mir-stackv4.ukvm
+    ./ukvm-bin --net=tap100 ./mir-stackv4.ukvm
 
 Use `^C` to terminate the unikernel.
 
@@ -168,7 +168,7 @@ with gdb support.
 
 Start ukvm with the `--gdb` flag, like this:
 
-    ukvm-bin mir-console.solo5-ukvm --gdb
+    ./ukvm-bin mir-console.solo5-ukvm --gdb
 
 And then from another console start gdb and connect to the remote target
 listening at `localhost:1234`:
