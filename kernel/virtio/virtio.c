@@ -610,7 +610,7 @@ void virtio_config_block(uint16_t base)
     outb(base + VIRTIO_PCI_STATUS, VIRTIO_PCI_STATUS_DRIVER_OK);
 
     outb(base + VIRTIO_PCI_QUEUE_SEL, 0);
-    outw(base + VIRTIO_PCI_QUEUE_PFN, (uint64_t)blkq.vring
+    outl(base + VIRTIO_PCI_QUEUE_PFN, (uint64_t)blkq.vring
          >> VIRTIO_PCI_QUEUE_ADDR_SHIFT);
 
     virtio_blk_pci_base = base;
@@ -663,7 +663,7 @@ void virtio_config_network(uint16_t base)
              virtio_net_mac[5]);
 
     /* check that 2 256 entry virtqueues are here (recv and transmit) */
-    for (i = 0; i > 2; i++) {
+    for (i = 0; i < 2; i++) {
         outw(base + VIRTIO_PCI_QUEUE_SEL, i);
         queue_size = inw(base + VIRTIO_PCI_QUEUE_SIZE);
         assert(queue_size == VRING_NET_QUEUE_SIZE);
@@ -672,10 +672,10 @@ void virtio_config_network(uint16_t base)
     outb(base + VIRTIO_PCI_STATUS, VIRTIO_PCI_STATUS_DRIVER_OK);
 
     outw(base + VIRTIO_PCI_QUEUE_SEL, VIRTQ_RECV);
-    outw(base + VIRTIO_PCI_QUEUE_PFN, (uint64_t)recvq.vring
+    outl(base + VIRTIO_PCI_QUEUE_PFN, (uint64_t)recvq.vring
          >> VIRTIO_PCI_QUEUE_ADDR_SHIFT);
     outw(base + VIRTIO_PCI_QUEUE_SEL, VIRTQ_XMIT);
-    outw(base + VIRTIO_PCI_QUEUE_PFN, (uint64_t)xmitq.vring
+    outl(base + VIRTIO_PCI_QUEUE_PFN, (uint64_t)xmitq.vring
          >> VIRTIO_PCI_QUEUE_ADDR_SHIFT);
 
     virtio_net_pci_base = base;
