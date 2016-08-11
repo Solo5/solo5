@@ -1,7 +1,7 @@
 #include "kernel.h"
 
 /* ukvm net interface */
-int solo5_net_write_sync(_UNUSED solo5_device * dev, _UNUSED uint64_t off,
+int solo5_net_write_sync(_UNUSED solo5_device * dev,
                          uint8_t *data, int n)
 {
     volatile struct ukvm_netwrite wr;
@@ -19,7 +19,6 @@ int solo5_net_write_sync(_UNUSED solo5_device * dev, _UNUSED uint64_t off,
 }
 
 int solo5_net_read_sync(_UNUSED solo5_device * dev,
-                        _UNUSED uint64_t off,
                         uint8_t *data, int *n)
 {
     volatile struct ukvm_netread rd;
@@ -32,7 +31,6 @@ int solo5_net_read_sync(_UNUSED solo5_device * dev,
     cc_barrier();
 
     *n = rd.len;
-
     return rd.ret;
 }
 
@@ -48,38 +46,36 @@ char *solo5_net_mac_str(_UNUSED solo5_device * dev)
     return mac_str;
 }
 
-int solo5_blk_write_sync(solo5_device *dev, uint64_t sec, uint8_t *data, int n)
+/* ukvm block interface */
+int solo5_blk_write_sync(_UNUSED solo5_device *dev, uint64_t sec, uint8_t *data, int n)
 {
-    solo5_request solo5_req;
-    short events[SOLO5_NUM_DEVICES];
+    volatile struct ukvm_blkwrite wr;
 
-    solo5_req = solo5_blk_write_async(dev, sec, data, n);
+    wr.sector = sec;
+    wr.data = data;
+    wr.len = n;
+    wr.ret = 0;
 
-    memset(events, 0, SOLO5_NUM_DEVICES * sizeof(events));
-    events[dev->poll_event_idx] = SOLO5_POLL_IO_READY;
-    solo5_poll(solo5_clock_monotonic() + 1e9, events, NULL);
+    outl(UKVM_PORT_BLKWRITE, ukvm_ptr(&wr));
+    cc_barrier();
 
-    /* FIXME: check for errors or sometihng */
-    solo5_req = solo5_req;
-
-    return 0;
+    return wr.ret;
 }
 
-int solo5_blk_read_sync(solo5_device *dev, uint64_t sec, uint8_t *data, int *n)
+int solo5_blk_read_sync(_UNUSED solo5_device *dev, uint64_t sec, uint8_t *data, int *n)
 {
-    solo5_request solo5_req;
+    volatile struct ukvm_blkread rd;
 
-    short events[SOLO5_NUM_DEVICES];
-    short revents[SOLO5_NUM_DEVICES];
+    rd.sector = sec;
+    rd.data = data;
+    rd.len = *n;
+    rd.ret = 0;
 
-    solo5_req = solo5_blk_read_async_submit(dev, sec, n);
+    outl(UKVM_PORT_BLKREAD, ukvm_ptr(&rd));
+    cc_barrier();
 
-    memset(events, 0, SOLO5_NUM_DEVICES * sizeof(events));
-    events[dev->poll_event_idx] = SOLO5_POLL_IO_READY;
-    solo5_poll(solo5_clock_monotonic() + 1e9, events, revents);
-
-    assert(events[dev->poll_event_idx] == SOLO5_POLL_IO_READY);
-    return solo5_blk_read_async_complete(dev, solo5_req, data, n);
+    *n = rd.len;
+    return rd.ret;
 }
 
 int solo5_blk_sector_size(_UNUSED solo5_device *dev)
