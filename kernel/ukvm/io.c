@@ -1,7 +1,7 @@
 #include "kernel.h"
 
 /* ukvm net interface */
-int solo5_net_write_sync(_UNUSED solo5_device * dev,
+int solo5_net_write_sync(__attribute__((__unused__)) solo5_device * dev,
                          uint8_t *data, int n)
 {
     volatile struct ukvm_netwrite wr;
@@ -18,7 +18,7 @@ int solo5_net_write_sync(_UNUSED solo5_device * dev,
     return wr.ret;
 }
 
-int solo5_net_read_sync(_UNUSED solo5_device * dev,
+int solo5_net_read_sync(__attribute__((__unused__)) solo5_device * dev,
                         uint8_t *data, int *n)
 {
     volatile struct ukvm_netread rd;
@@ -35,7 +35,7 @@ int solo5_net_read_sync(_UNUSED solo5_device * dev,
 }
 
 static char mac_str[18];
-char *solo5_net_mac_str(_UNUSED solo5_device * dev)
+char *solo5_net_mac_str(__attribute__((__unused__)) solo5_device * dev)
 {
     volatile struct ukvm_netinfo info;
 
@@ -47,7 +47,7 @@ char *solo5_net_mac_str(_UNUSED solo5_device * dev)
 }
 
 /* ukvm block interface */
-int solo5_blk_write_sync(_UNUSED solo5_device *dev, uint64_t sec, uint8_t *data, int n)
+int solo5_blk_write_sync(__attribute__((__unused__)) solo5_device *dev, uint64_t sec, uint8_t *data, int n)
 {
     volatile struct ukvm_blkwrite wr;
 
@@ -62,7 +62,7 @@ int solo5_blk_write_sync(_UNUSED solo5_device *dev, uint64_t sec, uint8_t *data,
     return wr.ret;
 }
 
-int solo5_blk_read_sync(_UNUSED solo5_device *dev, uint64_t sec, uint8_t *data, int *n)
+int solo5_blk_read_sync(__attribute__((__unused__)) solo5_device *dev, uint64_t sec, uint8_t *data, int *n)
 {
     volatile struct ukvm_blkread rd;
 
@@ -78,7 +78,7 @@ int solo5_blk_read_sync(_UNUSED solo5_device *dev, uint64_t sec, uint8_t *data, 
     return rd.ret;
 }
 
-int solo5_blk_sector_size(_UNUSED solo5_device *dev)
+int solo5_blk_sector_size(__attribute__((__unused__)) solo5_device *dev)
 {
     volatile struct ukvm_blkinfo info;
 
@@ -90,7 +90,7 @@ int solo5_blk_sector_size(_UNUSED solo5_device *dev)
     return info.sector_size;
 }
 
-uint64_t solo5_blk_sectors(_UNUSED solo5_device *dev)
+uint64_t solo5_blk_sectors(__attribute__((__unused__)) solo5_device *dev)
 {
     volatile struct ukvm_blkinfo info;
 
@@ -102,7 +102,7 @@ uint64_t solo5_blk_sectors(_UNUSED solo5_device *dev)
     return info.num_sectors;
 }
 
-int solo5_blk_rw(_UNUSED solo5_device *dev)
+int solo5_blk_rw(__attribute__((__unused__)) solo5_device *dev)
 {
     volatile struct ukvm_blkinfo info;
 

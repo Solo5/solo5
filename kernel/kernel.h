@@ -228,6 +228,4 @@ static inline uint64_t mul64_32(uint64_t a, uint32_t b)
 
 #define NSEC_PER_SEC	1000000000ULL
 
-#define _UNUSED		__attribute__((__unused__))
-
 #endif
