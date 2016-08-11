@@ -13,8 +13,8 @@ int solo5_app_main(char *cmdline);
 
 /* Network */
 solo5_device *solo5_get_first_netiface(void);
-int solo5_net_write_sync(solo5_device *, uint64_t, uint8_t *, int);
-int solo5_net_read_sync(solo5_device *, uint64_t, uint8_t *, int *);
+int solo5_net_write_sync(solo5_device *, uint8_t *, int);
+int solo5_net_read_sync(solo5_device *, uint8_t *, int *);
 char *solo5_net_mac_str(solo5_device *);
 
 /* Block */

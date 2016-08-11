@@ -55,10 +55,8 @@ void time_init(void)
 int solo5_poll(uint64_t until_nsecs, short *events, short *revents)
 {
     int rc = 0;
-    int blk_event = 0, net_event = 0;
+    int net_event = 0;
 
-    /* FIXME: assumes there is always one disk and one net */
-    int idx_first_blk = solo5_get_first_disk()->poll_event_idx;
     int idx_first_net = solo5_get_first_netiface()->poll_event_idx;
 
     /*
@@ -68,17 +66,9 @@ int solo5_poll(uint64_t until_nsecs, short *events, short *revents)
      */
     interrupts_disable();
     do {
-        /*
-	 * Let's check if we have network or blk activity so we can stop
-	 * sleeping.  For the network, we ask if there is something to read.
-	 * For the blk device, we ask if there is any IO completed. We only
-	 * support one IO at a time.
-         */
-        blk_event = (events[idx_first_blk] & SOLO5_POLL_IO_READY)
-                    && virtio_blk_completed();
         net_event = (events[idx_first_net] & SOLO5_POLLIN)
                     && virtio_net_pkt_poll();
-        if (blk_event || net_event) {
+        if (net_event) {
             rc = 1;
             break;
         }
@@ -86,15 +76,12 @@ int solo5_poll(uint64_t until_nsecs, short *events, short *revents)
         cpu_block(until_nsecs);
     } while (solo5_clock_monotonic() < until_nsecs);
     if (!rc) {
-        blk_event = (events[idx_first_blk] & SOLO5_POLL_IO_READY)
-                    && virtio_blk_completed();
         net_event = (events[idx_first_net] & SOLO5_POLLIN)
                     && virtio_net_pkt_poll();
-        rc = blk_event || net_event;
+        rc = net_event;
     }
     interrupts_enable();
 
-    revents[idx_first_blk] = blk_event;
     revents[idx_first_net] = net_event;
 
     return rc;

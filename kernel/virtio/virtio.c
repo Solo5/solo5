@@ -869,7 +869,7 @@ void virtio_net_pkt_put(void)
 
 
 
-solo5_request solo5_blk_read_async_submit(_UNUSED solo5_device *dev,
+solo5_request solo5_blk_read_async_submit(__attribute__((__unused__)) solo5_device *dev,
                                           uint64_t sec, int *n)
 {
     solo5_request req;
@@ -883,13 +883,13 @@ int solo5_blk_read_sync(solo5_device *dev, uint64_t sec, uint8_t *data, int *n)
     return virtio_blk_read_sync(dev, sec, data, n);
 }
 
-int solo5_blk_read_async_complete(_UNUSED solo5_device *dev, solo5_request req,
+int solo5_blk_read_async_complete(__attribute__((__unused__)) solo5_device *dev, solo5_request req,
                                   uint8_t *data, int *n)
 {
     return virtio_blk_read_async_complete(req, data, n);
 }
 
-solo5_request solo5_blk_write_async(_UNUSED solo5_device *dev, uint64_t sec,
+solo5_request solo5_blk_write_async(__attribute__((__unused__)) solo5_device *dev, uint64_t sec,
                                     uint8_t *data, int n)
 {
     solo5_request req;
@@ -905,7 +905,7 @@ int solo5_blk_write_sync(solo5_device *dev, uint64_t sec, uint8_t *data, int n)
     return virtio_blk_write_sync(dev, sec, data, n);
 }
 
-int solo5_blk_write_async_complete(_UNUSED solo5_device *dev,
+int solo5_blk_write_async_complete(__attribute__((__unused__)) solo5_device *dev,
                                    solo5_request req, int *n)
 {
     /* TODO: map the device *dev to the virtio device */
@@ -919,29 +919,29 @@ int virtio_blk_completed(void)
     return inflight_io_completed;
 }
 
-int solo5_blk_sector_size(_UNUSED solo5_device *dev)
+int solo5_blk_sector_size(__attribute__((__unused__)) solo5_device *dev)
 {
     return VIRTIO_BLK_SECTOR_SIZE;
 }
 
-uint64_t solo5_blk_sectors(_UNUSED solo5_device *dev)
+uint64_t solo5_blk_sectors(__attribute__((__unused__)) solo5_device *dev)
 {
     return virtio_blk_sectors;
 }
 
-int solo5_blk_rw(_UNUSED solo5_device *dev)
+int solo5_blk_rw(__attribute__((__unused__)) solo5_device *dev)
 {
     return 1;
 }
 
 
-int solo5_net_write_sync(_UNUSED solo5_device *dev, _UNUSED uint64_t off,
+int solo5_net_write_sync(__attribute__((__unused__)) solo5_device *dev,
                          uint8_t *data, int n)
 {
     return virtio_net_xmit_packet(data, n);
 }
 
-int solo5_net_read_sync(_UNUSED solo5_device *dev, _UNUSED uint64_t off,
+int solo5_net_read_sync(__attribute__((__unused__)) solo5_device *dev,
                         uint8_t *data, int *n)
 {
     uint8_t *pkt;
@@ -961,7 +961,7 @@ int solo5_net_read_sync(_UNUSED solo5_device *dev, _UNUSED uint64_t off,
 
     return 0;
 }
-char *solo5_net_mac_str(_UNUSED solo5_device *dev)
+char *solo5_net_mac_str(__attribute__((__unused__)) solo5_device *dev)
 {
     return virtio_net_mac_str;
 }
