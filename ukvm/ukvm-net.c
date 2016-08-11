@@ -199,16 +199,9 @@ static char *usage(void)
     return "--net=TAP (host tap device for guest network interface)";
 }
 
-static int handle_exit_cleanup(void)
-{
-    return 0;
-}
-
-
 struct ukvm_module ukvm_net = {
     .get_fd = get_fd,
     .handle_exit = handle_exit,
-    .handle_exit_cleanup = handle_exit_cleanup,
     .handle_cmdarg = handle_cmdarg,
     .setup = setup,
     .usage = usage

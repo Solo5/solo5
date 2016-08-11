@@ -8,7 +8,6 @@ struct ukvm_module {
     int (*handle_exit)(struct kvm_run *run, int vcpufd, uint8_t *mem);
     int (*handle_cmdarg)(char *cmdarg);
     int (*setup)(int vcpufd, uint8_t *mem);
-    int (*handle_exit_cleanup)(void);
     char *(*usage)(void);
 };
 

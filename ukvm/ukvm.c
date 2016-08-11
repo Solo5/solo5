@@ -640,9 +640,6 @@ void ukvm_port_poll(uint8_t *mem, void *data)
 	if (fd) {
 	    t->revents[i] = (int)fds[num_fds].revents;
 	    num_fds += 1;
-
-            if (t->revents[i] == POLLIN)
-	        modules[i]->handle_exit_cleanup();
 	}
     }
 }
