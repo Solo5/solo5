@@ -44,7 +44,7 @@ Start with a fresh OPAM switch for the Mirage/Solo5 target you will be
 using: (If you are using the pre-built Docker images you can skip this
 step.)
 
-    opam switch --alias-of 4.03.0 mirage-solo5-ukvm
+    opam switch --alias-of 4.03.0 mirage-solo5-dev
 
 While Solo5 support has been merged into upstream MirageOS, this has not
 yet been officially released. To use the latest development version of
@@ -56,7 +56,7 @@ Install the MirageOS frontend:
 
     opam depext -i mirage
 
-Clone the MirageOS example applications repository (`mirage-dev`) branch:
+Clone the MirageOS example applications repository (`mirage-dev` branch):
 
     git clone -b mirage-dev https://github.com/mirage/mirage-skeleton
 
