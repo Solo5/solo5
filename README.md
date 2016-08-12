@@ -46,26 +46,24 @@ step.)
 
     opam switch --alias-of 4.03.0 mirage-solo5-ukvm
 
-Add the OPAM repository for Mirage/Solo5:
+While Solo5 support has been merged into upstream MirageOS, this has not
+yet been officially released. To use the latest development version of
+MirageOS you will need to add the `mirage-dev` OPAM repository:
 
-    opam repo add solo5 git://github.com/solo5/opam-solo5
+    opam repo add mirage-dev git://github.com/mirage/mirage-dev
 
-If you will be using the `ukvm` target, ensure that a "Linux kernel
-headers" package is installed. For Debian-based distributions this is
-`linux-libc-dev`, for Alpine Linux this is `linux-headers`.
-
-Install Mirage/Solo5:
+Install the MirageOS frontend:
 
     opam depext -i mirage
 
-Clone the MirageOS example applications repository:
+Clone the MirageOS example applications repository (`mirage-dev`) branch:
 
-    git clone https://github.com/mirage/mirage-skeleton
+    git clone -b mirage-dev https://github.com/mirage/mirage-skeleton
 
 Build the `stackv4` example:
 
     cd mirage-skeleton/stackv4
-    mirage configure --ukvm
+    mirage configure -t ukvm
     make
 
 This will build the unikernel as `mir-stackv4.ukvm` (with a `ukvm-bin`
