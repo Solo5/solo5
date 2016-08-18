@@ -19,5 +19,5 @@ conflicts: [
 ]
 
 available: [
-  ocaml-version >= "4.02.3" & arch = "x86_64" & os != "darwin"
+  ocaml-version >= "4.02.3" & (arch = "x86_64" | arch = "amd64") & os != "darwin"
 ]
