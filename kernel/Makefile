@@ -83,7 +83,7 @@ virtio/solo5.o: $(VIRTIO_COBJS) $(SOBJS) virtio/solo5.lds
 
 ukvm/solo5.o: $(UKVM_COBJS) $(SOBJS) ukvm/solo5.lds
 	$(LD) -r $(LDFLAGS) -o $@ $(UKVM_COBJS) $(SOBJS) 
-	$(OBJCOPY) -w -G solo5_\* -G kernel_main $@ $@
+	$(OBJCOPY) -w -G solo5_\* -G _start $@ $@
 
 .PHONY: clean
 clean:

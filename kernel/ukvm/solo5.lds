@@ -1,36 +1,57 @@
-ENTRY(kernel_main)
+ENTRY(_start)
 
 SECTIONS {
-
-    /* kernel at 1MB */
     . = 0x100000;
 
-	.text BLOCK(4K) : ALIGN(4K)
-	{
-		*(.text)
-	}
+    /* Code */
+    _stext = .;
 
-	/* Read-only data. */
-	.rodata BLOCK(4K) : ALIGN(4K)
-	{
-		*(.rodata)
-	}
+    .text :
+    {
+        *(.text)
+        *(.text.*)
+    }
 
-	/* Read-write data (initialized) */
-	.data BLOCK(4K) : ALIGN(4K)
-	{
-		*(.data)
-	}
+    . = ALIGN(0x1000);
+    _etext = .;
 
-	/* Read-write data (uninitialized) */
-    bss_start = .;
-	.bss BLOCK(4K) : ALIGN(4K)
-	{
-		*(COMMON)
-		*(.bss)
-	}
-    bss_end = .;
+    /* Read-only data */
+    .rodata :
+    {
+        *(.rodata)
+        *(.rodata.*)
+    }
+    .eh_frame :
+    {
+        *(.eh_frame)
+    }
 
-	/* The compiler may produce other sections, by default it will put them in
-	   a segment with the same name. Simply add stuff here as needed. */
+    . = ALIGN(0x1000);
+    _erodata = .;
+
+    /* Read-write data (initialized) */
+    .got :
+    {
+        *(.got.plt)
+        *(.got)
+    }
+    .data :
+    {
+        *(.data)
+        *(.data.*)
+    }
+
+    . = ALIGN(0x1000);
+    _edata = .;
+
+    /* Read-write data (uninitialized) */
+    .bss :
+    {
+        *(.bss)
+        *(COMMON)
+    }
+
+    . = ALIGN(0x1000);
+    _ebss = .;
+    _end = .;
 }

@@ -2,36 +2,64 @@ ENTRY(_start)
 
 SECTIONS {
     . = 0x100000;
-    
+
+    /* Multiboot header */
     .bootstrap :
     {
         *(.bootstrap)
     }
 
-    .text BLOCK(4K) : ALIGN(4K)
+    . = ALIGN(0x1000);
+
+    /* Code */
+    _stext = .;
+
+    .text :
     {
         *(.text)
+        *(.text.*)
     }
 
-    /* Read-only data. */
-    .rodata BLOCK(4K) : ALIGN(4K)
+    . = ALIGN(0x1000);
+    _etext = .;
+
+    /* Read-only data */
+    .rodata :
     {
         *(.rodata)
+        *(.rodata.*)
+    }
+    .eh_frame :
+    {
+        *(.eh_frame)
     }
 
+    . = ALIGN(0x1000);
+    _erodata = .;
+
     /* Read-write data (initialized) */
-    .data BLOCK(4K) : ALIGN(4K)
+    .got :
+    {
+        *(.got.plt)
+        *(.got)
+    }
+    .data :
     {
         *(.data)
+        *(.data.*)
     }
+
+    . = ALIGN(0x1000);
     _edata = .;
 
     /* Read-write data (uninitialized) */
-    .bss BLOCK(4K) : ALIGN(4K)
+    .bss :
     {
-        *(COMMON)
         *(.bss)
+        *(COMMON)
     }
+
+    . = ALIGN(0x1000);
     _ebss = .;
     _end = .;
 }
