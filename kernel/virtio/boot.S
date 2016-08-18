@@ -49,6 +49,8 @@ bootstrap:
 .long _ebss
 .long _start
 
+.data
+
 .space 4096
 bootstack:
 

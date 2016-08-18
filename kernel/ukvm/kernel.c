@@ -26,7 +26,7 @@ static void banner(void)
     printf("____/\\___/ _|\\___/____/\n");
 }
 
-void kernel_main(struct ukvm_boot_info *bi)
+void _start(struct ukvm_boot_info *bi)
 {
     int ret;
 
