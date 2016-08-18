@@ -26,21 +26,20 @@ stubs.o \
 pvclock.o
 
 UKVM_COBJS=\
-$(COMMON_COBJS) \
+ukvm/kernel.o \
 ukvm/gdt.o \
 ukvm/io.o \
-ukvm/kernel.o \
 ukvm/low_level.o \
 ukvm/low_level_interrupts.o \
 ukvm/mem.o \
-ukvm/time.o
+ukvm/time.o \
+$(COMMON_COBJS)
 
 VIRTIO_COBJS=\
-$(COMMON_COBJS) \
 virtio/boot.o \
+virtio/kernel.o \
 virtio/low_level.o \
 virtio/low_level_interrupts.o \
-virtio/kernel.o \
 virtio/mem.o \
 virtio/net.o \
 virtio/pci.o \
@@ -48,9 +47,9 @@ virtio/serial.o \
 virtio/time.o \
 virtio/virtio.o \
 virtio/tscclock.o \
-virtio/clock_subr.o
+virtio/clock_subr.o \
+$(COMMON_COBJS)
 
-COBJS=$(COMMON_COBJS) $(VIRTIO_COBJS)
 SOBJS=\
 kernel_s.o \
 mem_s.o \
