@@ -86,7 +86,7 @@
 static uint64_t virtio_blk_sectors;
 
 
-#define PKT_BUFFER_LEN 1514
+#define PKT_BUFFER_LEN 1526
 struct pkt_buffer {
     uint8_t data[PKT_BUFFER_LEN];
     uint32_t len;
@@ -150,8 +150,8 @@ struct __attribute__((__packed__)) vring_used {
 #define VRING_OFF_USED(q) ((VRING_OFF_PADDING(q) + PAGE_SIZE - 1) & PAGE_MASK)
 #define VRING_OFF_USED_RING(q) (VRING_OFF_USED(q) + sizeof(struct vring_used))
 
-#define VRING_SIZE(q) (VRING_OFF_USED_RING(q)                       \
-                       + (sizeof(struct vring_used_elem) * (q)))
+#define VRING_SIZE(q) (VRING_OFF_USED_RING(q) \
+                                   + (sizeof(struct vring_used_elem) * (q)))
 
 struct vring {
     uint32_t size;
@@ -187,7 +187,11 @@ struct vring_used_elem *vring_used_elem_get(struct vring *vring, int i)
                                       + (i * sizeof(struct vring_used_elem)));
 }
 
-#define VRING_NET_MAX_QUEUE_SIZE 4096
+/*
+ * There is no official max queue size. But we've seen 4096, so let's use the
+ * double of that.
+ */
+#define VRING_NET_MAX_QUEUE_SIZE 8192
 
 struct pkt_buffer xmit_bufs[VRING_NET_MAX_QUEUE_SIZE];
 struct pkt_buffer recv_bufs[VRING_NET_MAX_QUEUE_SIZE];
@@ -305,15 +309,11 @@ static void check_xmit(void)
     int dbg = 0;
 
     for (;;) {
-        uint16_t data_idx;
-
         if ((vring_used_get(&xmitq)->idx % xmitq.size) == xmit_last_used)
             break;
 
         e = vring_used_elem_get(&xmitq, xmit_last_used % xmitq.size);
         desc = vring_desc_get(&xmitq, e->id); /* the virtio_net header */
-        data_idx = desc->next;
-        desc = vring_desc_get(&xmitq, data_idx); /* the data buffer */
 
         if (dbg)
             printf("REAP: 0x%p next_avail %d last_used %d\n",
@@ -425,29 +425,23 @@ int virtio_net_xmit_packet(void *data, int len)
     struct vring_avail *avail;
     int dbg = 0;
 
-    if (((xmit_next_avail + 2) % xmitq.size)
-        == ((xmit_last_used * 2) % xmitq.size)) {
+    if (((xmit_next_avail + 1) % xmitq.size) ==
+        (xmit_last_used % xmitq.size)) {
         printf("xmit buffer full! next_avail:%d last_used:%d\n",
                xmit_next_avail, xmit_last_used);
             return -1;
     }
 
     /* we perform a copy into the xmit buffer to make reclaiming easy */
-    assert(len <= PKT_BUFFER_LEN);
-    memcpy(xmit_bufs[xmit_next_avail/2].data, data, len);
+    assert((len + sizeof(virtio_net_hdr)) <= PKT_BUFFER_LEN);
+    memcpy(xmit_bufs[xmit_next_avail].data,
+           &virtio_net_hdr, sizeof(virtio_net_hdr));
+    memcpy(xmit_bufs[xmit_next_avail].data + sizeof(virtio_net_hdr),
+           data, len);
 
-    /* it seems like we need one descriptor for the virtio header */
-    /* should be able to be pulled out (i.e., not set every time) */
     desc = vring_desc_get(&xmitq, xmit_next_avail);
-    desc->addr = (uint64_t)&virtio_net_hdr;
-    desc->len = sizeof(virtio_net_hdr);
-    desc->next = xmit_next_avail + 1;
-    desc->flags = VRING_DESC_F_NEXT;
-
-    /* and a separate one for the actual packet */
-    desc = vring_desc_get(&xmitq, xmit_next_avail + 1);
-    desc->addr = (uint64_t)xmit_bufs[xmit_next_avail/2].data;
-    desc->len = len;
+    desc->addr = (uint64_t) xmit_bufs[xmit_next_avail].data;
+    desc->len = sizeof(virtio_net_hdr) + len;
     desc->flags = 0;
 
     if (dbg)
@@ -460,7 +454,7 @@ int virtio_net_xmit_packet(void *data, int len)
         = xmit_next_avail;
 
     avail->idx++;
-    xmit_next_avail = (xmit_next_avail + 2) % xmitq.size;
+    xmit_next_avail = (xmit_next_avail + 1) % xmitq.size;
     outw(virtio_net_pci_base + VIRTIO_PCI_QUEUE_NOTIFY, VIRTQ_XMIT);
 
     return 0;
@@ -847,7 +841,6 @@ int solo5_net_read_sync(uint8_t *data, int *n)
 
     assert(len <= *n);
     assert(len <= PKT_BUFFER_LEN);
-    memset(data, 0, *n);
     *n = len;
 
     /* also, it's clearly not zero copy */
