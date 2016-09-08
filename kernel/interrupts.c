@@ -48,7 +48,7 @@ struct __attribute__((__packed__)) idtptr {
 extern void idt_load(uint64_t idtptr);
 
 /* The actual memory for the IDT is here */
-struct qw idt[IDT_NUM_ENTRIES] ALIGN_64_BIT;
+static struct qw idt[IDT_NUM_ENTRIES] ALIGN_64_BIT;
 
 #define SET_IDT_ENTRY(n, a) do {                                        \
         idt[n].hi2 = 0;                                                 \
@@ -125,7 +125,9 @@ struct tss {
     uint64_t reserved3;
     uint16_t reserved4;
     uint16_t iomap_base;
-} __attribute__((packed)) cpu_tss;
+} __attribute__((packed));
+
+static struct tss cpu_tss;
 
 struct tss_desc {
     uint64_t limit_lo:16;

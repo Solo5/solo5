@@ -105,7 +105,7 @@ struct virtio_blk_req {
     volatile uint8_t status;
     volatile uint8_t hw_used;
 };
-struct virtio_blk_req blk_bufs[128];
+static struct virtio_blk_req blk_bufs[128];
 
 struct __attribute__((__packed__)) vring_desc {
     uint64_t addr;   /* Address (guest-physical). */
@@ -193,8 +193,8 @@ struct vring_used_elem *vring_used_elem_get(struct vring *vring, int i)
  */
 #define VRING_NET_MAX_QUEUE_SIZE 8192
 
-struct pkt_buffer xmit_bufs[VRING_NET_MAX_QUEUE_SIZE];
-struct pkt_buffer recv_bufs[VRING_NET_MAX_QUEUE_SIZE];
+static struct pkt_buffer xmit_bufs[VRING_NET_MAX_QUEUE_SIZE];
+static struct pkt_buffer recv_bufs[VRING_NET_MAX_QUEUE_SIZE];
 
 static uint8_t recv_data[VRING_SIZE(VRING_NET_MAX_QUEUE_SIZE)] ALIGN_4K;
 static uint8_t xmit_data[VRING_SIZE(VRING_NET_MAX_QUEUE_SIZE)] ALIGN_4K;
@@ -244,7 +244,7 @@ static struct virtio_net_hdr virtio_net_hdr = {0, 0, 0, 0, 0, 0};
 static uint16_t virtio_net_pci_base; /* base in PCI config space */
 static uint16_t virtio_blk_pci_base; /* base in PCI config space */
 
-uint8_t virtio_net_mac[6];
+static uint8_t virtio_net_mac[6];
 static char virtio_net_mac_str[18];
 
 static uint32_t xmit_next_avail;
