@@ -41,7 +41,6 @@ virtio/kernel.o \
 virtio/low_level.o \
 virtio/low_level_interrupts.o \
 virtio/mem.o \
-virtio/net.o \
 virtio/pci.o \
 virtio/serial.o \
 virtio/time.o \

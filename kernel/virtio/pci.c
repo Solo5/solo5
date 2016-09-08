@@ -57,8 +57,8 @@ struct pci_config_info {
     uint8_t interrupt_line;
 };
 
-uint32_t net_devices_found;
-uint32_t blk_devices_found;
+static uint32_t net_devices_found;
+static uint32_t blk_devices_found;
 
 #define PCI_CONF_SUBSYS_NET 1
 #define PCI_CONF_SUBSYS_BLK 2
