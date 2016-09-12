@@ -106,7 +106,6 @@ struct virtio_blk_req {
     volatile uint8_t status;
     volatile uint8_t hw_used;
 };
-static struct virtio_blk_req blk_bufs[128];
 
 /* The vring is one of these irritating layouts that we can't just
  *  struct out because of variable length fields.  Instead, we use
@@ -130,14 +129,15 @@ static struct virtio_blk_req blk_bufs[128];
  * double of that.
  */
 #define VRING_NET_MAX_QUEUE_SIZE 8192
-#define VRING_BLK_QUEUE_SIZE 128
+#define VRING_BLK_MAX_QUEUE_SIZE 8192
 
-static struct pkt_buffer xmit_bufs[VRING_NET_MAX_QUEUE_SIZE];
-static struct pkt_buffer recv_bufs[VRING_NET_MAX_QUEUE_SIZE];
+static struct pkt_buffer *xmit_bufs;
+static struct pkt_buffer *recv_bufs;
+static struct virtio_blk_req *blk_bufs;
 
-static uint8_t recv_data[VRING_SIZE(VRING_NET_MAX_QUEUE_SIZE)] ALIGN_4K;
-static uint8_t xmit_data[VRING_SIZE(VRING_NET_MAX_QUEUE_SIZE)] ALIGN_4K;
-static uint8_t blk_data[VRING_SIZE(VRING_BLK_QUEUE_SIZE)] ALIGN_4K;
+static uint8_t *recv_data;
+static uint8_t *xmit_data;
+static uint8_t *blk_data;
 
 static struct virtq recvq;
 static struct virtq xmitq;
@@ -531,21 +531,26 @@ void virtio_config_block(uint16_t base)
 
     blkq.num = inw(base + VIRTIO_PCI_QUEUE_SIZE);
     
-    printf("queue size is %d\n", blkq.num);
-    assert(blkq.num == VRING_BLK_QUEUE_SIZE);
+    printf("block queue size is %d\n", blkq.num);
+    assert(blkq.num <= VRING_BLK_MAX_QUEUE_SIZE);
 
-    blk_configured = 1;
-    outb(base + VIRTIO_PCI_STATUS, VIRTIO_PCI_STATUS_DRIVER_OK);
-
-    outb(base + VIRTIO_PCI_QUEUE_SEL, 0);
-    outl(base + VIRTIO_PCI_QUEUE_PFN, (uint64_t)blk_data
-         >> VIRTIO_PCI_QUEUE_ADDR_SHIFT);
+    blk_data = memalign(4096, VRING_SIZE(blkq.num));
+    assert(blk_data);
+    memset(blk_data, 0, VRING_SIZE(blkq.num));
+    blk_bufs = calloc(blkq.num, sizeof (struct virtio_blk_req));
+    assert(blk_bufs);
 
     blkq.desc =  (struct virtq_desc *)(blk_data + VRING_OFF_DESC(blkq.num));
     blkq.avail = (struct virtq_avail *)(blk_data + VRING_OFF_AVAIL(blkq.num));
     blkq.used = (struct virtq_used *)(blk_data + VRING_OFF_USED(blkq.num));
 
     virtio_blk_pci_base = base;
+    blk_configured = 1;
+    outb(base + VIRTIO_PCI_STATUS, VIRTIO_PCI_STATUS_DRIVER_OK);
+
+    outb(base + VIRTIO_PCI_QUEUE_SEL, 0);
+    outl(base + VIRTIO_PCI_QUEUE_PFN, (uint64_t)blk_data
+         >> VIRTIO_PCI_QUEUE_ADDR_SHIFT);
 }
 
 void virtio_config_network(uint16_t base)
@@ -600,17 +605,31 @@ void virtio_config_network(uint16_t base)
     xmitq.num = inw(base + VIRTIO_PCI_QUEUE_SIZE);
     assert(recvq.num <= VRING_NET_MAX_QUEUE_SIZE);
     assert(xmitq.num <= VRING_NET_MAX_QUEUE_SIZE);
+    printf("net queue size is %d/%d\n", recvq.num, xmitq.num);
 
-    net_configured = 1;
-    outb(base + VIRTIO_PCI_STATUS, VIRTIO_PCI_STATUS_DRIVER_OK);
+    recv_data = memalign(4096, VRING_SIZE(recvq.num));
+    assert(recv_data);
+    memset(recv_data, 0, VRING_SIZE(recvq.num));
+    recv_bufs = calloc(recvq.num, sizeof (struct pkt_buffer));
+    assert(recv_bufs);
 
-    recvq.desc =  (struct virtq_desc *)(recv_data + VRING_OFF_DESC(recvq.num));
+    recvq.desc = (struct virtq_desc *)(recv_data + VRING_OFF_DESC(recvq.num));
     recvq.avail = (struct virtq_avail *)(recv_data + VRING_OFF_AVAIL(recvq.num));
     recvq.used = (struct virtq_used *)(recv_data + VRING_OFF_USED(recvq.num));
 
-    xmitq.desc =  (struct virtq_desc *)(xmit_data + VRING_OFF_DESC(xmitq.num));
+    xmit_data = memalign(4096, VRING_SIZE(xmitq.num));
+    assert(xmit_data);
+    memset(xmit_data, 0, VRING_SIZE(xmitq.num));
+    xmit_bufs = calloc(xmitq.num, sizeof (struct pkt_buffer));
+    assert(xmit_bufs);
+
+    xmitq.desc = (struct virtq_desc *)(xmit_data + VRING_OFF_DESC(xmitq.num));
     xmitq.avail = (struct virtq_avail *)(xmit_data + VRING_OFF_AVAIL(xmitq.num));
     xmitq.used = (struct virtq_used *)(xmit_data + VRING_OFF_USED(xmitq.num));
+
+    virtio_net_pci_base = base;
+    net_configured = 1;
+    outb(base + VIRTIO_PCI_STATUS, VIRTIO_PCI_STATUS_DRIVER_OK);
 
     outw(base + VIRTIO_PCI_QUEUE_SEL, VIRTQ_RECV);
     outl(base + VIRTIO_PCI_QUEUE_PFN, (uint64_t) recv_data
@@ -618,8 +637,6 @@ void virtio_config_network(uint16_t base)
     outw(base + VIRTIO_PCI_QUEUE_SEL, VIRTQ_XMIT);
     outl(base + VIRTIO_PCI_QUEUE_PFN, (uint64_t) xmit_data
          >> VIRTIO_PCI_QUEUE_ADDR_SHIFT);
-
-    virtio_net_pci_base = base;
 
     recv_setup();
 }
