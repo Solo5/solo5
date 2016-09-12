@@ -151,7 +151,7 @@ static void tss_init(void)
 {
     struct tss_desc *td = (void *)&cpu_gdt64[GDT_DESC_TSS_LO];
 
-    cpu_tss.ist[0] = (uint64_t)&cpu_intrstack;
+    cpu_tss.ist[0] = (uint64_t)&cpu_intrstack[sizeof cpu_intrstack];
     td->limit_lo = sizeof(cpu_tss);
     td->base_lo = (uint64_t)&cpu_tss;
     td->type = 0x9;

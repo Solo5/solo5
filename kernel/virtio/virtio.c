@@ -175,11 +175,13 @@ static uint16_t virtio_blk_pci_base; /* base in PCI config space */
 static uint8_t virtio_net_mac[6];
 static char virtio_net_mac_str[18];
 
+static int net_configured;
 static uint32_t xmit_next_avail;
 static uint32_t recv_next_avail;
 static uint32_t xmit_last_used;
 static uint32_t recv_last_used;
 
+static int blk_configured;
 static uint32_t blk_next_avail;
 static uint32_t blk_last_used;
 
@@ -251,7 +253,6 @@ static void check_xmit(void)
     }
 }
 
-
 static void recv_load_desc(void)
 {
     struct virtq_desc *desc;
@@ -312,17 +313,22 @@ static void check_recv(void)
 /* WARNING: called in interrupt context */
 void handle_virtio_interrupt(void)
 {
-    uint8_t isr_status_net = inb(virtio_net_pci_base + VIRTIO_PCI_ISR);
-    uint8_t isr_status_blk = inb(virtio_blk_pci_base + VIRTIO_PCI_ISR);
+    uint8_t isr_status;
 
-    if (isr_status_net & VIRTIO_PCI_ISR_HAS_INTR) {
-        check_xmit();
-        check_recv();
-    } else if (isr_status_blk & VIRTIO_PCI_ISR_HAS_INTR) {
-        check_blk();
+    if (net_configured) {
+        isr_status = inb(virtio_net_pci_base + VIRTIO_PCI_ISR);
+        if (isr_status & VIRTIO_PCI_ISR_HAS_INTR) {
+            check_xmit();
+            check_recv();
+        }
+    }
+    if (blk_configured) {
+        isr_status = inb(virtio_blk_pci_base + VIRTIO_PCI_ISR);
+        if (isr_status & VIRTIO_PCI_ISR_HAS_INTR) {
+            check_blk();
+        }
     }
 }
-
 
 static void recv_setup(void)
 {
@@ -528,6 +534,7 @@ void virtio_config_block(uint16_t base)
     printf("queue size is %d\n", blkq.num);
     assert(blkq.num == VRING_BLK_QUEUE_SIZE);
 
+    blk_configured = 1;
     outb(base + VIRTIO_PCI_STATUS, VIRTIO_PCI_STATUS_DRIVER_OK);
 
     outb(base + VIRTIO_PCI_QUEUE_SEL, 0);
@@ -594,6 +601,7 @@ void virtio_config_network(uint16_t base)
     assert(recvq.num <= VRING_NET_MAX_QUEUE_SIZE);
     assert(xmitq.num <= VRING_NET_MAX_QUEUE_SIZE);
 
+    net_configured = 1;
     outb(base + VIRTIO_PCI_STATUS, VIRTIO_PCI_STATUS_DRIVER_OK);
 
     recvq.desc =  (struct virtq_desc *)(recv_data + VRING_OFF_DESC(recvq.num));
@@ -713,6 +721,9 @@ void blk_test(void)
 
 int virtio_net_pkt_poll(void)
 {
+    if (!net_configured)
+        return 0;
+
     if (recv_next_avail == (recv_last_used % recvq.num))
         return 0;
     else
@@ -738,38 +749,54 @@ void virtio_net_pkt_put(void)
     recv_load_desc();
 }
 
-
-
 int solo5_blk_write_sync(uint64_t sec, uint8_t *data, int n)
 {
+    assert(blk_configured);
+
     return virtio_blk_write_sync(sec, data, n);
 }
+
 int solo5_blk_read_sync(uint64_t sec, uint8_t *data, int *n)
 {
+    assert(blk_configured);
+
     return virtio_blk_read_sync(sec, data, n);
 }
+
 int solo5_blk_sector_size(void)
 {
+    assert(blk_configured);
+
     return VIRTIO_BLK_SECTOR_SIZE;
 }
+
 uint64_t solo5_blk_sectors(void)
 {
+    assert(blk_configured);
+
     return virtio_blk_sectors;
 }
+
 int solo5_blk_rw(void)
 {
+    assert(blk_configured);
+
     return 1;
 }
 
-
 int solo5_net_write_sync(uint8_t *data, int n)
 {
+    assert(net_configured);
+
     return virtio_net_xmit_packet(data, n);
 }
+
 int solo5_net_read_sync(uint8_t *data, int *n)
 {
     uint8_t *pkt;
     int len = *n;
+
+    assert(net_configured);
 
     pkt = virtio_net_pkt_get(&len);
     if (!pkt)
@@ -786,7 +813,10 @@ int solo5_net_read_sync(uint8_t *data, int *n)
 
     return 0;
 }
+
 char *solo5_net_mac_str(void)
 {
+    assert(net_configured);
+
     return virtio_net_mac_str;
 }
