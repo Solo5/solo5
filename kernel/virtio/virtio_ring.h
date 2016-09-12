@@ -61,6 +61,18 @@ typedef uint64_t le64;
 /* Arbitrary descriptor layouts. */
 #define VIRTIO_F_ANY_LAYOUT       27
 
+#define VIRTQ_OFF_DESC(q)  0
+#define VIRTQ_OFF_AVAIL(q) ((q) * sizeof(struct virtq_desc))
+#define VIRTQ_OFF_AVAIL_RING(q) (VIRTQ_OFF_AVAIL(q)             \
+                                 + sizeof(struct virtq_avail))
+#define VIRTQ_OFF_PADDING(q) (VIRTQ_OFF_AVAIL_RING(q)       \
+                              + (sizeof(le16) * (q)))
+#define VIRTQ_OFF_USED(q) ((VIRTQ_OFF_PADDING(q) + PAGE_SIZE - 1) & PAGE_MASK)
+#define VIRTQ_OFF_USED_RING(q) (VIRTQ_OFF_USED(q) + sizeof(struct virtq_used))
+
+#define VIRTQ_SIZE(q) (VIRTQ_OFF_USED_RING(q) \
+                                   + (sizeof(struct virtq_used_elem) * (q)))
+
 /* Virtqueue descriptors: 16 bytes.
  * These can chain together via "next". */
 struct virtq_desc {

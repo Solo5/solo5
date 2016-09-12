@@ -118,7 +118,8 @@ void virtio_net_pkt_put(void);      /* we're done with recv'd data */
 int virtio_net_xmit_packet(void *data, int len);
 int virtio_net_pkt_poll(void);      /* test if packet(s) are available */
 
-void handle_virtio_interrupt(void);
+void handle_virtio_blk_interrupt(void);
+void handle_virtio_net_interrupt(void);
 
 /* net.c: ping for now */
 void ping_serve(void);
