@@ -121,7 +121,8 @@ void low_level_handle_irq(int irq)
     case 0x0a:
     case 0x0b:
     case 0x05:
-        handle_virtio_interrupt();
+        handle_virtio_net_interrupt();
+        handle_virtio_blk_interrupt();
         break;
     case 0: /* PIT */
         break;

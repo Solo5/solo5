@@ -44,7 +44,8 @@ virtio/mem.o \
 virtio/pci.o \
 virtio/serial.o \
 virtio/time.o \
-virtio/virtio.o \
+virtio/virtio_net.o \
+virtio/virtio_blk.o \
 virtio/tscclock.o \
 virtio/clock_subr.o \
 $(COMMON_COBJS)
