@@ -18,6 +18,8 @@
 include Makefile.common
 
 COMMON_COBJS=\
+cpu.o \
+cpu_vectors.o \
 ee_printf.o \
 interrupts.o \
 lib.o \
@@ -50,11 +52,6 @@ virtio/tscclock.o \
 virtio/clock_subr.o \
 $(COMMON_COBJS)
 
-SOBJS=\
-kernel_s.o \
-mem_s.o \
-interrupts_s.o
-
 HEADERS=\
 kernel.h
 
@@ -64,21 +61,18 @@ all: virtio ukvm
 virtio: virtio/solo5.o 
 ukvm: ukvm/solo5.o 
 
-%_s.o: %.s
-	$(AS) $< -o $@
-
 %.o: %.c $(HEADERS)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 %.o: %.S $(HEADERS)
 	$(CC) $(CFLAGS) -DASM_FILE -c $< -o $@
 
-virtio/solo5.o: $(VIRTIO_COBJS) $(SOBJS) virtio/solo5.lds
-	$(LD) -r $(LDFLAGS) -o $@ $(VIRTIO_COBJS) $(SOBJS) 
+virtio/solo5.o: $(VIRTIO_COBJS) virtio/solo5.lds
+	$(LD) -r $(LDFLAGS) -o $@ $(VIRTIO_COBJS)
 	$(OBJCOPY) -w -G solo5_\* -G _start $@ $@
 
-ukvm/solo5.o: $(UKVM_COBJS) $(SOBJS) ukvm/solo5.lds
-	$(LD) -r $(LDFLAGS) -o $@ $(UKVM_COBJS) $(SOBJS) 
+ukvm/solo5.o: $(UKVM_COBJS) ukvm/solo5.lds
+	$(LD) -r $(LDFLAGS) -o $@ $(UKVM_COBJS)
 	$(OBJCOPY) -w -G solo5_\* -G _start $@ $@
 
 .PHONY: clean

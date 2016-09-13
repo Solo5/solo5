@@ -15,36 +15,49 @@
 # TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 # PERFORMANCE OF THIS SOFTWARE.
 
-    .text
-    .code64
-    .globl kernel_hang
-    .globl kernel_wait
-    .globl kernel_waitloop
-    .globl kernel_busyloop
-    .globl rdtsc
-    
-kernel_hang:
-	cli
-	hlt
-	jmp kernel_hang
+#define ENTRY(x) .text; .globl x; .type x,%function; x:
+#define END(x)   .size x, . - x
 
-kernel_wait:
-    hlt
-    ret
+.text
+.code64
 
-kernel_waitloop:
-    sti
-    hlt
-    jmp kernel_wait
-
-kernel_busyloop:
+ENTRY(cpu_halt)
     cli
-    jmp kernel_busyloop
-        
-        
-rdtsc:
+    hlt
+    jmp cpu_halt
+END(cpu_halt)
+
+ENTRY(cpu_rdtsc)
     rdtsc
     shl $32, %rdx
     add %rdx, %rax
     ret
+END(cpu_rdtsc)
 
+ENTRY(cpu_idt_load)
+    lidt 0(%rdi)
+    ret
+END(cpu_idt_load)
+
+ENTRY(cpu_gdt_load)
+    lgdt 0(%rdi)
+    ret
+END(cpu_gdt_load)
+
+ENTRY(cpu_tss_load)
+    ltr %di
+    ret
+END(cpu_tss_load)
+
+ENTRY(cpu_sse_enable)
+    mov %cr0, %rax
+    and $0xfffb, %ax                    /* clear CR0.EM */
+    or $0x2, %ax                        /* set CR0.MP */
+    mov %rax, %cr0
+
+    mov %cr4, %rax
+    or $(3<<9), %ax                     /* set CR4.OSFXSR and CR4.OSXMMEXCPT */
+    mov %rax, %cr4
+
+    ret
+END(cpu_sse_enable)

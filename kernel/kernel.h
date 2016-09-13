@@ -59,14 +59,15 @@
 #define STR_EXPAND(y) #y
 #define STR(x) STR_EXPAND(x)
 
-/* kernel.s: hang kernel, or hlt for interrupts */
-void kernel_hang(void) __attribute__((noreturn));
-void kernel_wait(void);
-void kernel_waitloop(void);
-void kernel_busyloop(void);
-void kernel_postboot(void);
+/* cpu.S: low-level CPU functions */
+void cpu_halt(void) __attribute__((noreturn));
+void cpu_tss_load(uint16_t);
+void cpu_idt_load(uint64_t);
+void cpu_gdt_load(uint64_t);
+void cpu_sse_enable(void);
+uint64_t cpu_rdtsc(void);
 
-/* interrupts.c: interrupt handling */
+/* intr.c: interrupt handling */
 void interrupts_init(void);
 void interrupts_enable(void);
 void interrupts_disable(void);
@@ -74,11 +75,9 @@ void irq_mask(uint8_t irq);
 void irq_clear(uint8_t irq);
 extern int spldepth;
 
-/* mem.c, mem.s: low-level page alloc routines */
+/* mem.c: low-level page alloc routines */
 uint64_t mem_max_addr(void);
-uint64_t read_cr3(void);
 void *sbrk(intptr_t increment);
-void sse_enable(void);
 
 /* malloc.c: memory allocation */
 void *malloc(size_t bytes);
@@ -89,7 +88,6 @@ void *memalign(size_t alignment, size_t bytes);
 
 /* time.c: clocksource */
 void time_init(void);
-uint64_t rdtsc(void);
 
 /* ee_printf.c: a third-party printf slightly modified and with
  *              snprintf added
@@ -121,15 +119,11 @@ int virtio_net_pkt_poll(void);      /* test if packet(s) are available */
 void handle_virtio_blk_interrupt(void);
 void handle_virtio_net_interrupt(void);
 
-/* net.c: ping for now */
-void ping_serve(void);
-
 /* low_level.c: specifics for ukvm or virito target */
 void low_level_exit(void);
 int low_level_puts(char *buf, int n);
 
 void low_level_handle_irq(int irq);
-void low_level_handle_intr(int num);
 void low_level_interrupts_init(void);
 
 /* pvclock.c: KVM paravirtualized clock */
@@ -204,7 +198,7 @@ static inline uint64_t mul64_32(uint64_t a, uint32_t b)
 #define PANIC(x...) do {                                   \
         printf("PANIC: %s:%d\n", __FILE__, __LINE__);      \
         printf(x);                                         \
-        kernel_hang();                                     \
+        cpu_halt();                                        \
     } while (0)
 
 #define assert(e) do {                              \

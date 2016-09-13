@@ -40,9 +40,9 @@
 .endm
 
 .macro TRAP_ENTRY trapno, has_ec
-.global trap_\trapno
-.type trap_\trapno, @function
-trap_\trapno:
+.global cpu_trap_\trapno
+.type cpu_trap_\trapno, @function
+cpu_trap_\trapno:
     cld
 
 .if \has_ec
@@ -66,9 +66,9 @@ trap_\trapno:
 .endm
     
 .macro IRQ_ENTRY irqno
-.global irq_\irqno
-.type irq_\irqno, @function
-irq_\irqno:
+.global cpu_irq_\irqno
+.type cpu_irq_\irqno, @function
+cpu_irq_\irqno:
     cld
 
     PUSH_CALLER_SAVE
@@ -117,21 +117,3 @@ IRQ_ENTRY 12
 IRQ_ENTRY 13
 IRQ_ENTRY 14
 IRQ_ENTRY 15
-
-.global idt_load
-.type idt_load, @function
-idt_load:
-    lidt 0(%rdi)
-    ret
-
-.global gdt_load
-.type gdt_load, @function
-gdt_load:
-        lgdt 0(%rdi)
-        ret
-
-.global tss_load
-.type tss_load, @function
-tss_load:
-        ltr %di
-        ret

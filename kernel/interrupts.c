@@ -39,8 +39,6 @@ struct idtptr {
 
 static struct idt_gate_desc cpu_idt[IDT_NUM_ENTRIES] ALIGN_64_BIT;
 
-extern void idt_load(uint64_t idtptr);
-
 static void idt_fillgate(unsigned num, void *fun, unsigned ist)
 {
     struct idt_gate_desc *desc = &cpu_idt[num];
@@ -63,8 +61,8 @@ static void idt_init(void)
      * Load trap vectors. All traps run on IST2 (cpu_trap_stack), except for
      * the exceptions.
      */
-#define FILL_TRAP_GATE(num, ist) extern void trap_##num(void); \
-    idt_fillgate(num, trap_##num, ist)
+#define FILL_TRAP_GATE(num, ist) extern void cpu_trap_##num(void); \
+    idt_fillgate(num, cpu_trap_##num, ist)
     FILL_TRAP_GATE(0, 2);
     FILL_TRAP_GATE(1, 2);
     FILL_TRAP_GATE(2, 3); /* #NMI runs on IST3 (cpu_nmi_stack) */
@@ -88,8 +86,8 @@ static void idt_init(void)
     /*
      * Load irq vectors. All irqs run on IST1 (cpu_intr_stack).
      */
-#define FILL_IRQ_GATE(num, ist) extern void irq_##num(void); \
-    idt_fillgate(32 + num, irq_##num, ist)
+#define FILL_IRQ_GATE(num, ist) extern void cpu_irq_##num(void); \
+    idt_fillgate(32 + num, cpu_irq_##num, ist)
     FILL_IRQ_GATE(0, 1);
     FILL_IRQ_GATE(1, 1);
     FILL_IRQ_GATE(2, 1);
@@ -111,7 +109,7 @@ static void idt_init(void)
 
     idtptr.limit = sizeof(cpu_idt) - 1;
     idtptr.base = (uint64_t) &cpu_idt;
-    idt_load((uint64_t) &idtptr);
+    cpu_idt_load((uint64_t) &idtptr);
 }
 
 struct tss {
@@ -145,8 +143,6 @@ static char cpu_intr_stack[4096]; /* IST1 */
 static char cpu_trap_stack[4096]; /* IST2 */
 static char cpu_nmi_stack[4096];  /* IST3 */
 
-extern void tss_load(uint16_t tss);
-
 static void tss_init(void)
 {
     extern uint64_t cpu_gdt64[];
@@ -165,7 +161,7 @@ static void tss_init(void)
     td->base_hi = (uint64_t)&cpu_tss >> 24;
     td->zero = 0;
 
-    tss_load(GDT_DESC_TSS_LO*8);
+    cpu_tss_load(GDT_DESC_TSS_LO*8);
 }
 
 void interrupts_init(void)
@@ -198,7 +194,7 @@ void trap_handler(uint64_t num, struct trap_regs *regs)
     if (num == 14)
         printf("trap: cr2=0x%lx\n", regs->cr2);
     printf("trap: halted\n");
-    kernel_hang();
+    cpu_halt();
 }
 
 void interrupt_handler(uint64_t num)

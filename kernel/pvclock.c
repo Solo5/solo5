@@ -81,7 +81,7 @@ uint64_t pvclock_monotonic(void) {
     do {
         version = pvclock_ti.version;
         __asm__ ("mfence" ::: "memory");
-        delta = rdtsc() - pvclock_ti.tsc_timestamp;
+        delta = cpu_rdtsc() - pvclock_ti.tsc_timestamp;
         if (pvclock_ti.tsc_shift < 0)
             delta >>= -pvclock_ti.tsc_shift;
         else
