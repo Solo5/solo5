@@ -17,6 +17,7 @@
  */
 
 #include "kernel.h"
+#include "queue.h"
 
 #define IDT_NUM_ENTRIES 48
 
@@ -197,9 +198,47 @@ void trap_handler(uint64_t num, struct trap_regs *regs)
     cpu_halt();
 }
 
-void interrupt_handler(uint64_t num)
+struct irq_handler {
+    int (*handler)(void *);
+    void *arg;
+
+    SLIST_ENTRY(irq_handler) entries;
+};
+
+SLIST_HEAD(irq_handler_head, irq_handler);
+static struct irq_handler_head irq_handlers[16];
+
+void intr_register_irq(unsigned irq, int (*handler)(void *), void *arg)
 {
-    low_level_handle_irq(num);
+    struct irq_handler *h = malloc(sizeof (struct irq_handler));
+    assert(h != NULL);
+    h->handler = handler;
+    h->arg = arg;
+
+    interrupts_disable();
+    SLIST_INSERT_HEAD(&irq_handlers[irq], h, entries);
+    interrupts_enable();
+    intr_clear_irq(irq);
+}
+
+void interrupt_handler(uint64_t irq)
+{
+    struct irq_handler *h;
+    int handled = 0;
+
+    SLIST_FOREACH(h, &irq_handlers[irq], entries) {
+        if (h->handler(h->arg) == 1) {
+            handled = 1;
+            break;
+        }
+    }
+
+    if (!handled)
+        printf("unhandled irq %d\n", irq);
+    else
+        /* Only ACK the IRQ if handled; we only need to know about an unhandled
+         * IRQ the first time round. */
+        intr_ack_irq(irq);
 }
 
 /* keeps track of how many stacked "interrupts_disable"'s there are */

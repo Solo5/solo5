@@ -71,8 +71,10 @@ uint64_t cpu_rdtsc(void);
 void interrupts_init(void);
 void interrupts_enable(void);
 void interrupts_disable(void);
-void irq_mask(uint8_t irq);
-void irq_clear(uint8_t irq);
+void intr_clear_irq(unsigned irq);
+void intr_mask_irq(unsigned irq);
+void intr_ack_irq(unsigned);
+void intr_register_irq(unsigned, int (*handler)(void *), void *);
 extern int spldepth;
 
 /* mem.c: low-level page alloc routines */
@@ -108,22 +110,18 @@ size_t strlen(const char *s);
 void pci_enumerate(void);
 
 /* virtio.c: mostly net for now */
-void virtio_config_network(uint16_t base);
-void virtio_config_block(uint16_t base);
+void virtio_config_network(uint16_t base, unsigned irq);
+void virtio_config_block(uint16_t base, unsigned irq);
 
 uint8_t *virtio_net_pkt_get(int *size);  /* get a pointer to recv'd data */
 void virtio_net_pkt_put(void);      /* we're done with recv'd data */
 int virtio_net_xmit_packet(void *data, int len);
 int virtio_net_pkt_poll(void);      /* test if packet(s) are available */
 
-void handle_virtio_blk_interrupt(void);
-void handle_virtio_net_interrupt(void);
-
 /* low_level.c: specifics for ukvm or virito target */
 void low_level_exit(void);
 int low_level_puts(char *buf, int n);
 
-void low_level_handle_irq(int irq);
 void low_level_interrupts_init(void);
 
 /* pvclock.c: KVM paravirtualized clock */

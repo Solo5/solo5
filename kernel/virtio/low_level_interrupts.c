@@ -90,7 +90,7 @@ void low_level_interrupts_init(void)
     PIC_remap(32, 40);
 }
 
-void irq_eoi(unsigned char irq)
+void intr_ack_irq(unsigned irq)
 {
     if (!IRQ_ON_MASTER(irq))
         outb(PIC2_COMMAND, PIC_EOI);
@@ -98,7 +98,7 @@ void irq_eoi(unsigned char irq)
     outb(PIC1_COMMAND, PIC_EOI);
 }
 
-void irq_mask(uint8_t irq)
+void intr_mask_irq(unsigned irq)
 {
     uint16_t port;
 
@@ -106,28 +106,10 @@ void irq_mask(uint8_t irq)
     outb(port, inb(port) | (1 << IRQ_OFFSET(irq)));
 }
 
-void irq_clear(uint8_t irq)
+void intr_clear_irq(unsigned irq)
 {
     uint16_t port;
 
     port = IRQ_PORT(irq);
     outb(port, inb(port) & ~(1 << IRQ_OFFSET(irq)));
-}
-
-void low_level_handle_irq(int irq)
-{
-    switch (irq) {
-    case 0x0a:
-    case 0x0b:
-    case 0x05:
-        handle_virtio_net_interrupt();
-        handle_virtio_blk_interrupt();
-        break;
-    case 0: /* PIT */
-        break;
-    default:
-        printf("unhandled irq %d\n", irq);
-    }
-
-    irq_eoi(irq);
 }

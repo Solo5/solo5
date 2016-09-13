@@ -64,6 +64,8 @@ static int blk_configured;
 static uint32_t blk_next_avail;
 static uint32_t blk_last_used;
 
+static int handle_virtio_blk_interrupt(void *);
+
 /* WARNING: called in interrupt context */
 static void check_blk(void)
 {
@@ -214,7 +216,7 @@ static struct virtio_blk_req *virtio_blk_read(uint64_t sector, int len)
     return virtio_blk_op(VIRTIO_BLK_T_IN, sector, NULL, len);
 }
 
-void virtio_config_block(uint16_t base)
+void virtio_config_block(uint16_t base, unsigned irq)
 {
     uint8_t ready_for_init = VIRTIO_PCI_STATUS_ACK | VIRTIO_PCI_STATUS_DRIVER;
     uint32_t host_features, guest_features;
@@ -265,6 +267,7 @@ void virtio_config_block(uint16_t base)
 
     virtio_blk_pci_base = base;
     blk_configured = 1;
+    intr_register_irq(irq, handle_virtio_blk_interrupt, NULL);
     outb(base + VIRTIO_PCI_STATUS, VIRTIO_PCI_STATUS_DRIVER_OK);
 
     outb(base + VIRTIO_PCI_QUEUE_SEL, 0);
@@ -368,7 +371,7 @@ void blk_test(void)
 }
 
 
-void handle_virtio_blk_interrupt(void)
+int handle_virtio_blk_interrupt(void *arg __attribute__((unused)))
 {
     uint8_t isr_status;
 
@@ -376,8 +379,10 @@ void handle_virtio_blk_interrupt(void)
         isr_status = inb(virtio_blk_pci_base + VIRTIO_PCI_ISR);
         if (isr_status & VIRTIO_PCI_ISR_HAS_INTR) {
             check_blk();
+            return 1;
         }
     }
+    return 0;
 }
 
 int solo5_blk_write_sync(uint64_t sec, uint8_t *data, int n)

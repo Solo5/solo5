@@ -26,7 +26,14 @@ void low_level_interrupts_init(void)
 {
 }
 
-void low_level_handle_irq(int irq)
+void intr_ack_irq(unsigned irq __attribute__((unused)))
 {
-    printf("unhandled irq %d\n", irq);
+}
+
+void intr_mask_irq(unsigned irq __attribute__((unused)))
+{
+}
+
+void intr_clear_irq(unsigned irq __attribute__((unused)))
+{
 }
