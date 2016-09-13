@@ -15,13 +15,7 @@
 # TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 # PERFORMANCE OF THIS SOFTWARE.
 
-    /* error code is just under the 9 caller_save registers, 8 bytes each */ 
-    .set ERROR_CODE_OFFSET, 9 * 8
-    /* error code is just under the error code (if there is one) */
-    .set RIP_OFFSET_E, 10 * 8
-    .set RIP_OFFSET_NE, 9 * 8
-        
-    .macro PUSH_CALLER_SAVE
+.macro PUSH_CALLER_SAVE
     pushq %rax
     pushq %rdi
     pushq %rsi
@@ -31,9 +25,9 @@
     pushq %r9
     pushq %r10
     pushq %r11
-    .endm
+.endm
 
-    .macro POP_CALLER_SAVE
+.macro POP_CALLER_SAVE
     popq %r11
     popq %r10
     popq %r9
@@ -43,42 +37,87 @@
     popq %rsi
     popq %rdi
     popq %rax
-    .endm
+.endm
 
-.macro INTERRUPT_E n
-.global interrupt\n
-.type interrupt\n, @function
-interrupt\n:
+.macro TRAP_ENTRY trapno, has_ec
+.global trap_\trapno
+.type trap_\trapno, @function
+trap_\trapno:
+    cld
+
+.if \has_ec
+    movq %cr2, %rdi                     /* for #PF */
+    pushq %rdi
+.else
+    pushq $0                            /* no error code or %cr2, pass 0 */
+    pushq $0
+.endif
     PUSH_CALLER_SAVE
 
-    movq $\n, %rdi              # pass interrupt number 
-    movq ERROR_CODE_OFFSET(%esp), %rsi # pass error code
-    movq RIP_OFFSET_E(%esp), %rdx      # pass faulting rip
-    call interrupt_handler
+    movq $\trapno, %rdi
+    movq %rsp, %rsi
+    addq $72, %rsi                      /* struct trap_regs is at %rsp + 72 */
+    call trap_handler
 
     POP_CALLER_SAVE
-    addq $8, %rsp               # discard error code
+    addq $16, %rsp                      /* discard error code and %cr2 */
 
     iretq
 .endm
     
-.macro INTERRUPT_NE n
-.global interrupt\n
-.type interrupt\n, @function
-interrupt\n:
+.macro IRQ_ENTRY irqno
+.global irq_\irqno
+.type irq_\irqno, @function
+irq_\irqno:
+    cld
+
     PUSH_CALLER_SAVE
 
-    movq $\n, %rdi              # pass interrupt number
-    movq $0, %rsi               # pass 0 as error code
-    movq RIP_OFFSET_NE(%esp), %rdx # pass faulting rip        
+    movq $\irqno, %rdi
     call interrupt_handler
 
     POP_CALLER_SAVE
+
     iretq
 .endm
 
-.include "interrupt_vectors.s"
-        
+TRAP_ENTRY 0,  0 /* #DE */
+TRAP_ENTRY 1,  0 /* #DB */
+TRAP_ENTRY 2,  0 /* #NMI */
+TRAP_ENTRY 3,  0 /* #BP */
+TRAP_ENTRY 4,  0 /* #OF */
+TRAP_ENTRY 5,  0 /* #BR */
+TRAP_ENTRY 6,  0 /* #UD */
+TRAP_ENTRY 7,  0 /* #NM */
+TRAP_ENTRY 8,  1 /* #DF */
+TRAP_ENTRY 10, 1 /* #TS */
+TRAP_ENTRY 11, 1 /* #NP */
+TRAP_ENTRY 12, 1 /* #SS */
+TRAP_ENTRY 13, 1 /* #GP */
+TRAP_ENTRY 14, 1 /* #PF */
+TRAP_ENTRY 16, 0 /* #MF */
+TRAP_ENTRY 17, 1 /* #AC */
+TRAP_ENTRY 18, 0 /* #MC */
+TRAP_ENTRY 19, 0 /* #XM */
+TRAP_ENTRY 20, 0 /* #VE */
+
+IRQ_ENTRY 0
+IRQ_ENTRY 1
+IRQ_ENTRY 2
+IRQ_ENTRY 3
+IRQ_ENTRY 4
+IRQ_ENTRY 5
+IRQ_ENTRY 6
+IRQ_ENTRY 7
+IRQ_ENTRY 8
+IRQ_ENTRY 9
+IRQ_ENTRY 10
+IRQ_ENTRY 11
+IRQ_ENTRY 12
+IRQ_ENTRY 13
+IRQ_ENTRY 14
+IRQ_ENTRY 15
+
 .global idt_load
 .type idt_load, @function
 idt_load:
@@ -96,4 +135,3 @@ gdt_load:
 tss_load:
         ltr %di
         ret
-

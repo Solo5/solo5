@@ -28,7 +28,6 @@
 #define IRQ_PORT(n)      (IRQ_ON_MASTER(n) ? PIC1_DATA : PIC2_DATA)
 #define IRQ_OFFSET(n)    (IRQ_ON_MASTER(n) ? (n) : ((n) - 8))
 
-#include "../interrupts.h"
 #define INTR_IRQ_MASTER INTR_IRQ_0
 #define INTR_IRQ_SLAVE  INTR_IRQ_8
 
@@ -88,9 +87,8 @@ static void PIC_remap(int offset1, int offset2)
 
 void low_level_interrupts_init(void)
 {
-    PIC_remap(INTR_IRQ_MASTER, INTR_IRQ_SLAVE);
+    PIC_remap(32, 40);
 }
-
 
 void irq_eoi(unsigned char irq)
 {
@@ -115,6 +113,7 @@ void irq_clear(uint8_t irq)
     port = IRQ_PORT(irq);
     outb(port, inb(port) & ~(1 << IRQ_OFFSET(irq)));
 }
+
 void low_level_handle_irq(int irq)
 {
     switch (irq) {
@@ -127,19 +126,8 @@ void low_level_handle_irq(int irq)
     case 0: /* PIT */
         break;
     default:
-        printf("got irq %d at 0x%lx\n", irq,
-               solo5_clock_monotonic());
+        printf("unhandled irq %d\n", irq);
     }
 
     irq_eoi(irq);
-}
-void low_level_handle_intr(int num)
-{
-    switch (num) {
-    case INTR_USER_1:
-        printf("got user interrupt (0x%x)\n", num);
-        break;
-    default:
-        PANIC("got unknown processor exception 0x%x\n", num);
-    };
 }

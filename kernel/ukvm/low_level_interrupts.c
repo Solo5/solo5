@@ -17,29 +17,10 @@
  */
 
 #include "kernel.h"
-#include "../interrupts.h"
 
-#define PIC1 0x20   /* IO base address for master PIC */
-#define PIC2 0xA0   /* IO base address for slave PIC */
-#define PIC1_COMMAND PIC1
-#define PIC1_DATA (PIC1 + 1)
-#define PIC2_COMMAND PIC2
-#define PIC2_DATA (PIC2 + 1)
-
-#define IRQ_ON_MASTER(n) ((n) < 8)
-#define IRQ_PORT(n)      (IRQ_ON_MASTER(n) ? PIC1_DATA : PIC2_DATA)
-#define IRQ_OFFSET(n)    (IRQ_ON_MASTER(n) ? (n) : ((n) - 8))
-
-
-#define PIC_EOI 0x20/* End-of-interrupt command code */
-
-void irq_eoi(unsigned char irq)
-{
-    if (!IRQ_ON_MASTER(irq))
-        outb(PIC2_COMMAND, PIC_EOI);
-
-    outb(PIC1_COMMAND, PIC_EOI);
-}
+/*
+ * Interrupts are not used on the ukvm platform, hence these are stubs.
+ */
 
 void low_level_interrupts_init(void)
 {
@@ -47,25 +28,5 @@ void low_level_interrupts_init(void)
 
 void low_level_handle_irq(int irq)
 {
-    switch (irq) {
-    default:
-        printf("got irq %d at 0x%lx\n", irq,
-               solo5_clock_monotonic());
-    }
-
-    irq_eoi(irq);
-}
-
-void low_level_handle_intr(int num)
-{
-    switch (num) {
-    case INTR_USER_TIMER:
-        printf("I");
-        break;
-    case INTR_USER_1:
-        printf("got user interrupt (0x%x)\n", num);
-        break;
-    default:
-        PANIC("got unknown processor exception 0x%x\n", num);
-    };
+    printf("unhandled irq %d\n", irq);
 }

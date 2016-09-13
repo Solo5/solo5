@@ -64,10 +64,7 @@ all: virtio ukvm
 virtio: virtio/solo5.o 
 ukvm: ukvm/solo5.o 
 
-interrupt_vectors.s: interrupts.h
-	bash gen_interrupts.bash > interrupt_vectors.s
-
-%_s.o: %.s interrupt_vectors.s
+%_s.o: %.s
 	$(AS) $< -o $@
 
 %.o: %.c $(HEADERS)
