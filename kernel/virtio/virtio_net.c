@@ -82,6 +82,8 @@ static uint32_t recv_next_avail;
 static uint32_t xmit_last_used;
 static uint32_t recv_last_used;
 
+static int handle_virtio_net_interrupt(void *);
+
 /* WARNING: called in interrupt context */
 static void check_xmit(void)
 {
@@ -162,7 +164,7 @@ static void check_recv(void)
 }
 
 /* WARNING: called in interrupt context */
-void handle_virtio_net_interrupt(void)
+int handle_virtio_net_interrupt(void *arg __attribute__((unused)))
 {
     uint8_t isr_status;
 
@@ -171,8 +173,10 @@ void handle_virtio_net_interrupt(void)
         if (isr_status & VIRTIO_PCI_ISR_HAS_INTR) {
             check_xmit();
             check_recv();
+            return 1;
         }
     }
+    return 0;
 }
 
 static void recv_setup(void)
@@ -237,7 +241,7 @@ int virtio_net_xmit_packet(void *data, int len)
 }
 
 
-void virtio_config_network(uint16_t base)
+void virtio_config_network(uint16_t base, unsigned irq)
 {
     uint8_t ready_for_init = VIRTIO_PCI_STATUS_ACK | VIRTIO_PCI_STATUS_DRIVER;
     uint32_t host_features, guest_features;
@@ -313,6 +317,7 @@ void virtio_config_network(uint16_t base)
 
     virtio_net_pci_base = base;
     net_configured = 1;
+    intr_register_irq(irq, handle_virtio_net_interrupt, NULL);
     outb(base + VIRTIO_PCI_STATUS, VIRTIO_PCI_STATUS_DRIVER_OK);
 
     outw(base + VIRTIO_PCI_QUEUE_SEL, VIRTQ_RECV);

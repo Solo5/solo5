@@ -157,7 +157,7 @@ uint64_t tscclock_monotonic(void) {
     /*
      * Update time_base (monotonic time) and tsc_base (TSC time).
      */
-    tsc_now = rdtsc();
+    tsc_now = cpu_rdtsc();
     tsc_delta = tsc_now - tsc_base;
     time_base += mul64_32(tsc_delta, tsc_mult);
     tsc_base = tsc_now;
@@ -187,9 +187,9 @@ int tscclock_init(void) {
      * Calculate TSC frequency by calibrating against an 0.1s delay
      * using the i8254 timer.
      */
-    tsc_base = rdtsc();
+    tsc_base = cpu_rdtsc();
     i8254_delay(100000);
-    tsc_freq = (rdtsc() - tsc_base) * 10;
+    tsc_freq = (cpu_rdtsc() - tsc_base) * 10;
     printf("TSC frequency estimate is %lu Hz\n",
         (unsigned long long)tsc_freq);
 

@@ -34,5 +34,5 @@ void gdt_init(void)
     cpu_gdt64[GDT_DESC_CODE] = GDT_DESC_CODE_VAL;
     cpu_gdt64[GDT_DESC_DATA] = GDT_DESC_DATA_VAL;
 
-    gdt_load((uint64_t)&gdtptr);
+    cpu_gdt_load((uint64_t)&gdtptr);
 }

@@ -33,9 +33,9 @@
 #define PCI_CONF_SUBSYS_ID_SHFT  16
 #define PCI_CONF_SUBSYS_ID_MASK  0xffff
 
-#define PCI_CONF_INTERRUPT_LINE      0x3c
-#define PCI_CONF_INTERRUPT_LINE_SHFT 0x0
-#define PCI_CONF_INTERRUPT_LINE_MASK 0xff
+#define PCI_CONF_IRQ      0x3c
+#define PCI_CONF_IRQ_SHFT 0x0
+#define PCI_CONF_IRQ_MASK 0xff
 
 #define PCI_CONF_IOBAR      0x10
 #define PCI_CONF_IOBAR_SHFT 0x0
@@ -54,7 +54,7 @@
 struct pci_config_info {
     uint16_t device_id;
     uint16_t iobar;
-    uint8_t interrupt_line;
+    uint8_t irq;
 };
 
 static uint32_t net_devices_found;
@@ -69,27 +69,24 @@ static void virtio_config(uint32_t config_addr)
 
     PCI_CONF_READ(uint16_t, &pci.device_id, config_addr, SUBSYS_ID);
     PCI_CONF_READ(uint16_t, &pci.iobar, config_addr, IOBAR);
-    PCI_CONF_READ(uint8_t, &pci.interrupt_line, config_addr, INTERRUPT_LINE);
+    PCI_CONF_READ(uint8_t, &pci.irq, config_addr, IRQ);
 
-    printf("virtio_config: device_id=%x, interrupt_line=%x\n", pci.device_id,
-            pci.interrupt_line);
+    printf("virtio_config: device_id=%x, irq=%u\n", pci.device_id, pci.irq);
 
     /* we only support one net device and one blk device */
     switch (pci.device_id) {
     case PCI_CONF_SUBSYS_NET:
         if (!net_devices_found++)
-            virtio_config_network(pci.iobar);
+            virtio_config_network(pci.iobar, pci.irq);
         break;
     case PCI_CONF_SUBSYS_BLK:
         if (!blk_devices_found++)
-            virtio_config_block(pci.iobar);
+            virtio_config_block(pci.iobar, pci.irq);
         break;
     default:
         printf("Found unknown virtio device!\n");
         return;
     }
-
-    irq_clear(pci.interrupt_line);
 }
 
 

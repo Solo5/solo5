@@ -28,7 +28,6 @@
 #define IRQ_PORT(n)      (IRQ_ON_MASTER(n) ? PIC1_DATA : PIC2_DATA)
 #define IRQ_OFFSET(n)    (IRQ_ON_MASTER(n) ? (n) : ((n) - 8))
 
-#include "../interrupts.h"
 #define INTR_IRQ_MASTER INTR_IRQ_0
 #define INTR_IRQ_SLAVE  INTR_IRQ_8
 
@@ -88,11 +87,10 @@ static void PIC_remap(int offset1, int offset2)
 
 void low_level_interrupts_init(void)
 {
-    PIC_remap(INTR_IRQ_MASTER, INTR_IRQ_SLAVE);
+    PIC_remap(32, 40);
 }
 
-
-void irq_eoi(unsigned char irq)
+void intr_ack_irq(unsigned irq)
 {
     if (!IRQ_ON_MASTER(irq))
         outb(PIC2_COMMAND, PIC_EOI);
@@ -100,7 +98,7 @@ void irq_eoi(unsigned char irq)
     outb(PIC1_COMMAND, PIC_EOI);
 }
 
-void irq_mask(uint8_t irq)
+void intr_mask_irq(unsigned irq)
 {
     uint16_t port;
 
@@ -108,38 +106,10 @@ void irq_mask(uint8_t irq)
     outb(port, inb(port) | (1 << IRQ_OFFSET(irq)));
 }
 
-void irq_clear(uint8_t irq)
+void intr_clear_irq(unsigned irq)
 {
     uint16_t port;
 
     port = IRQ_PORT(irq);
     outb(port, inb(port) & ~(1 << IRQ_OFFSET(irq)));
-}
-void low_level_handle_irq(int irq)
-{
-    switch (irq) {
-    case 0x0a:
-    case 0x0b:
-    case 0x05:
-        handle_virtio_net_interrupt();
-        handle_virtio_blk_interrupt();
-        break;
-    case 0: /* PIT */
-        break;
-    default:
-        printf("got irq %d at 0x%lx\n", irq,
-               solo5_clock_monotonic());
-    }
-
-    irq_eoi(irq);
-}
-void low_level_handle_intr(int num)
-{
-    switch (num) {
-    case INTR_USER_1:
-        printf("got user interrupt (0x%x)\n", num);
-        break;
-    default:
-        PANIC("got unknown processor exception 0x%x\n", num);
-    };
 }

@@ -40,12 +40,12 @@ void _start(struct ukvm_boot_info *bi)
     mem_init(bi->mem_size, bi->kernel_end);
 
     /* for floating point */
-    sse_enable();
+    cpu_sse_enable();
     time_init();
 
     ret = solo5_app_main((char *)bi->cmdline);
     printf("solo5_app_main() returned with %d\n", ret);
 
     printf("Kernel done.\nGoodbye!\n");
-    kernel_hang();
+    cpu_halt();
 }

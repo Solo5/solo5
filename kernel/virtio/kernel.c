@@ -84,7 +84,7 @@ static void kernel_main2(void)
 
     interrupts_init();
     /* ocaml needs floating point */
-    sse_enable();
+    cpu_sse_enable();
     time_init();
 
     pci_enumerate();
@@ -95,5 +95,5 @@ static void kernel_main2(void)
     printf("solo5_app_main() returned with %d\n", ret);
 
     printf("Kernel done.\nGoodbye!\n");
-    kernel_hang();
+    cpu_halt();
 }

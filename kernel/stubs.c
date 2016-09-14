@@ -22,5 +22,5 @@ void solo5_exit(void)
 {
     printf("Mirage on Solo5 exiting... Goodbye!\n");
     low_level_exit();
-    kernel_hang();
+    cpu_halt();
 }

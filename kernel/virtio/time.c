@@ -43,9 +43,16 @@ uint64_t solo5_clock_wall(void)
         return tscclock_monotonic() + tscclock_epochoffset();
 }
 
+static int timer_handler(void *arg __attribute__((unused)))
+{
+    /* Yes, we handled the irq. */
+    return 1;
+}
+
 /* must be called before interrupts are enabled */
 void time_init(void)
 {
+    intr_register_irq(0, timer_handler, NULL);
     use_pvclock = !pvclock_init();
 
     if (!use_pvclock)
