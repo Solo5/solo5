@@ -679,16 +679,15 @@ repeat:
     return out.num_printed - 1; /* don't include terminating null byte */
 }
 
-#define DEFAULT_BUF_LEN (15*80)
+#define PRINTF_BUF_LEN (4*80)
 static int ee_vprintf(const char *fmt, va_list args)
 {
-    /* XXX yikes, this looks like overflow waiting to happen */
-    char buf[DEFAULT_BUF_LEN];
+    /* XXX Replace ee_printf() with a version that does not need buffers */
+    char buf[PRINTF_BUF_LEN];
     int n;
 
-    n = vsnprintf(buf, DEFAULT_BUF_LEN, fmt, args);
-    if (n > DEFAULT_BUF_LEN)
-        PANIC("overflowed buffer!");
+    n = vsnprintf(buf, PRINTF_BUF_LEN, fmt, args);
+    assert(n < PRINTF_BUF_LEN);
 
     return low_level_puts(buf, n);
 }
