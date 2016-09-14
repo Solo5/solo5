@@ -18,6 +18,7 @@
 include Makefile.common
 
 COMMON_COBJS=\
+abort.o \
 cpu.o \
 cpu_vectors.o \
 ee_printf.o \

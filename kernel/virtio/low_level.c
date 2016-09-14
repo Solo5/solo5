@@ -24,7 +24,7 @@ void low_level_exit(void)
 }
 
 /* for ee_printf.c */
-int low_level_puts(char *buf, int n)
+int low_level_puts(const char *buf, int n)
 {
     int i;
 
