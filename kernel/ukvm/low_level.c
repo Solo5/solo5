@@ -23,11 +23,11 @@ void low_level_exit(void)
 {
 }
 
-int low_level_puts(char *buf, int n)
+int low_level_puts(const char *buf, int n)
 {
     struct ukvm_puts str;
 
-    str.data = buf;
+    str.data = (char *)buf;
     str.len = n;
 
     outl(UKVM_PORT_PUTS, ukvm_ptr(&str));

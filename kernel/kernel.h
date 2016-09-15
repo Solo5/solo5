@@ -59,6 +59,23 @@
 #define STR_EXPAND(y) #y
 #define STR(x) STR_EXPAND(x)
 
+/* abort.c */
+void _assert_fail(const char *, const char *, const char *)
+    __attribute__((noreturn));
+void _abort(const char *, const char *, const char *)
+    __attribute__((noreturn));
+
+#define PANIC(s)                            \
+    do {                                    \
+        _abort(__FILE__, STR(__LINE__), s); \
+    } while (0)
+
+#define assert(e)                                      \
+    do {                                               \
+        if (!(e))                                      \
+            _assert_fail(__FILE__, STR(__LINE__), #e); \
+    } while (0)
+
 /* cpu.S: low-level CPU functions */
 void cpu_halt(void) __attribute__((noreturn));
 void cpu_tss_load(uint16_t);
@@ -120,7 +137,7 @@ int virtio_net_pkt_poll(void);      /* test if packet(s) are available */
 
 /* low_level.c: specifics for ukvm or virito target */
 void low_level_exit(void);
-int low_level_puts(char *buf, int n);
+int low_level_puts(const char *buf, int n);
 
 void low_level_interrupts_init(void);
 
@@ -193,30 +210,12 @@ static inline uint64_t mul64_32(uint64_t a, uint32_t b)
 /* compiler-only memory "barrier" */
 #define cc_barrier() __asm__ __volatile__("" : : : "memory")
 
-#define PANIC(x...) do {                                   \
-        printf("PANIC: %s:%d\n", __FILE__, __LINE__);      \
-        printf(x);                                         \
-        cpu_halt();                                        \
-    } while (0)
-
-#define assert(e) do {                              \
-        if (!(e))                                   \
-            PANIC("assertion failed: \"%s\"", #e);  \
-    } while (0)
-
-#define dprintf(x...) do {                      \
-        if (dbg) {                              \
-            printf(x);                          \
-        }                                       \
-    } while (0)
-
 /* should only use outside of interrupt context */
 #define atomic_printf(x...) do {                      \
         interrupts_disable();                         \
         printf(x);                                    \
         interrupts_enable();                          \
     } while (0)
-
 
 #define NSEC_PER_SEC	1000000000ULL
 

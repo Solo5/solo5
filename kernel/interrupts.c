@@ -194,8 +194,7 @@ void trap_handler(uint64_t num, struct trap_regs *regs)
         traps[num], regs->ec, regs->rip, regs->rsp, regs->rflags);
     if (num == 14)
         printf("trap: cr2=0x%lx\n", regs->cr2);
-    printf("trap: halted\n");
-    cpu_halt();
+    PANIC("Fatal trap");
 }
 
 struct irq_handler {
