@@ -74,7 +74,7 @@ cpu_irq_\irqno:
     PUSH_CALLER_SAVE
 
     movq $\irqno, %rdi
-    call interrupt_handler
+    call irq_handler
 
     POP_CALLER_SAVE
 

@@ -82,14 +82,14 @@ static void kernel_main2(void)
 {
     int ret;
 
-    interrupts_init();
+    intr_init();
     /* ocaml needs floating point */
     cpu_sse_enable();
     time_init();
 
     pci_enumerate();
 
-    interrupts_enable();
+    intr_enable();
 
     ret = solo5_app_main(cmdline);
     printf("solo5_app_main() returned with %d\n", ret);

@@ -85,12 +85,12 @@ static void PIC_remap(int offset1, int offset2)
     outb(PIC2_DATA, a2);
 }
 
-void low_level_interrupts_init(void)
+void platform_intr_init(void)
 {
     PIC_remap(32, 40);
 }
 
-void intr_ack_irq(unsigned irq)
+void platform_intr_ack_irq(unsigned irq)
 {
     if (!IRQ_ON_MASTER(irq))
         outb(PIC2_COMMAND, PIC_EOI);
@@ -98,7 +98,7 @@ void intr_ack_irq(unsigned irq)
     outb(PIC1_COMMAND, PIC_EOI);
 }
 
-void intr_mask_irq(unsigned irq)
+void platform_intr_mask_irq(unsigned irq)
 {
     uint16_t port;
 
@@ -106,7 +106,7 @@ void intr_mask_irq(unsigned irq)
     outb(port, inb(port) | (1 << IRQ_OFFSET(irq)));
 }
 
-void intr_clear_irq(unsigned irq)
+void platform_intr_clear_irq(unsigned irq)
 {
     uint16_t port;
 

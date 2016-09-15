@@ -165,11 +165,11 @@ static void tss_init(void)
     cpu_tss_load(GDT_DESC_TSS_LO*8);
 }
 
-void interrupts_init(void)
+void intr_init(void)
 {
     tss_init();
     idt_init();
-    low_level_interrupts_init();
+    platform_intr_init();
 }
 
 struct trap_regs {
@@ -214,13 +214,13 @@ void intr_register_irq(unsigned irq, int (*handler)(void *), void *arg)
     h->handler = handler;
     h->arg = arg;
 
-    interrupts_disable();
+    intr_disable();
     SLIST_INSERT_HEAD(&irq_handlers[irq], h, entries);
-    interrupts_enable();
-    intr_clear_irq(irq);
+    intr_enable();
+    platform_intr_clear_irq(irq);
 }
 
-void interrupt_handler(uint64_t irq)
+void irq_handler(uint64_t irq)
 {
     struct irq_handler *h;
     int handled = 0;
@@ -237,22 +237,22 @@ void interrupt_handler(uint64_t irq)
     else
         /* Only ACK the IRQ if handled; we only need to know about an unhandled
          * IRQ the first time round. */
-        intr_ack_irq(irq);
+        platform_intr_ack_irq(irq);
 }
 
 /* keeps track of how many stacked "interrupts_disable"'s there are */
-int spldepth = 1;
+int intr_depth = 1;
 
-void interrupts_disable(void)
+void intr_disable(void)
 {
     __asm__ __volatile__("cli");
-    spldepth++;
+    intr_depth++;
 }
 
-void interrupts_enable(void)
+void intr_enable(void)
 {
-    assert(spldepth > 0);
+    assert(intr_depth > 0);
 
-    if (--spldepth == 0)
+    if (--intr_depth == 0)
         __asm__ __volatile__("sti");
 }

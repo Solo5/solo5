@@ -689,7 +689,7 @@ static int ee_vprintf(const char *fmt, va_list args)
     n = vsnprintf(buf, PRINTF_BUF_LEN, fmt, args);
     assert(n < PRINTF_BUF_LEN);
 
-    return low_level_puts(buf, n);
+    return platform_puts(buf, n);
 }
 
 int printf(const char *fmt, ...)

@@ -34,8 +34,8 @@ void _start(struct ukvm_boot_info *bi)
     printf("mem_size=%lx, kernel_end=%lx\n", bi->mem_size, bi->kernel_end);
 
     gdt_init();
-    interrupts_init();
-    interrupts_enable();
+    intr_init();
+    intr_enable();
 
     mem_init(bi->mem_size, bi->kernel_end);
 

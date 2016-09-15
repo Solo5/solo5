@@ -22,18 +22,18 @@
  * Interrupts are not used on the ukvm platform, hence these are stubs.
  */
 
-void low_level_interrupts_init(void)
+void platform_intr_init(void)
 {
 }
 
-void intr_ack_irq(unsigned irq __attribute__((unused)))
+void platform_intr_ack_irq(unsigned irq __attribute__((unused)))
 {
 }
 
-void intr_mask_irq(unsigned irq __attribute__((unused)))
+void platform_intr_mask_irq(unsigned irq __attribute__((unused)))
 {
 }
 
-void intr_clear_irq(unsigned irq __attribute__((unused)))
+void platform_intr_clear_irq(unsigned irq __attribute__((unused)))
 {
 }

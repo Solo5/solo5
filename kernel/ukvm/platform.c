@@ -19,11 +19,11 @@
 #include "kernel.h"
 
 /* in stubs.c */
-void low_level_exit(void)
+void platform_exit(void)
 {
 }
 
-int low_level_puts(const char *buf, int n)
+int platform_puts(const char *buf, int n)
 {
     struct ukvm_puts str;
 
@@ -36,4 +36,4 @@ int low_level_puts(const char *buf, int n)
 }
 
 int solo5_console_write(const char *, size_t)
-    __attribute__ ((alias("low_level_puts")));
+    __attribute__ ((alias("platform_puts")));

@@ -85,14 +85,11 @@ void cpu_sse_enable(void);
 uint64_t cpu_rdtsc(void);
 
 /* intr.c: interrupt handling */
-void interrupts_init(void);
-void interrupts_enable(void);
-void interrupts_disable(void);
-void intr_clear_irq(unsigned irq);
-void intr_mask_irq(unsigned irq);
-void intr_ack_irq(unsigned);
-void intr_register_irq(unsigned, int (*handler)(void *), void *);
-extern int spldepth;
+void intr_init(void);
+void intr_enable(void);
+void intr_disable(void);
+void intr_register_irq(unsigned irq, int (*handler)(void *), void *arg);
+extern int intr_depth;
 
 /* mem.c: low-level page alloc routines */
 uint64_t mem_max_addr(void);
@@ -135,11 +132,15 @@ void virtio_net_pkt_put(void);      /* we're done with recv'd data */
 int virtio_net_xmit_packet(void *data, int len);
 int virtio_net_pkt_poll(void);      /* test if packet(s) are available */
 
-/* low_level.c: specifics for ukvm or virito target */
-void low_level_exit(void);
-int low_level_puts(const char *buf, int n);
+/* platform.c: specifics for ukvm or virito platform */
+void platform_exit(void);
+int platform_puts(const char *buf, int n);
 
-void low_level_interrupts_init(void);
+/* platform_intr.c: platform-specific interrupt handling */
+void platform_intr_init(void);
+void platform_intr_clear_irq(unsigned irq);
+void platform_intr_mask_irq(unsigned irq);
+void platform_intr_ack_irq(unsigned irq);
 
 /* pvclock.c: KVM paravirtualized clock */
 int pvclock_init(void);
@@ -212,9 +213,9 @@ static inline uint64_t mul64_32(uint64_t a, uint32_t b)
 
 /* should only use outside of interrupt context */
 #define atomic_printf(x...) do {                      \
-        interrupts_disable();                         \
+        intr_disable();                               \
         printf(x);                                    \
-        interrupts_enable();                          \
+        intr_enable();                                \
     } while (0)
 
 #define NSEC_PER_SEC	1000000000ULL
