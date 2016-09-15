@@ -209,6 +209,7 @@ static struct irq_handler_head irq_handlers[16];
 
 void intr_register_irq(unsigned irq, int (*handler)(void *), void *arg)
 {
+    assert (irq < 16);
     struct irq_handler *h = malloc(sizeof (struct irq_handler));
     assert(h != NULL);
     h->handler = handler;
