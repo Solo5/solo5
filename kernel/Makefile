@@ -22,7 +22,7 @@ abort.o \
 cpu.o \
 cpu_vectors.o \
 ee_printf.o \
-interrupts.o \
+intr.o \
 lib.o \
 malloc.o \
 stubs.o \
@@ -32,8 +32,8 @@ UKVM_COBJS=\
 ukvm/kernel.o \
 ukvm/gdt.o \
 ukvm/io.o \
-ukvm/low_level.o \
-ukvm/low_level_interrupts.o \
+ukvm/platform.o \
+ukvm/platform_intr.o \
 ukvm/mem.o \
 ukvm/time.o \
 $(COMMON_COBJS)
@@ -41,8 +41,8 @@ $(COMMON_COBJS)
 VIRTIO_COBJS=\
 virtio/boot.o \
 virtio/kernel.o \
-virtio/low_level.o \
-virtio/low_level_interrupts.o \
+virtio/platform.o \
+virtio/platform_intr.o \
 virtio/mem.o \
 virtio/pci.o \
 virtio/serial.o \
