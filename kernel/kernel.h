@@ -133,7 +133,7 @@ int virtio_net_xmit_packet(void *data, int len);
 int virtio_net_pkt_poll(void);      /* test if packet(s) are available */
 
 /* platform.c: specifics for ukvm or virito platform */
-void platform_exit(void);
+void platform_exit(void) __attribute__((noreturn));
 int platform_puts(const char *buf, int n);
 
 /* platform_intr.c: platform-specific interrupt handling */

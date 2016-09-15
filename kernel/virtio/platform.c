@@ -18,12 +18,16 @@
 
 #include "kernel.h"
 
-/* in stubs.c */
 void platform_exit(void)
 {
+    /*
+     * There is no way to initiate "shutdown" on virtio without ACPI, so just
+     * halt.
+     */
+    printf("Halted\n");
+    cpu_halt();
 }
 
-/* for ee_printf.c */
 int platform_puts(const char *buf, int n)
 {
     int i;

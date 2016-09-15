@@ -20,7 +20,6 @@
 
 void solo5_exit(void)
 {
-    printf("Mirage on Solo5 exiting... Goodbye!\n");
+    printf("solo5_exit() called\n");
     platform_exit();
-    cpu_halt();
 }

@@ -46,6 +46,5 @@ void _start(struct ukvm_boot_info *bi)
     ret = solo5_app_main((char *)bi->cmdline);
     printf("solo5_app_main() returned with %d\n", ret);
 
-    printf("Kernel done.\nGoodbye!\n");
-    cpu_halt();
+    platform_exit();
 }

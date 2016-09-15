@@ -18,9 +18,12 @@
 
 #include "kernel.h"
 
-/* in stubs.c */
 void platform_exit(void)
 {
+    /*
+     * Halt will cause an exit (as in "shutdown") on ukvm.
+     */
+    cpu_halt();
 }
 
 int platform_puts(const char *buf, int n)

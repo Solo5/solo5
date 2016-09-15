@@ -25,7 +25,7 @@ ee_printf.o \
 intr.o \
 lib.o \
 malloc.o \
-stubs.o \
+exit.o \
 pvclock.o
 
 UKVM_COBJS=\

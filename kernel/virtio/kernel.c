@@ -94,6 +94,5 @@ static void kernel_main2(void)
     ret = solo5_app_main(cmdline);
     printf("solo5_app_main() returned with %d\n", ret);
 
-    printf("Kernel done.\nGoodbye!\n");
-    cpu_halt();
+    platform_exit();
 }
