@@ -1,12 +1,27 @@
 #include "kernel.h"
 
-/* dlmalloc configuration */
+/*
+ * dlmalloc configuration:
+ */
+
+/*
+ * DEBUG not defined and assertions compiled out corresponds to the default
+ * recommended configuration (see documentation below). If you need to debug
+ * dlmalloc on Solo5 then define DEBUG to `1' here.
+ */
+#if defined(DEBUG) && (DEBUG)
+#define ABORT_ON_ASSERT_FAILURE 0
+#else
+#undef assert
+#define assert(x)
+#define NO_MALLINFO 1
+#endif
+
 #undef WIN32
 #define ABORT PANIC("Fatal error")
 #define HAVE_MMAP 0
 #define HAVE_MREMAP 0
 #define MMAP_CLEARS 0
-#define NO_MALLINFO 1
 #define NO_MALLOC_STATS 1
 #define LACKS_UNISTD_H
 #define LACKS_FCNTL_H
@@ -19,14 +34,15 @@
 #define LACKS_STDLIB_H
 #define LACKS_SCHED_H
 #define LACKS_TIME_H
-#define ABORT_ON_ASSERT_FAILURE 0
-#define MALLOC_FAILURE_ACTION ;
+#define MALLOC_FAILURE_ACTION
 
 /* return values from posix_memalign() */
 #define ENOMEM -1      /* Out of memory */
 #define EINVAL -1      /* Invalid argument */
 
-/* Export public interfaces defined in this file */
+/*
+ * Export Solo5 public interfaces defined in this file
+ */
 void *solo5_malloc(size_t) __attribute__ ((alias ("malloc")));
 void solo5_free(void *) __attribute__ ((alias ("free")));
 void *solo5_calloc(size_t, size_t) __attribute__ ((alias ("calloc")));
@@ -1477,7 +1493,8 @@ DLMALLOC_EXPORT int mspace_mallopt(int, int);
 #undef assert
 #define assert(x) if(!(x)) ABORT
 #else /* ABORT_ON_ASSERT_FAILURE */
-#include <assert.h>
+/* Not present on Solo5 */
+/* #include <assert.h> */
 #endif /* ABORT_ON_ASSERT_FAILURE */
 #else  /* DEBUG */
 #ifndef assert
