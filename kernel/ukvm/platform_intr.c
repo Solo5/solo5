@@ -1,4 +1,4 @@
-/* Copyright (c) 2015, IBM
+/* Copyright (c) 2016, IBM
  * Author(s): Dan Williams <djwillia@us.ibm.com>
  *
  * Permission to use, copy, modify, and/or distribute this software
@@ -18,9 +18,22 @@
 
 #include "kernel.h"
 
-void solo5_exit(void)
+/*
+ * Interrupts are not used on the ukvm platform, hence these are stubs.
+ */
+
+void platform_intr_init(void)
 {
-    printf("Mirage on Solo5 exiting... Goodbye!\n");
-    low_level_exit();
-    cpu_halt();
+}
+
+void platform_intr_ack_irq(unsigned irq __attribute__((unused)))
+{
+}
+
+void platform_intr_mask_irq(unsigned irq __attribute__((unused)))
+{
+}
+
+void platform_intr_clear_irq(unsigned irq __attribute__((unused)))
+{
 }

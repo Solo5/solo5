@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, IBM
+/* Copyright (c) 2015, IBM
  * Author(s): Dan Williams <djwillia@us.ibm.com>
  *
  * Permission to use, copy, modify, and/or distribute this software
@@ -18,21 +18,8 @@
 
 #include "kernel.h"
 
-/* in stubs.c */
-void low_level_exit(void)
+void solo5_exit(void)
 {
+    printf("solo5_exit() called\n");
+    platform_exit();
 }
-
-/* for ee_printf.c */
-int low_level_puts(const char *buf, int n)
-{
-    int i;
-
-    for (i = 0; i < n; i++)
-        serial_putc(buf[i]);
-
-    return n;
-}
-
-int solo5_console_write(const char *, size_t)
-    __attribute__ ((alias("low_level_puts")));

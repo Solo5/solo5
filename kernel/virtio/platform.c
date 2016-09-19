@@ -18,22 +18,25 @@
 
 #include "kernel.h"
 
-/* in stubs.c */
-void low_level_exit(void)
+void platform_exit(void)
 {
+    /*
+     * There is no way to initiate "shutdown" on virtio without ACPI, so just
+     * halt.
+     */
+    printf("Halted\n");
+    cpu_halt();
 }
 
-int low_level_puts(const char *buf, int n)
+int platform_puts(const char *buf, int n)
 {
-    struct ukvm_puts str;
+    int i;
 
-    str.data = (char *)buf;
-    str.len = n;
+    for (i = 0; i < n; i++)
+        serial_putc(buf[i]);
 
-    outl(UKVM_PORT_PUTS, ukvm_ptr(&str));
-
-    return str.len;
+    return n;
 }
 
 int solo5_console_write(const char *, size_t)
-    __attribute__ ((alias("low_level_puts")));
+    __attribute__ ((alias("platform_puts")));

@@ -18,22 +18,25 @@
 
 #include "kernel.h"
 
-/*
- * Interrupts are not used on the ukvm platform, hence these are stubs.
- */
-
-void low_level_interrupts_init(void)
+void platform_exit(void)
 {
+    /*
+     * Halt will cause an exit (as in "shutdown") on ukvm.
+     */
+    cpu_halt();
 }
 
-void intr_ack_irq(unsigned irq __attribute__((unused)))
+int platform_puts(const char *buf, int n)
 {
+    struct ukvm_puts str;
+
+    str.data = (char *)buf;
+    str.len = n;
+
+    outl(UKVM_PORT_PUTS, ukvm_ptr(&str));
+
+    return str.len;
 }
 
-void intr_mask_irq(unsigned irq __attribute__((unused)))
-{
-}
-
-void intr_clear_irq(unsigned irq __attribute__((unused)))
-{
-}
+int solo5_console_write(const char *, size_t)
+    __attribute__ ((alias("platform_puts")));
