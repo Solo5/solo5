@@ -108,12 +108,43 @@ struct virtq_used {
         /* Only if VIRTIO_F_EVENT_IDX: le16 avail_event; */
 };
 
+/* This is the max buffer length per descriptor. */
+#define MAX_BUFFER_LEN 1526
+
+/*
+ * Each one of these io_buffer's map to a descriptor. An array of io_buffer's
+ * of size virtq.num (same as virtq.desc) is allocated during init.
+ */
+struct io_buffer {
+    uint8_t data[MAX_BUFFER_LEN];
+
+    /* Data length in Bytes. It is written by the driver on a tx/write, or
+     * by the device on a rx/read on interrupt handling (do not remove the
+     * volatile). */
+    volatile uint32_t len;
+
+    /* The driver sets this field to 0 before submitting an IO, and it is set
+     * to 1 at completion on interrupt handling (hence the volatile). */
+    volatile uint8_t completed;
+
+    /* Extra flags to be added to the corresponding descriptor. */
+    uint16_t extra_flags;
+};
+
 struct virtq {
         unsigned int num;
 
         struct virtq_desc *desc;
         struct virtq_avail *avail;
         struct virtq_used *used;
+        struct io_buffer *bufs;
+
+        /* Keep track of available (free) descriptors */
+        uint32_t num_avail;
+
+        /* Indexes in the descriptors array */
+        uint32_t last_used;
+        uint32_t next_avail;
 };
 
 static inline int virtq_need_event(uint16_t event_idx, uint16_t new_idx, uint16_t old_idx)
@@ -133,4 +164,19 @@ static inline le16 *virtq_avail_event(struct virtq *vq)
         /* For backwards compat, avail event index is at *end* of used ring. */
         return (le16 *)&vq->used->ring[vq->num];
 }
+
+void virtq_handle_interrupt(struct virtq *vq);
+
+/*
+ * Create a descriptor chain starting at index head, using vq->bufs also
+ * starting at index head. Num is the number of descriptors (and number of bufs).
+ *
+ * Returns 0 on success.
+ */
+int virtq_add_descriptor_chain(struct virtq *vq,
+                               uint32_t head,
+                               uint32_t num);
+
+void virtq_init_rings(uint16_t pci_base, struct virtq *vq, int selector);
+
 #endif /* VIRTQUEUE_H */
