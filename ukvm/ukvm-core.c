@@ -474,81 +474,12 @@ static void *event_loop(void *arg)
     return NULL;
 }
 
-
 void ukvm_port_puts(uint8_t *mem, void *data)
 {
     uint32_t mem_off = *(uint32_t *) data;
     struct ukvm_puts *p = (struct ukvm_puts *) (mem + mem_off);
 
     printf("%.*s", p->len, (char *) (mem + (uint64_t) p->data));
-    /* putchar(*(char *)data); */
-}
-
-
-void ukvm_port_nanosleep(uint8_t *mem, void *data, struct kvm_run *run)
-{
-    uint32_t arg_addr = *(uint32_t *) data;
-    struct ukvm_nanosleep *t = (struct ukvm_nanosleep *) (mem + arg_addr);
-    struct timespec now, ts;
-
-    clock_gettime(CLOCK_REALTIME, &now);
-
-    ts.tv_sec = now.tv_sec + t->sec_in;
-    ts.tv_nsec = now.tv_nsec + t->nsec_in;
-    if (ts.tv_nsec > 1000000000) {
-        ts.tv_sec += 1;
-        ts.tv_nsec -= 1000000000;
-    }
-
-    pthread_mutex_lock(&interrupt_mutex);
-
-    /* check if an interrupt is waiting */
-    if (!run->request_interrupt_window)
-        pthread_cond_timedwait(&sleep_cv, &interrupt_mutex, &ts);
-
-    pthread_mutex_unlock(&interrupt_mutex);
-
-    clock_gettime(CLOCK_REALTIME, &now);
-
-    /* return the remaining time we should have slept */
-    if (now.tv_sec < ts.tv_sec) {
-        if (ts.tv_nsec < now.tv_nsec) {
-            ts.tv_sec -= 1;
-            ts.tv_nsec += 1000000000;
-        }
-        t->sec_out = ts.tv_sec - now.tv_sec;
-        t->nsec_out = ts.tv_nsec - now.tv_nsec;
-        t->ret = -1;
-    } else if ((now.tv_sec == ts.tv_sec) && (now.tv_nsec < ts.tv_nsec)) {
-        t->sec_out = 0;
-        t->nsec_out = ts.tv_nsec - now.tv_nsec;
-        t->ret = -1;
-    } else {
-        t->sec_out = 0;
-        t->nsec_out = 0;
-        t->ret = 0;
-    }
-}
-
-void ukvm_port_dbg_stack(uint8_t *mem, int vcpufd)
-{
-    struct kvm_regs regs;
-    int ret;
-    uint64_t i;
-    int cnt = 0;
-
-    ret = ioctl(vcpufd, KVM_GET_REGS, &regs);
-    if (ret == -1)
-        err(1, "KVM_GET_REGS");
-
-    /* crazy stack trace hints... */
-    i = regs.rbp + 1024;
-#define DBG_DEPTH 20
-    while ((i < GUEST_SIZE) && (cnt++ < DBG_DEPTH)) {
-        if (*(uint64_t *)(mem + i) != 0)
-            printf("0x%lx: 0x%lx\n", i, *(uint64_t *)(mem + i));
-        i -= 8;
-    }
 }
 
 void ukvm_port_poll(uint8_t *mem, void *data)
@@ -622,12 +553,6 @@ static int vcpu_loop(struct kvm_run *run, int vcpufd, uint8_t *mem)
             switch (run->io.port) {
             case UKVM_PORT_PUTS:
                 ukvm_port_puts(mem, data);
-                break;
-            case UKVM_PORT_NANOSLEEP:
-                ukvm_port_nanosleep(mem, data, run);
-                break;
-            case UKVM_PORT_DBG_STACK:
-                ukvm_port_dbg_stack(mem, vcpufd);
                 break;
             case UKVM_PORT_POLL:
                 ukvm_port_poll(mem, data);

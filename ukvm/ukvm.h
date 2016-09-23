@@ -37,9 +37,8 @@ static inline uint32_t ukvm_ptr(volatile void *p)
 	return (uint32_t)((uint64_t)p & 0xffffffff);
 }
 
-#define UKVM_PORT_CHAR      0x3f8
 #define UKVM_PORT_PUTS      0x499
-#define UKVM_PORT_NANOSLEEP 0x500
+/* was UKVM_PORT_NANOSLEEP 0x500 */
 
 #define UKVM_PORT_BLKINFO   0x502
 #define UKVM_PORT_BLKWRITE  0x503
@@ -49,7 +48,7 @@ static inline uint32_t ukvm_ptr(volatile void *p)
 #define UKVM_PORT_NETWRITE  0x506
 #define UKVM_PORT_NETREAD   0x507
 
-#define UKVM_PORT_DBG_STACK 0x508
+/* was UKVM_PORT_DBG_STACK 0x508 */
 
 #define UKVM_PORT_POLL      0x509
 
@@ -59,24 +58,6 @@ struct ukvm_puts {
 	/* IN */
 	char *data;
 	int len;
-};
-
-/* UKVM_PORT_NANOSLEEP */
-struct ukvm_nanosleep {
-	/* IN */
-	uint64_t sec_in;
-	uint64_t nsec_in;
-
-	/* OUT */
-	uint64_t sec_out;
-	uint64_t nsec_out;
-	int ret;
-};
-
-/* UKVM_PORT_CLKSPEED */
-struct ukvm_clkspeed {
-	/* OUT */
-	uint64_t clkspeed;
 };
 
 /* UKVM_PORT_BLKINFO */
