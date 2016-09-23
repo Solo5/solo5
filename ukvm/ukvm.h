@@ -52,28 +52,40 @@ static inline uint32_t ukvm_ptr(volatile void *p)
 
 #define UKVM_PORT_POLL      0x509
 
+/*
+ * Guest-provided pointers in UKVM I/O operations MUST be declared with
+ * UKVM_GUEST_PTR(type), where type is the desired guest-side pointer type.
+ *
+ * This ensures that these pointers are not directly dereferencable on the host
+ * (ukvm) side.
+ */
+#ifdef __UKVM_HOST__
+#define UKVM_GUEST_PTR(T) uint64_t
+#else
+#define UKVM_GUEST_PTR(T) T
+#endif
 
 /* UKVM_PORT_PUTS */
 struct ukvm_puts {
 	/* IN */
-	char *data;
-	int len;
+	UKVM_GUEST_PTR(const char *) data;
+	size_t len;
 };
 
 /* UKVM_PORT_BLKINFO */
 struct ukvm_blkinfo {
 	/* OUT */
-	int sector_size;
-	uint64_t num_sectors;
+	size_t sector_size;
+	size_t num_sectors;
 	int rw;
 };
 
 /* UKVM_PORT_BLKWRITE */
 struct ukvm_blkwrite {
 	/* IN */
-	uint64_t sector;
-	void *data;
-	int len;
+	size_t sector;
+	UKVM_GUEST_PTR(const void *) data;
+	size_t len;
 
 	/* OUT */
 	int ret;
@@ -82,11 +94,11 @@ struct ukvm_blkwrite {
 /* UKVM_PORT_BLKREAD */
 struct ukvm_blkread {
 	/* IN */
-	uint64_t sector;
-	void *data;
+	size_t sector;
+	UKVM_GUEST_PTR(void *) data;
 
 	/* IN/OUT */
-	int len;
+	size_t len;
 
 	/* OUT */
 	int ret;
@@ -101,8 +113,8 @@ struct ukvm_netinfo {
 /* UKVM_PORT_NETWRITE */
 struct ukvm_netwrite {
 	/* IN */
-	void *data;
-	int len;
+	UKVM_GUEST_PTR(const void *) data;
+	size_t len;
 
 	/* OUT */
 	int ret;
@@ -111,10 +123,10 @@ struct ukvm_netwrite {
 /* UKVM_PORT_NETREAD */
 struct ukvm_netread {
 	/* IN */
-	void *data;
+	UKVM_GUEST_PTR(void *) data;
 
 	/* IN/OUT */
-	int len;
+	size_t len;
 
 	/* OUT */
 	int ret;

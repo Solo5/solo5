@@ -474,18 +474,19 @@ static void *event_loop(void *arg)
     return NULL;
 }
 
-void ukvm_port_puts(uint8_t *mem, void *data)
+void ukvm_port_puts(uint8_t *mem, uint64_t paddr)
 {
-    uint32_t mem_off = *(uint32_t *) data;
-    struct ukvm_puts *p = (struct ukvm_puts *) (mem + mem_off);
+    GUEST_CHECK_PADDR(paddr, GUEST_SIZE, sizeof (struct ukvm_puts));
+    struct ukvm_puts *p = (struct ukvm_puts *)(mem + paddr);
 
-    printf("%.*s", p->len, (char *) (mem + (uint64_t) p->data));
+    GUEST_CHECK_PADDR(p->data, GUEST_SIZE, p->len);
+    assert(write(1, mem + p->data, p->len) != -1);
 }
 
-void ukvm_port_poll(uint8_t *mem, void *data)
+void ukvm_port_poll(uint8_t *mem, uint64_t paddr)
 {
-    uint32_t arg_addr = *(uint32_t *) data;
-    struct ukvm_poll *t = (struct ukvm_poll *) (mem + arg_addr);
+    GUEST_CHECK_PADDR(paddr, GUEST_SIZE, sizeof (struct ukvm_poll));
+    struct ukvm_poll *t = (struct ukvm_poll *)(mem + paddr);
     struct timespec ts;
     int rc, i, num_fds = 0;
     struct pollfd fds[NUM_MODULES];  /* we only support at most one
@@ -501,7 +502,6 @@ void ukvm_port_poll(uint8_t *mem, void *data)
             num_fds += 1;
         }
     }
-
 
     ts.tv_sec = t->timeout_nsecs / 1000000000ULL;
     ts.tv_nsec = t->timeout_nsecs % 1000000000ULL;
@@ -546,16 +546,17 @@ static int vcpu_loop(struct kvm_run *run, int vcpufd, uint8_t *mem)
             return 0;
         }
         case KVM_EXIT_IO: {
-            uint8_t *data = (uint8_t *)run + run->io.data_offset;
-
             assert(run->io.direction == KVM_EXIT_IO_OUT);
+            assert(run->io.size == 4);
+            uint64_t paddr =
+                GUEST_PIO32_TO_PADDR((uint8_t *)run + run->io.data_offset);
 
             switch (run->io.port) {
             case UKVM_PORT_PUTS:
-                ukvm_port_puts(mem, data);
+                ukvm_port_puts(mem, paddr);
                 break;
             case UKVM_PORT_POLL:
-                ukvm_port_poll(mem, data);
+                ukvm_port_poll(mem, paddr);
                 break;
             default:
                 errx(1, "unhandled KVM_EXIT_IO (%x)", run->io.port);

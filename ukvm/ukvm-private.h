@@ -7,8 +7,9 @@
 #define ALIGN_UP(_num, _align)    (_align * ((_num + _align - 1) / _align))
 
 /*
- * Define uaddl_overflow(a, b, result) for older compilers.
- * Based on "Catching Integer Overflows in C" (https://www.fefe.de/intof.html).
+ * Define uaddl_overflow(a, b, result) for compilers without
+ * __builtin_uaddl_overlow().  Based on "Catching Integer Overflows in C"
+ * (https://www.fefe.de/intof.html).
  */
 #if defined(__GNUC__)
 #if __GNUC__ >= 5
@@ -50,5 +51,26 @@
 
 #endif
 #undef _HAS_BUILTIN_OVERFLOW
+
+/*
+ * Given a pointer to 32-bit guest I/O write data, dereference and return as
+ * a guest physical address (uint64_t).
+ */
+#define GUEST_PIO32_TO_PADDR(x) (uint64_t)(* (uint32_t *)(x))
+
+/*
+ * Given a guest physical address (p), validate that:
+ *   - (p) is within the limit (l)
+ *   - (p + sz) does not overflow and is within the limit (l)
+ *
+ * Note that (p), (l) and (sz) should be uint64_t or compatible types.
+ */
+#define GUEST_CHECK_PADDR(p, l, sz) \
+    {                                                                          \
+        uint64_t __e;                                                          \
+        if ((p >= l) || uaddl_overflow(p, sz, __e) || (__e >= l))              \
+            errx(1, "%s:%d: Invalid guest access: paddr=0x%lx sz=%lu",         \
+                    __FILE__, __LINE__, p, sz);                                \
+    }
 
 #endif
