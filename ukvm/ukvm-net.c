@@ -17,8 +17,9 @@
 #include <sys/ioctl.h>
 #include <err.h>
 
+#include "ukvm-private.h"
+#include "ukvm-modules.h"
 #include "ukvm.h"
-#include "ukvm_modules.h"
 
 static char *netiface;
 static int netfd;

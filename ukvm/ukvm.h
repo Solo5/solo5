@@ -20,8 +20,6 @@
 #ifndef __UKVM_H__
 #define __UKVM_H__
 
-#define GUEST_SIZE      0x20000000 /* 512 MBs */
-
 struct ukvm_boot_info {
     uint64_t mem_size;		/* Memory size in bytes */
     uint64_t kernel_end;	/* Address of end of kernel */

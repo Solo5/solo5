@@ -43,11 +43,10 @@
 #include <pthread.h>
 #include <poll.h>
 
-#include "processor-flags.h"
-//#include "../kernel/interrupts.h"
+#include "ukvm-private.h"
+#include "ukvm-modules.h"
+#include "ukvm-cpu.h"
 #include "ukvm.h"
-#include "ukvm_modules.h"
-#include "misc.h"
 
 struct ukvm_module *modules[] = {
 #ifdef UKVM_MODULE_BLK
@@ -77,8 +76,6 @@ struct ukvm_module *modules[] = {
  * 0x001000    bootstrap gdt (contains correct code/data/ but tss points to 0)
  */
 
-#define GUEST_PAGE_SIZE 0x200000   /* 2 MB pages in guest */
-
 #define BOOT_GDT     0x1000
 #define BOOT_INFO    0x2000
 #define BOOT_PML4    0x10000
@@ -89,63 +86,6 @@ struct ukvm_module *modules[] = {
 #define BOOT_GDT_CODE    1
 #define BOOT_GDT_DATA    2
 #define BOOT_GDT_MAX     3
-#define GDT_DESC_OFFSET(n) ((n) * 0x8)
-
-#define GDT_GET_BASE(x) (                      \
-    (((x) & 0xFF00000000000000) >> 32) |       \
-    (((x) & 0x000000FF00000000) >> 16) |       \
-    (((x) & 0x00000000FFFF0000) >> 16))
-
-#define GDT_GET_LIMIT(x) (__u32)(                                      \
-                                 (((x) & 0x000F000000000000) >> 32) |  \
-                                 (((x) & 0x000000000000FFFF)))
-
-/* Constructor for a conventional segment GDT (or LDT) entry */
-/* This is a macro so it can be used in initializers */
-#define GDT_ENTRY(flags, base, limit)               \
-    ((((base)  & _AC(0xff000000, ULL)) << (56-24)) | \
-     (((flags) & _AC(0x0000f0ff, ULL)) << 40) |      \
-     (((limit) & _AC(0x000f0000, ULL)) << (48-16)) | \
-     (((base)  & _AC(0x00ffffff, ULL)) << 16) |      \
-     (((limit) & _AC(0x0000ffff, ULL))))
-
-struct _kvm_segment {
-    __u64 base;
-    __u32 limit;
-    __u16 selector;
-    __u8 type;
-    __u8 present, dpl, db, s, l, g, avl;
-    __u8 unusable;
-    __u8 padding;
-};
-
-
-#define GDT_GET_G(x)   (__u8)(((x) & 0x0080000000000000) >> 55)
-#define GDT_GET_DB(x)  (__u8)(((x) & 0x0040000000000000) >> 54)
-#define GDT_GET_L(x)   (__u8)(((x) & 0x0020000000000000) >> 53)
-#define GDT_GET_AVL(x) (__u8)(((x) & 0x0010000000000000) >> 52)
-#define GDT_GET_P(x)   (__u8)(((x) & 0x0000800000000000) >> 47)
-#define GDT_GET_DPL(x) (__u8)(((x) & 0x0000600000000000) >> 45)
-#define GDT_GET_S(x)   (__u8)(((x) & 0x0000100000000000) >> 44)
-#define GDT_GET_TYPE(x)(__u8)(((x) & 0x00000F0000000000) >> 40)
-
-
-
-#define GDT_TO_KVM_SEGMENT(seg, gdt_table, sel) \
-    do {                                        \
-        __u64 gdt_ent = gdt_table[sel];         \
-        seg.base = GDT_GET_BASE(gdt_ent);       \
-        seg.limit = GDT_GET_LIMIT(gdt_ent);     \
-        seg.selector = sel * 8;                 \
-        seg.type = GDT_GET_TYPE(gdt_ent);       \
-        seg.present = GDT_GET_P(gdt_ent);       \
-        seg.dpl = GDT_GET_DPL(gdt_ent);         \
-        seg.db = GDT_GET_DB(gdt_ent);           \
-        seg.s = GDT_GET_S(gdt_ent);             \
-        seg.l = GDT_GET_L(gdt_ent);             \
-        seg.g = GDT_GET_G(gdt_ent);             \
-        seg.avl = GDT_GET_AVL(gdt_ent);         \
-    } while (0)
 
 #define KVM_32BIT_MAX_MEM_SIZE  (1ULL << 32)
 #define KVM_32BIT_GAP_SIZE    (768 << 20)
@@ -302,7 +242,7 @@ static void load_code(const char *file, uint8_t *mem,     /* IN */
         memset(mem + paddr + filesz, 0, memsz - filesz);
 
         /* Protect the executable code */
-        if (phdr[ph_i].p_flags & ELF_SEGMENT_X)
+        if (phdr[ph_i].p_flags & PF_X)
             mprotect((void *) dst, memsz, PROT_EXEC | PROT_READ);
 
         _end = ALIGN_UP(paddr + memsz, align);
