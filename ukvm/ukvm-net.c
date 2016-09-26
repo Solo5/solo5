@@ -17,8 +17,9 @@
 #include <sys/ioctl.h>
 #include <err.h>
 
+#include "ukvm-private.h"
+#include "ukvm-modules.h"
 #include "ukvm.h"
-#include "ukvm_modules.h"
 
 static char *netiface;
 static int netfd;
@@ -80,60 +81,63 @@ static int tun_alloc(char *dev, int flags)
     return fd;
 }
 
-static void ukvm_port_netinfo(uint8_t *mem, void *data)
+static void ukvm_port_netinfo(uint8_t *mem, uint64_t paddr)
 {
-    uint32_t mem_off = *(uint32_t *) data;
-    struct ukvm_netinfo *info = (struct ukvm_netinfo *) (mem + mem_off);
+    GUEST_CHECK_PADDR(paddr, GUEST_SIZE, sizeof (struct ukvm_netinfo));
+    struct ukvm_netinfo *info = (struct ukvm_netinfo *)(mem + paddr);
 
     memcpy(info->mac_str, netinfo.mac_str, sizeof(netinfo.mac_str));
 }
 
-static void ukvm_port_netwrite(uint8_t *mem, void *data)
+static void ukvm_port_netwrite(uint8_t *mem, uint64_t paddr)
 {
-    uint32_t mem_off = *(uint32_t *) data;
-    struct ukvm_netwrite *wr = (struct ukvm_netwrite *) (mem + mem_off);
+    GUEST_CHECK_PADDR(paddr, GUEST_SIZE, sizeof (struct ukvm_netwrite));
+    struct ukvm_netwrite *wr = (struct ukvm_netwrite *)(mem + paddr);
     int ret;
 
-    wr->ret = 0;
-    ret = write(netfd, mem + (uint64_t) wr->data, wr->len);
+    GUEST_CHECK_PADDR(wr->data, GUEST_SIZE, wr->len);
+    ret = write(netfd, mem + wr->data, wr->len);
     assert(wr->len == ret);
+    wr->ret = 0;
 }
 
-static void ukvm_port_netread(uint8_t *mem, void *data)
+static void ukvm_port_netread(uint8_t *mem, uint64_t paddr)
 {
-    uint32_t mem_off = *(uint32_t *) data;
-    struct ukvm_netread *rd = (struct ukvm_netread *) (mem + mem_off);
+    GUEST_CHECK_PADDR(paddr, GUEST_SIZE, sizeof (struct ukvm_netread));
+    struct ukvm_netread *rd = (struct ukvm_netread *)(mem + paddr);
+    int ret;
 
-    rd->len = read(netfd, mem + (uint64_t) rd->data, rd->len);
-    if (rd->len == -1 && errno == EAGAIN) {
+    GUEST_CHECK_PADDR(rd->data, GUEST_SIZE, rd->len);
+    ret = read(netfd, mem + rd->data, rd->len);
+    if ((ret == 0) ||
+        (ret == -1 && errno == EAGAIN)) {
         rd->ret = -1;
         return;
     }
-    assert(rd->len > 0);
+    assert(ret > 0);
+    rd->len = ret;
     rd->ret = 0;
 }
 
 static int handle_exit(struct kvm_run *run, int vcpufd, uint8_t *mem)
 {
-    uint8_t *data;
-
-    if (run->exit_reason != KVM_EXIT_IO)
+    if ((run->exit_reason != KVM_EXIT_IO) ||
+        (run->io.direction != KVM_EXIT_IO_OUT) ||
+        (run->io.size != 4))
         return -1;
 
-    if (run->io.direction != KVM_EXIT_IO_OUT)
-        return -1;
-
-    data = (uint8_t *)run + run->io.data_offset;
+    uint64_t paddr =
+        GUEST_PIO32_TO_PADDR((uint8_t *)run + run->io.data_offset);
 
     switch (run->io.port) {
     case UKVM_PORT_NETINFO:
-        ukvm_port_netinfo(mem, data);
+        ukvm_port_netinfo(mem, paddr);
         break;
     case UKVM_PORT_NETWRITE:
-        ukvm_port_netwrite(mem, data);
+        ukvm_port_netwrite(mem, paddr);
         break;
     case UKVM_PORT_NETREAD:
-        ukvm_port_netread(mem, data);
+        ukvm_port_netread(mem, paddr);
         break;
     default:
         return -1;

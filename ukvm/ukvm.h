@@ -20,8 +20,6 @@
 #ifndef __UKVM_H__
 #define __UKVM_H__
 
-#define GUEST_SIZE      0x20000000 /* 512 MBs */
-
 struct ukvm_boot_info {
     uint64_t mem_size;		/* Memory size in bytes */
     uint64_t kernel_end;	/* Address of end of kernel */
@@ -39,9 +37,8 @@ static inline uint32_t ukvm_ptr(volatile void *p)
 	return (uint32_t)((uint64_t)p & 0xffffffff);
 }
 
-#define UKVM_PORT_CHAR      0x3f8
 #define UKVM_PORT_PUTS      0x499
-#define UKVM_PORT_NANOSLEEP 0x500
+/* was UKVM_PORT_NANOSLEEP 0x500 */
 
 #define UKVM_PORT_BLKINFO   0x502
 #define UKVM_PORT_BLKWRITE  0x503
@@ -51,50 +48,44 @@ static inline uint32_t ukvm_ptr(volatile void *p)
 #define UKVM_PORT_NETWRITE  0x506
 #define UKVM_PORT_NETREAD   0x507
 
-#define UKVM_PORT_DBG_STACK 0x508
+/* was UKVM_PORT_DBG_STACK 0x508 */
 
 #define UKVM_PORT_POLL      0x509
 
+/*
+ * Guest-provided pointers in UKVM I/O operations MUST be declared with
+ * UKVM_GUEST_PTR(type), where type is the desired guest-side pointer type.
+ *
+ * This ensures that these pointers are not directly dereferencable on the host
+ * (ukvm) side.
+ */
+#ifdef __UKVM_HOST__
+#define UKVM_GUEST_PTR(T) uint64_t
+#else
+#define UKVM_GUEST_PTR(T) T
+#endif
 
 /* UKVM_PORT_PUTS */
 struct ukvm_puts {
 	/* IN */
-	char *data;
-	int len;
-};
-
-/* UKVM_PORT_NANOSLEEP */
-struct ukvm_nanosleep {
-	/* IN */
-	uint64_t sec_in;
-	uint64_t nsec_in;
-
-	/* OUT */
-	uint64_t sec_out;
-	uint64_t nsec_out;
-	int ret;
-};
-
-/* UKVM_PORT_CLKSPEED */
-struct ukvm_clkspeed {
-	/* OUT */
-	uint64_t clkspeed;
+	UKVM_GUEST_PTR(const char *) data;
+	size_t len;
 };
 
 /* UKVM_PORT_BLKINFO */
 struct ukvm_blkinfo {
 	/* OUT */
-	int sector_size;
-	uint64_t num_sectors;
+	size_t sector_size;
+	size_t num_sectors;
 	int rw;
 };
 
 /* UKVM_PORT_BLKWRITE */
 struct ukvm_blkwrite {
 	/* IN */
-	uint64_t sector;
-	void *data;
-	int len;
+	size_t sector;
+	UKVM_GUEST_PTR(const void *) data;
+	size_t len;
 
 	/* OUT */
 	int ret;
@@ -103,11 +94,11 @@ struct ukvm_blkwrite {
 /* UKVM_PORT_BLKREAD */
 struct ukvm_blkread {
 	/* IN */
-	uint64_t sector;
-	void *data;
+	size_t sector;
+	UKVM_GUEST_PTR(void *) data;
 
 	/* IN/OUT */
-	int len;
+	size_t len;
 
 	/* OUT */
 	int ret;
@@ -122,8 +113,8 @@ struct ukvm_netinfo {
 /* UKVM_PORT_NETWRITE */
 struct ukvm_netwrite {
 	/* IN */
-	void *data;
-	int len;
+	UKVM_GUEST_PTR(const void *) data;
+	size_t len;
 
 	/* OUT */
 	int ret;
@@ -132,10 +123,10 @@ struct ukvm_netwrite {
 /* UKVM_PORT_NETREAD */
 struct ukvm_netread {
 	/* IN */
-	void *data;
+	UKVM_GUEST_PTR(void *) data;
 
 	/* IN/OUT */
-	int len;
+	size_t len;
 
 	/* OUT */
 	int ret;

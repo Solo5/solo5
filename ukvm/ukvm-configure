@@ -29,9 +29,10 @@ ifdef UKVM_STATIC
 UKVM_LDFLAGS=-static
 endif
 UKVM_HEADERS= \\
-$UKVM_SRC/ukvm.h \\
-$UKVM_SRC/misc.h \\
-$UKVM_SRC/processor-flags.h
+$UKVM_SRC/ukvm-private.h \\
+$UKVM_SRC/ukvm-modules.h \\
+$UKVM_SRC/ukvm-cpu.h \\
+$UKVM_SRC/ukvm.h
 
 _build-ukvm:
 	mkdir -p _build-ukvm

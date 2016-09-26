@@ -105,8 +105,9 @@
 #include <assert.h>
 #include <linux/kvm.h>
 
+#include "ukvm-private.h"
+#include "ukvm-modules.h"
 #include "ukvm.h"
-#include "ukvm_modules.h"
 
 static int use_gdb;
 
