@@ -140,11 +140,11 @@ struct virtq {
         struct io_buffer *bufs;
 
         /* Keep track of available (free) descriptors */
-        uint32_t num_avail;
+        uint16_t num_avail;
 
         /* Indexes in the descriptors array */
-        uint32_t last_used;
-        uint32_t next_avail;
+        uint16_t last_used;
+        uint16_t next_avail;
 };
 
 static inline int virtq_need_event(uint16_t event_idx, uint16_t new_idx, uint16_t old_idx)
@@ -174,8 +174,8 @@ void virtq_handle_interrupt(struct virtq *vq);
  * Returns 0 on success.
  */
 int virtq_add_descriptor_chain(struct virtq *vq,
-                               uint32_t head,
-                               uint32_t num);
+                               uint16_t head,
+                               uint16_t num);
 
 void virtq_init_rings(uint16_t pci_base, struct virtq *vq, int selector);
 

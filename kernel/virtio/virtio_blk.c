@@ -58,15 +58,16 @@ static uint16_t virtio_blk_op(uint32_t type,
                               uint64_t sector,
                               void *data, int len)
 {
+    uint16_t mask = blkq.num - 1;
     struct virtio_blk_hdr hdr;
     struct io_buffer *head_buf, *data_buf, *status_buf;
-    uint16_t head = blkq.next_avail;
+    uint16_t head = blkq.next_avail & mask;
 
     assert(len <= VIRTIO_BLK_SECTOR_SIZE);
 
     head_buf = &blkq.bufs[head];
-    data_buf = &blkq.bufs[(head + 1) % blkq.num];
-    status_buf = &blkq.bufs[(head + 2) % blkq.num];
+    data_buf = &blkq.bufs[(head + 1) & mask];
+    status_buf = &blkq.bufs[(head + 2) & mask];
 
     hdr.type = type;
     hdr.ioprio = 0;
@@ -100,6 +101,7 @@ static int virtio_blk_op_sync(uint32_t type,
                               uint64_t sector,
                               void *data, int *len)
 {
+    uint16_t mask = blkq.num - 1;
     uint16_t head;
     struct io_buffer *head_buf, *data_buf, *status_buf;
     uint8_t status;
@@ -107,8 +109,8 @@ static int virtio_blk_op_sync(uint32_t type,
     head = virtio_blk_op(type, sector, data, *len);
 
     head_buf = &blkq.bufs[head];
-    data_buf = &blkq.bufs[(head + 1) % blkq.num];
-    status_buf = &blkq.bufs[(head + 2) % blkq.num];
+    data_buf = &blkq.bufs[(head + 1) & mask];
+    status_buf = &blkq.bufs[(head + 2) & mask];
 
     /* XXX need timeout or something, because this can hang... sync
      * should probably go away anyway

@@ -81,14 +81,16 @@ int handle_virtio_net_interrupt(void *arg __attribute__((unused)))
 
 static void recv_setup(void)
 {
+    uint16_t mask = recvq.num - 1;
     do {
         struct io_buffer *buf; /* header and data in a single descriptor */
-        buf = &recvq.bufs[recvq.next_avail];
+        buf = &recvq.bufs[recvq.next_avail & mask];
         memset(buf->data, 0, PKT_BUFFER_LEN);
         buf->len = PKT_BUFFER_LEN;
         buf->extra_flags = VIRTQ_DESC_F_WRITE;
-        assert(virtq_add_descriptor_chain(&recvq, recvq.next_avail, 1) == 0);
-    } while (recvq.next_avail != 0);
+        assert(virtq_add_descriptor_chain(&recvq,
+                                          recvq.next_avail & mask, 1) == 0);
+    } while ((recvq.next_avail & mask) != 0);
 
     outw(virtio_net_pci_base + VIRTIO_PCI_QUEUE_NOTIFY, VIRTQ_RECV);
 }
@@ -96,12 +98,13 @@ static void recv_setup(void)
 /* performance note: we perform a copy into the xmit buffer */
 int virtio_net_xmit_packet(void *data, int len)
 {
-    uint16_t head = xmitq.next_avail;
+    uint16_t mask = xmitq.num - 1;
+    uint16_t head = xmitq.next_avail & mask;
     struct io_buffer *head_buf, *data_buf;
     int r;
 
     head_buf = &xmitq.bufs[head];
-    data_buf = &xmitq.bufs[(head + 1) % xmitq.num];
+    data_buf = &xmitq.bufs[(head + 1) & mask];
 
     /* The header buf */
     memset(head_buf->data, 0, sizeof(struct virtio_net_hdr));
@@ -120,7 +123,6 @@ int virtio_net_xmit_packet(void *data, int len)
 
     return r;
 }
-
 
 void virtio_config_network(uint16_t base, unsigned irq)
 {
@@ -207,10 +209,12 @@ void virtio_config_network(uint16_t base, unsigned irq)
 
 int virtio_net_pkt_poll(void)
 {
+    uint16_t mask = recvq.num - 1;
     if (!net_configured)
         return 0;
 
-    if (recvq.next_avail == recvq.last_used)
+    /* We need the masks otherwise this won't be true: (vq->num + 1) == 0 */
+    if ((recvq.next_avail & mask) == (recvq.last_used & mask))
         return 0;
     else
         return 1;
@@ -220,14 +224,15 @@ int virtio_net_pkt_poll(void)
  * the available ring. */
 uint8_t *virtio_net_recv_pkt_get(int *size)
 {
+    uint16_t mask = recvq.num - 1;
     struct io_buffer *buf;
 
     /* last_used advances whenever we receive a packet, and if it's ahead of
      * next_avail it means that we have a pending packet. */
-    if (recvq.next_avail == recvq.last_used)
+    if ((recvq.next_avail & mask) == (recvq.last_used & mask))
         return NULL;
 
-    buf = &recvq.bufs[recvq.next_avail];
+    buf = &recvq.bufs[recvq.next_avail & mask];
 
     /* Remove the virtio_net_hdr */
     *size = buf->len - sizeof(struct virtio_net_hdr);
@@ -238,11 +243,12 @@ uint8_t *virtio_net_recv_pkt_get(int *size)
  * ring. */
 void virtio_net_recv_pkt_put(void)
 {
-    recvq.bufs[recvq.next_avail].len = PKT_BUFFER_LEN;
-    recvq.bufs[recvq.next_avail].extra_flags = VIRTQ_DESC_F_WRITE;
+    uint16_t mask = recvq.num - 1;
+    recvq.bufs[recvq.next_avail & mask].len = PKT_BUFFER_LEN;
+    recvq.bufs[recvq.next_avail & mask].extra_flags = VIRTQ_DESC_F_WRITE;
     /* This sets the returned descriptor to be ready for incoming packets, and
      * advances the next_avail index. */
-    assert(virtq_add_descriptor_chain(&recvq, recvq.next_avail, 1) == 0);
+    assert(virtq_add_descriptor_chain(&recvq, recvq.next_avail & mask, 1) == 0);
 }
 
 int solo5_net_write_sync(uint8_t *data, int n)

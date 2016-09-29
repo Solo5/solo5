@@ -30,15 +30,16 @@
 void virtq_handle_interrupt(struct virtq *vq)
 {
     struct virtq_used_elem *e;
+    uint16_t mask = vq->num - 1;
 
     for (;;) {
         uint16_t desc_idx;
         struct io_buffer *head_buf;
 
-        if ((vq->used->idx % vq->num) == vq->last_used)
+        if (vq->used->idx == vq->last_used)
             break;
 
-        e = &(vq->used->ring[vq->last_used % vq->num]);
+        e = &(vq->used->ring[vq->last_used & mask]);
         desc_idx = e->id;
 
         head_buf = (struct io_buffer *) vq->desc[desc_idx].addr;
@@ -55,7 +56,7 @@ void virtq_handle_interrupt(struct virtq *vq)
             desc_idx = vq->desc[desc_idx].next;
         }
 
-        vq->last_used = (vq->last_used + 1) % vq->num;
+        vq->last_used++;
     }
 }
 
@@ -65,13 +66,14 @@ void virtq_handle_interrupt(struct virtq *vq)
  * Make sure the vq-bufs are cleaned before using them again.
  */
 int virtq_add_descriptor_chain(struct virtq *vq,
-                               uint32_t head,
-                               uint32_t num)
+                               uint16_t head,
+                               uint16_t num)
 {
+    uint16_t mask = vq->num - 1;
     struct virtq_desc *desc;
-    uint32_t i;
+    uint16_t i;
     int dbg = 0;
-    uint32_t used_descs = num;
+    uint16_t used_descs = num;
 
     if (vq->num_avail < used_descs) {
         printf("buffer full! next_avail:%d last_used:%d\n",
@@ -97,7 +99,7 @@ int virtq_add_descriptor_chain(struct virtq *vq,
         desc->len = vq->bufs[i].len;
         desc->flags = VIRTQ_DESC_F_NEXT | vq->bufs[i].extra_flags;
 
-        i = (i + 1) % vq->num;
+        i = (i + 1) & mask;
         desc->next = i;
     }
 
@@ -108,14 +110,14 @@ int virtq_add_descriptor_chain(struct virtq *vq,
     if (dbg)
         atomic_printf("0x%p next_avail %d last_used %d\n",
                       desc->addr, vq->next_avail,
-                      (vq->last_used * num) % vq->num);
+                      (vq->last_used * num) & mask);
 
     vq->num_avail -= num;
     /* Memory barriers should be unnecessary with one processor */
-    vq->avail->ring[vq->avail->idx % vq->num] = head;
+    vq->avail->ring[vq->avail->idx & mask] = head;
     /* avail->idx always increments and wraps naturally at 65536 */
     vq->avail->idx++;
-    vq->next_avail = (vq->next_avail + num) % vq->num;
+    vq->next_avail += num;
 
     return 0;
 }
