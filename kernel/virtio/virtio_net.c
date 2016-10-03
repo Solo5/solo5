@@ -199,6 +199,7 @@ void virtio_config_network(uint16_t base, unsigned irq)
     net_configured = 1;
     intr_register_irq(irq, handle_virtio_net_interrupt, NULL);
     recv_setup();
+    recvq.next_avail = 0;
 
     /*
      * 8. Set the DRIVER_OK status bit. At this point the device is "live".
@@ -209,12 +210,10 @@ void virtio_config_network(uint16_t base, unsigned irq)
 
 int virtio_net_pkt_poll(void)
 {
-    uint16_t mask = recvq.num - 1;
     if (!net_configured)
         return 0;
 
-    /* We need the masks otherwise this won't be true: (vq->num + 1) == 0 */
-    if ((recvq.next_avail & mask) == (recvq.last_used & mask))
+    if (recvq.next_avail == recvq.last_used)
         return 0;
     else
         return 1;
@@ -229,7 +228,7 @@ uint8_t *virtio_net_recv_pkt_get(int *size)
 
     /* last_used advances whenever we receive a packet, and if it's ahead of
      * next_avail it means that we have a pending packet. */
-    if ((recvq.next_avail & mask) == (recvq.last_used & mask))
+    if (recvq.next_avail == recvq.last_used)
         return NULL;
 
     buf = &recvq.bufs[recvq.next_avail & mask];
@@ -249,6 +248,7 @@ void virtio_net_recv_pkt_put(void)
     /* This sets the returned descriptor to be ready for incoming packets, and
      * advances the next_avail index. */
     assert(virtq_add_descriptor_chain(&recvq, recvq.next_avail & mask, 1) == 0);
+    outw(virtio_net_pci_base + VIRTIO_PCI_QUEUE_NOTIFY, VIRTQ_RECV);
 }
 
 int solo5_net_write_sync(uint8_t *data, int n)
