@@ -19,7 +19,7 @@ int check_sector_write(uint64_t offset)
         return 1;
     
     for (i = 0; i < SECTOR_SIZE; i++) {
-        if (sector_write[i] != '0' + i % 10)
+        if (sector_read[i] != '0' + i % 10)
             /* Check failed */
             return 1;
     }

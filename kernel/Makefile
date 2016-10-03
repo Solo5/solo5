@@ -47,6 +47,7 @@ virtio/mem.o \
 virtio/pci.o \
 virtio/serial.o \
 virtio/time.o \
+virtio/virtio_ring.o \
 virtio/virtio_net.o \
 virtio/virtio_blk.o \
 virtio/tscclock.o \
