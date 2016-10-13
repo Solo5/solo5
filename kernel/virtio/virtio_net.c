@@ -71,6 +71,8 @@ int handle_virtio_net_interrupt(void *arg __attribute__((unused)))
     if (net_configured) {
         isr_status = inb(virtio_net_pci_base + VIRTIO_PCI_ISR);
         if (isr_status & VIRTIO_PCI_ISR_HAS_INTR) {
+	    /* This interrupt is just to kick the application out of any
+             * solo5_poll() that may be running. */
             return 1;
         }
     }

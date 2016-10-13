@@ -146,6 +146,7 @@ static void ping_serve(int quiet)
     for (;;) {
         struct pingpkt *p = (struct pingpkt *)&buf;
         int len = sizeof(buf);
+        uint64_t t1;
 
         /* wait for packet */
         /* XXX doing the below produces an assert in ukvm, look into it */
@@ -158,6 +159,11 @@ static void ping_serve(int quiet)
             ;
         }
         assert(solo5_net_read_sync(buf, &len) == 0);
+
+        t1 = solo5_clock_monotonic();
+        while ((solo5_clock_monotonic() - t1) < 1e7) {
+            solo5_poll(solo5_clock_monotonic() + 1000000000ULL);
+        }
 
         if (memcmp(p->ether.target, macaddr, HLEN_ETHER) &&
             memcmp(p->ether.target, macaddr_brd, HLEN_ETHER))
@@ -226,7 +232,7 @@ int solo5_app_main(char *cmdline)
     puts("Hello, World\n");
 
     /* anything passed on the command line means "quiet" */
-    ping_serve(strlen(cmdline));
+    ping_serve(strlen(cmdline) + 1);
 
     return 0;
 }

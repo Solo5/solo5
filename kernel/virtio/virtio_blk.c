@@ -51,7 +51,6 @@ static uint16_t virtio_blk_pci_base; /* base in PCI config space */
 
 static int blk_configured;
 
-static int handle_virtio_blk_interrupt(void *);
 
 /* Returns the index to the head of the buffers chain. */
 static uint16_t virtio_blk_op(uint32_t type,
@@ -142,7 +141,7 @@ static int virtio_blk_op_sync(uint32_t type,
     return 0;
 }
 
-void virtio_config_block(uint16_t base, unsigned irq)
+void virtio_config_block(uint16_t base, unsigned irq __attribute__((__unused__)))
 {
     uint8_t ready_for_init = VIRTIO_PCI_STATUS_ACK | VIRTIO_PCI_STATUS_DRIVER;
     uint32_t host_features, guest_features;
@@ -181,7 +180,6 @@ void virtio_config_block(uint16_t base, unsigned irq)
 
     virtio_blk_pci_base = base;
     blk_configured = 1;
-    intr_register_irq(irq, handle_virtio_blk_interrupt, NULL);
 
     /*
      * We don't need to get interrupts every time the device uses our
@@ -191,19 +189,6 @@ void virtio_config_block(uint16_t base, unsigned irq)
     blkq.avail->flags |= VIRTQ_AVAIL_F_NO_INTERRUPT;
 
     outb(base + VIRTIO_PCI_STATUS, VIRTIO_PCI_STATUS_DRIVER_OK);
-}
-
-int handle_virtio_blk_interrupt(void *arg __attribute__((unused)))
-{
-    uint8_t isr_status;
-
-    if (blk_configured) {
-        isr_status = inb(virtio_blk_pci_base + VIRTIO_PCI_ISR);
-        if (isr_status & VIRTIO_PCI_ISR_HAS_INTR) {
-            return 1;
-        }
-    }
-    return 0;
 }
 
 int solo5_blk_write_sync(uint64_t sector, uint8_t *data, int n)
