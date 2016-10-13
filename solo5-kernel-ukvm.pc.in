@@ -7,4 +7,4 @@ ldflags=!LDFLAGS! -T ${libdir}/solo5.lds ${libdir}/solo5.o
 Name: solo5-kernel-ukvm
 Version: 0.1
 Description: Solo5 unikernel base (ukvm target)
-Cflags: !CFLAGS! -I${includedir}
+Cflags: !CFLAGS! -isystem ${includedir}/host -I${includedir}

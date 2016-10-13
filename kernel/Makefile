@@ -15,7 +15,7 @@
 # TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 # PERFORMANCE OF THIS SOFTWARE.
 
-include Makefile.common
+include $(TOP)/Makefile.common
 
 COMMON_COBJS=\
 abort.o \
