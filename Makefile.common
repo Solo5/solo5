@@ -1,0 +1,10 @@
+include $(TOP)/Makeconf
+
+AS?=as
+CC?=cc
+LD?=ld
+OBJCOPY?=objcopy
+MD_CFLAGS=$(HOST_CFLAGS) -ffreestanding -mno-red-zone -mno-3dnow
+LDFLAGS=-nostdlib -z max-page-size=0x1000 -static
+# Platform-independent CFLAGS
+CFLAGS=$(MD_CFLAGS) -isystem $(TOP)/include-host -std=gnu99 -Wall -Wextra -Werror -O2 -g
