@@ -19,13 +19,12 @@ cc_is_gcc()
 OS=$(uname -s)
 
 HOST_INCDIR=${PWD}/include-host
-mkdir -p ${HOST_INCDIR}
 
 case ${OS} in
     Linux)
 	cc_is_gcc || die "Only 'gcc' is supported on Linux"
 	CC_INCDIR=$(${CC:-cc} -print-file-name=include)
-	cp -R ${CC_INCDIR}/ ${HOST_INCDIR}
+	cp -R ${CC_INCDIR} ${HOST_INCDIR}
 
 	HOST_CFLAGS="-nostdinc"
 	BUILD_UKVM="yes"
@@ -41,6 +40,7 @@ case ${OS} in
 	    x86/_types.h x86/_limits.h"
 	SRCS="float.h osreldate.h stddef.h stdint.h stdbool.h stdarg.h"
 
+        mkdir -p ${HOST_INCDIR}
 	mkdir -p ${HOST_INCDIR}/machine ${HOST_INCDIR}/sys ${HOST_INCDIR}/x86
 	for f in ${SRCS_MACH}; do cp -f ${INCDIR}/$f ${HOST_INCDIR}/machine; done
 	for f in ${SRCS_SYS}; do cp -f ${INCDIR}/$f ${HOST_INCDIR}/sys; done
