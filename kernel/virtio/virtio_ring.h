@@ -103,7 +103,7 @@ struct virtq_used_elem {
 
 struct virtq_used {
         le16 flags;
-        le16 idx;
+        volatile le16 idx;
         struct virtq_used_elem ring[];
         /* Only if VIRTIO_F_EVENT_IDX: le16 avail_event; */
 };
@@ -122,10 +122,6 @@ struct io_buffer {
      * by the device on a rx/read on interrupt handling (do not remove the
      * volatile). */
     volatile uint32_t len;
-
-    /* The driver sets this field to 0 before submitting an IO, and it is set
-     * to 1 at completion on interrupt handling (hence the volatile). */
-    volatile uint8_t completed;
 
     /* Extra flags to be added to the corresponding descriptor. */
     uint16_t extra_flags;
@@ -164,8 +160,6 @@ static inline le16 *virtq_avail_event(struct virtq *vq)
         /* For backwards compat, avail event index is at *end* of used ring. */
         return (le16 *)&vq->used->ring[vq->num];
 }
-
-void virtq_handle_interrupt(struct virtq *vq);
 
 /*
  * Create a descriptor chain starting at index head, using vq->bufs also

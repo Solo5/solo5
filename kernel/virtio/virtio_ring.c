@@ -26,39 +26,6 @@
  */
 #define VIRTQ_MAX_QUEUE_SIZE 8192
 
-/* WARNING: called in interrupt context */
-void virtq_handle_interrupt(struct virtq *vq)
-{
-    struct virtq_used_elem *e;
-    uint16_t mask = vq->num - 1;
-
-    for (;;) {
-        uint16_t desc_idx;
-        struct io_buffer *head_buf;
-
-        if (vq->used->idx == vq->last_used)
-            break;
-
-        e = &(vq->used->ring[vq->last_used & mask]);
-        desc_idx = e->id;
-
-        head_buf = (struct io_buffer *) vq->desc[desc_idx].addr;
-
-        /* Overwrite buf->len with the number of bytes written by the device.
-         * This will be 0 for the tx/blk_write case. */
-        head_buf->len = e->len;
-        head_buf->completed = 1;
-        assert(e->len <= MAX_BUFFER_LEN);
-
-        vq->num_avail++;
-        while (vq->desc[desc_idx].flags & VIRTQ_DESC_F_NEXT) {
-            vq->num_avail++;
-            desc_idx = vq->desc[desc_idx].next;
-        }
-
-        vq->last_used++;
-    }
-}
 
 /*
  * Create a descriptor chain starting at index head, using vq->bufs also
@@ -94,7 +61,6 @@ int virtq_add_descriptor_chain(struct virtq *vq,
          * 'struct io_buffer'.
          */
         assert(vq->bufs[i].data == (uint8_t *) &vq->bufs[i]);
-        vq->bufs[i].completed = 0;
         desc->addr = (uint64_t) vq->bufs[i].data;
         desc->len = vq->bufs[i].len;
         desc->flags = VIRTQ_DESC_F_NEXT | vq->bufs[i].extra_flags;
@@ -108,9 +74,8 @@ int virtq_add_descriptor_chain(struct virtq *vq,
     desc->flags &= ~VIRTQ_DESC_F_NEXT;
 
     if (dbg)
-        atomic_printf("0x%p next_avail %d last_used %d\n",
-                      desc->addr, vq->next_avail,
-                      (vq->last_used * num) & mask);
+        atomic_printf("0x%p returning head %d\n",
+                      vq, head);
 
     vq->num_avail -= num;
     /* Memory barriers should be unnecessary with one processor */

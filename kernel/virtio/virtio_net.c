@@ -71,8 +71,6 @@ int handle_virtio_net_interrupt(void *arg __attribute__((unused)))
     if (net_configured) {
         isr_status = inb(virtio_net_pci_base + VIRTIO_PCI_ISR);
         if (isr_status & VIRTIO_PCI_ISR_HAS_INTR) {
-            virtq_handle_interrupt(&xmitq);
-            virtq_handle_interrupt(&recvq);
             return 1;
         }
     }
@@ -99,10 +97,18 @@ static void recv_setup(void)
 int virtio_net_xmit_packet(void *data, int len)
 {
     uint16_t mask = xmitq.num - 1;
-    uint16_t head = xmitq.next_avail & mask;
+    uint16_t head;
     struct io_buffer *head_buf, *data_buf;
     int r;
 
+    assert(xmitq.used->idx <= xmitq.avail->idx);
+
+    /* Consume used descriptors from all the previous tx'es. */
+    for (; xmitq.last_used != xmitq.used->idx; xmitq.last_used++)
+        xmitq.num_avail += 2; /* 2 descriptors per chain */
+
+    /* next_avail is incremented by virtq_add_descriptor_chain below. */
+    head = xmitq.next_avail & mask;
     head_buf = &xmitq.bufs[head];
     data_buf = &xmitq.bufs[(head + 1) & mask];
 
@@ -199,7 +205,17 @@ void virtio_config_network(uint16_t base, unsigned irq)
     net_configured = 1;
     intr_register_irq(irq, handle_virtio_net_interrupt, NULL);
     recv_setup();
-    recvq.next_avail = 0;
+
+    printf("recvq:%p xmitq:%p\n", &recvq, &xmitq);
+
+    /*
+     * We don't need to get interrupts every time the device uses our
+     * descriptors. Instead, we check for used packets in the transmit path of
+     * following packets (as suggested in "5.1.6.2.1 Packet Transmission
+     * Interrupt").
+     */
+
+    xmitq.avail->flags |= VIRTQ_AVAIL_F_NO_INTERRUPT;
 
     /*
      * 8. Set the DRIVER_OK status bit. At this point the device is "live".
@@ -208,12 +224,16 @@ void virtio_config_network(uint16_t base, unsigned irq)
     outb(base + VIRTIO_PCI_STATUS, VIRTIO_PCI_STATUS_DRIVER_OK);
 }
 
+/* Returns 1 if there is a pending used descriptor for us to read. */
 int virtio_net_pkt_poll(void)
 {
     if (!net_configured)
         return 0;
 
-    if (recvq.next_avail == recvq.last_used)
+    /* The device increments used->idx whenever it uses a packet (i.e. it put
+     * a packet on our receive queue) and if it's ahead of last_used it means
+     * that we have a pending packet. */
+    if (recvq.last_used == recvq.used->idx)
         return 0;
     else
         return 1;
@@ -224,14 +244,21 @@ int virtio_net_pkt_poll(void)
 uint8_t *virtio_net_recv_pkt_get(int *size)
 {
     uint16_t mask = recvq.num - 1;
+    struct virtq_used_elem *e;
     struct io_buffer *buf;
+    uint16_t desc_idx;
 
-    /* last_used advances whenever we receive a packet, and if it's ahead of
-     * next_avail it means that we have a pending packet. */
-    if (recvq.next_avail == recvq.last_used)
+    /* The device increments used->idx whenever it uses a packet (i.e. it put
+     * a packet on our receive queue) and if it's ahead of last_used it means
+     * that we have a pending packet. */
+    if (recvq.last_used == recvq.used->idx)
         return NULL;
 
-    buf = &recvq.bufs[recvq.next_avail & mask];
+    e = &(recvq.used->ring[recvq.last_used & mask]);
+    desc_idx = e->id;
+
+    buf = (struct io_buffer *) recvq.desc[desc_idx].addr;
+    buf->len = e->len;
 
     /* Remove the virtio_net_hdr */
     *size = buf->len - sizeof(struct virtio_net_hdr);
@@ -245,6 +272,7 @@ void virtio_net_recv_pkt_put(void)
     uint16_t mask = recvq.num - 1;
     recvq.bufs[recvq.next_avail & mask].len = PKT_BUFFER_LEN;
     recvq.bufs[recvq.next_avail & mask].extra_flags = VIRTQ_DESC_F_WRITE;
+
     /* This sets the returned descriptor to be ready for incoming packets, and
      * advances the next_avail index. */
     assert(virtq_add_descriptor_chain(&recvq, recvq.next_avail & mask, 1) == 0);
@@ -265,9 +293,16 @@ int solo5_net_read_sync(uint8_t *data, int *n)
 
     assert(net_configured);
 
+    /* We only need interrupts to wake up the application when it's sleeping
+     * and waiting for incoming packets. The app is definitely not doing that
+     * now (as we are here), so disable them. */
+    recvq.avail->flags |= VIRTQ_AVAIL_F_NO_INTERRUPT;
+
     pkt = virtio_net_recv_pkt_get(&len);
-    if (!pkt)
+    if (!pkt) {
+        recvq.avail->flags &= ~VIRTQ_AVAIL_F_NO_INTERRUPT;
         return -1;
+    }
 
     assert(len <= *n);
     assert(len <= PKT_BUFFER_LEN);
@@ -276,7 +311,13 @@ int solo5_net_read_sync(uint8_t *data, int *n)
     /* also, it's clearly not zero copy */
     memcpy(data, pkt, len);
 
+    /* Consume the recently used descriptor. */
+    recvq.last_used++;
+    recvq.num_avail++;
+
     virtio_net_recv_pkt_put();
+
+    recvq.avail->flags &= ~VIRTQ_AVAIL_F_NO_INTERRUPT;
 
     return 0;
 }
