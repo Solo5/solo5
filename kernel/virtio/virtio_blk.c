@@ -51,7 +51,6 @@ static uint16_t virtio_blk_pci_base; /* base in PCI config space */
 
 static int blk_configured;
 
-static int handle_virtio_blk_interrupt(void *);
 
 /* Returns the index to the head of the buffers chain. */
 static uint16_t virtio_blk_op(uint32_t type,
@@ -96,27 +95,41 @@ static uint16_t virtio_blk_op(uint32_t type,
     return head;
 }
 
-/* Returns the status (0 is OK, -1 is not) */
+/*
+ * Returns the status (0 is OK, -1 is not)
+ *
+ * This function assumes that no other pending IO is submitted at the same
+ * time.  That is true as long as we use only synchronous IO calls, and if
+ * there is just a sync call at a time (which is true for solo5).
+ */
 static int virtio_blk_op_sync(uint32_t type,
                               uint64_t sector,
                               void *data, int *len)
 {
     uint16_t mask = blkq.num - 1;
     uint16_t head;
-    struct io_buffer *head_buf, *data_buf, *status_buf;
+    struct io_buffer *data_buf, *status_buf;
     uint8_t status;
 
     head = virtio_blk_op(type, sector, data, *len);
-
-    head_buf = &blkq.bufs[head];
     data_buf = &blkq.bufs[(head + 1) & mask];
     status_buf = &blkq.bufs[(head + 2) & mask];
 
-    /* XXX need timeout or something, because this can hang... sync
-     * should probably go away anyway
-     */
-    while (!head_buf->completed)
+    /* Loop until the device used all of our descriptors. */
+    while (blkq.used->idx != blkq.avail->idx)
         ;
+
+    /* Consume all the recently used descriptors. */
+    for (; blkq.used->idx != blkq.last_used; blkq.last_used++) {
+        struct virtq_used_elem *e;
+
+	/* Assert that the used descriptor matches the descriptor of the
+         * IO we started at the start of this function. */
+        e = &(blkq.used->ring[blkq.last_used & mask]);
+        assert(head == e->id);
+
+        blkq.num_avail += 3; /* 3 descriptors per chain */
+    }
 
     status = (*(uint8_t *)status_buf);
     if (status != VIRTIO_BLK_S_OK)
@@ -128,7 +141,7 @@ static int virtio_blk_op_sync(uint32_t type,
     return 0;
 }
 
-void virtio_config_block(uint16_t base, unsigned irq)
+void virtio_config_block(uint16_t base, unsigned irq __attribute__((__unused__)))
 {
     uint8_t ready_for_init = VIRTIO_PCI_STATUS_ACK | VIRTIO_PCI_STATUS_DRIVER;
     uint32_t host_features, guest_features;
@@ -167,22 +180,15 @@ void virtio_config_block(uint16_t base, unsigned irq)
 
     virtio_blk_pci_base = base;
     blk_configured = 1;
-    intr_register_irq(irq, handle_virtio_blk_interrupt, NULL);
+
+    /*
+     * We don't need to get interrupts every time the device uses our
+     * descriptors.
+     */
+
+    blkq.avail->flags |= VIRTQ_AVAIL_F_NO_INTERRUPT;
+
     outb(base + VIRTIO_PCI_STATUS, VIRTIO_PCI_STATUS_DRIVER_OK);
-}
-
-int handle_virtio_blk_interrupt(void *arg __attribute__((unused)))
-{
-    uint8_t isr_status;
-
-    if (blk_configured) {
-        isr_status = inb(virtio_blk_pci_base + VIRTIO_PCI_ISR);
-        if (isr_status & VIRTIO_PCI_ISR_HAS_INTR) {
-            virtq_handle_interrupt(&blkq);
-            return 1;
-        }
-    }
-    return 0;
 }
 
 int solo5_blk_write_sync(uint64_t sector, uint8_t *data, int n)
