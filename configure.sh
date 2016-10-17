@@ -42,12 +42,13 @@ case $(uname -s) in
     FreeBSD)
         # On FreeBSD/clang we use -nostdlibinc which gives us access to the
         # clang-provided headers for compiler instrinsics. We copy the rest
-        # (std*.h, float.h) from the host.
+        # (std*.h, float.h and their dependencies) from the host.
         cc_is_clang || die "Only 'clang' is supported on FreeBSD"
         INCDIR=/usr/include
         SRCS_MACH="machine/_stdint.h machine/_types.h machine/endian.h \
             machine/_limits.h"
-        SRCS_SYS="sys/_null.h sys/_stdint.h sys/_types.h sys/cdefs.h"
+        SRCS_SYS="sys/_null.h sys/_stdint.h sys/_types.h sys/cdefs.h \
+            sys/endian.h"
         SRCS_X86="x86/float.h x86/_stdint.h x86/stdarg.h x86/endian.h \
             x86/_types.h x86/_limits.h"
         SRCS="float.h osreldate.h stddef.h stdint.h stdbool.h stdarg.h"
