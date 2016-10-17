@@ -31,7 +31,9 @@ case $(uname -s) in
         # On Linux/gcc we use -nostdinc and copy all the gcc-provided headers.
         cc_is_gcc || die "Only 'gcc' is supported on Linux"
         CC_INCDIR=$(${CC:-cc} -print-file-name=include)
-        cp -R ${CC_INCDIR} ${HOST_INCDIR}
+        [ -d "${CC_INCDIR}" ] || die "Cannot determine gcc include directory"
+        mkdir -p ${HOST_INCDIR}
+        cp -R ${CC_INCDIR}/. ${HOST_INCDIR}
 
         HOST_CFLAGS="-nostdinc"
         BUILD_UKVM="yes"

@@ -67,7 +67,7 @@ opam-virtio-install: solo5-kernel-virtio.pc virtio
 	mkdir -p $(OPAM_VIRTIO_INCDIR) $(OPAM_VIRTIO_LIBDIR)
 	cp kernel/solo5.h $(OPAM_VIRTIO_INCDIR)/solo5.h
 	mkdir -p $(OPAM_VIRTIO_INCDIR)/host
-	cp -R include-host/ $(OPAM_VIRTIO_INCDIR)/host
+	cp -R include-host/. $(OPAM_VIRTIO_INCDIR)/host
 	cp iso/boot/grub/menu.lst $(OPAM_VIRTIO_LIBDIR)
 	cp iso/boot/grub/stage2_eltorito $(OPAM_VIRTIO_LIBDIR)
 	cp kernel/virtio/solo5.o kernel/virtio/solo5.lds $(OPAM_VIRTIO_LIBDIR)
@@ -88,7 +88,7 @@ opam-ukvm-install: solo5-kernel-ukvm.pc ukvm
 	cp kernel/solo5.h $(OPAM_UKVM_INCDIR)/solo5.h
 	cp ukvm/ukvm.h $(OPAM_UKVM_INCDIR)/ukvm.h
 	mkdir -p $(OPAM_UKVM_INCDIR)/host
-	cp -R include-host/ $(OPAM_UKVM_INCDIR)/host
+	cp -R include-host/. $(OPAM_UKVM_INCDIR)/host
 	cp kernel/ukvm/solo5.o kernel/ukvm/solo5.lds $(OPAM_UKVM_LIBDIR)
 	mkdir -p $(OPAM_BINDIR)
 	mkdir -p $(OPAM_UKVM_LIBDIR)/src
