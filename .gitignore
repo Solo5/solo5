@@ -1,7 +1,9 @@
 *.o
 *.swp
 *.pcap
+Makeconf
 cscope.*
+include-host/
 iso/boot/kernel
 tests/*/*.ukvm
 tests/*/*.virtio

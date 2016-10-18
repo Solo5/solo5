@@ -15,7 +15,7 @@
 # TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 # PERFORMANCE OF THIS SOFTWARE.
 
-include Makefile.common
+include $(TOP)/Makefile.common
 
 COMMON_COBJS=\
 abort.o \
@@ -80,12 +80,3 @@ ukvm/solo5.o: $(UKVM_COBJS) ukvm/solo5.lds
 .PHONY: clean
 clean:
 	$(RM) *.o virtio/*.o ukvm/*.o kernel 
-
-# This target is for the top-level opam-install to get MD CFLAGS
-.PHONY: print-md-cflags
-print-md-cflags:
-	@echo $(MD_CFLAGS)
-
-.PHONY: print-ldflags
-print-ldflags:
-	@echo $(LDFLAGS)
