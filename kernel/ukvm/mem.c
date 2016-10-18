@@ -18,8 +18,6 @@
 
 #include "kernel.h"
 
-/* kernel | free (heap) | stack */
-
 static uint64_t heap_start;
 static uint64_t heap_top;
 static uint64_t max_addr;
@@ -31,14 +29,26 @@ uint64_t mem_max_addr(void)
 
 void mem_init(uint64_t size, uint64_t kernel_end)
 {
-    /* Let's give 0x500000 Bytes to the stack */
-    uint64_t stack_start = size - 0x500000;
+    extern char _stext[], _etext[], _erodata[], _end[];
 
-    assert(size > 0x500000);
-    max_addr = stack_start;
+    max_addr = size;
     heap_start = (kernel_end + PAGE_SIZE - 1) & PAGE_MASK;
     heap_top = heap_start;
+
+    printf("Solo5: Memory map: %lu MB addressable:\n", max_addr >> 20);
+    printf("Solo5:     unused @ (0x0 - 0x%lx)\n", &_stext[-1]);
+    printf("Solo5:       text @ (0x%lx - 0x%lx)\n", &_stext, &_etext[-1]);
+    printf("Solo5:     rodata @ (0x%lx - 0x%lx)\n", &_etext, &_erodata[-1]);
+    printf("Solo5:       data @ (0x%lx - 0x%lx)\n", &_erodata, &_end[-1]);
+    printf("Solo5:       heap >= 0x%lx < stack < 0x%lx\n", heap_start,
+        max_addr);
 }
+
+/*
+ * Prevent the heap from overflowing into the stack.
+ * TODO: Use guard pages here, this does not protect from the converse.
+ */
+#define STACK_GUARD_SIZE 0x100000
 
 /*
  * Called by dlmalloc to allocate or free memory.
@@ -46,6 +56,7 @@ void mem_init(uint64_t size, uint64_t kernel_end)
 void *sbrk(intptr_t increment)
 {
     uint64_t prev, brk;
+    uint64_t heap_max = (uint64_t)&prev - STACK_GUARD_SIZE;
     prev = brk = heap_top;
 
     /*
@@ -53,7 +64,7 @@ void *sbrk(intptr_t increment)
      * is safe from overflow.
      */
     brk += increment;
-    if (brk >= max_addr || brk < heap_start)
+    if (brk >= heap_max || brk < heap_start)
         return (void *)-1;
 
     heap_top = brk;

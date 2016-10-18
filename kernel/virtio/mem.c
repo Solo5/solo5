@@ -18,15 +18,6 @@
 
 #include "kernel.h"
 
-/*
- * Memory map (virtio)
- *
- * 0x0          0xfffff         Unused
- * 0x100000     (_end)          Kernel code and data
- * (heap_start) (heap_top)      Heap
- * (%rsp)       (max_addr)      Stack
- *                              Top of RAM, currently limited to 1GB
- */
 #define MEM_START 0x100000
 #define MEM_MAX_ADDR 0x40000000
 
@@ -43,7 +34,7 @@ void mem_init(struct multiboot_info *mb)
 {
     multiboot_memory_map_t *m;
     uint32_t offset;
-    extern char _end[];
+    extern char _stext[], _etext[], _erodata[], _end[];
     uint64_t kernel_end;
 
     /*
@@ -62,14 +53,27 @@ void mem_init(struct multiboot_info *mb)
     max_addr = m->addr + m->len;
     if (max_addr > MEM_MAX_ADDR)
         max_addr = MEM_MAX_ADDR;
-    printf("multiboot: Using memory: 0x%x - 0x%x\n", MEM_START, max_addr);
 
     kernel_end = (uint64_t)&_end;
     assert(kernel_end <= max_addr);
 
     heap_start = (kernel_end & PAGE_MASK) + PAGE_SIZE;
     heap_top = heap_start;
+
+    printf("Solo5: Memory map: %lu MB addressable:\n", max_addr >> 20);
+    printf("Solo5:     unused @ (0x0 - 0x%lx)\n", &_stext[-1]);
+    printf("Solo5:       text @ (0x%lx - 0x%lx)\n", &_stext, &_etext[-1]);
+    printf("Solo5:     rodata @ (0x%lx - 0x%lx)\n", &_etext, &_erodata[-1]);
+    printf("Solo5:       data @ (0x%lx - 0x%lx)\n", &_erodata, &_end[-1]);
+    printf("Solo5:       heap >= 0x%lx < stack < 0x%lx\n", heap_start,
+        max_addr);
 }
+
+/*
+ * Prevent the heap from overflowing into the stack.
+ * TODO: Use guard pages here, this does not protect from the converse.
+ */
+#define STACK_GUARD_SIZE 0x100000
 
 /*
  * Called by dlmalloc to allocate or free memory.
@@ -77,6 +81,7 @@ void mem_init(struct multiboot_info *mb)
 void *sbrk(intptr_t increment)
 {
     uint64_t prev, brk;
+    uint64_t heap_max = (uint64_t)&prev - STACK_GUARD_SIZE;
     prev = brk = heap_top;
 
     /*
@@ -84,7 +89,7 @@ void *sbrk(intptr_t increment)
      * is safe from overflow.
      */
     brk += increment;
-    if (brk >= max_addr || brk < heap_start)
+    if (brk >= heap_max || brk < heap_start)
         return (void *)-1;
 
     heap_top = brk;

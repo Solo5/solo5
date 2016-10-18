@@ -31,7 +31,6 @@ void _start(struct ukvm_boot_info *bi)
     int ret;
 
     banner();
-    printf("mem_size=%lx, kernel_end=%lx\n", bi->mem_size, bi->kernel_end);
 
     gdt_init();
     mem_init(bi->mem_size, bi->kernel_end);
