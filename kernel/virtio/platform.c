@@ -24,7 +24,7 @@ void platform_exit(void)
      * There is no way to initiate "shutdown" on virtio without ACPI, so just
      * halt.
      */
-    printf("Halted\n");
+    platform_puts("Solo5: Halted\n", 15);
     cpu_halt();
 }
 

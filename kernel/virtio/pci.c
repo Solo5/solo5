@@ -51,74 +51,71 @@
 } while (0)
 
 
-struct pci_config_info {
-    uint16_t device_id;
-    uint16_t iobar;
-    uint8_t irq;
-};
-
 static uint32_t net_devices_found;
 static uint32_t blk_devices_found;
 
 #define PCI_CONF_SUBSYS_NET 1
 #define PCI_CONF_SUBSYS_BLK 2
 
-static void virtio_config(uint32_t config_addr)
+static void virtio_config(struct pci_config_info *pci)
 {
-    struct pci_config_info pci;
-
-    PCI_CONF_READ(uint16_t, &pci.device_id, config_addr, SUBSYS_ID);
-    PCI_CONF_READ(uint16_t, &pci.iobar, config_addr, IOBAR);
-    PCI_CONF_READ(uint8_t, &pci.irq, config_addr, IRQ);
-
-    printf("virtio_config: device_id=%x, irq=%u\n", pci.device_id, pci.irq);
-
     /* we only support one net device and one blk device */
-    switch (pci.device_id) {
+    switch (pci->subsys_id) {
     case PCI_CONF_SUBSYS_NET:
+        printf("Solo5: PCI:%02x:%02x: virtio-net device, base=0x%x, irq=%u\n",
+                pci->bus, pci->dev, pci->base, pci->irq);
         if (!net_devices_found++)
-            virtio_config_network(pci.iobar, pci.irq);
+            virtio_config_network(pci);
+        else
+            printf("Solo5: PCI:%02x:%02x: not configured\n", pci->bus,
+                pci->dev);
         break;
     case PCI_CONF_SUBSYS_BLK:
+        printf("Solo5: PCI:%02x:%02x: virtio-block device, base=0x%x, irq=%u\n",
+                pci->bus, pci->dev, pci->base, pci->irq);
         if (!blk_devices_found++)
-            virtio_config_block(pci.iobar, pci.irq);
+            virtio_config_block(pci);
+        else
+            printf("Solo5: PCI:%02x:%02x: not configured\n", pci->bus,
+                pci->dev);
         break;
     default:
-        printf("Found unknown virtio device!\n");
+        printf("Solo5: PCI:%02x:%02x: unknown virtio device (0x%x)\n",
+                pci->bus, pci->dev, pci->subsys_id);
         return;
     }
 }
-
 
 #define VENDOR_QUMRANET_VIRTIO 0x1af4
 
 void pci_enumerate(void)
 {
     uint32_t bus;
-    uint32_t device;
+    uint8_t dev;
 
     for (bus = 0; bus < PCI_MAX_BUSES; bus++) {
-        for (device = 0; device < PCI_MAX_DEVICES; device++) {
+        for (dev = 0; dev < PCI_MAX_DEVICES; dev++) {
             uint32_t config_addr, config_data;
-            uint16_t vendor_id;
+            struct pci_config_info pci;
 
             config_addr = (PCI_ENABLE_BIT)
                 | (bus << PCI_BUS_SHIFT)
-                | (device << PCI_DEVICE_SHIFT);
+                | (dev << PCI_DEVICE_SHIFT);
 
             outl(PCI_CONFIG_ADDR, config_addr);
             config_data = inl(PCI_CONFIG_DATA);
 
-            vendor_id = config_data & 0xffff;
+            pci.bus = bus;
+            pci.dev = dev;
+            pci.vendor_id = config_data & 0xffff;
 
-            if (vendor_id == VENDOR_QUMRANET_VIRTIO) {
-                virtio_config(config_addr);
-                if (net_devices_found + blk_devices_found == 2)
-                    goto done_pci_enum;
+            if (pci.vendor_id == VENDOR_QUMRANET_VIRTIO) {
+                PCI_CONF_READ(uint16_t, &pci.subsys_id, config_addr, SUBSYS_ID);
+                PCI_CONF_READ(uint16_t, &pci.base, config_addr, IOBAR);
+                PCI_CONF_READ(uint8_t, &pci.irq, config_addr, IRQ);
+
+                virtio_config(&pci);
             }
         }
     }
- done_pci_enum:
-    return;
 }
-

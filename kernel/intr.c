@@ -190,10 +190,10 @@ static char *traps[32] = {
 
 void trap_handler(uint64_t num, struct trap_regs *regs)
 {
-    printf("trap: type=%s ec=0x%lx rip=0x%lx rsp=0x%lx rflags=0x%lx\n",
+    printf("Solo5: trap: type=%s ec=0x%lx rip=0x%lx rsp=0x%lx rflags=0x%lx\n",
         traps[num], regs->ec, regs->rip, regs->rsp, regs->rflags);
     if (num == 14)
-        printf("trap: cr2=0x%lx\n", regs->cr2);
+        printf("Solo5: trap: cr2=0x%lx\n", regs->cr2);
     PANIC("Fatal trap");
 }
 
@@ -234,7 +234,7 @@ void irq_handler(uint64_t irq)
     }
 
     if (!handled)
-        printf("unhandled irq %d\n", irq);
+        printf("Solo5: unhandled irq %d\n", irq);
     else
         /* Only ACK the IRQ if handled; we only need to know about an unhandled
          * IRQ the first time round. */

@@ -132,19 +132,17 @@ int virtio_net_xmit_packet(void *data, int len)
     return r;
 }
 
-void virtio_config_network(uint16_t base, unsigned irq)
+void virtio_config_network(struct pci_config_info *pci)
 {
     uint32_t host_features, guest_features;
-    int i;
-    int dbg = 0;
 
     /*
      * 2. Set the ACKNOWLEDGE status bit: the guest OS has notice the device.
      * 3. Set the DRIVER status bit: the guest OS knows how to drive the device. 
      */
 
-    outb(base + VIRTIO_PCI_STATUS, VIRTIO_PCI_STATUS_ACK);
-    outb(base + VIRTIO_PCI_STATUS, VIRTIO_PCI_STATUS_DRIVER);
+    outb(pci->base + VIRTIO_PCI_STATUS, VIRTIO_PCI_STATUS_ACK);
+    outb(pci->base + VIRTIO_PCI_STATUS, VIRTIO_PCI_STATUS_DRIVER);
 
     /*
      * 4. Read device feature bits, and write the subset of feature bits
@@ -153,32 +151,16 @@ void virtio_config_network(uint16_t base, unsigned irq)
      * fields to check that it can support the device before accepting it. 
      */
 
-    host_features = inl(base + VIRTIO_PCI_HOST_FEATURES);
-
-    if (dbg) {
-        uint32_t hf = host_features;
-
-        printf("host features: %x: ", hf);
-        for (i = 0; i < 32; i++) {
-            if (hf & 0x1)
-                printf("%d ", i);
-            hf = hf >> 1;
-        }
-        printf("\n");
-    }
-
+    host_features = inl(pci->base + VIRTIO_PCI_HOST_FEATURES);
     assert(host_features & VIRTIO_NET_F_MAC);
 
     /* only negotiate that the mac was set for now */
     guest_features = VIRTIO_NET_F_MAC;
-    outl(base + VIRTIO_PCI_GUEST_FEATURES, guest_features);
+    outl(pci->base + VIRTIO_PCI_GUEST_FEATURES, guest_features);
 
-    printf("Found virtio network device with MAC: ");
-    for (i = 0; i < 6; i++) {
-        virtio_net_mac[i] = inb(base + VIRTIO_PCI_CONFIG_OFF + i);
-        printf("%02x ", virtio_net_mac[i]);
+    for (int i = 0; i < 6; i++) {
+        virtio_net_mac[i] = inb(pci->base + VIRTIO_PCI_CONFIG_OFF + i);
     }
-    printf("\n");
     snprintf(virtio_net_mac_str,
              sizeof(virtio_net_mac_str),
              "%02x:%02x:%02x:%02x:%02x:%02x",
@@ -188,6 +170,8 @@ void virtio_config_network(uint16_t base, unsigned irq)
              virtio_net_mac[3],
              virtio_net_mac[4],
              virtio_net_mac[5]);
+    printf("Solo5: PCI:%02x:%02x: configured, mac=%s, features=0x%x\n",
+        pci->bus, pci->dev, virtio_net_mac_str, host_features);
 
     /*
      * 7. Perform device-specific setup, including discovery of virtqueues for
@@ -195,20 +179,18 @@ void virtio_config_network(uint16_t base, unsigned irq)
      * device's virtio configuration space, and population of virtqueues.
      */
 
-    virtq_init_rings(base, &recvq, VIRTQ_RECV);
-    virtq_init_rings(base, &xmitq, VIRTQ_XMIT);
+    virtq_init_rings(pci->base, &recvq, VIRTQ_RECV);
+    virtq_init_rings(pci->base, &xmitq, VIRTQ_XMIT);
 
     recvq.bufs = calloc(recvq.num, sizeof (struct io_buffer));
     assert(recvq.bufs);
     xmitq.bufs = calloc(xmitq.num, sizeof (struct io_buffer));
     assert(xmitq.bufs);
 
-    virtio_net_pci_base = base;
+    virtio_net_pci_base = pci->base;
     net_configured = 1;
-    intr_register_irq(irq, handle_virtio_net_interrupt, NULL);
+    intr_register_irq(pci->irq, handle_virtio_net_interrupt, NULL);
     recv_setup();
-
-    printf("recvq:%p xmitq:%p\n", &recvq, &xmitq);
 
     /*
      * We don't need to get interrupts every time the device uses our
@@ -223,7 +205,7 @@ void virtio_config_network(uint16_t base, unsigned irq)
      * 8. Set the DRIVER_OK status bit. At this point the device is "live".
      */
 
-    outb(base + VIRTIO_PCI_STATUS, VIRTIO_PCI_STATUS_DRIVER_OK);
+    outb(pci->base + VIRTIO_PCI_STATUS, VIRTIO_PCI_STATUS_DRIVER_OK);
 }
 
 /* Returns 1 if there is a pending used descriptor for us to read. */

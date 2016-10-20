@@ -43,7 +43,7 @@ int virtq_add_descriptor_chain(struct virtq *vq,
     uint16_t used_descs = num;
 
     if (vq->num_avail < used_descs) {
-        printf("buffer full! next_avail:%d last_used:%d\n",
+        printf("Solo5: virtq full! next_avail:%d last_used:%d\n",
                vq->next_avail, vq->last_used);
             return -1;
     }

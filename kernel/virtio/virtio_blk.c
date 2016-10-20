@@ -141,44 +141,30 @@ static int virtio_blk_op_sync(uint32_t type,
     return 0;
 }
 
-void virtio_config_block(uint16_t base, unsigned irq __attribute__((__unused__)))
+void virtio_config_block(struct pci_config_info *pci)
 {
     uint8_t ready_for_init = VIRTIO_PCI_STATUS_ACK | VIRTIO_PCI_STATUS_DRIVER;
     uint32_t host_features, guest_features;
-    int i;
-    int dbg = 1;
 
-    outb(base + VIRTIO_PCI_STATUS, ready_for_init);
+    outb(pci->base + VIRTIO_PCI_STATUS, ready_for_init);
 
-    host_features = inl(base + VIRTIO_PCI_HOST_FEATURES);
-
-    if (dbg) {
-        uint32_t hf = host_features;
-
-        printf("host features: %x: ", hf);
-        for (i = 0; i < 32; i++) {
-            if (hf & 0x1)
-                printf("%d ", i);
-            hf = hf >> 1;
-        }
-        printf("\n");
-    }
+    host_features = inl(pci->base + VIRTIO_PCI_HOST_FEATURES);
 
     /* don't negotiate anything for now */
     guest_features = 0;
-    outl(base + VIRTIO_PCI_GUEST_FEATURES, guest_features);
+    outl(pci->base + VIRTIO_PCI_GUEST_FEATURES, guest_features);
 
-    virtio_blk_sectors = inq(base + VIRTIO_PCI_CONFIG_OFF);
-    printf("Found virtio block device with capacity: %d * %d = %d\n",
-           virtio_blk_sectors, VIRTIO_BLK_SECTOR_SIZE,
-           virtio_blk_sectors * VIRTIO_BLK_SECTOR_SIZE);
+    virtio_blk_sectors = inq(pci->base + VIRTIO_PCI_CONFIG_OFF);
+    printf("Solo5: PCI:%02x:%02x: configured, capacity=%d sectors, "
+        "features=0x%x\n",
+        pci->bus, pci->dev, virtio_blk_sectors, host_features);
 
-    virtq_init_rings(base, &blkq, 0);
+    virtq_init_rings(pci->base, &blkq, 0);
 
     blkq.bufs = calloc(blkq.num, sizeof (struct io_buffer));
     assert(blkq.bufs);
 
-    virtio_blk_pci_base = base;
+    virtio_blk_pci_base = pci->base;
     blk_configured = 1;
 
     /*
@@ -188,7 +174,7 @@ void virtio_config_block(uint16_t base, unsigned irq __attribute__((__unused__))
 
     blkq.avail->flags |= VIRTQ_AVAIL_F_NO_INTERRUPT;
 
-    outb(base + VIRTIO_PCI_STATUS, VIRTIO_PCI_STATUS_DRIVER_OK);
+    outb(pci->base + VIRTIO_PCI_STATUS, VIRTIO_PCI_STATUS_DRIVER_OK);
 }
 
 int solo5_blk_write_sync(uint64_t sector, uint8_t *data, int n)
