@@ -120,18 +120,6 @@ int memcmp(const void *s1, const void *s2, size_t n);
 char *strcpy(char *dst, const char *src);
 size_t strlen(const char *s);
 
-/* pci.c: only enumerate for now */
-void pci_enumerate(void);
-
-/* virtio.c: mostly net for now */
-void virtio_config_network(uint16_t base, unsigned irq);
-void virtio_config_block(uint16_t base, unsigned irq);
-
-uint8_t *virtio_net_pkt_get(int *size);  /* get a pointer to recv'd data */
-void virtio_net_pkt_put(void);      /* we're done with recv'd data */
-int virtio_net_xmit_packet(void *data, int len);
-int virtio_net_pkt_poll(void);      /* test if packet(s) are available */
-
 /* platform.c: specifics for ukvm or virito platform */
 void platform_exit(void) __attribute__((noreturn));
 int platform_puts(const char *buf, int n);

@@ -12,24 +12,24 @@ static void puts(const char *s)
 
 void _assert_fail(const char *file, const char *line, const char *e)
 {
-    puts("ABORT: ");
+    puts("Solo5: ABORT: ");
     puts(file);
     puts(":");
     puts(line);
     puts(": Assertion `");
     puts(e);
-    puts("' failed\nHalted\n");
+    puts("' failed\nSolo5: Halted\n");
     cpu_halt();
 }
 
 void _abort(const char *file, const char *line, const char *s)
 {
-    puts("ABORT: ");
+    puts("Solo5: ABORT: ");
     puts(file);
     puts(":");
     puts(line);
     puts(": ");
     puts(s);
-    puts("\nHalted\n");
+    puts("\nSolo5: Halted\n");
     cpu_halt();
 }
