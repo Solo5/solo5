@@ -103,8 +103,6 @@ int virtio_net_xmit_packet(void *data, int len)
     struct io_buffer *head_buf, *data_buf;
     int r;
 
-    assert(xmitq.used->idx <= xmitq.avail->idx);
-
     /* Consume used descriptors from all the previous tx'es. */
     for (; xmitq.last_used != xmitq.used->idx; xmitq.last_used++)
         xmitq.num_avail += 2; /* 2 descriptors per chain */
