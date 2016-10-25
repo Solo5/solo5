@@ -85,18 +85,29 @@ struct pingpkt {
     struct ping ping;
 };
 
-static uint16_t checksum(void *ptr, size_t len)
+/* Copied from https://tools.ietf.org/html/rfc1071 */
+static uint16_t checksum(uint16_t *addr, size_t count)
 {
-    uint32_t sum = 0;
-    size_t i;
+    /* Compute Internet Checksum for "count" bytes
+     * beginning at location "addr".*/
+    register long sum = 0;
 
-    assert((len % 2) == 0);
+    while (count > 1)  {
+        /*  This is the inner loop */
+        sum += * (unsigned short *) addr++;
+        count -= 2;
+    }
 
-    for (i = 0; i < len; i += 2)
-        sum += *(uint16_t *)(ptr + i);
+    /* Add left-over byte, if any */
+    if (count > 0)
+        sum += * (unsigned char *) addr;
 
-    return ~(((uint16_t)(sum & 0xffff)) + ((uint16_t)(sum >> 16)));
-};
+    /* Fold 32-bit sum to 16 bits */
+    while (sum >> 16)
+        sum = (sum & 0xffff) + (sum >> 16);
+
+    return ~sum;
+}
 
 static uint16_t htons(uint16_t x)
 {
@@ -122,7 +133,7 @@ static uint8_t dehex(char c)
 
 static uint8_t buf[1526];
 
-static void ping_serve(int quiet)
+static void ping_serve(int verbose)
 {
     uint8_t ipaddr[4] = { 0x0a, 0x00, 0x00, 0x02 }; /* 10.0.0.2 */
     uint8_t ipaddr_brdnet[4] = { 0x0a, 0x00, 0x00, 0xff }; /* 10.0.0.255 */
@@ -199,16 +210,16 @@ static void ping_serve(int quiet)
 
         /* recalculate ip checksum for return pkt */
         p->ip.checksum = 0;
-        p->ip.checksum = checksum(&p->ip, sizeof(struct ip));
+        p->ip.checksum = checksum((uint16_t *) &p->ip, sizeof(struct ip));
 
         p->ping.type = 0x0; /* change into reply */
 
         /* recalculate ICMP checksum */
         p->ping.checksum = 0;
-        p->ping.checksum = checksum(&p->ping,
+        p->ping.checksum = checksum((uint16_t *) &p->ping,
                 htons(p->ip.length) - sizeof(struct ip));
 
-        if (!quiet)
+        if (verbose)
             puts("Received ping, sending reply\n");
 
         if (solo5_net_write_sync(buf, len) == -1)
@@ -225,7 +236,7 @@ int solo5_app_main(char *cmdline)
 {
     puts("Hello, World\n");
 
-    /* anything passed on the command line means "quiet" */
+    /* anything passed on the command line means "verbose" */
     ping_serve(strlen(cmdline));
 
     return 0;
