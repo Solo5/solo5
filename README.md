@@ -136,7 +136,9 @@ The following devices are supported by the Solo5 `virtio` target:
 * a single virtio network device attached to the PCI bus
 * a single virtio block device attached to the PCI bus
 
-Note that Solo5 does not support ACPI power-off.
+Note that Solo5 on virtio does not support ACPI power-off. This can manifest
+itself in delays shutting down Solo5 guests running on hypervisors which wait
+for the guest to respond to ACPI power-off before performing a hard shutdown.
 
 # Running Mirage/Solo5 unikernels with Docker
 
