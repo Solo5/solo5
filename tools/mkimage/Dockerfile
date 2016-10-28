@@ -1,4 +1,4 @@
-FROM alpine:latest
+FROM alpine:3.4
 MAINTAINER Martin Lucina <martin@lucina.net>
 RUN apk add --update --no-cache \
     coreutils \
