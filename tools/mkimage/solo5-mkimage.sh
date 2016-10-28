@@ -105,8 +105,15 @@ if [ -n "${RUN_IN_DOCKER}" ]; then
     DESTFILE=$(basename ${IMAGE})
     SRCFILE=$(basename ${UNIKERNEL})
 
-    exec docker run --rm \
-        --tmpfs /tmp:rw,noexec,nosuid,size=2g \
+    # --tmpfs is only supported from 1.10.0 onwards
+    if docker run --help | grep -q tmpfs; then
+        TMPFS="--tmpfs /tmp:rw,noexec,nosuid,size=2g"
+    else
+        TMPFS=""
+    fi
+
+    echo docker run --rm \
+        ${TMPFS} \
         -v ${SRCDIR}:/host/src -v ${DESTDIR}:/host/dest \
         mato/solo5-mkimage -f ${FORMAT} \
             /host/dest/${DESTFILE} /host/src/${SRCFILE} "$@"
