@@ -119,9 +119,24 @@ The `virtio` target produces a unikernel that uses the multiboot
 protocol for booting. If your hypervisor can boot a multiboot-compliant
 kernel directly then this is the preferred method.
 
-If your hypervisor requires a full "disk image" to boot, look at the
-`solo5-build-iso.bash` script for an example of how to embed GRUB and
-the unikernel into an ISO image.
+If your hypervisor requires a full disk image to boot, you can use the
+[solo5-mkimage](tools/mkimage/solo5-mkimage.sh) tool to build one. This tool is
+automatically installed in your `$PATH` when using the `solo5-kernel-virtio`
+OPAM package.
+
+`solo5-mkimage` supports the following image formats:
+
+* `raw`: A raw disk image, written out as a sparse file.
+* `tar`: A disk image suitable for [uploading to](https://cloud.google.com/compute/docs/tutorials/building-images#publishingimage) Google Compute Engine.
+
+The following devices are supported by the Solo5 `virtio` target:
+
+* the serial console, fixed at COM1 and 115200 baud
+* the KVM paravirtualized clock, if available
+* a single virtio network device attached to the PCI bus
+* a single virtio block device attached to the PCI bus
+
+Note that Solo5 does not support ACPI power-off.
 
 # Running Mirage/Solo5 unikernels with Docker
 
