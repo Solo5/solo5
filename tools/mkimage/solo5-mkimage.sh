@@ -112,10 +112,11 @@ if [ -n "${RUN_IN_DOCKER}" ]; then
         TMPFS=""
     fi
 
-    echo docker run --rm \
+    exec docker run --rm \
         ${TMPFS} \
         -v ${SRCDIR}:/host/src -v ${DESTDIR}:/host/dest \
         mato/solo5-mkimage -f ${FORMAT} \
+            -- \
             /host/dest/${DESTFILE} /host/src/${SRCFILE} "$@"
 fi
 
