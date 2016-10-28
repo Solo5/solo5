@@ -4,7 +4,6 @@
 Makeconf
 cscope.*
 include-host/
-iso/boot/kernel
 tests/*/*.ukvm
 tests/*/*.virtio
 tests/*/ukvm-bin
