@@ -6,8 +6,9 @@
 # About Solo5
 
 Solo5 is most useful as a "base layer" to run
-[MirageOS](https://mirage.io/) unikernels, either on KVM/QEMU or on a
-specialized "unikernel monitor" called `ukvm`.
+[MirageOS](https://mirage.io/) unikernels, either on various existing
+hypervisors (KVM/QEMU, Bhyve) or on a specialized "unikernel monitor" called
+`ukvm`.
 
 # About ukvm
 
@@ -37,7 +38,7 @@ Mirage/Solo5 supports two different targets to `mirage configure`:
 1. `ukvm`: A specialized "unikernel monitor" which runs on Linux
    (`x86_64`) and uses KVM directly via `/dev/kvm`.
 2. `virtio`: An `x86_64` system with `virtio` network and disk
-   interfaces. Use this target for QEMU/KVM, plain QEMU or other
+   interfaces. Use this target for QEMU/KVM, plain QEMU, Bhyve or other
    hypervisors (see below).
 
 Start with a fresh OPAM switch for the Mirage/Solo5 target you will be
@@ -75,20 +76,25 @@ target you selected.
 These examples show how to run Mirage/Solo5 unikernels directly.  If
 you'd like to use Docker instead, skip to the next section.
 
-**Setting up networking for ukvm or qemu on Linux**
+**Setting up networking**
 
 The following examples assume you have successfully built the MirageOS
 `stackv4` application, and use the default networking configuration for
 the unikernel (a static IP address of `10.0.0.2/24`). Run the `stackv4`
 unikernel with an argument of `--help=plain` to see the options for
-modifying this.
+modifying this. By convention, we will use the `tap100` interface to talk to
+the unikernel.
 
-Before using either ukvm or qemu, set up the `tap100` interface we will
-use to talk to the unikernel:
+To set up the `tap100` interface on Linux, run (as root):
 
     ip tuntap add tap100 mode tap
     ip addr add 10.0.0.1/24 dev tap100
     ip link set dev tap100 up
+
+To set up the `tap100` interface on FreeBSD, run (as root):
+
+    sysctl -w net.link.tap.up_on_open=1
+    ifconfig tap100 create 10.0.0.1/24 link0 up
 
 **Running with ukvm on Linux**
 
@@ -103,15 +109,18 @@ To launch the unikernel:
 
 Use `^C` to terminate the unikernel.
 
-**Running with qemu on Linux**
+**Running with KVM/QEMU on Linux, or Bhyve on FreeBSD**
 
 To launch the unikernel:
 
-    qemu-system-x86_64 -nographic -vga none -kernel ./mir-stackv4.virtio \
-        -device virtio-net,netdev=n0 \
-        -netdev tap,id=n0,ifname=tap100,script=no,downscript=no
+    solo5-run-virtio -n tap100 ./mir-stackv4.virtio
 
-Use `^A x` to terminate the unikernel.
+Use `^C` to terminate the unikernel.
+
+The [solo5-run-virtio](tools/run/solo5-run-virtio.sh) script is automatically
+installed in your `$PATH` when using the `solo5-kernel-virtio` OPAM package.
+Using it is not required; by default it will print the commands used to setup
+and launch the guest VM. You can run these manually if desired.
 
 **Running virtio unikernels with other hypervisors**
 
