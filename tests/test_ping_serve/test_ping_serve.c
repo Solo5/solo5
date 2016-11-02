@@ -48,6 +48,7 @@ static void puts(const char *s)
     } while (0)
 
 #define ETHERTYPE_IP  0x0800
+#define ETHERTYPE_ARP 0x0806
 #define HLEN_ETHER  6
 #define PLEN_IPV4  4
 
@@ -55,6 +56,18 @@ struct ether {
     uint8_t target[HLEN_ETHER];
     uint8_t source[HLEN_ETHER];
     uint16_t type;
+};
+
+struct arp {
+    uint16_t htype;
+    uint16_t ptype;
+    uint8_t hlen;
+    uint8_t plen;
+    uint16_t op;
+    uint8_t sha[HLEN_ETHER];
+    uint8_t spa[PLEN_IPV4];
+    uint8_t tha[HLEN_ETHER];
+    uint8_t tpa[PLEN_IPV4];
 };
 
 struct ip {
@@ -77,6 +90,11 @@ struct ping {
     uint16_t id;
     uint16_t seqnum;
     uint8_t data[0];
+};
+
+struct arppkt {
+    struct ether ether;
+    struct arp arp;
 };
 
 struct pingpkt {
@@ -111,12 +129,7 @@ static uint16_t checksum(uint16_t *addr, size_t count)
 
 static uint16_t htons(uint16_t x)
 {
-    uint16_t val;
-    uint8_t *v = (uint8_t *)&val;
-
-    v[0] = (x >> 8) & 0xff;
-    v[1] = x & 0xff;
-    return val;
+    return (x << 8) + (x >> 8);
 }
 
 static uint8_t dehex(char c)
@@ -132,15 +145,99 @@ static uint8_t dehex(char c)
 }
 
 static uint8_t buf[1526];
+uint8_t ipaddr[4] = { 0x0a, 0x00, 0x00, 0x02 }; /* 10.0.0.2 */
+uint8_t ipaddr_brdnet[4] = { 0x0a, 0x00, 0x00, 0xff }; /* 10.0.0.255 */
+uint8_t ipaddr_brdall[4] = { 0xff, 0xff, 0xff, 0xff }; /* 255.255.255.255 */
+uint8_t macaddr[HLEN_ETHER];
+uint8_t macaddr_brd[HLEN_ETHER] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
+
+static int handle_arp(uint8_t *buf)
+{
+    struct arppkt *p = (struct arppkt *)buf;
+
+    if (p->arp.htype != htons(1))
+        return 1;
+
+    if (p->arp.ptype != htons(ETHERTYPE_IP))
+        return 1;
+
+    if (p->arp.hlen != HLEN_ETHER || p->arp.plen != PLEN_IPV4)
+        return 1;
+
+    if (p->arp.op != htons(1))
+        return 1;
+
+    if (memcmp(p->arp.tpa, ipaddr, PLEN_IPV4))
+        return 1;
+
+    /* reorder ether net header addresses */
+    memcpy(p->ether.target, p->ether.source, HLEN_ETHER);
+    memcpy(p->ether.source, macaddr, HLEN_ETHER);
+    memcpy(p->arp.tha, p->arp.sha, HLEN_ETHER);
+    memcpy(p->arp.sha, macaddr, HLEN_ETHER);
+
+    /* request -> reply */
+    p->arp.op = htons(2);
+
+    /* spa -> tpa */
+    memcpy(p->arp.tpa, p->arp.spa, PLEN_IPV4);
+
+    /* our ip -> spa */
+    memcpy(p->arp.spa, ipaddr, PLEN_IPV4);
+
+    return 0;
+}
+
+static int handle_ip(uint8_t *buf)
+{
+    struct pingpkt *p = (struct pingpkt *)buf;
+
+    if (p->ip.version_ihl != 0x45)
+        return 1; /* we don't support IPv6, yet :-) */
+
+    if (p->ip.type != 0x00)
+        return 1;
+
+    if (p->ip.proto != 0x01)
+        return 1; /* not ICMP */
+
+    if (memcmp(p->ip.dst_ip, ipaddr, PLEN_IPV4) &&
+        memcmp(p->ip.dst_ip, ipaddr_brdnet, PLEN_IPV4) &&
+        memcmp(p->ip.dst_ip, ipaddr_brdall, PLEN_IPV4))
+        return 1; /* not ip addressed to us */
+
+    if (p->ping.type != 0x08)
+        return 1; /* not an echo request */
+
+    if (p->ping.code != 0x00)
+        return 1;
+
+    /* reorder ether net header addresses */
+    memcpy(p->ether.target, p->ether.source, HLEN_ETHER);
+    memcpy(p->ether.source, macaddr, HLEN_ETHER);
+
+    p->ip.id = 0;
+    p->ip.flags_offset = 0;
+
+    /* reorder ip net header addresses */
+    memcpy(p->ip.dst_ip, p->ip.src_ip, PLEN_IPV4);
+    memcpy(p->ip.src_ip, ipaddr, PLEN_IPV4);
+
+    /* recalculate ip checksum for return pkt */
+    p->ip.checksum = 0;
+    p->ip.checksum = checksum((uint16_t *) &p->ip, sizeof(struct ip));
+
+    p->ping.type = 0x0; /* change into reply */
+
+    /* recalculate ICMP checksum */
+    p->ping.checksum = 0;
+    p->ping.checksum = checksum((uint16_t *) &p->ping,
+            htons(p->ip.length) - sizeof(struct ip));
+    return 0;
+}
 
 static void ping_serve(int verbose)
 {
-    uint8_t ipaddr[4] = { 0x0a, 0x00, 0x00, 0x02 }; /* 10.0.0.2 */
-    uint8_t ipaddr_brdnet[4] = { 0x0a, 0x00, 0x00, 0xff }; /* 10.0.0.255 */
-    uint8_t ipaddr_brdall[4] = { 0xff, 0xff, 0xff, 0xff }; /* 255.255.255.255 */
-    uint8_t macaddr[HLEN_ETHER];
-    uint8_t macaddr_brd[HLEN_ETHER] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
-
     /* XXX this interface should really not return a string */
     char *smac = solo5_net_mac_str();
     for (int i = 0; i < HLEN_ETHER; i++) {
@@ -149,13 +246,12 @@ static void ping_serve(int verbose)
         smac++;
     }
 
-    puts("Serving ping on 10.0.0.2 / 10.0.0.255 / 255.255.255.255\n");
-    puts("With MAC: ");
+    puts("Serving ping on 10.0.0.2, with MAC: ");
     puts(solo5_net_mac_str());
-    puts(" (no ARP!)\n");
+    puts("\n");
 
     for (;;) {
-        struct pingpkt *p = (struct pingpkt *)&buf;
+        struct ether *p = (struct ether *)&buf;
         int len = sizeof(buf);
 
         /* wait for packet */
@@ -170,57 +266,26 @@ static void ping_serve(int verbose)
         }
         assert(solo5_net_read_sync(buf, &len) == 0);
 
-        if (memcmp(p->ether.target, macaddr, HLEN_ETHER) &&
-            memcmp(p->ether.target, macaddr_brd, HLEN_ETHER))
+        if (memcmp(p->target, macaddr, HLEN_ETHER) &&
+            memcmp(p->target, macaddr_brd, HLEN_ETHER))
             goto out; /* not ether addressed to us */
 
-        if (p->ether.type != htons(ETHERTYPE_IP))
-            goto out; /* not an IP packet */
-
-        if (p->ip.version_ihl != 0x45)
-            goto out; /* we don't support IPv6, yet :-) */
-
-        if (p->ip.type != 0x00)
-            goto out;
-
-        if (p->ip.proto != 0x01)
-            goto out; /* not ICMP */
-
-        if (memcmp(p->ip.dst_ip, ipaddr, PLEN_IPV4) &&
-            memcmp(p->ip.dst_ip, ipaddr_brdnet, PLEN_IPV4) &&
-            memcmp(p->ip.dst_ip, ipaddr_brdall, PLEN_IPV4))
-            goto out; /* not ip addressed to us */
-
-        if (p->ping.type != 0x08)
-            goto out; /* not an echo request */
-
-        if (p->ping.code != 0x00)
-            goto out;
-
-        /* reorder ether net header addresses */
-        memcpy(p->ether.target, p->ether.source, HLEN_ETHER);
-        memcpy(p->ether.source, macaddr, HLEN_ETHER);
-
-        p->ip.id = 0;
-        p->ip.flags_offset = 0;
-
-        /* reorder ip net header addresses */
-        memcpy(p->ip.dst_ip, p->ip.src_ip, PLEN_IPV4);
-        memcpy(p->ip.src_ip, ipaddr, PLEN_IPV4);
-
-        /* recalculate ip checksum for return pkt */
-        p->ip.checksum = 0;
-        p->ip.checksum = checksum((uint16_t *) &p->ip, sizeof(struct ip));
-
-        p->ping.type = 0x0; /* change into reply */
-
-        /* recalculate ICMP checksum */
-        p->ping.checksum = 0;
-        p->ping.checksum = checksum((uint16_t *) &p->ping,
-                htons(p->ip.length) - sizeof(struct ip));
-
-        if (verbose)
-            puts("Received ping, sending reply\n");
+        switch (htons(p->type)) {
+            case ETHERTYPE_ARP:
+                if (handle_arp(buf) != 0)
+                    goto out;
+                if (verbose)
+                    puts("Received arp request, sending reply\n");
+                break;
+            case ETHERTYPE_IP:
+                if (handle_ip(buf) != 0)
+                    goto out;
+                if (verbose)
+                    puts("Received ping, sending reply\n");
+                break;
+            default:
+                goto out;
+        }
 
         if (solo5_net_write_sync(buf, len) == -1)
             puts("Write error\n");
