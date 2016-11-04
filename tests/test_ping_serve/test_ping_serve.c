@@ -236,6 +236,31 @@ static int handle_ip(uint8_t *buf)
     return 0;
 }
 
+static void send_garp(void)
+{
+    struct arppkt p;
+    uint8_t zero[HLEN_ETHER] = { 0 };
+
+    /*
+     * Send a gratuitous ARP packet announcing our MAC address.
+     */
+    memcpy(p.ether.source, macaddr, HLEN_ETHER);
+    memcpy(p.ether.target, macaddr_brd, HLEN_ETHER);
+    p.ether.type = htons(ETHERTYPE_ARP);
+    p.arp.htype = htons(1);
+    p.arp.ptype = htons(ETHERTYPE_IP);
+    p.arp.hlen = HLEN_ETHER;
+    p.arp.plen = PLEN_IPV4;
+    p.arp.op = htons(1);
+    memcpy(p.arp.sha, macaddr, HLEN_ETHER);
+    memcpy(p.arp.tha, zero, HLEN_ETHER);
+    memcpy(p.arp.spa, ipaddr, PLEN_IPV4);
+    memcpy(p.arp.tpa, ipaddr, PLEN_IPV4);
+
+    if (solo5_net_write_sync((uint8_t *)&p, sizeof p) == -1)
+        puts("Could not send GARP packet\n");
+}
+
 static void ping_serve(int verbose)
 {
     /* XXX this interface should really not return a string */
@@ -249,6 +274,8 @@ static void ping_serve(int verbose)
     puts("Serving ping on 10.0.0.2, with MAC: ");
     puts(solo5_net_mac_str());
     puts("\n");
+
+    send_garp();
 
     for (;;) {
         struct ether *p = (struct ether *)&buf;
@@ -268,7 +295,7 @@ static void ping_serve(int verbose)
 
         if (memcmp(p->target, macaddr, HLEN_ETHER) &&
             memcmp(p->target, macaddr_brd, HLEN_ETHER))
-            goto out; /* not ether addressed to us */
+            continue; /* not ether addressed to us */
 
         switch (htons(p->type)) {
             case ETHERTYPE_ARP:
