@@ -18,8 +18,8 @@ void _assert_fail(const char *file, const char *line, const char *e)
     puts(line);
     puts(": Assertion `");
     puts(e);
-    puts("' failed\nSolo5: Halted\n");
-    cpu_halt();
+    puts("' failed\n");
+    platform_exit();
 }
 
 void _abort(const char *file, const char *line, const char *s)
@@ -30,6 +30,5 @@ void _abort(const char *file, const char *line, const char *s)
     puts(line);
     puts(": ");
     puts(s);
-    puts("\nSolo5: Halted\n");
-    cpu_halt();
+    platform_exit();
 }
