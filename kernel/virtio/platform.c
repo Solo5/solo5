@@ -21,8 +21,15 @@
 void platform_exit(void)
 {
     /*
-     * There is no way to initiate "shutdown" on virtio without ACPI, so just
-     * halt.
+     * Poke the QEMU "isa-debug-exit" device to "shutdown". Should be harmless
+     * if it is not present. This is used to enable automated tests on virtio.
+     * Note that the actual QEMU exit() status will be 83 ('S', 41 << 1 | 1).
+     */
+    outw(0x501, 41);
+
+    /*
+     * If we got here, there is no way to initiate "shutdown" on virtio without
+     * ACPI, so just halt.
      */
     platform_puts("Solo5: Halted\n", 15);
     cpu_halt();

@@ -139,6 +139,9 @@ kvm|qemu)
         hv_addargs -drive file=${BLKIMG},if=virtio,format=raw
     fi
 
+    # Used by automated tests on QEMU (see kernel/virtio/platform.c).
+    hv_addargs -device isa-debug-exit
+
     hv_addargs -kernel ${UNIKERNEL}
 
     # QEMU command line parsing is just stupid.
