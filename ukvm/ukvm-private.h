@@ -70,7 +70,7 @@
     {                                                                          \
         uint64_t __e;                                                          \
         if ((p >= l) || uaddll_overflow(p, sz, __e) || (__e >= l))              \
-            errx(1, "%s:%d: Invalid guest access: paddr=0x%"PRIu64 " sz=%lu",         \
+            errx(1, "%s:%d: Invalid guest access: paddr=0x%"PRIx64 " sz=%"PRIu64,         \
                     __FILE__, __LINE__, p, sz);                                \
     }
 
