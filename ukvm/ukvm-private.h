@@ -65,11 +65,12 @@
  *
  * Note that (p), (l) and (sz) should be uint64_t or compatible types.
  */
-#define GUEST_CHECK_PADDR(p, l, sz) \
+#include <inttypes.h>
+#define GUEST_CHECK_PADDR(p, l, sz)                                     \
     {                                                                          \
         uint64_t __e;                                                          \
         if ((p >= l) || uaddll_overflow(p, sz, __e) || (__e >= l))              \
-            errx(1, "%s:%d: Invalid guest access: paddr=0x%llx sz=%lu",         \
+            errx(1, "%s:%d: Invalid guest access: paddr=0x%"PRIu64 " sz=%lu",         \
                     __FILE__, __LINE__, p, sz);                                \
     }
 
