@@ -63,14 +63,15 @@
  *   - (p) is within the limit (l)
  *   - (p + sz) does not overflow and is within the limit (l)
  *
- * Note that (p), (l) and (sz) should be uint64_t or compatible types.
+ * Note that (p) and (l) should be uint64_t or compatible types, and
+ * (sz) should be size_t.
  */
 #include <inttypes.h>
 #define GUEST_CHECK_PADDR(p, l, sz)                                     \
     {                                                                          \
         uint64_t __e;                                                          \
         if ((p >= l) || uaddll_overflow(p, sz, __e) || (__e >= l))              \
-            errx(1, "%s:%d: Invalid guest access: paddr=0x%"PRIx64 " sz=%"PRIu64,         \
+            errx(1, "%s:%d: Invalid guest access: paddr=0x%"PRIx64 " sz=%zu",         \
                     __FILE__, __LINE__, p, sz);                                \
     }
 
