@@ -1,5 +1,19 @@
 #include "solo5.h"
 
+static size_t strlen(const char *s)
+{
+    size_t len = 0;
+
+    while (*s++)
+        len += 1;
+    return len;
+}
+
+static void puts(const char *s)
+{
+    solo5_console_write(s, strlen(s));
+}
+
 #define SECTOR_SIZE	512
 
 static uint8_t sector_write[SECTOR_SIZE];
@@ -30,10 +44,11 @@ int check_sector_write(uint64_t sector)
     return 0;
 }
 
-/* Returns 0 if the tests pass, 1 otherwise. */
 int solo5_app_main(char *cmdline __attribute__((unused)))
 {
     uint64_t i;
+
+    puts("\n**** Solo5 standalone test_blk ****\n\n");
 
     /* Write and read/check one tenth of the disk. */
     for (i = 0; i < solo5_blk_sectors(); i += 10) {
@@ -41,6 +56,8 @@ int solo5_app_main(char *cmdline __attribute__((unused)))
             /* Check failed */
             return 1;
     }
+
+    puts("SUCCESS\n");
 
     return 0;
 }

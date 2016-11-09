@@ -1,4 +1,4 @@
 language: c
 sudo: required
 dist: trusty
-script: make
+script: make && sudo tests/run-tests-travis.sh
