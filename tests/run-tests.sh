@@ -90,6 +90,22 @@ run ()
     )
 }
 
+ARGS=$(getopt v $*)
+[ $? -ne 0 ] && exit 1
+set -- $ARGS
+VERBOSE=
+while true; do
+    case "$1" in
+    -v)
+        VERBOSE=1
+        shift
+        ;;
+    --)
+        shift; break
+        ;;
+    esac
+done
+
 if [ -t 1 ]; then
     TRED=$(tput setaf 1)
     TGREEN=$(tput setaf 2)
@@ -101,6 +117,16 @@ else
     TYELL=
     TOFF=
 fi
+
+dumplogs ()
+{
+    for F in ${TMPDIR}/${NAME}.log.*; do
+        echo "$1${F}: $2"
+        cat ${F} | sed "s/^/$1>$2 /"
+    done
+}
+
+echo "Running tests:"
 
 TESTS="test_hello.ukvm test_hello.virtio \
     test_blk.ukvm:d test_blk.virtio:d \
@@ -115,33 +141,34 @@ for T in ${TESTS}; do
     case $? in
     0)
         STATUS=0
-        RESULT="${TGREEN}PASSED${TOFF}"
+        echo "${TGREEN}PASSED${TOFF}"
+        [ -n "${VERBOSE}" ] && dumplogs ${TGREEN} ${TOFF}
         ;;
     99)
         STATUS=1
-        RESULT="${TRED}FAILED${TOFF}"
+        echo "${TRED}FAILED${TOFF}"
         ;;
     98)
         STATUS=0
-        RESULT="${TYELL}SKIPPED${TOFF}"
         SKIPPED=1
+        echo "${TYELL}SKIPPED${TOFF}"
         ;;
     124)
         STATUS=1
-        RESULT="${TRED}TIMEOUT${TOFF}"
+        echo "${TRED}TIMEOUT${TOFF}"
         ;;
     *)
         STATUS=1
-        RESULT="${TRED}ERROR${TOFF}"
+        echo "${TRED}ERROR${TOFF}"
         ;;
     esac
-    echo ${RESULT}
     if [ ${STATUS} -ne 0 ]; then
-        cat ${TMPDIR}/${NAME}.log.* | sed "s/^/${TRED}>${TOFF} /"
         FAILED=1
+        dumplogs ${TRED} ${TOFF}
     fi
 done
 
+echo ""
 if [ -n "${FAILED}" ]; then
     echo "Overall status: ${TRED}FAILURE${TOFF}"
     exit 1
