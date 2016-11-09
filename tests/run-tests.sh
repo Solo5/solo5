@@ -90,10 +90,24 @@ run ()
     )
 }
 
+if [ -t 1 ]; then
+    TRED=$(tput setaf 1)
+    TGREEN=$(tput setaf 2)
+    TYELL=$(tput setaf 3)
+    TOFF=$(tput sgr0)
+else
+    TRED=
+    TGREEN=
+    TYELL=
+    TOFF=
+fi
+
 TESTS="test_hello.ukvm test_hello.virtio \
     test_blk.ukvm:d test_blk.virtio:d \
     test_ping_serve.ukvm:n test_ping_serve.virtio:n"
 
+FAILED=
+SKIPPED=
 for T in ${TESTS}; do
     NAME=${T%:*}
     echo -n "${NAME}: "
@@ -101,29 +115,41 @@ for T in ${TESTS}; do
     case $? in
     0)
         STATUS=0
-        RESULT="PASSED"
+        RESULT="${TGREEN}PASSED${TOFF}"
         ;;
     99)
         STATUS=1
-        RESULT="FAILED"
+        RESULT="${TRED}FAILED${TOFF}"
         ;;
     98)
         STATUS=0
-        RESULT="SKIPPED"
+        RESULT="${TYELL}SKIPPED${TOFF}"
+        SKIPPED=1
         ;;
     124)
         STATUS=1
-        RESULT="TIMEOUT"
+        RESULT="${TRED}TIMEOUT${TOFF}"
         ;;
     *)
         STATUS=1
-        RESULT="ERROR"
+        RESULT="${TRED}ERROR${TOFF}"
         ;;
     esac
     echo ${RESULT}
     if [ ${STATUS} -ne 0 ]; then
-        cat ${TMPDIR}/${NAME}.log.* | sed 's/^/> /'
+        cat ${TMPDIR}/${NAME}.log.* | sed "s/^/${TRED}>${TOFF} /"
+        FAILED=1
     fi
 done
 
-exit ${STATUS}
+if [ -n "${FAILED}" ]; then
+    echo "Overall status: ${TRED}FAILURE${TOFF}"
+    exit 1
+else
+    if [ -n "${SKIPPED}" ]; then
+        echo "Overall status: ${TYELL}SUCCESS${TYELL}"
+    else
+        echo "Overall status: ${TGREEN}SUCCESS${TGREEN}"
+    fi
+    exit 0
+fi
