@@ -64,7 +64,7 @@ run ()
             STATUS=$?
             ;;
         *.virtio)
-            VIRTIO=../tools/run/solo5-run-virtio.sh
+            VIRTIO=$(dirname $0)/../tools/run/solo5-run-virtio.sh
             [ -n "${DISK}" ] && VIRTIO="${VIRTIO} -d ${DISK}"
             [ -n "${NET}" ] && VIRTIO="${VIRTIO} -n ${NET}"
             T=$(basename ${NAME} .virtio)/${NAME}
