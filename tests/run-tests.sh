@@ -126,7 +126,8 @@ dumplogs ()
     done
 }
 
-echo "Running tests:"
+echo "--------------------------------------------------------------------------------"
+echo "Starting tests at $(date)"
 
 TESTS="test_hello.ukvm test_hello.virtio \
     test_blk.ukvm:d test_blk.virtio:d \
@@ -136,7 +137,7 @@ FAILED=
 SKIPPED=
 for T in ${TESTS}; do
     NAME=${T%:*}
-    echo -n "${NAME}: "
+    printf "%-32s: " "${NAME}"
     run ${T}
     case $? in
     0)
@@ -168,15 +169,19 @@ for T in ${TESTS}; do
     fi
 done
 
-echo ""
+echo "Finished tests at $(date)"
+echo "--------------------------------------------------------------------------------"
+
 if [ -n "${FAILED}" ]; then
-    echo "Overall status: ${TRED}FAILURE${TOFF}"
-    exit 1
+    RESULT="${TRED}FAILURE${TOFF}"
+    STATUS=1
 else
     if [ -n "${SKIPPED}" ]; then
-        echo "Overall status: ${TYELL}SUCCESS${TYELL}"
+        RESULT="${TYELL}SUCCESS${TOFF}"
     else
-        echo "Overall status: ${TGREEN}SUCCESS${TGREEN}"
+        RESULT="${TGREEN}SUCCESS${TOFF}"
     fi
-    exit 0
+    STATUS=0
 fi
+printf "%-32s: %s\n" "Result" "${RESULT}"
+exit ${STATUS}
