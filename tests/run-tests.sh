@@ -1,4 +1,19 @@
 #!/bin/sh
+#
+# Test harness for running Solo5 automated tests.
+#
+# Tries to run as many tests as are available. Skips tests which cannot be run
+# due to lack of privilege or hypervisor on the host.
+#
+# For best (most complete) results run as root.
+#
+# TODO This should probably be rewritten in something other than shell.
+
+die ()
+{
+    echo $0: "$@" 1>&2
+    exit 1
+}
 
 nuketmpdir ()
 {
@@ -15,79 +30,131 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-run ()
+# Usage:
+#     run_test [ OPTIONS ] TEST
+# Returns:
+#     0: Success
+#     98: Skipped
+#     99: Failed (ran to completion but no SUCCESS in logs)
+#     124: Timeout
+#     (anything else): Other error
+run_test ()
 {
-    (
-        NAME=${1%:*}
-        if [ ${1##*:} = $1 ]; then
-            OPTS=
-        else
-            OPTS=${1##*:}
-        fi
+    logto ()
+    {
+        LOG=${TMPDIR}/$1
+        exec >>${LOG} 2>&1 </dev/null
+    }
 
-        case ${OPTS} in
-        *d*)
-            (
-                LOG=${TMPDIR}/${NAME}.log.1
-                exec >>${LOG} 2<&1 </dev/null
-                set -x; dd if=/dev/zero of=${TMPDIR}/disk.img bs=4k count=1024
-            )
+    local ARGS
+    local DISK
+    local NET
+    local NAME
+    local UNIKERNEL
+    local TEST_DIR
+    local STATUS
+
+    ARGS=$(getopt dn $*)
+    [ $? -ne 0 ] && return 1
+    set -- ${ARGS}
+    DISK=
+    NET=
+    while true; do
+        case "$1" in
+        -d)
             DISK=${TMPDIR}/disk.img
+            shift
             ;;
-        *n*)
-            # Need root to run this test (for ping -f)
-            [ $(id -u) -ne 0 ] && exit 98
+        -n)
             NET=tap100
-            (
-                LOG=${TMPDIR}/${NAME}.log.2
-                exec >>${LOG} 2<&1 </dev/null
-                sleep 1
-                set -x; timeout 30s ping -fq -c 100000 10.0.0.2
-            ) &
-            PID_PING=$!
+            NET_IP=10.0.0.2
+            shift
+            ;;
+        --)
+            shift; break
             ;;
         esac
-        
-        LOG=${TMPDIR}/${NAME}.log.0
-        exec >>${LOG} 2>&1 </dev/null
+    done
+    [ $# -ne 1 ] && return 1
+    UNIKERNEL=${SCRIPT_DIR}/${1%%.*}/$1
+    TEST_DIR=${SCRIPT_DIR}/${1%%.*}
+    NAME=$1
+    [ ! -d ${TEST_DIR} ] && return 1
+    [ ! -x ${UNIKERNEL} ] && return 1
+
+    # Test requires a block device. Create a fresh disk image for it.
+    if [ -n "${DISK}" ]; then
+        (
+            logto ${NAME}.log.1
+            set -x; dd if=/dev/zero of=${TMPDIR}/disk.img bs=4k count=1024
+        )
+    fi
+
+    # Network test. Run flood ping as the "client".
+    # XXX This is pretty hacky, and needs improvement. Should also check for
+    # no packet loss on the ping side.
+    if [ -n "${NET}" ]; then
+        # Need root to run this test (for ping -f)
+        [ $(id -u) -ne 0 ] && return 98
+        NET=tap100
+        (
+            logto ${NAME}.log.2
+            sleep 1
+            set -x; timeout 30s ping -fq -c 100000 ${NET_IP}
+        ) &
+        PID_PING=$!
+    fi
+
+    # Run the unikernel under test.
+    (
+        logto ${NAME}.log.0
 
         echo "-------- ${NAME} START --------"
 
         case ${NAME} in
         *.ukvm)
             [ -c /dev/kvm -a -w /dev/kvm ] || exit 98
-            UKVM=$(basename ${NAME} .ukvm)/ukvm-bin
+            UKVM=${TEST_DIR}/ukvm-bin
             [ -n "${DISK}" ] && UKVM="${UKVM} --disk=${DISK}"
             [ -n "${NET}" ] && UKVM="${UKVM} --net=${NET}"
-            T=$(basename ${NAME} .ukvm)/${NAME}
-            (set -x; timeout 30s ${UKVM} ${T})
+            (set -x; timeout 30s ${UKVM} ${UNIKERNEL})
             STATUS=$?
             ;;
         *.virtio)
-            VIRTIO=$(dirname $0)/../tools/run/solo5-run-virtio.sh
+            VIRTIO=${SCRIPT_DIR}/../tools/run/solo5-run-virtio.sh
             [ -n "${DISK}" ] && VIRTIO="${VIRTIO} -d ${DISK}"
             [ -n "${NET}" ] && VIRTIO="${VIRTIO} -n ${NET}"
-            T=$(basename ${NAME} .virtio)/${NAME}
-            (set -x; timeout 30s ${VIRTIO} ${T})
+            (set -x; timeout 30s ${VIRTIO} ${UNIKERNEL})
             STATUS=$?
             ;;
         esac
         
         echo "-------- ${NAME} END (status ${STATUS}) --------"
-
-        [ -n "${PID_PING}" ] && kill ${PID_PING}
-
-        case ${STATUS} in
-        0|83)
-            if grep -q SUCCESS ${LOG}; then
-                STATUS=0
-            else
-                STATUS=99
-            fi
-            ;;
-        esac
         exit ${STATUS}
     )
+
+    STATUS=$?
+    case ${STATUS} in
+    # XXX Should this be abstracted out in solo5-run-virtio.sh?
+    0|2|83) 
+        LOGS=$(find ${TMPDIR} -type f -name ${NAME}.log.\*)
+        STATUS=99
+        [ -n "${LOGS}" ] && grep -q SUCCESS ${LOGS} && STATUS=0
+        ;;
+    esac
+
+    wait
+
+    return ${STATUS}
+}
+
+dumplogs ()
+{
+    LOGS=$(find ${TMPDIR} -type f -name $1.log.\*)
+    for F in ${LOGS}; do
+        echo "$2${F}: $3"
+        cat ${F} | sed "s/^/$2>$3 /"
+    done
 }
 
 ARGS=$(getopt v $*)
@@ -118,32 +185,37 @@ else
     TOFF=
 fi
 
-dumplogs ()
-{
-    for F in ${TMPDIR}/${NAME}.log.*; do
-        echo "$1${F}: $2"
-        cat ${F} | sed "s/^/$1>$2 /"
-    done
-}
+SCRIPT_DIR=$(readlink -f $(dirname $0))
+
+# Grab variables from Makeconf to determine which targets have been built.
+MAKECONF=${SCRIPT_DIR}/../Makeconf
+[ ! -f ${MAKECONF} ] && die "Can't find Makeconf, looked in ${MAKECONF}"
+. ${MAKECONF}
+
+TESTS=
+if [ -n "${BUILD_UKVM}" ]; then
+    TESTS="${TESTS} test_hello.ukvm test_blk.ukvm:-d test_ping_serve.ukvm:-n"
+fi
+if [ -n "${BUILD_VIRTIO}" ]; then
+    TESTS="${TESTS} test_hello.virtio test_blk.virtio:-d test_ping_serve.virtio:-n"
+fi
 
 echo "--------------------------------------------------------------------------------"
 echo "Starting tests at $(date)"
-
-TESTS="test_hello.ukvm test_hello.virtio \
-    test_blk.ukvm:d test_blk.virtio:d \
-    test_ping_serve.ukvm:n test_ping_serve.virtio:n"
 
 FAILED=
 SKIPPED=
 for T in ${TESTS}; do
     NAME=${T%:*}
+    OPTS=${T#*:}
+    [ "${OPTS}" = "${NAME}" ] && OPTS=
     printf "%-32s: " "${NAME}"
-    run ${T}
+    run_test ${OPTS} ${NAME}
     case $? in
     0)
         STATUS=0
         echo "${TGREEN}PASSED${TOFF}"
-        [ -n "${VERBOSE}" ] && dumplogs ${TGREEN} ${TOFF}
+        [ -n "${VERBOSE}" ] && dumplogs ${NAME} ${TGREEN} ${TOFF}
         ;;
     99)
         STATUS=1
@@ -165,7 +237,7 @@ for T in ${TESTS}; do
     esac
     if [ ${STATUS} -ne 0 ]; then
         FAILED=1
-        dumplogs ${TRED} ${TOFF}
+        dumplogs ${NAME} ${TRED} ${TOFF}
     fi
 done
 
@@ -176,6 +248,7 @@ if [ -n "${FAILED}" ]; then
     RESULT="${TRED}FAILURE${TOFF}"
     STATUS=1
 else
+    # Anything skipped gives a yellow "mostly SUCCESS".
     if [ -n "${SKIPPED}" ]; then
         RESULT="${TYELL}SUCCESS${TOFF}"
     else
