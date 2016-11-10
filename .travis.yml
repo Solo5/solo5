@@ -4,4 +4,4 @@ dist: trusty
 before_install:
     - sudo apt-get update -qq
     - sudo apt-get install -qq qemu-system-x86
-script: make && sudo tests/run-tests-travis.sh
+script: make && sudo tests/setup-tests.sh && sudo tests/run-tests.sh

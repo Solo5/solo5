@@ -192,6 +192,11 @@ MAKECONF=${SCRIPT_DIR}/../Makeconf
 [ ! -f ${MAKECONF} ] && die "Can't find Makeconf, looked in ${MAKECONF}"
 . ${MAKECONF}
 
+#
+# List of tests to run is defined here.
+#
+# Format: test_foo.TARGET[:OPTIONS]
+#
 TESTS=
 if [ -n "${BUILD_UKVM}" ]; then
     TESTS="${TESTS} test_hello.ukvm test_blk.ukvm:-d test_ping_serve.ukvm:-n"
