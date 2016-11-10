@@ -78,9 +78,10 @@ static uint16_t virtio_blk_op(uint32_t type,
     head_buf->extra_flags = 0;
 
     /* The data buf */
-    if (type == VIRTIO_BLK_T_OUT) /* write */
+    if (type == VIRTIO_BLK_T_OUT) /* write */ {
         memcpy(data_buf->data, data, len);
-    else
+        data_buf->extra_flags = 0;
+    } else
         data_buf->extra_flags = VIRTQ_DESC_F_WRITE;
     data_buf->len = len;
 
