@@ -81,8 +81,8 @@ done
 [ $# -lt 1 ] && usage
 
 UNIKERNEL=$(readlink -f $1)
+[ -n "${UNIKERNEL}" -a -f "${UNIKERNEL}" ] || die "not found: $1}"
 shift
-[ ! -f ${UNIKERNEL} ] && die "not found: ${UNIKERNEL}"
 VMNAME=$(basename ${UNIKERNEL})
 
 if [ "${HV}" = "best" ]; then

@@ -263,6 +263,8 @@ static void send_garp(void)
 
 static void ping_serve(int verbose)
 {
+    unsigned long received = 0;
+
     /* XXX this interface should really not return a string */
     char *smac = solo5_net_mac_str();
     for (int i = 0; i < HLEN_ETHER; i++) {
@@ -317,6 +319,10 @@ static void ping_serve(int verbose)
         if (solo5_net_write_sync(buf, len) == -1)
             puts("Write error\n");
 
+        received++;
+        if (received == 100000)
+            break;
+
         continue;
 
 out:
@@ -326,10 +332,12 @@ out:
 
 int solo5_app_main(char *cmdline)
 {
-    puts("Hello, World\n");
+    puts("\n**** Solo5 standalone test_ping_serve ****\n\n");
 
     /* anything passed on the command line means "verbose" */
     ping_serve(strlen(cmdline));
+
+    puts("SUCCESS\n");
 
     return 0;
 }

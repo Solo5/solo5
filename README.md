@@ -76,7 +76,7 @@ target you selected.
 These examples show how to run Mirage/Solo5 unikernels directly.  If
 you'd like to use Docker instead, skip to the next section.
 
-**Setting up networking**
+**Setting up**
 
 The following examples assume you have successfully built the MirageOS
 `stackv4` application, and use the default networking configuration for
@@ -91,8 +91,11 @@ To set up the `tap100` interface on Linux, run (as root):
     ip addr add 10.0.0.1/24 dev tap100
     ip link set dev tap100 up
 
-To set up the `tap100` interface on FreeBSD, run (as root):
+To set up Bhyve and the `tap100` interface on FreeBSD, run (as root):
 
+    kldload vmm
+    kldload if_tap
+    kldload nmdm
     sysctl -w net.link.tap.up_on_open=1
     ifconfig tap100 create 10.0.0.1/24 link0 up
 
