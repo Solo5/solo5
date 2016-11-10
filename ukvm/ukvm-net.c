@@ -165,7 +165,7 @@ static int setup(int vcpufd, uint8_t *mem)
     strcpy(tun_name, netiface);
     netfd = tun_alloc(tun_name, IFF_TAP | IFF_NO_PI);	/* TAP interface */
     if (netfd < 0) {
-        perror("Allocating interface");
+        err(1, "Could not open interface: %s", netiface);
         exit(1);
     }
     /* generate a random, locally-administered and unicast MAC address */
@@ -187,9 +187,6 @@ static int setup(int vcpufd, uint8_t *mem)
             guest_mac[0], guest_mac[1], guest_mac[2],
             guest_mac[3], guest_mac[4], guest_mac[5]);
 
-    printf("Providing network: %s, guest address %s\n", tun_name,
-            netinfo.mac_str);
-
     return 0;
 }
 
@@ -208,5 +205,6 @@ struct ukvm_module ukvm_net = {
     .handle_exit = handle_exit,
     .handle_cmdarg = handle_cmdarg,
     .setup = setup,
-    .usage = usage
+    .usage = usage,
+    .name = "net"
 };

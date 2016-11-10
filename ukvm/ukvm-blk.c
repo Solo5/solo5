@@ -108,15 +108,11 @@ static int setup(int vcpufd, uint8_t *mem)
     /* set up virtual disk */
     diskfd = open(diskfile, O_RDWR);
     if (diskfd == -1)
-        err(1, "couldn't open disk %s", diskfile);
+        err(1, "Could not open disk: %s", diskfile);
 
     blkinfo.sector_size = 512;
     blkinfo.num_sectors = lseek(diskfd, 0, SEEK_END) / 512;
     blkinfo.rw = 1;
-
-    printf("Providing disk: %zd sectors @ %zd = %zd bytes\n",
-           blkinfo.num_sectors, blkinfo.sector_size,
-           blkinfo.num_sectors * blkinfo.sector_size);
 
     return 0;
 }
@@ -136,6 +132,7 @@ struct ukvm_module ukvm_blk = {
     .handle_exit = handle_exit,
     .handle_cmdarg = handle_cmdarg,
     .setup = setup,
-    .usage = usage
+    .usage = usage,
+    .name = "blk"
 };
 

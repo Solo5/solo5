@@ -181,11 +181,13 @@ static void load_code(const char *file, uint8_t *mem,     /* IN */
 
     fd_kernel = open(file, O_RDONLY);
     if (fd_kernel == -1)
-        err(1, "couldn't open elf");
+        err(1, "%s: Could not open file", file);
 
     numb = pread_in_full(fd_kernel, &hdr, sizeof(Elf64_Ehdr), 0);
-    if (numb < 0 || (size_t) numb != sizeof(Elf64_Ehdr))
-        err(1, "unable to read ELF64 hdr");
+    if (numb < 0)
+        err(1, "%s: Could not read ELF header", file);
+    if ((size_t) numb != sizeof(Elf64_Ehdr))
+        errx(1, "%s: Not a valid ELF executable", file);
 
     /*
      * Validate program is in ELF64 format:
@@ -198,7 +200,7 @@ static void load_code(const char *file, uint8_t *mem,     /* IN */
         hdr.e_ident[EI_MAG2] != ELFMAG2 || hdr.e_ident[EI_MAG3] != ELFMAG3 || \
         hdr.e_ident[EI_CLASS] != ELFCLASS64 || hdr.e_type != ET_EXEC || \
         hdr.e_machine != EM_X86_64)
-        errx(1, "%s is in invalid ELF64 format.", file);
+        errx(1, "%s: Not a valid x86_64 ELF executable", file);
 
     ph_off = hdr.e_phoff;
     ph_entsz = hdr.e_phentsize;
@@ -207,11 +209,13 @@ static void load_code(const char *file, uint8_t *mem,     /* IN */
 
     phdr = malloc(buflen);
     if (!phdr)
-        err(1, "unable to allocate program header buffer\n");
+        err(1, "Unable to allocate program header");
 
     numb = pread_in_full(fd_kernel, phdr, buflen, ph_off);
-    if (numb < 0 || (size_t) numb != buflen)
-        err(1, "unable to read program header");
+    if (numb < 0)
+        err(1, "%s: Read error", file);
+    if ((size_t) numb != buflen)
+        err(1, "%s: Invalid program header", file);
 
     /*
      * Load all segments with the LOAD directive from the elf file at offset
@@ -236,8 +240,10 @@ static void load_code(const char *file, uint8_t *mem,     /* IN */
         dst = mem + paddr;
 
         numb = pread_in_full(fd_kernel, dst, filesz, offset);
-        if (numb < 0 || (size_t) numb != filesz)
-            err(1, "unable to load segment");
+        if (numb < 0)
+            err(1, "%s: Read error", file);
+        if ((size_t) numb != filesz)
+            errx(1, "%s: Invalid segment", file);
 
         memset(mem + paddr + filesz, 0, memsz - filesz);
 
@@ -297,65 +303,6 @@ static void setup_system_page_tables(struct kvm_sregs *sregs, uint8_t *mem)
     sregs->cr0 |= X86_CR0_PG;
 }
 
-#if 0
-static void print_dtable(const char *name, struct kvm_dtable *dtable)
-{
-    printf(" %s                 %016lx  %08hx\n",
-           name, (uint64_t) dtable->base, (uint16_t) dtable->limit);
-}
-
-static void print_segment(const char *name, struct kvm_segment *seg)
-{
-    printf(" %s       %04hx      %016lx  %08x  %02hhx    ",
-           name, (uint16_t) seg->selector, (uint64_t) seg->base,
-           (uint32_t) seg->limit, (uint8_t) seg->type);
-    printf("%x %x   %x  %x %x %x %x\n",
-           seg->present, seg->dpl, seg->db, seg->s,
-           seg->l, seg->g, seg->avl);
-}
-
-static void dump_sregs(struct kvm_sregs *sregs)
-{
-    uint64_t cr0, cr2, cr3;
-    uint64_t cr4, cr8;
-
-    cr0 = sregs->cr0;
-    cr2 = sregs->cr2;
-    cr3 = sregs->cr3;
-    cr4 = sregs->cr4;
-    cr8 = sregs->cr8;
-
-    printf(" cr0: %016lx   cr2: %016lx   cr3: %016lx\n", cr0, cr2, cr3);
-    printf(" cr4: %016lx   cr8: %016lx\n", cr4, cr8);
-    printf("\n Segment registers:\n");
-    printf(" ------------------\n");
-    printf(" register  selector  base             ");
-    printf(" limit     type  p dpl db s l g avl\n");
-
-    print_segment("cs ", &sregs->cs);
-    print_segment("ss ", &sregs->ss);
-    print_segment("ds ", &sregs->ds);
-    print_segment("es ", &sregs->es);
-    print_segment("fs ", &sregs->fs);
-    print_segment("gs ", &sregs->gs);
-    print_segment("tr ", &sregs->tr);
-    print_segment("ldt", &sregs->ldt);
-    print_dtable("gdt", &sregs->gdt);
-}
-
-static void get_and_dump_sregs(int vcpufd)
-{
-    struct kvm_sregs sregs;
-    int ret;
-
-    ret = ioctl(vcpufd, KVM_GET_SREGS, &sregs);
-    if (ret == -1)
-        err(1, "KVM_GET_SREGS");
-
-    dump_sregs(&sregs);
-}
-#endif
-
 static void setup_system_gdt(struct kvm_sregs *sregs,
                              uint8_t *mem,
                              uint64_t off)
@@ -367,17 +314,6 @@ static void setup_system_gdt(struct kvm_sregs *sregs,
     gdt[BOOT_GDT_NULL] = GDT_ENTRY(0, 0, 0);
     gdt[BOOT_GDT_CODE] = GDT_ENTRY(0xA09B, 0, 0xFFFFF);
     gdt[BOOT_GDT_DATA] = GDT_ENTRY(0xC093, 0, 0xFFFFF);
-
-    if (0) {
-        size_t i;
-
-        printf("gdt @ 0x%x\n", BOOT_GDT);
-        for (i = 0; i < 40; i++) {
-            printf("%02x", *((uint8_t *) gdt + i));
-            if (i % 8 == 7)
-                printf("\n");
-        }
-    }
 
     sregs->gdt.base = off;
     sregs->gdt.limit = (sizeof(uint64_t) * BOOT_GDT_MAX) - 1;
@@ -401,17 +337,15 @@ static void setup_system(int vcpufd, uint8_t *mem)
     /* Set all cpu/mem system structures */
     ret = ioctl(vcpufd, KVM_GET_SREGS, &sregs);
     if (ret == -1)
-        err(1, "KVM_GET_SREGS");
+        err(1, "KVM: ioctl (GET_SREGS) failed");
 
     setup_system_gdt(&sregs, mem, BOOT_GDT);
     setup_system_page_tables(&sregs, mem);
     setup_system_64bit(&sregs);
 
-    /* dump_sregs(&sregs); */
-
     ret = ioctl(vcpufd, KVM_SET_SREGS, &sregs);
     if (ret == -1)
-        err(1, "KVM_SET_SREGS");
+        err(1, "KVM: ioctl (SET_SREGS) failed");
 }
 
 
@@ -425,11 +359,10 @@ static void setup_cpuid(int kvm, int vcpufd)
     kvm_cpuid->nent = max_entries;
 
     if (ioctl(kvm, KVM_GET_SUPPORTED_CPUID, kvm_cpuid) < 0)
-        err(1, "KVM_GET_SUPPORTED_CPUID failed");
+        err(1, "KVM: ioctl (GET_SUPPORTED_CPUID) failed");
 
-    printf("Setting the CPUID.\n");
     if (ioctl(vcpufd, KVM_SET_CPUID2, kvm_cpuid) < 0)
-        err(1, "KVM_SET_CPUID2 failed");
+        err(1, "KVM: ioctl (SET_CPUID2) failed");
 }
 
 #if 0
@@ -526,7 +459,7 @@ static int vcpu_loop(struct kvm_run *run, int vcpufd, uint8_t *mem)
         ret = ioctl(vcpufd, KVM_RUN, NULL);
         if (ret < 0 &&
                 (errno != EINTR && errno != EAGAIN)) {
-            err(1, "KVM_RUN failed");
+            err(1, "KVM: ioctl (RUN) failed");
         }
 
         for (i = 0; i < NUM_MODULES; i++) {
@@ -541,8 +474,7 @@ static int vcpu_loop(struct kvm_run *run, int vcpufd, uint8_t *mem)
 
         switch (run->exit_reason) {
         case KVM_EXIT_HLT: {
-            puts("KVM_EXIT_HLT");
-            /* get_and_dump_sregs(vcpufd); */
+            /* Guest has halted the CPU, this is considered as a normal exit. */
             return 0;
         }
         case KVM_EXIT_IO: {
@@ -559,7 +491,7 @@ static int vcpu_loop(struct kvm_run *run, int vcpufd, uint8_t *mem)
                 ukvm_port_poll(mem, paddr);
                 break;
             default:
-                errx(1, "unhandled KVM_EXIT_IO (%x)", run->io.port);
+                errx(1, "Invalid guest port access: port=0x%x", run->io.port);
             };
             break;
         }
@@ -578,13 +510,13 @@ static int vcpu_loop(struct kvm_run *run, int vcpufd, uint8_t *mem)
             break;
         }
         case KVM_EXIT_FAIL_ENTRY:
-            errx(1, "KVM_EXIT_FAIL_ENTRY: hw_entry_failure_reason = 0x%llx",
+            errx(1, "KVM: entry failure: hw_entry_failure_reason=0x%llx",
                  run->fail_entry.hardware_entry_failure_reason);
         case KVM_EXIT_INTERNAL_ERROR:
-            errx(1, "KVM_EXIT_INTERNAL_ERROR: suberror = 0x%x",
+            errx(1, "KVM: internal error exit: suberror=0x%x",
                  run->internal.suberror);
         default:
-            errx(1, "exit_reason = 0x%x", run->exit_reason);
+            errx(1, "KVM: unhandled exit: exit_reason=0x%x", run->exit_reason);
         }
     }
 
@@ -597,7 +529,8 @@ int setup_modules(int vcpufd, uint8_t *mem)
 
     for (i = 0; i < NUM_MODULES; i++) {
         if (modules[i]->setup(vcpufd, mem)) {
-            printf("Please check you have correctly specified:\n %s\n",
+            warnx("Module `%s' setup failed", modules[i]->name);
+            warnx("Please check you have correctly specified:\n    %s",
                    modules[i]->usage());
             return -1;
         }
@@ -607,7 +540,7 @@ int setup_modules(int vcpufd, uint8_t *mem)
 
 void sig_handler(int signo)
 {
-    printf("Received SIGINT. Exiting\n");
+    warnx("Exiting on signal %d", signo);
     exit(0);
 }
 
@@ -615,13 +548,15 @@ static void usage(const char *prog)
 {
     int m;
 
-    printf("usage: %s [ CORE OPTIONS ] [ MODULE OPTIONS ] KERNEL", prog);
-    printf(" [ -- ] [ ARGS ]\n");
-    printf("Core options:\n");
-    printf("    --help (display this help)\n");
-    printf("Compiled-in module options:\n");
+    fprintf(stderr, "usage: %s [ CORE OPTIONS ] [ MODULE OPTIONS ] KERNEL", prog);
+    fprintf(stderr, " [ -- ] [ ARGS ]\n");
+    fprintf(stderr, "Core options:\n");
+    fprintf(stderr, "    --help (display this help)\n");
+    fprintf(stderr, "Compiled-in module options:\n");
     for (m = 0; m < NUM_MODULES; m++)
-        printf("    %s\n", modules[m]->usage());
+        fprintf(stderr, "    %s\n", modules[m]->usage());
+    if (!m)
+        fprintf(stderr, "    (none)\n");
     exit(1);
 }
 
@@ -641,8 +576,10 @@ int main(int argc, char **argv)
     argc--;
     argv++;
 
-    if (argc < 1)
+    if (argc < 1) {
+        warnx("Missing KERNEL operand");
         usage(prog);
+    }
 
     do {
         int j;
@@ -665,8 +602,8 @@ int main(int argc, char **argv)
         usage(prog);
 
     if (*argv[0] == '-') {
-        printf("Invalid option: %s\n", *argv);
-        return 1;
+        warnx("Invalid option: `%s'", *argv);
+        usage(prog);
     }
 
     elffile = *argv;
@@ -681,22 +618,22 @@ int main(int argc, char **argv)
     }
 
     if (signal(SIGINT, sig_handler) == SIG_ERR)
-        err(1, "Can not catch SIGINT");
+        err(1, "Could not install signal handler");
 
     kvm = open("/dev/kvm", O_RDWR | O_CLOEXEC);
     if (kvm == -1)
-        err(1, "/dev/kvm");
+        err(1, "Could not open: /dev/kvm");
 
     /* Make sure we have the stable version of the API */
     ret = ioctl(kvm, KVM_GET_API_VERSION, NULL);
     if (ret == -1)
-        err(1, "KVM_GET_API_VERSION");
+        err(1, "KVM: ioctl (GET_API_VERSION) failed");
     if (ret != 12)
-        errx(1, "KVM_GET_API_VERSION %d, expected 12", ret);
+        errx(1, "KVM: API version is %d, ukvm requires version 12", ret);
 
     vmfd = ioctl(kvm, KVM_CREATE_VM, 0);
     if (vmfd == -1)
-        err(1, "KVM_CREATE_VM");
+        err(1, "KVM: ioctl (CREATE_VM) failed");
 
     /*
      * TODO If the guest size is larger than ~4GB, we need two region
@@ -709,7 +646,7 @@ int main(int argc, char **argv)
     mem = mmap(NULL, GUEST_SIZE, PROT_READ | PROT_WRITE,
                MAP_SHARED | MAP_ANONYMOUS, -1, 0);
     if (mem == MAP_FAILED)
-        err(1, "allocating guest memory");
+        err(1, "Error allocating guest memory");
 
     load_code(elffile, mem, &elf_entry, &kernel_end);
 
@@ -722,7 +659,7 @@ int main(int argc, char **argv)
 
     ret = ioctl(vmfd, KVM_SET_USER_MEMORY_REGION, &region);
     if (ret == -1)
-        err(1, "KVM_SET_USER_MEMORY_REGION");
+        err(1, "KVM: ioctl (SET_USER_MEMORY_REGION) failed");
 
 
     /* enabling this seems to mess up our receiving of hlt instructions */
@@ -732,7 +669,7 @@ int main(int argc, char **argv)
 
     vcpufd = ioctl(vmfd, KVM_CREATE_VCPU, 0);
     if (vcpufd == -1)
-        err(1, "KVM_CREATE_VCPU");
+        err(1, "KVM: ioctl (CREATE_VCPU) failed");
 
     /* Setup x86 system registers and memory. */
     setup_system(vcpufd, mem);
@@ -756,21 +693,21 @@ int main(int argc, char **argv)
     };
     ret = ioctl(vcpufd, KVM_SET_REGS, &regs);
     if (ret == -1)
-        err(1, "KVM_SET_REGS");
+        err(1, "KVM: ioctl (SET_REGS) failed");
 
 
     /* Map the shared kvm_run structure and following data. */
     ret = ioctl(kvm, KVM_GET_VCPU_MMAP_SIZE, NULL);
     if (ret == -1)
-        err(1, "KVM_GET_VCPU_MMAP_SIZE");
+        err(1, "KVM: ioctl (GET_VCPU_MMAP_SIZE) failed");
     mmap_size = ret;
     if (mmap_size < sizeof(*run))
-        errx(1, "KVM_GET_VCPU_MMAP_SIZE unexpectedly small");
+        errx(1, "KVM: invalid VCPU_MMAP_SIZE: %zd", mmap_size);
     run =
         mmap(NULL, mmap_size, PROT_READ | PROT_WRITE, MAP_SHARED, vcpufd,
              0);
     if (run == MAP_FAILED)
-        err(1, "mmap vcpu");
+        err(1, "KVM: VCPU mmap failed");
 
     setup_cpuid(kvm, vcpufd);
 
@@ -779,10 +716,10 @@ int main(int argc, char **argv)
 
     ret = pthread_create(&event_thread, NULL, event_loop, (void *) run);
     if (ret)
-        err(1, "couldn't create event thread");
+        err(1, "pthread_create(event_thread) failed");
 
     if (setup_modules(vcpufd, mem))
-        errx(1, "couldn't setup modules");
+        exit(1);
 
     return vcpu_loop(run, vcpufd, mem);
 }

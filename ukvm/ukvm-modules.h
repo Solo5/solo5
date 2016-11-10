@@ -9,6 +9,7 @@ struct ukvm_module {
     int (*handle_cmdarg)(char *cmdarg);
     int (*setup)(int vcpufd, uint8_t *mem);
     char *(*usage)(void);
+    const char *name;
 };
 
 extern struct ukvm_module ukvm_blk;
