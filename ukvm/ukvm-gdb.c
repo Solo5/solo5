@@ -682,5 +682,6 @@ struct ukvm_module ukvm_gdb = {
     .handle_exit = handle_exit,
     .handle_cmdarg = handle_cmdarg,
     .setup = setup,
-    .usage = usage
+    .usage = usage,
+    .name = "gdb"
 };
