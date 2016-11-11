@@ -55,7 +55,7 @@ run_test ()
     local STATUS
 
     ARGS=$(getopt dn $*)
-    [ $? -ne 0 ] && return 1
+    [ $? -ne 0 ] && die "Invalid test options"
     set -- ${ARGS}
     DISK=
     NET=
@@ -75,12 +75,13 @@ run_test ()
             ;;
         esac
     done
-    [ $# -ne 1 ] && return 1
+    [ $# -lt 1 ] && die "Missing operand"
     UNIKERNEL=${SCRIPT_DIR}/${1%%.*}/$1
     TEST_DIR=${SCRIPT_DIR}/${1%%.*}
     NAME=$1
-    [ ! -d ${TEST_DIR} ] && return 1
-    [ ! -x ${UNIKERNEL} ] && return 1
+    [ ! -d ${TEST_DIR} ] && die "Could not determine directory for ${NAME}"
+    [ ! -x ${UNIKERNEL} ] && die "Not found: ${UNIKERNEL}"
+    shift
 
     # Test requires a block device. Create a fresh disk image for it.
     if [ -n "${DISK}" ]; then
@@ -117,14 +118,14 @@ run_test ()
             UKVM=${TEST_DIR}/ukvm-bin
             [ -n "${DISK}" ] && UKVM="${UKVM} --disk=${DISK}"
             [ -n "${NET}" ] && UKVM="${UKVM} --net=${NET}"
-            (set -x; timeout 30s ${UKVM} ${UNIKERNEL})
+            (set -x; timeout 30s ${UKVM} ${UNIKERNEL} -- "$@")
             STATUS=$?
             ;;
         *.virtio)
             VIRTIO=${SCRIPT_DIR}/../tools/run/solo5-run-virtio.sh
             [ -n "${DISK}" ] && VIRTIO="${VIRTIO} -d ${DISK}"
             [ -n "${NET}" ] && VIRTIO="${VIRTIO} -n ${NET}"
-            (set -x; timeout 30s ${VIRTIO} ${UNIKERNEL})
+            (set -x; timeout 30s ${VIRTIO} ${UNIKERNEL} -- "$@")
             STATUS=$?
             ;;
         esac
@@ -155,6 +156,11 @@ dumplogs ()
         echo "$2${F}: $3"
         cat ${F} | sed "s/^/$2>$3 /"
     done
+}
+
+add_test ()
+{
+    TESTS="${TESTS} $@"
 }
 
 ARGS=$(getopt v $*)
@@ -195,14 +201,18 @@ MAKECONF=${SCRIPT_DIR}/../Makeconf
 #
 # List of tests to run is defined here.
 #
-# Format: test_foo.TARGET[:OPTIONS]
+# Syntax: add_test test_foo.TARGET[:[OPTIONS]:[ARGS]]
 #
 TESTS=
 if [ -n "${BUILD_UKVM}" ]; then
-    TESTS="${TESTS} test_hello.ukvm test_blk.ukvm:-d test_ping_serve.ukvm:-n"
+    add_test test_hello.ukvm::SUCCESS
+    add_test test_blk.ukvm:-d
+    add_test test_ping_serve.ukvm:-n:limit
 fi
 if [ -n "${BUILD_VIRTIO}" ]; then
-    TESTS="${TESTS} test_hello.virtio test_blk.virtio:-d test_ping_serve.virtio:-n"
+    add_test test_hello.virtio::SUCCESS
+    add_test test_blk.virtio:-d
+    add_test test_ping_serve.virtio:-n:limit
 fi
 
 echo "--------------------------------------------------------------------------------"
@@ -211,11 +221,19 @@ echo "Starting tests at $(date)"
 FAILED=
 SKIPPED=
 for T in ${TESTS}; do
-    NAME=${T%:*}
-    OPTS=${T#*:}
-    [ "${OPTS}" = "${NAME}" ] && OPTS=
+    OLDIFS=$IFS
+    IFS=:
+    set -- ${T}
+    IFS=$OLDIFS
+    [ $# -lt 1 -o $# -gt 3 ] && die "Error in test specification: '${T}'"
+    NAME=$1; shift
+    if [ -n "$1" ]; then
+        OPTS=$1; shift
+    else
+        OPTS=
+    fi
     printf "%-32s: " "${NAME}"
-    run_test ${OPTS} ${NAME}
+    run_test ${OPTS} ${NAME} "$@"
     case $? in
     0)
         STATUS=0

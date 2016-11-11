@@ -17,6 +17,8 @@ static void puts(const char *s)
 int solo5_app_main(char *cmdline)
 {
     puts("\n**** Solo5 standalone test_hello ****\n\n");
+
+    /* "SUCCESS" will be passed in via the command line */
     puts("Hello, World\nCommand line is: '");
 
     size_t len = 0;
@@ -27,7 +29,6 @@ int solo5_app_main(char *cmdline)
     solo5_console_write(cmdline, len);
 
     puts("'\n");
-    puts("SUCCESS\n");
 
     return 0;
 }
