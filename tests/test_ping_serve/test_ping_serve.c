@@ -261,8 +261,10 @@ static void send_garp(void)
         puts("Could not send GARP packet\n");
 }
 
-static void ping_serve(int verbose)
+static void ping_serve(int verbose, int limit)
 {
+    unsigned long received = 0;
+
     /* XXX this interface should really not return a string */
     char *smac = solo5_net_mac_str();
     for (int i = 0; i < HLEN_ETHER; i++) {
@@ -317,6 +319,12 @@ static void ping_serve(int verbose)
         if (solo5_net_write_sync(buf, len) == -1)
             puts("Write error\n");
 
+        received++;
+        if (limit && received == 100000) {
+            puts("Limit reached, exiting\n");
+            break;
+        }
+
         continue;
 
 out:
@@ -326,10 +334,29 @@ out:
 
 int solo5_app_main(char *cmdline)
 {
-    puts("Hello, World\n");
+    int verbose = 0;
+    int limit = 0;
 
-    /* anything passed on the command line means "verbose" */
-    ping_serve(strlen(cmdline));
+    puts("\n**** Solo5 standalone test_ping_serve ****\n\n");
+
+    if (strlen(cmdline) >= 1) {
+        switch (cmdline[0]) {
+        case 'v':
+            verbose = 1;
+            break;
+        case 'l':
+            limit = 1;
+            break;
+        default:
+            puts("Error in command line.\n");
+            puts("Usage: test_ping_serve [ verbose | limit ]\n");
+            return 1;
+        }
+    }
+
+    ping_serve(verbose, limit);
+
+    puts("SUCCESS\n");
 
     return 0;
 }
