@@ -14,6 +14,9 @@ Then, run the test suite with:
 Some tests / hypervisors require root privileges. For best results, run the
 test suite as root.
 
+To see full output from all tests (not just the failures), run the test suite
+with the `-v` option.
+
 When adding tests, please use the following conventions:
 
 1. Each test goes in its own subdirectory.
