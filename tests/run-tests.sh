@@ -125,7 +125,7 @@ run_test ()
             VIRTIO=${SCRIPT_DIR}/../tools/run/solo5-run-virtio.sh
             [ -n "${DISK}" ] && VIRTIO="${VIRTIO} -d ${DISK}"
             [ -n "${NET}" ] && VIRTIO="${VIRTIO} -n ${NET}"
-            (set -x; timeout 30s ${VIRTIO} ${UNIKERNEL} -- "$@")
+            (set -x; timeout 30s ${VIRTIO} -- ${UNIKERNEL} "$@")
             STATUS=$?
             ;;
         esac
