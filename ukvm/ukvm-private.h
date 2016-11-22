@@ -7,8 +7,8 @@
 #define ALIGN_UP(_num, _align)    (_align * ((_num + _align - 1) / _align))
 
 /*
- * Define uaddl_overflow(a, b, result) for compilers without
- * __builtin_uaddl_overlow().  Based on "Catching Integer Overflows in C"
+ * Define uaddll_overflow(a, b, result) for compilers without
+ * __builtin_uaddll_overlow().  Based on "Catching Integer Overflows in C"
  * (https://www.fefe.de/intof.html).
  */
 #if defined(__GNUC__)
@@ -21,12 +21,12 @@
 #define __has_builtin(x) 0
 #endif
 
-#if __has_builtin(__builtin_uaddl_overflow)
+#if __has_builtin(__builtin_uaddll_overflow)
 #define _HAS_BUILTIN_OVERFLOW
 #endif
 
 #ifdef _HAS_BUILTIN_OVERFLOW
-#define uaddl_overflow(a,b,r) __builtin_uaddl_overflow(a,b,&r)
+#define uaddll_overflow(a,b,r) __builtin_uaddll_overflow(a,b,&r)
 #else
 #define __HALF_MAX_SIGNED(type) ((type)1 << (sizeof(type) * 8 - 2))
 #define __MAX_SIGNED(type) (__HALF_MAX_SIGNED(type) - 1 + __HALF_MAX_SIGNED(type))
@@ -42,7 +42,7 @@
         (__x == __y && ((__x < 1) == (__y < 1)) ? (void)((dest) = __y),0 : 1); \
     })
 
-#define uaddl_overflow(a,b,r)                                                  \
+#define uaddll_overflow(a,b,r)                                                  \
     ({                                                                         \
     __typeof(a) __a = a;                                                       \
     __typeof(b) __b = b;                                                       \
@@ -63,13 +63,15 @@
  *   - (p) is within the limit (l)
  *   - (p + sz) does not overflow and is within the limit (l)
  *
- * Note that (p), (l) and (sz) should be uint64_t or compatible types.
+ * Note that (p) and (l) should be uint64_t or compatible types, and
+ * (sz) should be size_t.
  */
-#define GUEST_CHECK_PADDR(p, l, sz) \
+#include <inttypes.h>
+#define GUEST_CHECK_PADDR(p, l, sz)                                     \
     {                                                                          \
         uint64_t __e;                                                          \
-        if ((p >= l) || uaddl_overflow(p, sz, __e) || (__e >= l))              \
-            errx(1, "%s:%d: Invalid guest access: paddr=0x%lx sz=%lu",         \
+        if ((p >= l) || uaddll_overflow(p, sz, __e) || (__e >= l))              \
+            errx(1, "%s:%d: Invalid guest access: paddr=0x%"PRIx64 " sz=%zu",         \
                     __FILE__, __LINE__, p, sz);                                \
     }
 
