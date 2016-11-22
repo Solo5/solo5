@@ -16,11 +16,6 @@ cc_is_gcc()
     ${CC:-cc} -v 2>&1 | grep -q "^gcc version"
 }
 
-check_ld_version()
-{
-    type $1 >/dev/null 2>&1 && $1 -v | grep -q 'GNU.*2.2[5-9]'
-}
-
 # Host-provided header files are installed here for in-tree builds. OPAM will
 # install these to $(OPAM_INCDIR)/host where they will be picked up by
 # pkg-config.
@@ -63,13 +58,6 @@ case $(uname -s) in
         HOST_CFLAGS="-nostdlibinc"
         BUILD_UKVM=
         BUILD_VIRTIO="yes"
-        # Check that the linker is new enough. Allow the user to explicitly
-        # override ${LD}; if unset default to looking for the binutils one.
-        LD=${LD:-/usr/local/bin/ld}
-        check_ld_version ${LD} || \
-            die "Linker '${LD}': Not found or too old (< 2.25)." \
-            "Please install ld from 'binutils' or set \$LD explicitly."
-        EXTRA="LD=${LD}"
         ;;
     *)
         die "Unsupported build OS: $(uname -s)"
@@ -80,5 +68,4 @@ cat <<EOM >Makeconf
 BUILD_UKVM=${BUILD_UKVM}
 BUILD_VIRTIO=${BUILD_VIRTIO}
 HOST_CFLAGS=${HOST_CFLAGS}
-${EXTRA}
 EOM
