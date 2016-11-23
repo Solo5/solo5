@@ -221,7 +221,7 @@ static void load_code(const char *file, uint8_t *mem,     /* IN */
      * Load all segments with the LOAD directive from the elf file at offset
      * p_offset, and copy that into p_addr in memory. The amount of bytes
      * copied is p_filesz.  However, each segment should be given
-     * ALIGN_UP(p_memsz, p_align) bytes on memory.
+     * p_memsz aligned up to p_align bytes on memory.
      */
     for (ph_i = 0; ph_i < ph_cnt; ph_i++) {
         uint8_t *daddr;
@@ -239,20 +239,27 @@ static void load_code(const char *file, uint8_t *mem,     /* IN */
         /* XXX this won't work after having the two memory slots */
         assert(GUEST_SIZE < KVM_32BIT_GAP_SIZE);
 
-        if ((paddr >= GUEST_SIZE) || add_overflow(paddr, filesz, result) ||
-            (result >= GUEST_SIZE)) {
+        if ((paddr >= GUEST_SIZE) || add_overflow(paddr, filesz, result)
+                || (result >= GUEST_SIZE))
             errx(1, "%s: Invalid segment: paddr=0x%" PRIx64 ", filesz=%zu",
                     file, paddr, filesz);
-        }
-        if (add_overflow(paddr, memsz, result) || (result >= GUEST_SIZE)) {
+        if (add_overflow(paddr, memsz, result) || (result >= GUEST_SIZE))
             errx(1, "%s: Invalid segment: paddr=0x%" PRIx64 ", memsz=%zu",
                     file, paddr, memsz);
-        }
-        _end = ALIGN_UP(result, align);
-        if (_end >= GUEST_SIZE) {
+        /*
+         * Verify that align is a non-zero power of 2, if so safe to use it in
+         * this calculation, otherwise ignore it.
+         */
+        if (align > 0 && (align & (align - 1)) == 0)
+            _end = (result + (align - 1)) & -align;
+        else
+            _end = result;
+        /*
+         * Sanity check _end again.
+         */
+        if ((_end <= paddr) || (_end >= GUEST_SIZE))
             errx(1, "%s: Invalid segment: paddr=0x%" PRIx64 \
                     ", _end=0x%" PRIx64, file, paddr, _end);
-        }
         if (_end > *p_end)
             *p_end = _end;
 
