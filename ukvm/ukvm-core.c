@@ -467,9 +467,19 @@ static int vcpu_loop(struct kvm_run *run, int vcpufd, uint8_t *mem)
         int i, handled = 0;
 
         ret = ioctl(vcpufd, KVM_RUN, NULL);
-        if (ret < 0 &&
-                (errno != EINTR && errno != EAGAIN)) {
-            err(1, "KVM: ioctl (RUN) failed");
+        if (ret == -1 && errno == EINTR)
+            continue;
+        if (ret == -1) {
+            if (errno == EFAULT) {
+                struct kvm_regs regs;
+                ret = ioctl(vcpufd, KVM_GET_REGS, &regs);
+                if (ret == -1)
+                    err(1, "KVM: ioctl (GET_REGS) failed after guest fault");
+                errx(1, "KVM: host/guest translation fault: rip=0x%llx",
+                        regs.rip);
+            }
+            else
+                err(1, "KVM: ioctl (RUN) failed");
         }
 
         for (i = 0; i < NUM_MODULES; i++) {
