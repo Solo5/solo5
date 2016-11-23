@@ -7,8 +7,6 @@
 #define GUEST_SIZE      0x20000000 /* 512 MBs */
 #define GUEST_PAGE_SIZE 0x200000   /* 2 MB pages in guest */
 
-#define ALIGN_UP(_num, _align)    (_align * ((_num + _align - 1) / _align))
-
 #if defined(__GNUC__)
 #if __GNUC__ >= 5
 #define _HAS_BUILTIN_ADD_OVERFLOW

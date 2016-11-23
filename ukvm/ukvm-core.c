@@ -154,11 +154,11 @@ ssize_t pread_in_full(int fd, void *buf, size_t count, off_t offset)
  *
  * Memory will look like this after the elf is loaded:
  *
- * *mem                    *p_entry                                 *p_end
- *   |             |                    |                |            |
- *   |    ...      | .text .rodata      |   .data .bss   |            |
- *   |             |        code        |   00000000000  | empty page |
- *   |             |  [PROT_EXEC|READ]  |                | PROT_NONE  |
+ * *mem                    *p_entry                   *p_end
+ *   |             |                    |                |
+ *   |    ...      | .text .rodata      |   .data .bss   |
+ *   |             |        code        |   00000000000  |
+ *   |             |  [PROT_EXEC|READ]  |                |
  *
  */
 static void load_code(const char *file, uint8_t *mem,     /* IN */
@@ -186,7 +186,7 @@ static void load_code(const char *file, uint8_t *mem,     /* IN */
     numb = pread_in_full(fd_kernel, &hdr, sizeof(Elf64_Ehdr), 0);
     if (numb < 0)
         err(1, "%s: Could not read ELF header", file);
-    if ((size_t) numb != sizeof(Elf64_Ehdr))
+    if (numb != sizeof(Elf64_Ehdr))
         errx(1, "%s: Not a valid ELF executable", file);
 
     /*
@@ -214,55 +214,72 @@ static void load_code(const char *file, uint8_t *mem,     /* IN */
     numb = pread_in_full(fd_kernel, phdr, buflen, ph_off);
     if (numb < 0)
         err(1, "%s: Read error", file);
-    if ((size_t) numb != buflen)
+    if (numb != buflen)
         err(1, "%s: Invalid program header", file);
 
     /*
      * Load all segments with the LOAD directive from the elf file at offset
      * p_offset, and copy that into p_addr in memory. The amount of bytes
      * copied is p_filesz.  However, each segment should be given
-     * ALIGN_UP(p_memsz, p_align) bytes on memory.
+     * p_memsz aligned up to p_align bytes on memory.
      */
     for (ph_i = 0; ph_i < ph_cnt; ph_i++) {
-        uint8_t *dst;
-        size_t _end;
+        uint8_t *daddr;
+        uint64_t _end;
         size_t offset = phdr[ph_i].p_offset;
         size_t filesz = phdr[ph_i].p_filesz;
         size_t memsz = phdr[ph_i].p_memsz;
         uint64_t paddr = phdr[ph_i].p_paddr;
         uint64_t align = phdr[ph_i].p_align;
+        uint64_t result;
 
-        if ((phdr[ph_i].p_type & PT_LOAD) == 0)
+        if (phdr[ph_i].p_type != PT_LOAD)
             continue;
 
         /* XXX this won't work after having the two memory slots */
         assert(GUEST_SIZE < KVM_32BIT_GAP_SIZE);
-        dst = mem + paddr;
 
-        numb = pread_in_full(fd_kernel, dst, filesz, offset);
-        if (numb < 0)
-            err(1, "%s: Read error", file);
-        if ((size_t) numb != filesz)
-            errx(1, "%s: Invalid segment", file);
-
-        memset(mem + paddr + filesz, 0, memsz - filesz);
-
-        /* Protect the executable code */
-        if (phdr[ph_i].p_flags & PF_X)
-            mprotect((void *) dst, memsz, PROT_EXEC | PROT_READ);
-
-        _end = ALIGN_UP(paddr + memsz, align);
+        if ((paddr >= GUEST_SIZE) || add_overflow(paddr, filesz, result)
+                || (result >= GUEST_SIZE))
+            errx(1, "%s: Invalid segment: paddr=0x%" PRIx64 ", filesz=%zu",
+                    file, paddr, filesz);
+        if (add_overflow(paddr, memsz, result) || (result >= GUEST_SIZE))
+            errx(1, "%s: Invalid segment: paddr=0x%" PRIx64 ", memsz=%zu",
+                    file, paddr, memsz);
+        /*
+         * Verify that align is a non-zero power of 2, if so safe to use it in
+         * this calculation, otherwise ignore it.
+         */
+        if (align > 0 && (align & (align - 1)) == 0)
+            _end = (result + (align - 1)) & -align;
+        else
+            _end = result;
+        /*
+         * Sanity check _end again.
+         */
+        if ((_end <= paddr) || (_end >= GUEST_SIZE))
+            errx(1, "%s: Invalid segment: paddr=0x%" PRIx64 \
+                    ", _end=0x%" PRIx64, file, paddr, _end);
         if (_end > *p_end)
             *p_end = _end;
+
+        daddr = mem + paddr;
+        numb = pread_in_full(fd_kernel, daddr, filesz, offset);
+        if (numb < 0)
+            err(1, "%s: Read error", file);
+        if (numb != filesz)
+            errx(1, "%s: Short read", file);
+        memset(daddr + filesz, 0, memsz - filesz);
+
+        /* Write-protect the executable segment */
+        if (phdr[ph_i].p_flags & PF_X) {
+            if (mprotect(daddr, _end - paddr, PROT_EXEC | PROT_READ) == -1)
+                errx(1, "%s: mprotect() failed, daddr=%p, paddr=0x%lx",
+                        file, daddr, paddr);
+        }
     }
 
-    /*
-     * Not needed, but let's give it an empty page at the end for "safety".
-     * And, even protect it against any type of access.
-     */
-    mprotect((void *) ((uint64_t) mem + p_end), 0x1000, PROT_NONE);
-    *p_end += 0x1000;
-
+    close (fd_kernel);
     *p_entry = hdr.e_entry;
 }
 
@@ -457,9 +474,19 @@ static int vcpu_loop(struct kvm_run *run, int vcpufd, uint8_t *mem)
         int i, handled = 0;
 
         ret = ioctl(vcpufd, KVM_RUN, NULL);
-        if (ret < 0 &&
-                (errno != EINTR && errno != EAGAIN)) {
-            err(1, "KVM: ioctl (RUN) failed");
+        if (ret == -1 && errno == EINTR)
+            continue;
+        if (ret == -1) {
+            if (errno == EFAULT) {
+                struct kvm_regs regs;
+                ret = ioctl(vcpufd, KVM_GET_REGS, &regs);
+                if (ret == -1)
+                    err(1, "KVM: ioctl (GET_REGS) failed after guest fault");
+                errx(1, "KVM: host/guest translation fault: rip=0x%llx",
+                        regs.rip);
+            }
+            else
+                err(1, "KVM: ioctl (RUN) failed");
         }
 
         for (i = 0; i < NUM_MODULES; i++) {
