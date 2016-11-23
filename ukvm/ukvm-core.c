@@ -248,7 +248,7 @@ static void load_code(const char *file, uint8_t *mem,     /* IN */
             errx(1, "%s: Invalid segment: paddr=0x%" PRIx64 ", memsz=%zu",
                     file, paddr, memsz);
         }
-        _end = ALIGN_UP(paddr + memsz, align);
+        _end = ALIGN_UP(result, align);
         if (_end >= GUEST_SIZE) {
             errx(1, "%s: Invalid segment: paddr=0x%" PRIx64 \
                     ", _end=0x%" PRIx64, file, paddr, _end);
