@@ -247,19 +247,18 @@ static void load_code(const char *file, uint8_t *mem,     /* IN */
             errx(1, "%s: Invalid segment: paddr=0x%" PRIx64 ", memsz=%zu",
                     file, paddr, memsz);
         /*
-         * Verify that align is a non-zero power of 2, if so safe to use it in
-         * this calculation, otherwise ignore it.
+         * Verify that align is a non-zero power of 2 and safely compute
+         * ((_end + (align - 1)) & -align).
          */
-        if (align > 0 && (align & (align - 1)) == 0)
-            _end = (result + (align - 1)) & -align;
-        else
+        if (align > 0 && (align & (align - 1)) == 0) {
+            if (add_overflow(result, (align - 1), _end))
+                errx(1, "%s: Invalid segment: paddr=0x%" PRIx64 ", align=%"
+                        PRIu64, file, paddr, align);
+            _end = _end & -align;
+        }
+        else {
             _end = result;
-        /*
-         * Sanity check _end again.
-         */
-        if ((_end <= paddr) || (_end >= GUEST_SIZE))
-            errx(1, "%s: Invalid segment: paddr=0x%" PRIx64 \
-                    ", _end=0x%" PRIx64, file, paddr, _end);
+        }
         if (_end > *p_end)
             *p_end = _end;
 
