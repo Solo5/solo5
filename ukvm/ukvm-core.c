@@ -591,7 +591,8 @@ int main(int argc, char **argv)
         argv++;
     }
 
-    struct sigaction sa = { 0 };
+    struct sigaction sa;
+    memset (&sa, 0, sizeof (struct sigaction));
     sa.sa_handler = sig_handler;
     sigfillset(&sa.sa_mask);
     if (sigaction(SIGINT, &sa, NULL) == -1)
