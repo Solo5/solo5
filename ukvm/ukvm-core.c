@@ -417,7 +417,9 @@ void ukvm_port_poll(uint8_t *mem, uint64_t paddr)
      * Guest execution is blocked during the ppoll() call, note that
      * interrupts will not be injected.
      */
-    rc = ppoll(fds, num_fds, &ts, NULL);
+    do {
+        rc = ppoll(fds, num_fds, &ts, NULL);
+    } while (rc == -1 && errno == EINTR);
     assert(rc >= 0);
     t->ret = rc;
 }
