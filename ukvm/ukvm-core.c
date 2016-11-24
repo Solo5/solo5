@@ -40,7 +40,6 @@
 #include <errno.h>
 #include <assert.h>
 #include <signal.h>
-#include <pthread.h>
 #include <poll.h>
 
 #include "ukvm-private.h"
@@ -382,48 +381,6 @@ static void setup_cpuid(int kvm, int vcpufd)
         err(1, "KVM: ioctl (SET_CPUID2) failed");
 }
 
-#if 0
-static void inject_interrupt(int vcpufd, uint32_t intr)
-{
-    struct kvm_interrupt irq = { intr };
-
-    int ret = ioctl(vcpufd, KVM_INTERRUPT, &irq);
-
-    if (ret) {
-        printf("ret = %d\n", ret);
-        printf("errno = %d\n", errno);
-        err(1, "KVM_INTERRUPT");
-    }
-}
-#endif
-
-static pthread_cond_t sleep_cv = PTHREAD_COND_INITIALIZER;
-static pthread_mutex_t interrupt_mutex = PTHREAD_MUTEX_INITIALIZER;
-
-static void *event_loop(void *arg)
-{
-    struct kvm_run *run = (struct kvm_run *) arg;
-
-    /*
-     * We are using a TSC-based clock, but this is an example for
-     * delivering a timer interrupt once a second.
-     */
-    if (0) {
-        for (;;) {
-            sleep(1);		/* every 1 s */
-
-            pthread_mutex_lock(&interrupt_mutex);
-
-            run->request_interrupt_window = 1;
-            pthread_cond_signal(&sleep_cv);
-
-            pthread_mutex_unlock(&interrupt_mutex);
-        }
-    }
-
-    return NULL;
-}
-
 void ukvm_port_puts(uint8_t *mem, uint64_t paddr)
 {
     GUEST_CHECK_PADDR(paddr, GUEST_SIZE, sizeof (struct ukvm_puts));
@@ -520,20 +477,6 @@ static int vcpu_loop(struct kvm_run *run, int vcpufd, uint8_t *mem)
             default:
                 errx(1, "Invalid guest port access: port=0x%x", run->io.port);
             };
-            break;
-        }
-        case KVM_EXIT_IRQ_WINDOW_OPEN: {
-            run->request_interrupt_window = 0;
-            /* inject_interrupt(vcpufd, INTR_USER_TIMER); */
-            /* inject_interrupt(vcpufd, 0x31); */
-            break;
-        }
-        case KVM_EXIT_INTR: {
-            /* RUN was interrupted, so we just resume */
-            /* note, this was probably because we are going to put an
-             * interrupt in, so there might be some efficiency to get
-             * there
-             */
             break;
         }
         case KVM_EXIT_FAIL_ENTRY:
@@ -737,13 +680,6 @@ int main(int argc, char **argv)
         err(1, "KVM: VCPU mmap failed");
 
     setup_cpuid(kvm, vcpufd);
-
-    /* start event thread */
-    pthread_t event_thread;
-
-    ret = pthread_create(&event_thread, NULL, event_loop, (void *) run);
-    if (ret)
-        err(1, "pthread_create(event_thread) failed");
 
     if (setup_modules(vcpufd, mem))
         exit(1);
