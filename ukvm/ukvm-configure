@@ -37,10 +37,10 @@ $UKVM_SRC/ukvm.h
 _build-ukvm:
 	mkdir -p _build-ukvm
 
-_build-ukvm/ukvm-%.o: $UKVM_SRC/ukvm-%.c _build-ukvm 
+_build-ukvm/ukvm-%.o: $UKVM_SRC/ukvm-%.c \$(MAKEFILE_LIST) | _build-ukvm
 	\$(UKVM_CC) \$(UKVM_CFLAGS) -c \$< -o \$@
 
-ukvm-bin: \$(UKVM_OBJS) \$(UKVM_HEADERS)
+ukvm-bin: \$(UKVM_OBJS) \$(UKVM_HEADERS) \$(MAKEFILE_LIST)
 	\$(UKVM_CC) \$(UKVM_LDFLAGS) -o \$@ \$(UKVM_CFLAGS) \$(UKVM_OBJS) -lpthread -lrt
 
 .PHONY: ukvm-clean
