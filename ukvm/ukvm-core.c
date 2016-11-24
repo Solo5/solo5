@@ -511,8 +511,7 @@ int setup_modules(int vcpufd, uint8_t *mem)
 
 void sig_handler(int signo)
 {
-    warnx("Exiting on signal %d", signo);
-    exit(0);
+    errx(1, "Exiting on signal %d", signo);
 }
 
 static void usage(const char *prog)
@@ -588,7 +587,12 @@ int main(int argc, char **argv)
         argv++;
     }
 
-    if (signal(SIGINT, sig_handler) == SIG_ERR)
+    struct sigaction sa = { 0 };
+    sa.sa_handler = sig_handler;
+    sigfillset(&sa.sa_mask);
+    if (sigaction(SIGINT, &sa, NULL) == -1)
+        err(1, "Could not install signal handler");
+    if (sigaction(SIGTERM, &sa, NULL) == -1)
         err(1, "Could not install signal handler");
 
     kvm = open("/dev/kvm", O_RDWR | O_CLOEXEC);
