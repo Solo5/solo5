@@ -279,7 +279,7 @@ static void load_code(const char *file, uint8_t *mem,     /* IN */
     return;
 
 out_error:
-    err(1, file);
+    err(1, "%s", file);
 
 out_invalid:
     errx(1, "%s: Exec format error", file);
