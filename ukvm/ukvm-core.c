@@ -238,9 +238,6 @@ static void load_code(const char *file, uint8_t *mem,     /* IN */
         if (phdr[ph_i].p_type != PT_LOAD)
             continue;
 
-        /* XXX this won't work after having the two memory slots */
-        assert(GUEST_SIZE < KVM_32BIT_GAP_SIZE);
-
         if ((paddr >= GUEST_SIZE) || add_overflow(paddr, filesz, result)
                 || (result >= GUEST_SIZE))
             goto out_invalid;
