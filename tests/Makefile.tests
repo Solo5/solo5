@@ -1,3 +1,4 @@
+TOP?=../..
 include $(TOP)/Makefile.common
 
 .PHONY: ukvm
@@ -13,6 +14,7 @@ CFLAGS+=-I$(SOLO5_DIR)
 
 %.o: %.c $(HEADERS)
 	$(CC) $(CFLAGS) -c $< -o $@
+.PRECIOUS: %.o
 
 ifeq ($(BUILD_UKVM), yes)
 Makefile.ukvm: $(UKVM_SRC)/ukvm-configure

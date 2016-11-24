@@ -23,6 +23,7 @@ include Makefile.common
 .PHONY: all
 all: ukvm virtio
 .DEFAULT_GOAL := all
+.NOTPARALLEL: ukvm virtio
 
 .PHONY: virtio
 virtio:
