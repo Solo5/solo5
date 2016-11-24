@@ -462,8 +462,10 @@ static int vcpu_loop(struct kvm_run *run, int vcpufd, uint8_t *mem)
             return 0;
 
         case KVM_EXIT_IO: {
-            assert(run->io.direction == KVM_EXIT_IO_OUT);
-            assert(run->io.size == 4);
+            if (run->io.direction != KVM_EXIT_IO_OUT
+                    || run->io.size != 4)
+                errx(1, "Invalid guest port access: port=0x%x", run->io.port);
+
             uint64_t paddr =
                 GUEST_PIO32_TO_PADDR((uint8_t *)run + run->io.data_offset);
 
