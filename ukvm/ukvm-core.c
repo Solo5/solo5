@@ -457,10 +457,10 @@ static int vcpu_loop(struct kvm_run *run, int vcpufd, uint8_t *mem)
             continue;
 
         switch (run->exit_reason) {
-        case KVM_EXIT_HLT: {
+        case KVM_EXIT_HLT:
             /* Guest has halted the CPU, this is considered as a normal exit. */
             return 0;
-        }
+
         case KVM_EXIT_IO: {
             assert(run->io.direction == KVM_EXIT_IO_OUT);
             assert(run->io.size == 4);
@@ -476,21 +476,22 @@ static int vcpu_loop(struct kvm_run *run, int vcpufd, uint8_t *mem)
                 break;
             default:
                 errx(1, "Invalid guest port access: port=0x%x", run->io.port);
-            };
+            }
             break;
         }
+
         case KVM_EXIT_FAIL_ENTRY:
             errx(1, "KVM: entry failure: hw_entry_failure_reason=0x%llx",
                  run->fail_entry.hardware_entry_failure_reason);
+
         case KVM_EXIT_INTERNAL_ERROR:
             errx(1, "KVM: internal error exit: suberror=0x%x",
                  run->internal.suberror);
+
         default:
             errx(1, "KVM: unhandled exit: exit_reason=0x%x", run->exit_reason);
         }
     }
-
-    return 0; /* XXX Refactor return code paths in the above code */
 }
 
 int setup_modules(int vcpufd, uint8_t *mem)
