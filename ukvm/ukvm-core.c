@@ -41,6 +41,7 @@
 #include <assert.h>
 #include <signal.h>
 #include <poll.h>
+#include <limits.h>
 
 #include "ukvm-private.h"
 #include "ukvm-modules.h"
@@ -122,6 +123,11 @@ ssize_t pread_in_full(int fd, void *buf, size_t count, off_t offset)
 {
     ssize_t total = 0;
     char *p = buf;
+
+    if (count > SSIZE_MAX) {
+        errno = E2BIG;
+        return -1;
+    }
 
     while (count > 0) {
         ssize_t nr;
