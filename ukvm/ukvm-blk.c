@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include <err.h>
 #include <fcntl.h>
 #include <linux/kvm.h>
@@ -7,6 +8,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <assert.h>
+#include <limits.h>
 
 #include "ukvm-private.h"
 #include "ukvm-modules.h"
@@ -30,17 +32,23 @@ static void ukvm_port_blkwrite(uint8_t *mem, uint64_t paddr)
 {
     GUEST_CHECK_PADDR(paddr, GUEST_SIZE, sizeof (struct ukvm_blkwrite));
     struct ukvm_blkwrite *wr = (struct ukvm_blkwrite *)(mem + paddr);
-    int ret;
+    ssize_t ret;
+    off_t pos, end;
 
+    assert(wr->len <= SSIZE_MAX);
     if (wr->sector >= blkinfo.num_sectors) {
         wr->ret = -1;
         return;
     }
+    pos = (off_t)blkinfo.sector_size * (off_t)wr->sector;
+    if (add_overflow(pos, wr->len, end)
+            || (end > blkinfo.num_sectors * blkinfo.sector_size)) {
+        wr->ret = -1;
+        return;
+    }
 
-    ret = lseek(diskfd, blkinfo.sector_size * wr->sector, SEEK_SET);
-    assert(ret != (off_t)-1);
     GUEST_CHECK_PADDR(wr->data, GUEST_SIZE, wr->len);
-    ret = write(diskfd, mem + wr->data, wr->len);
+    ret = pwrite(diskfd, mem + wr->data, wr->len, pos);
     assert(ret == wr->len);
     wr->ret = 0;
 }
@@ -49,17 +57,23 @@ static void ukvm_port_blkread(uint8_t *mem, uint64_t paddr)
 {
     GUEST_CHECK_PADDR(paddr, GUEST_SIZE, sizeof (struct ukvm_blkread));
     struct ukvm_blkread *rd = (struct ukvm_blkread *)(mem + paddr);
-    int ret;
+    ssize_t ret;
+    off_t pos, end;
 
+    assert(rd->len <= SSIZE_MAX);
     if (rd->sector >= blkinfo.num_sectors) {
         rd->ret = -1;
         return;
     }
+    pos = (off_t)blkinfo.sector_size * (off_t)rd->sector;
+    if (add_overflow(pos, rd->len, end)
+            || (end > blkinfo.num_sectors * blkinfo.sector_size)) {
+        rd->ret = -1;
+        return;
+    }
 
-    ret = lseek(diskfd, blkinfo.sector_size * rd->sector, SEEK_SET);
-    assert(ret != (off_t)-1);
     GUEST_CHECK_PADDR(rd->data, GUEST_SIZE, rd->len);
-    ret = read(diskfd, mem +  rd->data, rd->len);
+    ret = pread(diskfd, mem + rd->data, rd->len, pos);
     assert(ret == rd->len);
     rd->ret = 0;
 }

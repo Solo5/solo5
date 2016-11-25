@@ -16,27 +16,30 @@ static void puts(const char *s)
 
 #define SECTOR_SIZE	512
 
-static uint8_t sector_write[SECTOR_SIZE];
-static uint8_t sector_read[SECTOR_SIZE];
+/* Space for 2 sectors for edge-case tests */
+static uint8_t wbuf[SECTOR_SIZE * 2];
+static uint8_t rbuf[SECTOR_SIZE * 2];
 
 int check_sector_write(uint64_t sector)
 {
-    int n = SECTOR_SIZE;
-    int i;
+    int rlen = SECTOR_SIZE;
+    unsigned i;
 
     for (i = 0; i < SECTOR_SIZE; i++) {
-        sector_write[i] = '0' + i % 10;
-        sector_read[i] = 0;
+        wbuf[i] = '0' + i % 10;
+        rbuf[i] = 0;
     }
 
-    solo5_blk_write_sync(sector, sector_write, SECTOR_SIZE);
-    solo5_blk_read_sync(sector, sector_read, &n);
+    if (solo5_blk_write_sync(sector, wbuf, SECTOR_SIZE) != 0)
+        return 1;
+    if (solo5_blk_read_sync(sector, rbuf, &rlen) != 0)
+        return 1;
 
-    if (n != SECTOR_SIZE)
+    if (rlen != SECTOR_SIZE)
         return 1;
     
     for (i = 0; i < SECTOR_SIZE; i++) {
-        if (sector_read[i] != '0' + i % 10)
+        if (rbuf[i] != '0' + i % 10)
             /* Check failed */
             return 1;
     }
@@ -46,16 +49,44 @@ int check_sector_write(uint64_t sector)
 
 int solo5_app_main(char *cmdline __attribute__((unused)))
 {
-    uint64_t i;
+    size_t i, nsectors;
+    int rlen;
 
     puts("\n**** Solo5 standalone test_blk ****\n\n");
 
-    /* Write and read/check one tenth of the disk. */
-    for (i = 0; i < solo5_blk_sectors(); i += 10) {
+    /*
+     * Write and read/check one tenth of the disk.
+     */
+    nsectors = solo5_blk_sectors();
+    for (i = 0; i <= nsectors; i += 10) {
         if (check_sector_write(i))
             /* Check failed */
             return 1;
     }
+
+    /*
+     * Check edge case: read/write of last sector on the device.
+     */
+    if (solo5_blk_write_sync(nsectors - 1, wbuf, SECTOR_SIZE) != 0)
+        return 2;
+    rlen = SECTOR_SIZE;
+    if (solo5_blk_read_sync(nsectors - 1, rbuf, &rlen) != 0)
+        return 3;
+    if (rlen != SECTOR_SIZE)
+        return 4;
+
+    /*
+     * Check edge cases: should not be able to read or write beyond end
+     * of device.
+     *
+     * XXX Multi-sector block operations currently work only on ukvm, virtio
+     * will always return -1 here.
+     */
+    if (solo5_blk_write_sync(nsectors - 1, wbuf, 2 * SECTOR_SIZE) != -1)
+        return 5;
+    rlen = 2 * SECTOR_SIZE;
+    if (solo5_blk_read_sync(nsectors - 1, rbuf, &rlen) != -1)
+        return 6;
 
     puts("SUCCESS\n");
 
