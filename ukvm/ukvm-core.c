@@ -128,12 +128,12 @@ ssize_t pread_in_full(int fd, void *buf, size_t count, off_t offset)
         ssize_t nr;
 
         nr = pread(fd, p, count, offset);
-        if (nr <= 0) {
-            if (total > 0)
-                return total;
-
+        if (nr == 0)
+            return total;
+        else if (nr == -1 && errno == EINTR)
+            continue;
+        else if (nr == -1)
             return -1;
-        }
 
         count -= nr;
         total += nr;
@@ -181,13 +181,13 @@ static void load_code(const char *file, uint8_t *mem,     /* IN */
 
     fd_kernel = open(file, O_RDONLY);
     if (fd_kernel == -1)
-        err(1, "%s: Could not open file", file);
+        goto out_error;
 
     numb = pread_in_full(fd_kernel, &hdr, sizeof(Elf64_Ehdr), 0);
     if (numb < 0)
-        err(1, "%s: Could not read ELF header", file);
+        goto out_error;
     if (numb != sizeof(Elf64_Ehdr))
-        errx(1, "%s: Not a valid ELF executable", file);
+        goto out_invalid;
 
     /*
      * Validate program is in ELF64 format:
@@ -196,11 +196,14 @@ static void load_code(const char *file, uint8_t *mem,     /* IN */
      * 3. Objects are Executable,
      * 4. Target instruction set architecture is set to x86_64.
      */
-    if (hdr.e_ident[EI_MAG0] != ELFMAG0 || hdr.e_ident[EI_MAG1] != ELFMAG1 || \
-        hdr.e_ident[EI_MAG2] != ELFMAG2 || hdr.e_ident[EI_MAG3] != ELFMAG3 || \
-        hdr.e_ident[EI_CLASS] != ELFCLASS64 || hdr.e_type != ET_EXEC || \
-        hdr.e_machine != EM_X86_64)
-        errx(1, "%s: Not a valid x86_64 ELF executable", file);
+    if (hdr.e_ident[EI_MAG0] != ELFMAG0
+            || hdr.e_ident[EI_MAG1] != ELFMAG1
+            || hdr.e_ident[EI_MAG2] != ELFMAG2
+            || hdr.e_ident[EI_MAG3] != ELFMAG3
+            || hdr.e_ident[EI_CLASS] != ELFCLASS64
+            || hdr.e_type != ET_EXEC
+            || hdr.e_machine != EM_X86_64)
+        goto out_invalid;
 
     ph_off = hdr.e_phoff;
     ph_entsz = hdr.e_phentsize;
@@ -209,13 +212,12 @@ static void load_code(const char *file, uint8_t *mem,     /* IN */
 
     phdr = malloc(buflen);
     if (!phdr)
-        err(1, "Unable to allocate program header");
-
+        goto out_error;
     numb = pread_in_full(fd_kernel, phdr, buflen, ph_off);
     if (numb < 0)
-        err(1, "%s: Read error", file);
+        goto out_error;
     if (numb != buflen)
-        err(1, "%s: Invalid program header", file);
+        goto out_invalid;
 
     /*
      * Load all segments with the LOAD directive from the elf file at offset
@@ -236,51 +238,51 @@ static void load_code(const char *file, uint8_t *mem,     /* IN */
         if (phdr[ph_i].p_type != PT_LOAD)
             continue;
 
-        /* XXX this won't work after having the two memory slots */
-        assert(GUEST_SIZE < KVM_32BIT_GAP_SIZE);
-
         if ((paddr >= GUEST_SIZE) || add_overflow(paddr, filesz, result)
                 || (result >= GUEST_SIZE))
-            errx(1, "%s: Invalid segment: paddr=0x%" PRIx64 ", filesz=%zu",
-                    file, paddr, filesz);
+            goto out_invalid;
         if (add_overflow(paddr, memsz, result) || (result >= GUEST_SIZE))
-            errx(1, "%s: Invalid segment: paddr=0x%" PRIx64 ", memsz=%zu",
-                    file, paddr, memsz);
+            goto out_invalid;
         /*
-         * Verify that align is a non-zero power of 2, if so safe to use it in
-         * this calculation, otherwise ignore it.
+         * Verify that align is a non-zero power of 2 and safely compute
+         * ((_end + (align - 1)) & -align).
          */
-        if (align > 0 && (align & (align - 1)) == 0)
-            _end = (result + (align - 1)) & -align;
-        else
+        if (align > 0 && (align & (align - 1)) == 0) {
+            if (add_overflow(result, (align - 1), _end))
+                goto out_invalid;
+            _end = _end & -align;
+        }
+        else {
             _end = result;
-        /*
-         * Sanity check _end again.
-         */
-        if ((_end <= paddr) || (_end >= GUEST_SIZE))
-            errx(1, "%s: Invalid segment: paddr=0x%" PRIx64 \
-                    ", _end=0x%" PRIx64, file, paddr, _end);
+        }
         if (_end > *p_end)
             *p_end = _end;
 
         daddr = mem + paddr;
         numb = pread_in_full(fd_kernel, daddr, filesz, offset);
         if (numb < 0)
-            err(1, "%s: Read error", file);
+            goto out_error;
         if (numb != filesz)
-            errx(1, "%s: Short read", file);
+            goto out_invalid;
         memset(daddr + filesz, 0, memsz - filesz);
 
         /* Write-protect the executable segment */
         if (phdr[ph_i].p_flags & PF_X) {
             if (mprotect(daddr, _end - paddr, PROT_EXEC | PROT_READ) == -1)
-                errx(1, "%s: mprotect() failed, daddr=%p, paddr=0x%lx",
-                        file, daddr, paddr);
+                goto out_error;
         }
     }
 
+    free (phdr);
     close (fd_kernel);
     *p_entry = hdr.e_entry;
+    return;
+
+out_error:
+    err(1, "%s", file);
+
+out_invalid:
+    errx(1, "%s: Exec format error", file);
 }
 
 
