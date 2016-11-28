@@ -65,15 +65,7 @@ static int tap_attach(const char *dev)
     if (ioctl(fd, TUNSETIFF, (void *)&ifr) == -1) {
         err = errno;
         close(fd);
-        /*
-         * If we got back EPERM then the device would have been created but we
-         * don't have permission to do that. Translate that to ENODEV since
-         * that's what it means for our purposes.
-         */
-        if (err == EPERM)
-            errno = ENODEV;
-        else
-            errno = err;
+        errno = err;
         return -1;
     }
     /*
