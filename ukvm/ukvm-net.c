@@ -26,58 +26,75 @@ static int netfd;
 static struct ukvm_netinfo netinfo;
 
 /*
- * Create or reuse a TUN or TAP device named 'dev'.
+ * Attach to an existing TAP interface named 'dev'.
  *
- * Copied from kernel docs: Documentation/networking/tuntap.txt
+ * This function abstracts away the horrible implementation details of the
+ * Linux tun API by ensuring (as much as is possible) success if and only if
+ * the TAP device named 'dev' already exists.
+ *
+ * Returns -1 and an appropriate errno on failure (ENODEV if the device does
+ * not exist), and the tap device file descriptor on success.
  */
-static int tun_alloc(char *dev, int flags)
+static int tap_attach(const char *dev)
 {
     struct ifreq ifr;
     int fd, err;
-    char *clonedev = "/dev/net/tun";
 
-    /* Arguments taken by the function:
-     *
-     * char *dev: the name of an interface (or '\0'). MUST have enough
-     *   space to hold the interface name if '\0' is passed
-     * int flags: interface flags (eg, IFF_TUN etc.)
+    fd = open("/dev/net/tun", O_RDWR | O_NONBLOCK);
+    if (fd == -1)
+        return -1;
+
+    /*
+     * Initialise ifr for TAP interface.
      */
-
-    /* open the clone device */
-    fd = open(clonedev, O_RDWR | O_NONBLOCK);
-    if (fd < 0)
-        return fd;
-
-    /* preparation of the struct ifr, of type "struct ifreq" */
     memset(&ifr, 0, sizeof(ifr));
-
-    ifr.ifr_flags = flags;	/* IFF_TUN or IFF_TAP, plus maybe IFF_NO_PI */
-
-    if (*dev) {
-        /* if a device name was specified, put it in the structure; otherwise,
-         * the kernel will try to allocate the "next" device of the
-         * specified type
-         */
-        strncpy(ifr.ifr_name, dev, IFNAMSIZ);
+    /*
+     * TODO: IFF_NO_PI may silently truncate packets on read().
+     */
+    ifr.ifr_flags = IFF_TAP | IFF_NO_PI;
+    if (strlen(dev) > IFNAMSIZ) {
+        errno = EINVAL;
+        return -1;
     }
+    strncpy(ifr.ifr_name, dev, IFNAMSIZ);
 
-    /* try to create the device */
-    err = ioctl(fd, TUNSETIFF, (void *) &ifr);
-    if (err < 0) {
+    /*
+     * Try to create OR attach to an existing device. The Linux API has no way
+     * to differentiate between the two, but see below.
+     */
+    if (ioctl(fd, TUNSETIFF, (void *)&ifr) == -1) {
+        err = errno;
         close(fd);
-        return err;
+        errno = err;
+        return -1;
+    }
+    /*
+     * If we got back a different device than the one requested, e.g. because
+     * the caller mistakenly passed in '%d' (yes, that's really in the Linux API)
+     * then fail.
+     */
+    if (strncmp(ifr.ifr_name, dev, IFNAMSIZ) != 0) {
+        close(fd);
+        errno = ENODEV;
+        return -1;
     }
 
-    /* if the operation was successful, write back the name of the
-     * interface to the variable "dev", so the caller can know
-     * it. Note that the caller MUST reserve space in *dev (see calling
-     * code below)
+    /*
+     * Attempt a zero-sized write to the device. If the device was freshly
+     * created (as opposed to attached to an existing one) this will fail with
+     * EIO. Ignore any other error return since that may indicate the device
+     * is up.
+     *
+     * If this check produces a false positive then caller's later writes to fd
+     * will fail with EIO, which is not great but at least we tried.
      */
-    strcpy(dev, ifr.ifr_name);
+    char buf[1] = { 0 };
+    if (write(fd, buf, 0) == -1 && errno == EIO) {
+        close(fd);
+        errno = ENODEV;
+        return -1;
+    }
 
-    /* this is the special file descriptor that the caller will use to talk
-     * with the virtual interface
-     */
     return fd;
 }
 
@@ -156,18 +173,16 @@ static int handle_cmdarg(char *cmdarg)
 
 static int setup(int vcpufd, uint8_t *mem)
 {
-    char tun_name[IFNAMSIZ];
-
     if (netiface == NULL)
         return -1;
 
-    /* set up virtual network */
-    strcpy(tun_name, netiface);
-    netfd = tun_alloc(tun_name, IFF_TAP | IFF_NO_PI);	/* TAP interface */
+    /* attach to requested tap interface */
+    netfd = tap_attach(netiface);
     if (netfd < 0) {
-        err(1, "Could not open interface: %s", netiface);
+        err(1, "Could not attach interface: %s", netiface);
         exit(1);
     }
+
     /* generate a random, locally-administered and unicast MAC address */
     int rfd = open("/dev/urandom", O_RDONLY);
 
