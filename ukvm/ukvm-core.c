@@ -530,8 +530,10 @@ static void usage(const char *prog)
 {
     int m;
 
-    fprintf(stderr, "usage: %s [ CORE OPTIONS ] [ MODULE OPTIONS ] KERNEL", prog);
-    fprintf(stderr, " [ -- ] [ ARGS ]\n");
+    fprintf(stderr, "usage: %s [ CORE OPTIONS ] [ MODULE OPTIONS ] [ -- ] "
+            "KERNEL [ ARGS ]\n", prog);
+    fprintf(stderr, "KERNEL is the filename of the unikernel to run.\n");
+    fprintf(stderr, "ARGS are optional arguments passed to the unikernel.\n");
     fprintf(stderr, "Core options:\n");
     fprintf(stderr, "    --help (display this help)\n");
     fprintf(stderr, "Compiled-in module options:\n");
@@ -558,46 +560,43 @@ int main(int argc, char **argv)
     argc--;
     argv++;
 
-    if (argc < 1) {
-        warnx("Missing KERNEL operand");
-        usage(prog);
-    }
-
-    do {
+    while (*argv && *argv[0] == '-') {
         int j;
 
-        if (!strcmp("--help", *argv))
+        if (strcmp("--help", *argv) == 0)
             usage(prog);
+
+        if (strcmp("--", *argv) == 0) {
+            /* Consume and stop arg processing */
+            argc--;
+            argv++;
+            break;
+        }
 
         matched = 0;
         for (j = 0; j < NUM_MODULES; j++) {
-            if (!modules[j]->handle_cmdarg(*argv)) {
+            if (modules[j]->handle_cmdarg(*argv) == 0) {
+                /* Handled by module, consume and go on to next arg */
                 matched = 1;
                 argc--;
                 argv++;
                 break;
             }
         }
-    } while (matched && *argv);
-
-    if (!*argv)
-        usage(prog);
-
-    if (*argv[0] == '-') {
-        warnx("Invalid option: `%s'", *argv);
-        usage(prog);
+        if (!matched) {
+            warnx("Invalid option: `%s'", *argv);
+            usage(prog);
+        }
     }
 
+    /* At least one non-option argument required */
+    if (*argv == NULL) {
+        warnx("Missing KERNEL operand");
+        usage(prog);
+    }
     elffile = *argv;
     argc--;
     argv++;
-
-    if (argc) {
-        if (strcmp("--", *argv))
-            usage(prog);
-        argc--;
-        argv++;
-    }
 
     struct sigaction sa;
     memset (&sa, 0, sizeof (struct sigaction));
