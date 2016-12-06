@@ -56,7 +56,7 @@
     __typeof(a) __a = a;                                                       \
     __typeof(b) __b = b;                                                       \
     (__b) < 1 ?                                                                \
-    ((__MIN(__typeof(r)) - (__b) >= (__a)) ? __assign(r, __a + __b) : 1) :     \
+    ((__MIN(__typeof(r)) - (__b) <= (__a)) ? __assign(r, __a + __b) : 1) :     \
     ((__MAX(__typeof(r)) - (__b) >= (__a)) ? __assign(r, __a + __b) : 1);      \
     })
 
