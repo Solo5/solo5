@@ -10,7 +10,7 @@ OBJCOPY=objcopy
 include $(TOP)/Makeconf
 
 # Exported to OPAM via pkg-config.
-MD_CFLAGS=$(HOST_CFLAGS) -ffreestanding -mno-red-zone -mno-3dnow
+MD_CFLAGS=$(HOST_CFLAGS) -ffreestanding -mno-red-zone
 # Likewise.
 LDFLAGS=-nostdlib -z max-page-size=0x1000 -static
 # CFLAGS used for building kernel/ and in-tree tests.
