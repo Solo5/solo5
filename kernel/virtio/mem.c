@@ -57,7 +57,7 @@ void mem_init(struct multiboot_info *mb)
     kernel_end = (uint64_t)&_end;
     assert(kernel_end <= max_addr);
 
-    heap_start = (kernel_end & PAGE_MASK) + PAGE_SIZE;
+    heap_start = (kernel_end + PAGE_SIZE - 1) & PAGE_MASK;
     heap_top = heap_start;
 
     printf("Solo5: Memory map: %lu MB addressable:\n", max_addr >> 20);
