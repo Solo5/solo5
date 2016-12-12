@@ -40,6 +40,18 @@ static int tap_attach(const char *dev)
     struct ifreq ifr;
     int fd, err;
 
+    /*
+     * Syntax @<number> indicates a prexisting open fd onto the correct device.
+     */
+    if (dev[0] == '@') {
+        fd = atoi(&dev[1]);
+
+        if (fcntl(fd, F_SETFL, O_NONBLOCK) == -1)
+            return -1;
+
+        return fd;
+    }
+
     fd = open("/dev/net/tun", O_RDWR | O_NONBLOCK);
     if (fd == -1)
         return -1;
@@ -212,7 +224,7 @@ static int get_fd(void)
 
 static char *usage(void)
 {
-    return "--net=TAP (host tap device for guest network interface)";
+    return "--net=TAP (host tap device for guest network interface or @NN tap fd)";
 }
 
 struct ukvm_module ukvm_net = {
