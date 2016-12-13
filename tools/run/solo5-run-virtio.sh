@@ -163,6 +163,7 @@ bhyve)
         || die "Could not initialise VM"
 
     hv_addargs bhyve
+    hv_addargs -u
     hv_addargs -m ${MEM}
     hv_addargs -H -s 0:0,hostbridge -s 1:0,lpc
 
