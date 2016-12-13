@@ -169,7 +169,7 @@ uint64_t tscclock_monotonic(void) {
  * Calibrate TSC and initialise TSC clock.
  */
 int tscclock_init(void) {
-    uint64_t tsc_freq;
+    uint64_t tsc_freq, rtc_boot;
 
     /* Initialise i8254 timer channel 0 to mode 2 at 100 Hz */
     outb(TIMER_MODE, TIMER_SEL0 | TIMER_RATEGEN | TIMER_16BIT);
@@ -177,11 +177,10 @@ int tscclock_init(void) {
     outb(TIMER_CNTR, (TIMER_HZ / 100) >> 8);
 
     /*
-     * Read RTC time to use as epoch offset. This must be done just
-     * before tsc_base is initialised in order to get a correct
-     * offset.
+     * Read RTC "time at boot". This must be done just before tsc_base is
+     * initialised in order to get a correct offset below.
      */
-    rtc_epochoffset = rtc_gettimeofday();
+    rtc_boot = rtc_gettimeofday();
 
     /*
      * Calculate TSC frequency by calibrating against an 0.1s delay
@@ -205,6 +204,12 @@ int tscclock_init(void) {
      * calibration).
      */
     time_base = mul64_32(tsc_base, tsc_mult);
+
+    /*
+     * Compute RTC epoch offset by subtracting monotonic time_base from RTC
+     * time at boot.
+     */
+    rtc_epochoffset = rtc_boot - time_base;
 
     /*
      * Initialise i8254 timer channel 0 to mode 4 (one shot).
