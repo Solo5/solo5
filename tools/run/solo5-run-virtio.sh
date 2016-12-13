@@ -83,7 +83,7 @@ done
 UNIKERNEL=$(readlink -f $1)
 [ -n "${UNIKERNEL}" -a -f "${UNIKERNEL}" ] || die "not found: $1}"
 shift
-VMNAME=$(basename ${UNIKERNEL})
+VMNAME=vm$$
 
 if [ "${HV}" = "best" ]; then
     SYS=$(uname -s)
@@ -156,8 +156,6 @@ kvm|qemu)
     fi
     ;;
 bhyve)
-    # Just blow away any pre-existing VM of the same name.
-    bhyvectl --destroy --vm=${VMNAME} >/dev/null 2>&1
     # Load the VM using grub-bhyve. Kill stdout as this is normal GRUB output.
     (is_quiet || set -x; \
         printf "multiboot ${UNIKERNEL} placeholder %s\nboot\n" "$*" \
@@ -187,15 +185,17 @@ bhyve)
 
     # Fake a console using nmdm(4). Open 'A' end first and keep it open, then
     # set some sane TTY parameters and launch bhyve on the 'B' end.
-    # Bhyve and cat will respond to interactive SIGINT correctly.
+    # Bhyve will respond to interactive SIGINT correctly, the cat and VM itself
+    # are cleaned up below.
     # XXX Can occasionally leak /dev/nmdm devices, oh well ...
     cat ${TTYA} &
     CAT=$!
-    killcat ()
+    cleanup ()
     {
-        kill ${CAT}
+        kill ${CAT} >/dev/null 2>&1
+        bhyvectl --destroy --vm=${VMNAME} >/dev/null 2>&1
     }
-    trap killcat 0 INT TERM
+    trap cleanup 0 INT TERM
     stty -f ${TTYB} >/dev/null
     stty -f ${TTYA} 115200 igncr
 
