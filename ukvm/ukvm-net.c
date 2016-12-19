@@ -1,4 +1,5 @@
 #include <linux/kvm.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -24,6 +25,7 @@
 static char *netiface;
 static int netfd;
 static struct ukvm_netinfo netinfo;
+static bool cmdline_mac = false;
 
 /*
  * Attach to an existing TAP interface named 'dev'.
@@ -177,10 +179,25 @@ static int handle_exit(struct kvm_run *run, int vcpufd, uint8_t *mem)
 
 static int handle_cmdarg(char *cmdarg)
 {
-    if (strncmp("--net=", cmdarg, 6))
+    if (!strncmp("--net=", cmdarg, 6)) {
+        netiface = cmdarg + 6;
+        return 0;
+    } else if (!strncmp("--net-mac=", cmdarg, 6)) {
+        const char *macptr = cmdarg + 10;
+        uint8_t mac[6];
+        if (sscanf(macptr,
+                   "%02"SCNx8":%02"SCNx8":%02"SCNx8":"
+                   "%02"SCNx8":%02"SCNx8":%02"SCNx8,
+                   &mac[0], &mac[1], &mac[2], &mac[3], &mac[4], &mac[5]) != 6) {
+            warnx("Malformed mac address: %s", macptr);
+            return -1;
+        }
+        snprintf(netinfo.mac_str, sizeof(netinfo.mac_str), "%s", macptr);
+        cmdline_mac = true;
+        return 0;
+    } else {
         return -1;
-    netiface = cmdarg + 6;
-    return 0;
+    }
 }
 
 static int setup(int vcpufd, uint8_t *mem)
@@ -195,24 +212,26 @@ static int setup(int vcpufd, uint8_t *mem)
         exit(1);
     }
 
-    /* generate a random, locally-administered and unicast MAC address */
-    int rfd = open("/dev/urandom", O_RDONLY);
+    if (!cmdline_mac) {
+        /* generate a random, locally-administered and unicast MAC address */
+        int rfd = open("/dev/urandom", O_RDONLY);
 
-    if (rfd == -1)
-        err(1, "Could not open /dev/urandom");
+        if (rfd == -1)
+            err(1, "Could not open /dev/urandom");
 
-    uint8_t guest_mac[6];
-    int ret;
+        uint8_t guest_mac[6];
+        int ret;
 
-    ret = read(rfd, guest_mac, sizeof(guest_mac));
-    assert(ret == sizeof(guest_mac));
-    close(rfd);
-    guest_mac[0] &= 0xfe;
-    guest_mac[0] |= 0x02;
-    snprintf(netinfo.mac_str, sizeof(netinfo.mac_str),
-            "%02x:%02x:%02x:%02x:%02x:%02x",
-            guest_mac[0], guest_mac[1], guest_mac[2],
-            guest_mac[3], guest_mac[4], guest_mac[5]);
+        ret = read(rfd, guest_mac, sizeof(guest_mac));
+        assert(ret == sizeof(guest_mac));
+        close(rfd);
+        guest_mac[0] &= 0xfe;
+        guest_mac[0] |= 0x02;
+        snprintf(netinfo.mac_str, sizeof(netinfo.mac_str),
+                 "%02x:%02x:%02x:%02x:%02x:%02x",
+                 guest_mac[0], guest_mac[1], guest_mac[2],
+                 guest_mac[3], guest_mac[4], guest_mac[5]);
+    }
 
     return 0;
 }
@@ -224,7 +243,8 @@ static int get_fd(void)
 
 static char *usage(void)
 {
-    return "--net=TAP (host tap device for guest network interface or @NN tap fd)";
+    return "--net=TAP (host tap device for guest network interface or @NN tap fd)\n"
+        "    [ --net-mac=HWADDR ] (guest MAC address)";
 }
 
 struct ukvm_module ukvm_net = {
