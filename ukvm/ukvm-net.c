@@ -241,7 +241,8 @@ static int get_fd(void)
 
 static char *usage(void)
 {
-    return "--net=TAP (host tap device for guest network interface or @NN tap fd)";
+    return "--net=TAP (host tap device for guest network interface or @NN tap fd)\n"
+        "    [ --net-mac=HWADDR ] (guest MAC address)";
 }
 
 struct ukvm_module ukvm_net = {
