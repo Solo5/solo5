@@ -51,6 +51,7 @@ static inline uint32_t ukvm_ptr(volatile void *p)
 /* was UKVM_PORT_DBG_STACK 0x508 */
 
 #define UKVM_PORT_POLL      0x509
+#define UKVM_PORT_TIME_INIT 0x50a
 
 /*
  * Guest-provided pointers in UKVM I/O operations MUST be declared with
@@ -146,4 +147,32 @@ struct ukvm_poll {
     int ret;
 };
 
+
+/* UKVM_PORT_TIME_INIT */
+struct ukvm_time_init {
+	/* OUT */
+	uint64_t freq;
+};
+
+#if 0
+/* UKVM_PORT_NANOSLEEP */
+struct ukvm_nanosleep {
+	/* IN */
+	uint64_t sec_in;
+	uint64_t nsec_in;
+
+	/* OUT */
+	uint64_t sec_out;
+	uint64_t nsec_out;
+	int ret;
+};
+
+/* UKVM_PORT_CLKSPEED */
+struct ukvm_clkspeed {
+	/* OUT */
+	uint64_t clkspeed;
 #endif
+
+
+#endif
+
