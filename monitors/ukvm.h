@@ -152,27 +152,8 @@ struct ukvm_poll {
 struct ukvm_time_init {
 	/* OUT */
 	uint64_t freq;
+    uint64_t rtc_boot;
 };
-
-#if 0
-/* UKVM_PORT_NANOSLEEP */
-struct ukvm_nanosleep {
-	/* IN */
-	uint64_t sec_in;
-	uint64_t nsec_in;
-
-	/* OUT */
-	uint64_t sec_out;
-	uint64_t nsec_out;
-	int ret;
-};
-
-/* UKVM_PORT_CLKSPEED */
-struct ukvm_clkspeed {
-	/* OUT */
-	uint64_t clkspeed;
-#endif
-
 
 #endif
 

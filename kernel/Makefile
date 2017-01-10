@@ -36,6 +36,7 @@ ukvm/platform.o \
 ukvm/platform_intr.o \
 ukvm/mem.o \
 ukvm/time.o \
+ukvm/ukvmclock.o \
 $(COMMON_COBJS)
 
 VIRTIO_COBJS=\

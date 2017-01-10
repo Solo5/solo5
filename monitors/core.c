@@ -30,6 +30,7 @@
 #include <signal.h>
 #include <libgen.h>
 #include <limits.h>
+#include <sys/time.h>
 
 /* from ukvm */
 #include "ukvm-elf.h"
@@ -369,8 +370,16 @@ static void ukvm_port_time_init(uint8_t *mem, uint64_t paddr)
 {
     GUEST_CHECK_PADDR(paddr, GUEST_SIZE, sizeof (struct ukvm_time_init));
     struct ukvm_time_init *p = (struct ukvm_time_init *) (mem + paddr);
-
+    struct timeval tv;
+    int ret;
+    
     p->freq = tsc_freq;
+    ret = gettimeofday(&tv, NULL);
+    assert(ret == 0);
+    /* get ns since epoch */
+    p->rtc_boot = (((uint64_t)tv.tv_sec * 1000000)
+                   + (uint64_t)tv.tv_usec) * 1000;
+    
 }
 
 static void ukvm_port_poll(uint8_t *mem, uint64_t paddr)
