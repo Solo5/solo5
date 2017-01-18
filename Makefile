@@ -70,15 +70,15 @@ opam-virtio-install: solo5-kernel-virtio.pc virtio
 	cp -R include-host/. $(OPAM_VIRTIO_INCDIR)/host
 	cp kernel/virtio/solo5.o kernel/virtio/solo5.lds $(OPAM_VIRTIO_LIBDIR)
 	mkdir -p $(OPAM_BINDIR)
-	mkdir -p $(PREFIX)/lib/pkgconfig
-	cp solo5-kernel-virtio.pc $(PREFIX)/lib/pkgconfig
+	mkdir -p $(PREFIX)/share/pkgconfig
+	cp solo5-kernel-virtio.pc $(PREFIX)/share/pkgconfig
 	cp tools/mkimage/solo5-mkimage.sh ${OPAM_BINDIR}/solo5-mkimage
 	cp tools/run/solo5-run-virtio.sh ${OPAM_BINDIR}/solo5-run-virtio
 
 .PHONY: opam-virtio-uninstall
 opam-virtio-uninstall:
 	rm -rf $(OPAM_VIRTIO_INCDIR) $(OPAM_VIRTIO_LIBDIR)
-	rm -f $(PREFIX)/lib/pkgconfig/solo5-kernel-virtio.pc
+	rm -f $(PREFIX)/share/pkgconfig/solo5-kernel-virtio.pc
 	rm -f ${OPAM_BINDIR}/solo5-mkimage
 	rm -f ${OPAM_BINDIR}/solo5-run-virtio
 
@@ -94,11 +94,11 @@ opam-ukvm-install: solo5-kernel-ukvm.pc ukvm
 	mkdir -p $(OPAM_UKVM_LIBDIR)/src
 	cp -R ukvm $(OPAM_UKVM_LIBDIR)/src
 	cp ukvm/ukvm-configure $(OPAM_BINDIR)
-	mkdir -p $(PREFIX)/lib/pkgconfig
-	cp solo5-kernel-ukvm.pc $(PREFIX)/lib/pkgconfig
+	mkdir -p $(PREFIX)/share/pkgconfig
+	cp solo5-kernel-ukvm.pc $(PREFIX)/share/pkgconfig
 
 .PHONY: opam-ukvm-uninstall
 opam-ukvm-uninstall:
 	rm -rf $(OPAM_UKVM_INCDIR) $(OPAM_UKVM_LIBDIR)
 	rm -f $(OPAM_BINDIR)/ukvm
-	rm -f $(PREFIX)/lib/pkgconfig/solo5-kernel-ukvm.pc
+	rm -f $(PREFIX)/share/pkgconfig/solo5-kernel-ukvm.pc
