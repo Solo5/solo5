@@ -77,7 +77,7 @@
  * (p) and (l) must be of type uint64_t. (sz) must be of type size_t or
  * compatible.
  */
-#define GUEST_CHECK_PADDR(p, l, sz) \
+#define GUEST_CHECK_PADDR(p, l, sz)                                     \
     {                                                                          \
         uint64_t __e;                                                          \
         if ((p >= l) || add_overflow(p, sz, __e) || (__e >= l))                \

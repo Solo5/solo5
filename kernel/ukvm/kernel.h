@@ -12,4 +12,8 @@ void tss_load(uint16_t tss);
 
 void mem_init(uint64_t size, uint64_t _kernel_end);
 
+int ukvmclock_init(void);
+uint64_t ukvmclock_monotonic(void);
+uint64_t ukvmclock_epochoffset(void);
+
 #endif

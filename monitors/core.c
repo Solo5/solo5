@@ -16,37 +16,29 @@
  * NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
-
-/* We used several existing projects as guides
- *   kvmtest.c: http://lwn.net/Articles/658512/
- *   lkvm: http://github.com/clearlinux/kvmtool
- */
 #define _GNU_SOURCE
 #include <err.h>
 #include <fcntl.h>
-#include <linux/kvm.h>
-#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
 #include <unistd.h>
-#include <sys/ioctl.h>
-#include <sys/mman.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <linux/const.h>
-#include <asm/msr-index.h>
-#include <elf.h>
 #include <errno.h>
+#include <sys/mman.h>
 #include <assert.h>
 #include <signal.h>
-#include <poll.h>
+#include <libgen.h>
 #include <limits.h>
+#include <sys/time.h>
 
+/* from ukvm */
+#include "ukvm-elf.h"
 #include "ukvm-private.h"
 #include "ukvm-modules.h"
 #include "ukvm-cpu.h"
 #include "ukvm.h"
+#include "unikernel-monitor.h"
 
 struct ukvm_module *modules[] = {
 #ifdef UKVM_MODULE_BLK
@@ -84,17 +76,20 @@ struct ukvm_module *modules[] = {
 
 #define BOOT_GDT_NULL    0
 #define BOOT_GDT_CODE    1
-#define BOOT_GDT_DATA    2
-#define BOOT_GDT_MAX     3
+#define BOOT_GDT_CODE32  2
+#define BOOT_GDT_DATA    3
+#define BOOT_GDT_TSS1    4
+#define BOOT_GDT_TSS2    5
+#define BOOT_GDT_MAX     6
 
-#define KVM_32BIT_MAX_MEM_SIZE  (1ULL << 32)
-#define KVM_32BIT_GAP_SIZE    (768 << 20)
-#define KVM_32BIT_GAP_START    (KVM_32BIT_MAX_MEM_SIZE - KVM_32BIT_GAP_SIZE)
+static uint64_t sleep_time_s;  /* track unikernel sleeping time */
+static uint64_t sleep_time_ns; 
+static uint64_t tsc_freq;
 
-void setup_boot_info(uint8_t *mem,
-                    uint64_t size,
-                    uint64_t kernel_end,
-                    int argc, char **argv)
+static void setup_boot_info(uint8_t *mem,
+                            uint64_t size,
+                            uint64_t kernel_end,
+                            int argc, char **argv)
 {
     struct ukvm_boot_info *bi = (struct ukvm_boot_info *)(mem + BOOT_INFO);
     uint64_t cmdline = BOOT_INFO + sizeof(struct ukvm_boot_info);
@@ -119,7 +114,7 @@ void setup_boot_info(uint8_t *mem,
 
 }
 
-ssize_t pread_in_full(int fd, void *buf, size_t count, off_t offset)
+static ssize_t pread_in_full(int fd, void *buf, size_t count, off_t offset)
 {
     ssize_t total = 0;
     char *p = buf;
@@ -129,10 +124,12 @@ ssize_t pread_in_full(int fd, void *buf, size_t count, off_t offset)
         return -1;
     }
 
+    lseek(fd, 0, SEEK_SET);
     while (count > 0) {
         ssize_t nr;
 
-        nr = pread(fd, p, count, offset);
+        lseek(fd, offset, SEEK_SET);
+        nr = read(fd, p, count);
         if (nr == 0)
             return total;
         else if (nr == -1 && errno == EINTR)
@@ -215,7 +212,7 @@ static void load_code(const char *file, uint8_t *mem,     /* IN */
     ph_cnt = hdr.e_phnum;
     buflen = ph_entsz * ph_cnt;
 
-    phdr = malloc(buflen);
+    phdr = (Elf64_Phdr *)malloc(buflen);
     if (!phdr)
         goto out_error;
     numb = pread_in_full(fd_kernel, phdr, buflen, ph_off);
@@ -291,18 +288,28 @@ out_invalid:
 }
 
 
-static void setup_system_64bit(struct kvm_sregs *sregs)
+static void setup_system_64bit(struct platform *p)
 {
-    sregs->cr0 |= X86_CR0_PE;
-    sregs->efer |= EFER_LME;
+    uint64_t cr0 = (X86_CR0_NE | X86_CR0_PE | X86_CR0_PG)
+        & ~(X86_CR0_NW | X86_CR0_CD);
+    uint64_t cr4 = X86_CR4_PAE | X86_CR4_VMXE;
+    uint64_t efer = X86_EFER_LME | X86_EFER_LMA;
+    
+    if (1){
+        /* enable sse */
+        cr0 = (cr0 | X86_CR0_MP) & ~(X86_CR0_EM);
+        cr4 = cr4 | X86_CR4_FXSR | X86_CR4_XMM; /* OSFXSR and OSXMMEXCPT */
+    }
+
+    platform_setup_system_64bit(p, cr0, cr4, efer);
 }
 
 
-static void setup_system_page_tables(struct kvm_sregs *sregs, uint8_t *mem)
+static void setup_system_page_tables(struct platform *p)
 {
-    uint64_t *pml4 = (uint64_t *) (mem + BOOT_PML4);
-    uint64_t *pdpte = (uint64_t *) (mem + BOOT_PDPTE);
-    uint64_t *pde = (uint64_t *) (mem + BOOT_PDE);
+    uint64_t *pml4 = (uint64_t *) (p->mem + BOOT_PML4);
+    uint64_t *pdpte = (uint64_t *) (p->mem + BOOT_PDPTE);
+    uint64_t *pde = (uint64_t *) (p->mem + BOOT_PDE);
     uint64_t paddr;
 
     /*
@@ -322,71 +329,32 @@ static void setup_system_page_tables(struct kvm_sregs *sregs, uint8_t *mem)
     for (paddr = 0; paddr < GUEST_SIZE; paddr += GUEST_PAGE_SIZE, pde++)
         *pde = paddr | (X86_PDPT_P | X86_PDPT_RW | X86_PDPT_PS);
 
-    sregs->cr3 = BOOT_PML4;
-    sregs->cr4 |= X86_CR4_PAE;
-    sregs->cr0 |= X86_CR0_PG;
+    platform_setup_system_page_tables(p, BOOT_PML4);
 }
 
-static void setup_system_gdt(struct kvm_sregs *sregs,
-                             uint8_t *mem,
-                             uint64_t off)
+static void setup_system_gdt(struct platform *p, uint64_t off)
 {
-    uint64_t *gdt = (uint64_t *) (mem + off);
-    struct kvm_segment data_seg, code_seg;
+	uint64_t *gdt_entry;
 
-    /* flags, base, limit */
-    gdt[BOOT_GDT_NULL] = GDT_ENTRY(0, 0, 0);
-    gdt[BOOT_GDT_CODE] = GDT_ENTRY(0xA09B, 0, 0xFFFFF);
-    gdt[BOOT_GDT_DATA] = GDT_ENTRY(0xC093, 0, 0xFFFFF);
+    gdt_entry = ((uint64_t *) (p->mem + off));
+	gdt_entry[0] = 0x0000000000000000;
+    gdt_entry[1] = 0x00af9b000000ffff;	/* 64bit CS		*/
+    gdt_entry[2] = 0x00cf9b000000ffff;	/* 32bit CS		*/
+    gdt_entry[3] = 0x00cf93000000ffff;	/* DS			*/
+	gdt_entry[4] = 0x0000000000000000;	/* TSS part 1 (via C)	*/
+	gdt_entry[5] = 0x0000000000000000;	/* TSS part 2 (via C)	*/
 
-    sregs->gdt.base = off;
-    sregs->gdt.limit = (sizeof(uint64_t) * BOOT_GDT_MAX) - 1;
-
-    GDT_TO_KVM_SEGMENT(code_seg, gdt, BOOT_GDT_CODE);
-    GDT_TO_KVM_SEGMENT(data_seg, gdt, BOOT_GDT_DATA);
-
-    sregs->cs = code_seg;
-    sregs->ds = data_seg;
-    sregs->es = data_seg;
-    sregs->fs = data_seg;
-    sregs->gs = data_seg;
-    sregs->ss = data_seg;
+    platform_setup_system_gdt(p, BOOT_GDT_CODE, BOOT_GDT_DATA,
+                              off, (sizeof(uint64_t) * BOOT_GDT_MAX) - 1);
 }
 
-static void setup_system(int vcpufd, uint8_t *mem)
+static void setup_system(struct platform *p, uint64_t entry)
 {
-    struct kvm_sregs sregs;
-    int ret;
+    setup_system_gdt(p, BOOT_GDT);
+    setup_system_page_tables(p);
+    setup_system_64bit(p);
 
-    /* Set all cpu/mem system structures */
-    ret = ioctl(vcpufd, KVM_GET_SREGS, &sregs);
-    if (ret == -1)
-        err(1, "KVM: ioctl (GET_SREGS) failed");
-
-    setup_system_gdt(&sregs, mem, BOOT_GDT);
-    setup_system_page_tables(&sregs, mem);
-    setup_system_64bit(&sregs);
-
-    ret = ioctl(vcpufd, KVM_SET_SREGS, &sregs);
-    if (ret == -1)
-        err(1, "KVM: ioctl (SET_SREGS) failed");
-}
-
-
-static void setup_cpuid(int kvm, int vcpufd)
-{
-    struct kvm_cpuid2 *kvm_cpuid;
-    int max_entries = 100;
-
-    kvm_cpuid = calloc(1, sizeof(*kvm_cpuid) +
-                          max_entries * sizeof(*kvm_cpuid->entries));
-    kvm_cpuid->nent = max_entries;
-
-    if (ioctl(kvm, KVM_GET_SUPPORTED_CPUID, kvm_cpuid) < 0)
-        err(1, "KVM: ioctl (GET_SUPPORTED_CPUID) failed");
-
-    if (ioctl(vcpufd, KVM_SET_CPUID2, kvm_cpuid) < 0)
-        err(1, "KVM: ioctl (SET_CPUID2) failed");
+    platform_setup_system(p, entry, BOOT_INFO);
 }
 
 void ukvm_port_puts(uint8_t *mem, uint64_t paddr)
@@ -398,23 +366,41 @@ void ukvm_port_puts(uint8_t *mem, uint64_t paddr)
     assert(write(1, mem + p->data, p->len) != -1);
 }
 
-void ukvm_port_poll(uint8_t *mem, uint64_t paddr)
+static void ukvm_port_time_init(uint8_t *mem, uint64_t paddr)
+{
+    GUEST_CHECK_PADDR(paddr, GUEST_SIZE, sizeof (struct ukvm_time_init));
+    struct ukvm_time_init *p = (struct ukvm_time_init *) (mem + paddr);
+    struct timeval tv;
+    int ret;
+    
+    p->freq = tsc_freq;
+    ret = gettimeofday(&tv, NULL);
+    assert(ret == 0);
+    /* get ns since epoch */
+    p->rtc_boot = (((uint64_t)tv.tv_sec * 1000000)
+                   + (uint64_t)tv.tv_usec) * 1000;
+    
+}
+
+static void ukvm_port_poll(uint8_t *mem, uint64_t paddr)
 {
     GUEST_CHECK_PADDR(paddr, GUEST_SIZE, sizeof (struct ukvm_poll));
     struct ukvm_poll *t = (struct ukvm_poll *)(mem + paddr);
-    struct timespec ts;
-    int rc, i, num_fds = 0;
-    struct pollfd fds[NUM_MODULES];  /* we only support at most one
-                                      * instance per module for now
-                                      */
+    uint64_t ts_s1, ts_ns1, ts_s2, ts_ns2;
 
+    struct timespec ts;
+    int rc, i, max_fd = 0;
+    fd_set readfds;
+
+    platform_get_timestamp(&ts_s1, &ts_ns1);
+    
+    FD_ZERO(&readfds);
     for (i = 0; i < NUM_MODULES; i++) {
         int fd = modules[i]->get_fd();
 
         if (fd) {
-            fds[num_fds].fd = fd;
-            fds[num_fds].events = POLLIN;
-            num_fds += 1;
+            FD_SET(fd, &readfds);
+            if (fd > max_fd) max_fd = fd;
         }
     }
 
@@ -422,42 +408,41 @@ void ukvm_port_poll(uint8_t *mem, uint64_t paddr)
     ts.tv_nsec = t->timeout_nsecs % 1000000000ULL;
 
     /*
-     * Guest execution is blocked during the ppoll() call, note that
+     * Guest execution is blocked during the pselect() call, note that
      * interrupts will not be injected.
      */
     do {
-        rc = ppoll(fds, num_fds, &ts, NULL);
+        rc = pselect(max_fd + 1, &readfds, NULL, NULL, &ts, NULL);
     } while (rc == -1 && errno == EINTR);
     assert(rc >= 0);
+
+    platform_get_timestamp(&ts_s2, &ts_ns2);
+    sleep_time_s += ts_s2 - ts_s1;
+    sleep_time_ns += ts_ns2 - ts_ns1;
+    
     t->ret = rc;
 }
 
-static int vcpu_loop(struct kvm_run *run, int vcpufd, uint8_t *mem)
+static void tsc_init(void) {
+    platform_init_time(&tsc_freq);
+    printf("tsc_freq=0x%" PRIx64 "(%" PRIu64 ")\n",
+           tsc_freq, tsc_freq);
+}
+
+
+static int vcpu_loop(struct platform *p)
 {
-    int ret;
+    tsc_init();
 
     /* Repeatedly run code and handle VM exits. */
     while (1) {
         int i, handled = 0;
 
-        ret = ioctl(vcpufd, KVM_RUN, NULL);
-        if (ret == -1 && errno == EINTR)
-            continue;
-        if (ret == -1) {
-            if (errno == EFAULT) {
-                struct kvm_regs regs;
-                ret = ioctl(vcpufd, KVM_GET_REGS, &regs);
-                if (ret == -1)
-                    err(1, "KVM: ioctl (GET_REGS) failed after guest fault");
-                errx(1, "KVM: host/guest translation fault: rip=0x%llx",
-                        regs.rip);
-            }
-            else
-                err(1, "KVM: ioctl (RUN) failed");
-        }
+        if (platform_run(p))
+            err(1, "Couldn't run vcpu");
 
         for (i = 0; i < NUM_MODULES; i++) {
-            if (!modules[i]->handle_exit(run, vcpufd, mem)) {
+            if (!modules[i]->handle_exit(p)) {
                 handled = 1;
                 break;
             }
@@ -466,52 +451,92 @@ static int vcpu_loop(struct kvm_run *run, int vcpufd, uint8_t *mem)
         if (handled)
             continue;
 
-        switch (run->exit_reason) {
-        case KVM_EXIT_HLT:
+        switch (platform_get_exit_reason(p)) {
+        case EXIT_HLT:
             /* Guest has halted the CPU, this is considered as a normal exit. */
             return 0;
 
-        case KVM_EXIT_IO: {
-            if (run->io.direction != KVM_EXIT_IO_OUT
-                    || run->io.size != 4)
-                errx(1, "Invalid guest port access: port=0x%x", run->io.port);
+        case EXIT_IO: {
+            int port = platform_get_io_port(p);
+            uint64_t paddr = platform_get_io_data(p);
 
-            uint64_t paddr =
-                GUEST_PIO32_TO_PADDR((uint8_t *)run + run->io.data_offset);
-
-            switch (run->io.port) {
+            switch (port) {
             case UKVM_PORT_PUTS:
-                ukvm_port_puts(mem, paddr);
+                ukvm_port_puts(p->mem, paddr);
                 break;
             case UKVM_PORT_POLL:
-                ukvm_port_poll(mem, paddr);
+                ukvm_port_poll(p->mem, paddr);
+                break;
+            case UKVM_PORT_TIME_INIT:
+                ukvm_port_time_init(p->mem, paddr);
                 break;
             default:
-                errx(1, "Invalid guest port access: port=0x%x", run->io.port);
-            }
+                errx(1, "Invalid guest port access: port=0x%x", port);
+            };
+
+            platform_advance_rip(p);
+
             break;
         }
 
-        case KVM_EXIT_FAIL_ENTRY:
-            errx(1, "KVM: entry failure: hw_entry_failure_reason=0x%llx",
-                 run->fail_entry.hardware_entry_failure_reason);
+        case EXIT_RDTSC: {
+            uint64_t exec_time;
+            uint64_t sleep_time;
+            uint64_t new_tsc;
+            double tsc_f;
+            int dbg_sanity_check_rdtsc = 0;
+                
+            exec_time = platform_get_exec_time(p);
 
-        case KVM_EXIT_INTERNAL_ERROR:
-            errx(1, "KVM: internal error exit: suberror=0x%x",
-                 run->internal.suberror);
+            if (dbg_sanity_check_rdtsc) {
+                static uint64_t last_exec_time;
+                assert(exec_time > last_exec_time);
+                last_exec_time = exec_time;
+            }
+            
+            sleep_time = ((sleep_time_s * 1000000000ULL) + sleep_time_ns);
+
+            if (dbg_sanity_check_rdtsc) {
+                static uint64_t last_sleep_time;
+                assert(sleep_time >= last_sleep_time);
+                last_sleep_time = sleep_time;
+            }
+
+
+            tsc_f = (((double)exec_time + (double)sleep_time)
+                     * (double)tsc_freq) / 1000000000ULL;
+            
+            new_tsc = (uint64_t)tsc_f;
+            
+            {
+                static uint64_t last_tsc;
+                assert(new_tsc > last_tsc);
+                last_tsc = new_tsc;
+            }
+
+            platform_emul_rdtsc(p, new_tsc);
+            platform_advance_rip(p);
+            break;
+        }
+
+        case EXIT_IGNORE:
+            break;
+
+        case EXIT_FAIL:
+            return -1;
 
         default:
-            errx(1, "KVM: unhandled exit: exit_reason=0x%x", run->exit_reason);
+            errx(1, "Unhandled exit");
         }
     }
 }
 
-int setup_modules(int vcpufd, uint8_t *mem)
+int setup_modules(struct platform *p)
 {
     int i;
 
     for (i = 0; i < NUM_MODULES; i++) {
-        if (modules[i]->setup(vcpufd, mem)) {
+        if (modules[i]->setup(p)) {
             warnx("Module `%s' setup failed", modules[i]->name);
             warnx("Please check you have correctly specified:\n    %s",
                    modules[i]->usage());
@@ -546,15 +571,13 @@ static void usage(const char *prog)
 
 int main(int argc, char **argv)
 {
-    int kvm, vmfd, vcpufd, ret;
-    uint8_t *mem;
-    struct kvm_run *run;
-    size_t mmap_size;
+    struct platform *p;
     uint64_t elf_entry;
     uint64_t kernel_end;
     const char *prog;
     const char *elffile;
     int matched;
+    int rc;
 
     prog = basename(*argv);
     argc--;
@@ -607,99 +630,20 @@ int main(int argc, char **argv)
     if (sigaction(SIGTERM, &sa, NULL) == -1)
         err(1, "Could not install signal handler");
 
-    kvm = open("/dev/kvm", O_RDWR | O_CLOEXEC);
-    if (kvm == -1)
-        err(1, "Could not open: /dev/kvm");
+    if (platform_init(&p))
+        err(1, "platform init");
 
-    /* Make sure we have the stable version of the API */
-    ret = ioctl(kvm, KVM_GET_API_VERSION, NULL);
-    if (ret == -1)
-        err(1, "KVM: ioctl (GET_API_VERSION) failed");
-    if (ret != 12)
-        errx(1, "KVM: API version is %d, ukvm requires version 12", ret);
+    load_code(elffile, p->mem, &elf_entry, &kernel_end);
 
-    vmfd = ioctl(kvm, KVM_CREATE_VM, 0);
-    if (vmfd == -1)
-        err(1, "KVM: ioctl (CREATE_VM) failed");
-
-    /*
-     * TODO If the guest size is larger than ~4GB, we need two region
-     * slots: one before the pci gap, and one after it.
-     * Reference: kvmtool x86/kvm.c:kvm__init_ram()
-     */
-    assert(GUEST_SIZE < KVM_32BIT_GAP_SIZE);
-
-    /* Allocate GUEST_SIZE page-aligned guest memory. */
-    mem = mmap(NULL, GUEST_SIZE, PROT_READ | PROT_WRITE,
-               MAP_SHARED | MAP_ANONYMOUS, -1, 0);
-    if (mem == MAP_FAILED)
-        err(1, "Error allocating guest memory");
-
-    load_code(elffile, mem, &elf_entry, &kernel_end);
-
-    struct kvm_userspace_memory_region region = {
-        .slot = 0,
-        .guest_phys_addr = 0,
-        .memory_size = GUEST_SIZE,
-        .userspace_addr = (uint64_t) mem,
-    };
-
-    ret = ioctl(vmfd, KVM_SET_USER_MEMORY_REGION, &region);
-    if (ret == -1)
-        err(1, "KVM: ioctl (SET_USER_MEMORY_REGION) failed");
-
-
-    /* enabling this seems to mess up our receiving of hlt instructions */
-    /* ret = ioctl(vmfd, KVM_CREATE_IRQCHIP); */
-    /* if (ret == -1) */
-    /*     err(1, "KVM_CREATE_IRQCHIP"); */
-
-    vcpufd = ioctl(vmfd, KVM_CREATE_VCPU, 0);
-    if (vcpufd == -1)
-        err(1, "KVM: ioctl (CREATE_VCPU) failed");
-
-    /* Setup x86 system registers and memory. */
-    setup_system(vcpufd, mem);
-
+    /* Setup x86 registers and memory */
+    setup_system(p, elf_entry);
     /* Setup ukvm_boot_info and command line */
-    setup_boot_info(mem, GUEST_SIZE, kernel_end, argc, argv);
+    setup_boot_info(p->mem, GUEST_SIZE, kernel_end, argc, argv);
 
-    /*
-     * Initialize registers: instruction pointer for our code, addends,
-     * and initial flags required by x86 architecture.
-     * Arguments to the kernel main are passed using the x86_64 calling
-     * convention: RDI, RSI, RDX, RCX, R8, and R9
-     */
-    struct kvm_regs regs = {
-        .rip = elf_entry,
-        .rax = 2,
-        .rbx = 2,
-        .rflags = 0x2,
-        .rsp = GUEST_SIZE - 8,  /* x86_64 ABI requires ((rsp + 8) % 16) == 0 */
-        .rdi = BOOT_INFO,       /* size arg in kernel main */
-    };
-    ret = ioctl(vcpufd, KVM_SET_REGS, &regs);
-    if (ret == -1)
-        err(1, "KVM: ioctl (SET_REGS) failed");
-
-
-    /* Map the shared kvm_run structure and following data. */
-    ret = ioctl(kvm, KVM_GET_VCPU_MMAP_SIZE, NULL);
-    if (ret == -1)
-        err(1, "KVM: ioctl (GET_VCPU_MMAP_SIZE) failed");
-    mmap_size = ret;
-    if (mmap_size < sizeof(*run))
-        errx(1, "KVM: invalid VCPU_MMAP_SIZE: %zd", mmap_size);
-    run =
-        mmap(NULL, mmap_size, PROT_READ | PROT_WRITE, MAP_SHARED, vcpufd,
-             0);
-    if (run == MAP_FAILED)
-        err(1, "KVM: VCPU mmap failed");
-
-    setup_cpuid(kvm, vcpufd);
-
-    if (setup_modules(vcpufd, mem))
+    if (setup_modules(p))
         exit(1);
 
-    return vcpu_loop(run, vcpufd, mem);
+    rc = vcpu_loop(p);
+    platform_cleanup(p);
+	return rc;
 }

@@ -18,9 +18,9 @@
 #include <sys/ioctl.h>
 #include <err.h>
 
-#include "ukvm-private.h"
-#include "ukvm-modules.h"
-#include "ukvm.h"
+#include "../ukvm-private.h"
+#include "../ukvm-modules.h"
+#include "../ukvm.h"
 
 static char *netiface;
 static int netfd;
@@ -150,8 +150,10 @@ static void ukvm_port_netread(uint8_t *mem, uint64_t paddr)
     rd->ret = 0;
 }
 
-static int handle_exit(struct kvm_run *run, int vcpufd, uint8_t *mem)
+static int handle_exit(struct platform *p)
 {
+    struct kvm_run *run = (struct kvm_run *)p->priv;
+
     if ((run->exit_reason != KVM_EXIT_IO) ||
         (run->io.direction != KVM_EXIT_IO_OUT) ||
         (run->io.size != 4))
@@ -162,13 +164,13 @@ static int handle_exit(struct kvm_run *run, int vcpufd, uint8_t *mem)
 
     switch (run->io.port) {
     case UKVM_PORT_NETINFO:
-        ukvm_port_netinfo(mem, paddr);
+        ukvm_port_netinfo(p->mem, paddr);
         break;
     case UKVM_PORT_NETWRITE:
-        ukvm_port_netwrite(mem, paddr);
+        ukvm_port_netwrite(p->mem, paddr);
         break;
     case UKVM_PORT_NETREAD:
-        ukvm_port_netread(mem, paddr);
+        ukvm_port_netread(p->mem, paddr);
         break;
     default:
         return -1;
@@ -200,7 +202,7 @@ static int handle_cmdarg(char *cmdarg)
     }
 }
 
-static int setup(int vcpufd, uint8_t *mem)
+static int setup(struct platform *p)
 {
     if (netiface == NULL)
         return -1;

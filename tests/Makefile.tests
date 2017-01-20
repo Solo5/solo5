@@ -8,7 +8,7 @@ ukvm: $(UKVM_TARGETS)
 virtio:	$(VIRTIO_TARGETS)
 
 SOLO5_DIR=$(TOP)/kernel
-UKVM_SRC=$(TOP)/ukvm
+UKVM_SRC=$(TOP)/monitors
 
 CFLAGS+=-I$(SOLO5_DIR)
 

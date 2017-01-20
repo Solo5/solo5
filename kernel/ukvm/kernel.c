@@ -27,12 +27,26 @@ void _start(struct ukvm_boot_info *bi)
     printf("\\__ \\ (   | | (   |  ) |\n");
     printf("____/\\___/ _|\\___/____/\n");
 
-    gdt_init();
+    /* It appears that on macosx Hypervisor.framework, the mxcsr is
+     * not started with its default value of 0x1f80.  This results in
+     * floating point related exceptions (e.g., denormal numbers)
+     * being raised to the guest which would normally be masked and
+     * dealt with by hardware (e.g., by rounding).  It is unclear
+     * whether this is a problem with Hypervisor.framework or the way
+     * that `uhvf` sets up the VMX context.
+     *
+     * A workaround is for the guest to explicitly set the MXCSR to
+     * the default value (0x1f80).
+     */
+    unsigned default_mxcsr = 0x1f80;
+    __asm__ __volatile__("ldmxcsr %0\n" : : "m"(default_mxcsr));
+
+    //gdt_init();
     mem_init(bi->mem_size, bi->kernel_end);
-    intr_init();
+    //intr_init();
 
     /* for floating point */
-    cpu_sse_enable();
+    //cpu_sse_enable();
     time_init();
 
     intr_enable();

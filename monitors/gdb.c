@@ -1,3 +1,22 @@
+/* Copyright (c) 2015, IBM
+ * Author(s): Dan Williams <djwillia@us.ibm.com>
+ *            Ricardo Koller <kollerr@us.ibm.com>
+ *
+ * Permission to use, copy, modify, and/or distribute this software
+ * for any purpose with or without fee is hereby granted, provided
+ * that the above copyright notice and this permission notice appear
+ * in all copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
+ * WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
+ * AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR
+ * CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS
+ * OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT,
+ * NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
+ * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ */
+
 /***************************************************************************
  *
  *                THIS SOFTWARE IS NOT COPYRIGHTED
@@ -103,11 +122,12 @@
 #include <signal.h>
 #include <netdb.h>
 #include <assert.h>
-#include <linux/kvm.h>
 
 #include "ukvm-private.h"
 #include "ukvm-modules.h"
+#include "ukvm-cpu.h"
 #include "ukvm.h"
+#include "unikernel-monitor.h"
 
 static int use_gdb;
 
@@ -227,22 +247,6 @@ int remote_debug;
 /*  debug >  0 prints ill-formed commands in valid packets & checksum errors */
 
 static const char hexchars[] = "0123456789abcdef";
-
-/* Number of registers.  */
-#define NUMREGS        32
-
-/* Number of bytes of registers.  */
-#define NUMREGBYTES (NUMREGS * 8)
-
-/* list is here: gdb/amd64-linux-nat.c */
-enum regnames {
-    RAX, RBX, RCX, RDX,
-    RSI, RDI, RBP, RSP,
-    R8, R9, R10, R11,
-    R12, R13, R14, R15,
-    RIP, EFLAGS, CS, SS,
-    DS, ES, FS, GS
-};
 
 /*
  * these should not be static cuz they can be used outside this module
@@ -465,8 +469,7 @@ int gdb_remove_breakpoint(uint64_t addr)
     return 0;
 }
 
-
-void gdb_handle_exception(uint8_t *mem, int vcpufd, int sig)
+void gdb_handle_exception(struct platform *p, int sig)
 {
     unsigned char *buffer;
     char obuf[4096];
@@ -505,7 +508,7 @@ void gdb_handle_exception(uint8_t *mem, int vcpufd, int sig)
             if ((addr + len) >= GUEST_SIZE)
                 memset(obuf, '0', len);
             else
-                mem2hex((char *)mem + addr, obuf, len);
+                mem2hex((char *)p->mem + addr, obuf, len);
             putpacket(obuf);
             break;
         }
@@ -514,39 +517,11 @@ void gdb_handle_exception(uint8_t *mem, int vcpufd, int sig)
             break;
         }
         case 'g': {
-            struct kvm_regs regs;
             int ret;
-
-            ret = ioctl(vcpufd, KVM_GET_REGS, &regs);
-            if (ret == -1)
-                err(1, "KVM_GET_REGS");
-
-            registers[RAX] = regs.rax;
-            registers[RBX] = regs.rbx;
-            registers[RCX] = regs.rcx;
-            registers[RDX] = regs.rdx;
-
-            registers[RSI] = regs.rsi;
-            registers[RDI] = regs.rdi;
-            registers[RBP] = regs.rbp;
-            registers[RSP] = regs.rsp;
-
-            registers[R8] = regs.r8;
-            registers[R9] = regs.r9;
-            registers[R10] = regs.r10;
-            registers[R11] = regs.r11;
-            registers[R12] = regs.r12;
-            registers[R13] = regs.r13;
-            registers[R14] = regs.r14;
-            registers[R15] = regs.r15;
-
-            registers[RIP] = regs.rip;
-            registers[EFLAGS] = regs.rflags;
-
-            /* TODO what about others like cs and ss? */
+            ret = platform_get_regs(p, registers);
+            assert(ret == 0);
 
             mem2hex((char *) registers, obuf, NUMREGBYTES);
-
             putpacket(obuf);
             break;
         }
@@ -612,7 +587,7 @@ void gdb_handle_exception(uint8_t *mem, int vcpufd, int sig)
     return;
 }
 
-static void gdb_stub_start(int vcpufd, uint8_t *mem)
+static void gdb_stub_start(struct platform *p)
 {
     int i;
 
@@ -620,39 +595,31 @@ static void gdb_stub_start(int vcpufd, uint8_t *mem)
         breakpoints[i] = 0;
 
     wait_for_connect(1234);
-    gdb_handle_exception(mem, vcpufd, 0);
+    gdb_handle_exception(p, 0);
 }
 
 
 
-static int handle_exit(struct kvm_run *run, int vcpufd, uint8_t *mem)
+static int handle_exit(struct platform *p)
 {
-    struct kvm_debug_exit_arch *arch_info;
-
-    if (run->exit_reason != KVM_EXIT_DEBUG)
+    if (platform_get_exit_reason(p) != EXIT_DEBUG)
         return -1;
 
-    arch_info = &run->debug.arch;
-    if (gdb_is_pc_breakpointing(arch_info->pc))
-        gdb_handle_exception(mem, vcpufd, 1);
-
+    if (gdb_is_pc_breakpointing(platform_get_rip(p)))
+        gdb_handle_exception(p, 1);
+    
     return 0;
 }
 
-static int setup(int vcpufd, uint8_t *mem)
+static int setup(struct platform *p)
 {
     if (!use_gdb)
         return 0;
 
-    /* TODO check if we have the KVM_CAP_SET_GUEST_DEBUG capbility */
-    struct kvm_guest_debug debug = {
-        .control = KVM_GUESTDBG_ENABLE | KVM_GUESTDBG_SINGLESTEP,
-    };
+    if (platform_enable_debug(p))
+        return -1;
 
-    if (ioctl(vcpufd, KVM_SET_GUEST_DEBUG, &debug) < 0)
-        printf("KVM_SET_GUEST_DEBUG failed");
-
-    gdb_stub_start(vcpufd, mem);
+    gdb_stub_start(p);
 
     return 0;
 }

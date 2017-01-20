@@ -86,14 +86,14 @@ opam-virtio-uninstall:
 opam-ukvm-install: solo5-kernel-ukvm.pc ukvm
 	mkdir -p $(OPAM_UKVM_INCDIR) $(OPAM_UKVM_LIBDIR)
 	cp kernel/solo5.h $(OPAM_UKVM_INCDIR)/solo5.h
-	cp ukvm/ukvm.h $(OPAM_UKVM_INCDIR)/ukvm.h
+	cp monitors/ukvm.h $(OPAM_UKVM_INCDIR)/ukvm.h
 	mkdir -p $(OPAM_UKVM_INCDIR)/host
 	cp -R include-host/. $(OPAM_UKVM_INCDIR)/host
 	cp kernel/ukvm/solo5.o kernel/ukvm/solo5.lds $(OPAM_UKVM_LIBDIR)
 	mkdir -p $(OPAM_BINDIR)
 	mkdir -p $(OPAM_UKVM_LIBDIR)/src
-	cp -R ukvm $(OPAM_UKVM_LIBDIR)/src
-	cp ukvm/ukvm-configure $(OPAM_BINDIR)
+	cp -R monitors $(OPAM_UKVM_LIBDIR)/src
+	cp monitors/ukvm-configure $(OPAM_BINDIR)
 	mkdir -p $(PREFIX)/lib/pkgconfig
 	cp solo5-kernel-ukvm.pc $(PREFIX)/lib/pkgconfig
 

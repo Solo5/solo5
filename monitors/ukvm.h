@@ -51,6 +51,7 @@ static inline uint32_t ukvm_ptr(volatile void *p)
 /* was UKVM_PORT_DBG_STACK 0x508 */
 
 #define UKVM_PORT_POLL      0x509
+#define UKVM_PORT_TIME_INIT 0x50a
 
 /*
  * Guest-provided pointers in UKVM I/O operations MUST be declared with
@@ -146,4 +147,13 @@ struct ukvm_poll {
     int ret;
 };
 
+
+/* UKVM_PORT_TIME_INIT */
+struct ukvm_time_init {
+	/* OUT */
+	uint64_t freq;
+    uint64_t rtc_boot;
+};
+
 #endif
+
