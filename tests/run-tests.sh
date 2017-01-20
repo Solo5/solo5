@@ -209,12 +209,14 @@ if [ -n "${BUILD_UKVM}" ]; then
     add_test test_globals.ukvm
     add_test test_blk.ukvm:-d
     add_test test_ping_serve.ukvm:-n:limit
+    add_test test_nolibc.ukvm
 fi
 if [ -n "${BUILD_VIRTIO}" ]; then
     add_test test_hello.virtio::SUCCESS
     add_test test_globals.virtio
     add_test test_blk.virtio:-d
     add_test test_ping_serve.virtio:-n:limit
+    add_test test_nolibc.virtio
 fi
 
 echo "--------------------------------------------------------------------------------"
