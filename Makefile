@@ -100,5 +100,5 @@ opam-ukvm-install: solo5-kernel-ukvm.pc ukvm
 .PHONY: opam-ukvm-uninstall
 opam-ukvm-uninstall:
 	rm -rf $(OPAM_UKVM_INCDIR) $(OPAM_UKVM_LIBDIR)
-	rm -f $(OPAM_BINDIR)/ukvm
+	rm -f $(OPAM_BINDIR)/ukvm-configure
 	rm -f $(PREFIX)/lib/pkgconfig/solo5-kernel-ukvm.pc
