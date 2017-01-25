@@ -16,6 +16,8 @@ High-level user-visible changes in this release:
   Solo5 (`virtio` backed) unikernels on QEMU/KVM and FreeBSD/bhyve.
 * Improvements to the standalone test programs under `tests/`, including an
   automated test suite.
+* Standardised license headers and copyright notices across the codebase and
+  introduced an AUTHORS file listing contributors and their affiliations.
 
 Notable changes under the hood:
 
@@ -24,6 +26,17 @@ Notable changes under the hood:
 * Memory layout improvements and unification between the `ukvm` and `virtio`
   backends.
 * Many bug fixes.
+
+Acknowledgements:
+
+The following people helped by filing valuable issues, testing and other
+non-code contributions to this release:
+
+* David Kaloper
+* Hannes Mehnert
+* Sean Grove
+
+Thank you!
 
 ## 0.1.1 (2016-07-21)
 
