@@ -190,15 +190,3 @@ Here is a typical gdb session:
 
     Breakpoint 11, camlUnikernel__loop_1401 () at unikernel.ml:9
     9            C.log c "hello";
-
-# Acknowledgements
-
-`ukvm` was originally written by Dan Williams and Ricardo Koller.  The
-Solo5 kernel was originally written by Dan Williams.  The OPAM
-packaging was done by Martin Lucina and Dan Williams.
-
-This kernel got its start following the bare bones kernel tutorial at
-<http://wiki.osdev.org/Bare_Bones>
-
-Thanks to Daniel Bokser, who was an early code contributor who wrote
-the timing code.

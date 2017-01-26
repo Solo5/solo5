@@ -1,4 +1,4 @@
-## 0.2.0 (2017-01-24)
+## 0.2.0 (2017-01-26)
 
 This release is targeted for use with MirageOS 3.0.
 
