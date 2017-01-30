@@ -607,7 +607,7 @@ static int handle_exit(struct platform *p)
 
     if (gdb_is_pc_breakpointing(platform_get_rip(p)))
         gdb_handle_exception(p, 1);
-    
+
     return 0;
 }
 

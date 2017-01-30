@@ -38,7 +38,7 @@
 #define	X86_CR0_CD  0x40000000	/* Cache Disable */
 #define	X86_CR0_MP	0x00000002	/* "Math" (fpu) Present */
 #define	X86_CR0_EM	0x00000004	/* EMulate FPU instructions. (trap ESC only) */
-    
+
 /*
  * Intel CPU features in CR4
  */
@@ -136,3 +136,4 @@ struct _kvm_segment {
     } while (0)
 
 #endif
+

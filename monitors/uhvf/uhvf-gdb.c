@@ -117,7 +117,7 @@ uint64_t platform_get_rip(struct platform *p)
 {
     int ret;
     uint64_t rip;
-    
+
     ret = hv_vcpu_read_register(p->vcpu, HV_X86_RIP, &rip);
     assert(ret == 0);
     return rip;
@@ -127,6 +127,7 @@ int platform_get_regs(struct platform *p, long *reg)
 {
     int ret;
     uint64_t v;
+
     ret = hv_vcpu_read_register(p->vcpu, HV_X86_RAX, &v);
     assert(ret == 0);
     reg[RAX] = v;
@@ -134,71 +135,71 @@ int platform_get_regs(struct platform *p, long *reg)
     ret = hv_vcpu_read_register(p->vcpu, HV_X86_RBX, &v);
     assert(ret == 0);
     reg[RBX] = v;
-    
+
     ret = hv_vcpu_read_register(p->vcpu, HV_X86_RCX, &v);
     assert(ret == 0);
     reg[RCX] = v;
-    
+
     ret = hv_vcpu_read_register(p->vcpu, HV_X86_RDX, &v);
     assert(ret == 0);
     reg[RDX] = v;
-    
+
     ret = hv_vcpu_read_register(p->vcpu, HV_X86_RSI, &v);
     assert(ret == 0);
     reg[RSI] = v;
-    
+
     ret = hv_vcpu_read_register(p->vcpu, HV_X86_RDI, &v);
     assert(ret == 0);
     reg[RDI] = v;
-    
+
     ret = hv_vcpu_read_register(p->vcpu, HV_X86_RBP, &v);
     assert(ret == 0);
     reg[RBP] = v;
-    
+
     ret = hv_vcpu_read_register(p->vcpu, HV_X86_RSP, &v);
     assert(ret == 0);
     reg[RSP] = v;
-    
+
     ret = hv_vcpu_read_register(p->vcpu, HV_X86_R8, &v);
     assert(ret == 0);
     reg[R8] = v;
-    
+
     ret = hv_vcpu_read_register(p->vcpu, HV_X86_R9, &v);
     assert(ret == 0);
     reg[R9] = v;
-    
+
     ret = hv_vcpu_read_register(p->vcpu, HV_X86_R10, &v);
     assert(ret == 0);
     reg[R10] = v;
-    
+
     ret = hv_vcpu_read_register(p->vcpu, HV_X86_R11, &v);
     assert(ret == 0);
     reg[R11] = v;
-    
+
     ret = hv_vcpu_read_register(p->vcpu, HV_X86_R12, &v);
     assert(ret == 0);
     reg[R12] = v;
-    
+
     ret = hv_vcpu_read_register(p->vcpu, HV_X86_R13, &v);
     assert(ret == 0);
     reg[R13] = v;
-    
+
     ret = hv_vcpu_read_register(p->vcpu, HV_X86_R14, &v);
     assert(ret == 0);
     reg[R14] = v;
-    
+
     ret = hv_vcpu_read_register(p->vcpu, HV_X86_R15, &v);
     assert(ret == 0);
     reg[R15] = v;
-    
+
     ret = hv_vcpu_read_register(p->vcpu, HV_X86_RIP, &v);
     assert(ret == 0);
     reg[RIP] = v;
-    
+
     ret = hv_vcpu_read_register(p->vcpu, HV_X86_RFLAGS, &v);
     assert(ret == 0);
     reg[EFLAGS] = v;
-    
+
     return 0;
 }
 
@@ -206,7 +207,7 @@ int platform_enable_debug(struct platform *p)
 {
     int ret;
     uint64_t rflags;
-    
+
     ret = hv_vcpu_read_register(p->vcpu, HV_X86_RFLAGS, &rflags);
     assert(ret == 0);
     ret = hv_vcpu_write_register(p->vcpu, HV_X86_RFLAGS,

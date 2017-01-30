@@ -54,11 +54,11 @@
 static struct platform platform;
 
 void platform_setup_system_64bit(struct platform *p, uint64_t cr0,
-                                 uint64_t cr4 ,uint64_t efer)
+                                 uint64_t cr4, uint64_t efer)
 {
     struct kvm_sregs sregs;
     int ret;
-    
+
     ret = ioctl(p->vcpu, KVM_GET_SREGS, &sregs);
     if (ret == -1)
         err(1, "KVM: ioctl (GET_SREGS) failed");
@@ -77,11 +77,11 @@ void platform_setup_system_page_tables(struct platform *p,
 {
     struct kvm_sregs sregs;
     int ret;
-    
+
     ret = ioctl(p->vcpu, KVM_GET_SREGS, &sregs);
     if (ret == -1)
         err(1, "KVM: ioctl (GET_SREGS) failed");
-        
+
     sregs.cr3 = pml4;
 
     ret = ioctl(p->vcpu, KVM_SET_SREGS, &sregs);
@@ -99,7 +99,7 @@ void platform_setup_system_gdt(struct platform *p,
     struct kvm_segment data_seg, code_seg;
     int ret;
     uint64_t *gdt = (uint64_t *) (p->mem + off);
-    
+
     /* Set all cpu/mem system structures */
     ret = ioctl(p->vcpu, KVM_GET_SREGS, &sregs);
     if (ret == -1)
@@ -107,7 +107,7 @@ void platform_setup_system_gdt(struct platform *p,
 
     sregs.gdt.base = off;
     sregs.gdt.limit = limit;
-    
+
     GDT_TO_KVM_SEGMENT(code_seg, gdt, cs_idx);
     GDT_TO_KVM_SEGMENT(data_seg, gdt, ds_idx);
 
@@ -141,9 +141,9 @@ static void setup_cpuid(int kvm, int vcpufd)
 
 int platform_run(struct platform *p)
 {
-    while(1) {
+    while (1) {
         int ret;
-        
+
         ret = ioctl(p->vcpu, KVM_RUN, NULL);
         if (ret == -1 && errno == EINTR)
             continue;
@@ -155,9 +155,9 @@ int platform_run(struct platform *p)
                     err(1, "KVM: ioctl (GET_REGS) failed after guest fault");
                 errx(1, "KVM: host/guest translation fault: rip=0x%llx",
                          regs.rip);
-            }
-            else
+            } else {
                 err(1, "KVM: ioctl (RUN) failed");
+            }
         }
 
         return 0;
@@ -178,9 +178,10 @@ int platform_get_io_port(struct platform *p)
 uint64_t platform_get_io_data(struct platform *p)
 {
     struct kvm_run *run = (struct kvm_run *)p->priv;
+
     assert(run->io.direction == KVM_EXIT_IO_OUT);
     assert(run->io.size == 4);
-    
+
     return GUEST_PIO32_TO_PADDR((uint8_t *)run + run->io.data_offset);
 }
 
@@ -189,7 +190,7 @@ int platform_get_exit_reason(struct platform *p)
 {
     struct kvm_run *run = (struct kvm_run *)p->priv;
 
-    switch (run->exit_reason) {    
+    switch (run->exit_reason) {
     case KVM_EXIT_HLT:
         return EXIT_HLT;
 
@@ -327,18 +328,19 @@ void platform_advance_rip(struct platform *p)
 }
 
 /* XXX this is horrible */
-static uint64_t get_tsc_const(void) {
+static uint64_t get_tsc_const(void)
+{
     FILE *f = fopen("/proc/cpuinfo", "r");
     uint64_t mhz = 0, dec = 0;
     int ret = 0;
+
     assert(f != NULL);
 
     while (ret == 0) {
         ret = fscanf(f, "cpu MHz\t: %lu.%lu\n", &mhz, &dec);
         if (ret == 0) {
-            while(fgetc(f)!='\n') {
+            while (fgetc(f) != '\n')
                 fgetc(f);
-            }
         }
     }
     return (mhz * 1000000) + (dec * 1000);
@@ -366,7 +368,7 @@ void platform_get_timestamp(uint64_t *s, uint64_t *ns)
 {
     struct timespec tp;
 
-    clock_gettime(CLOCK_REALTIME, &tp); 
+    clock_gettime(CLOCK_REALTIME, &tp);
     *s = tp.tv_sec;
     *ns = tp.tv_nsec;
 }

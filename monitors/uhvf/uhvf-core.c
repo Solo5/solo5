@@ -76,55 +76,44 @@ static clock_serv_t cclock;
 #define BOOT_PDPTE   0x11000
 #define BOOT_PDE     0x12000
 
-//#define DEBUG 1
-
 /* read GPR */
-uint64_t
-rreg(hv_vcpuid_t vcpu, hv_x86_reg_t reg)
+uint64_t rreg(hv_vcpuid_t vcpu, hv_x86_reg_t reg)
 {
     uint64_t v;
 
-    if (hv_vcpu_read_register(vcpu, reg, &v)) {
+    if (hv_vcpu_read_register(vcpu, reg, &v))
         abort();
-    }
 
     return v;
 }
 
 /* write GPR */
-void
-wreg(hv_vcpuid_t vcpu, hv_x86_reg_t reg, uint64_t v)
+void wreg(hv_vcpuid_t vcpu, hv_x86_reg_t reg, uint64_t v)
 {
-    if (hv_vcpu_write_register(vcpu, reg, v)) {
+    if (hv_vcpu_write_register(vcpu, reg, v))
         abort();
-    }
 }
 
 /* read VMCS field */
-static uint64_t
-rvmcs(hv_vcpuid_t vcpu, uint32_t field)
+static uint64_t rvmcs(hv_vcpuid_t vcpu, uint32_t field)
 {
     uint64_t v;
 
-    if (hv_vmx_vcpu_read_vmcs(vcpu, field, &v)) {
+    if (hv_vmx_vcpu_read_vmcs(vcpu, field, &v))
         abort();
-    }
 
     return v;
 }
 
 /* write VMCS field */
-static void
-wvmcs(hv_vcpuid_t vcpu, uint32_t field, uint64_t v)
+static void wvmcs(hv_vcpuid_t vcpu, uint32_t field, uint64_t v)
 {
-    if (hv_vmx_vcpu_write_vmcs(vcpu, field, v)) {
+    if (hv_vmx_vcpu_write_vmcs(vcpu, field, v))
         abort();
-    }
 }
 
 /* desired control word constrained by hardware/hypervisor capabilities */
-static uint64_t
-cap2ctrl(uint64_t cap, uint64_t ctrl)
+static uint64_t cap2ctrl(uint64_t cap, uint64_t ctrl)
 {
     return (ctrl | (cap & 0xffffffff)) & (cap >> 32);
 }
@@ -139,7 +128,7 @@ void platform_setup_system_64bit(struct platform *p, uint64_t cr0,
 
 void platform_setup_system_page_tables(struct platform *p, uint64_t pml4)
 {
-	wvmcs(p->vcpu, VMCS_GUEST_CR3, pml4);
+    wvmcs(p->vcpu, VMCS_GUEST_CR3, pml4);
 }
 
 void platform_setup_system_gdt(struct platform *p,
@@ -148,13 +137,13 @@ void platform_setup_system_gdt(struct platform *p,
                                uint64_t off,
                                uint64_t limit)
 {
-	uint64_t *gdt_entry;
+    uint64_t *gdt_entry;
     gdt_entry = ((uint64_t *) (p->mem + off));
     uint64_t cs_off = cs_idx * sizeof(uint64_t);
     uint64_t ds_off = ds_idx * sizeof(uint64_t);
     uint64_t cs_ar = (gdt_entry[cs_idx] & 0x0f0ff0000000000) >> 40;
     uint64_t ds_ar = (gdt_entry[ds_idx] & 0x0f0ff0000000000) >> 40;
-    
+
     wvmcs(p->vcpu, VMCS_GUEST_CS_BASE, 0);
     wvmcs(p->vcpu, VMCS_GUEST_CS_LIMIT, 0xffffffff);
     wvmcs(p->vcpu, VMCS_GUEST_CS_AR, cs_ar);
@@ -175,11 +164,11 @@ void platform_setup_system_gdt(struct platform *p,
     wvmcs(p->vcpu, VMCS_GUEST_GS_AR, ds_ar);
 
     wvmcs(p->vcpu, VMCS_GUEST_CS, cs_off);
-	wvmcs(p->vcpu, VMCS_GUEST_DS, ds_off);
-	wvmcs(p->vcpu, VMCS_GUEST_SS, ds_off);
-	wvmcs(p->vcpu, VMCS_GUEST_ES, ds_off);
-	wvmcs(p->vcpu, VMCS_GUEST_FS, ds_off);
-	wvmcs(p->vcpu, VMCS_GUEST_GS, ds_off);
+    wvmcs(p->vcpu, VMCS_GUEST_DS, ds_off);
+    wvmcs(p->vcpu, VMCS_GUEST_SS, ds_off);
+    wvmcs(p->vcpu, VMCS_GUEST_ES, ds_off);
+    wvmcs(p->vcpu, VMCS_GUEST_FS, ds_off);
+    wvmcs(p->vcpu, VMCS_GUEST_GS, ds_off);
 
     wvmcs(p->vcpu, VMCS_GUEST_GDTR_BASE, off);
     wvmcs(p->vcpu, VMCS_GUEST_GDTR_LIMIT, limit);
@@ -199,23 +188,23 @@ void platform_setup_system_gdt(struct platform *p,
 void platform_setup_system(struct platform *p, uint64_t entry,
                            uint64_t boot_info)
 {
-	wvmcs(p->vcpu, VMCS_GUEST_RFLAGS, 0x2);
-	wvmcs(p->vcpu, VMCS_GUEST_RIP, entry);
+    wvmcs(p->vcpu, VMCS_GUEST_RFLAGS, 0x2);
+    wvmcs(p->vcpu, VMCS_GUEST_RIP, entry);
     wvmcs(p->vcpu, VMCS_GUEST_RSP, GUEST_SIZE - 8);
     wreg(p->vcpu, HV_X86_RDI, boot_info);
 
     /* trap everything for cr0 and cr4 */
-	wvmcs(p->vcpu, VMCS_CTRL_CR0_MASK, 0xffffffff);
-	wvmcs(p->vcpu, VMCS_CTRL_CR4_MASK, 0xffffffff);
-	wvmcs(p->vcpu, VMCS_CTRL_CR0_SHADOW, rvmcs(p->vcpu, VMCS_GUEST_CR0));
-	wvmcs(p->vcpu, VMCS_CTRL_CR4_SHADOW, rvmcs(p->vcpu, VMCS_GUEST_CR4));
+    wvmcs(p->vcpu, VMCS_CTRL_CR0_MASK, 0xffffffff);
+    wvmcs(p->vcpu, VMCS_CTRL_CR4_MASK, 0xffffffff);
+    wvmcs(p->vcpu, VMCS_CTRL_CR0_SHADOW, rvmcs(p->vcpu, VMCS_GUEST_CR0));
+    wvmcs(p->vcpu, VMCS_CTRL_CR4_SHADOW, rvmcs(p->vcpu, VMCS_GUEST_CR4));
 }
 
 #define VMX_CTRLS(v,c,t,f) do {                 \
     uint64_t cap;                               \
     if (hv_vmx_read_capability((c), &cap)) {    \
         abort();                                \
-	}                                           \
+    }                                           \
                                                 \
     uint64_t zeros = cap & 0xffffffff;              \
     uint64_t ones = (cap >> 32) & 0xffffffff;       \
@@ -227,71 +216,70 @@ void platform_setup_system(struct platform *p, uint64_t entry,
         printf("   setting: 0x%08llx\n", setting);  \
     }                                               \
     wvmcs((v), (t), setting);                       \
-    } while(0)                                      \
+    } while (0)                                     \
 
 int platform_init(struct platform **pdata_p)
 {
-	hv_vcpuid_t vcpu;
+    hv_vcpuid_t vcpu;
     uint8_t *mem;
 
     /* create a VM instance for the current task */
-	if (hv_vm_create(HV_VM_DEFAULT)) {
-		abort();
-	}
+    if (hv_vm_create(HV_VM_DEFAULT))
+        abort();
 
-	/* allocate some guest physical memory */
-	if (!(mem = (uint8_t *)valloc(GUEST_SIZE))) {
-		abort();
-	}
+    /* allocate some guest physical memory */
+    mem = (uint8_t *)valloc(GUEST_SIZE);
+    if (!mem)
+        abort();
+
     memset(mem, 0, GUEST_SIZE);
 
     /* map a segment of guest physical memory into the guest physical
-	 * address space of the vm (at address 0) */
-	if (hv_vm_map(mem, 0, GUEST_SIZE,
-                  HV_MEMORY_READ | HV_MEMORY_WRITE | HV_MEMORY_EXEC)) {
+     * address space of the vm (at address 0)
+     */
+    if (hv_vm_map(mem, 0, GUEST_SIZE,
+                  HV_MEMORY_READ | HV_MEMORY_WRITE | HV_MEMORY_EXEC))
         abort();
-    }
 
-	/* create a vCPU instance for this thread */
-	if (hv_vcpu_create(&vcpu, HV_VCPU_DEFAULT)) {
-		abort();
-	}
+    /* create a vCPU instance for this thread */
+    if (hv_vcpu_create(&vcpu, HV_VCPU_DEFAULT))
+        abort();
 
-	/* 
+    /*
      * From FreeBSD:
      *
-	 * It is safe to allow direct access to MSR_GSBASE and MSR_FSBASE.
-	 * The guest FSBASE and GSBASE are saved and restored during
-	 * vm-exit and vm-entry respectively. The host FSBASE and GSBASE are
-	 * always restored from the vmcs host state area on vm-exit.
-	 *
-	 * The SYSENTER_CS/ESP/EIP MSRs are identical to FS/GSBASE in
-	 * how they are saved/restored so can be directly accessed by the
-	 * guest.
-	 *
-	 * MSR_EFER is saved and restored in the guest VMCS area on a
-	 * VM exit and entry respectively. It is also restored from the
-	 * host VMCS area on a VM exit.
+     * It is safe to allow direct access to MSR_GSBASE and MSR_FSBASE.
+     * The guest FSBASE and GSBASE are saved and restored during
+     * vm-exit and vm-entry respectively. The host FSBASE and GSBASE are
+     * always restored from the vmcs host state area on vm-exit.
+     *
+     * The SYSENTER_CS/ESP/EIP MSRs are identical to FS/GSBASE in
+     * how they are saved/restored so can be directly accessed by the
+     * guest.
+     *
+     * MSR_EFER is saved and restored in the guest VMCS area on a
+     * VM exit and entry respectively. It is also restored from the
+     * host VMCS area on a VM exit.
      */
-	if (hv_vcpu_enable_native_msr(vcpu, MSR_GSBASE, 1) ||
-		hv_vcpu_enable_native_msr(vcpu, MSR_FSBASE, 1) ||
-		hv_vcpu_enable_native_msr(vcpu, MSR_SYSENTER_CS_MSR, 1) ||
-		hv_vcpu_enable_native_msr(vcpu, MSR_SYSENTER_ESP_MSR, 1) ||
-		hv_vcpu_enable_native_msr(vcpu, MSR_SYSENTER_EIP_MSR, 1) ||
+    if (hv_vcpu_enable_native_msr(vcpu, MSR_GSBASE, 1) ||
+        hv_vcpu_enable_native_msr(vcpu, MSR_FSBASE, 1) ||
+        hv_vcpu_enable_native_msr(vcpu, MSR_SYSENTER_CS_MSR, 1) ||
+        hv_vcpu_enable_native_msr(vcpu, MSR_SYSENTER_ESP_MSR, 1) ||
+        hv_vcpu_enable_native_msr(vcpu, MSR_SYSENTER_EIP_MSR, 1) ||
         hv_vcpu_enable_native_msr(vcpu, MSR_LSTAR, 1) ||
         hv_vcpu_enable_native_msr(vcpu, MSR_CSTAR, 1) ||
         hv_vcpu_enable_native_msr(vcpu, MSR_STAR, 1) ||
         hv_vcpu_enable_native_msr(vcpu, MSR_SF_MASK, 1) ||
-        hv_vcpu_enable_native_msr(vcpu, MSR_KGSBASE, 1))
-	{
-		abort();
-	}
-    
+        hv_vcpu_enable_native_msr(vcpu, MSR_KGSBASE, 1)) {
+        abort();
+    }
+
     VMX_CTRLS(vcpu, HV_VMX_CAP_PINBASED, VMCS_CTRL_PIN_BASED, 0);
 
     /* It appears that bit 19 and 20 (CR8 load/store exiting) are
      * necessary for a bunch of things to work, including
-     * CPU_BASED_HLT (bit 7) and MONITOR_TRAP_FLAG (bit 27) */
+     * CPU_BASED_HLT (bit 7) and MONITOR_TRAP_FLAG (bit 27)
+     */
     VMX_CTRLS(vcpu, HV_VMX_CAP_PROCBASED, VMCS_CTRL_CPU_BASED, 0
               | CPU_BASED_HLT | CPU_BASED_INVLPG
               | CPU_BASED_MWAIT | CPU_BASED_RDPMC
@@ -303,15 +291,15 @@ int platform_init(struct platform **pdata_p)
     VMX_CTRLS(vcpu, HV_VMX_CAP_ENTRY, VMCS_CTRL_VMENTRY_CONTROLS, 0
               | VMENTRY_GUEST_IA32E | VMENTRY_LOAD_EFER);
     VMX_CTRLS(vcpu, HV_VMX_CAP_EXIT, VMCS_CTRL_VMEXIT_CONTROLS, 0);
-              
+
     wvmcs(vcpu, VMCS_CTRL_EXC_BITMAP, 0xffffffff);
 
     platform.mem = mem;
     platform.vcpu = vcpu;
     platform.priv = NULL;
-        
+
     *pdata_p = &platform;
-        
+
     return 0;
 }
 
@@ -319,21 +307,19 @@ void platform_cleanup(struct platform *p)
 {
     mach_port_deallocate(mach_task_self(), cclock);
 
-	/* destroy vCPU */
-	if (hv_vcpu_destroy(p->vcpu)) {
-		abort();
-	}
+    /* destroy vCPU */
+    if (hv_vcpu_destroy(p->vcpu))
+        abort();
 
-	/* unmap memory segment at address 0 */
-	if (hv_vm_unmap(0, GUEST_SIZE)) {
-		abort();
-	}
-	/* destroy VM instance of this task */
-	if (hv_vm_destroy()) {
-		abort();
-	}
+    /* unmap memory segment at address 0 */
+    if (hv_vm_unmap(0, GUEST_SIZE))
+        abort();
 
-	free(p->mem);
+    /* destroy VM instance of this task */
+    if (hv_vm_destroy())
+        abort();
+
+    free(p->mem);
 }
 
 int platform_run(struct platform *p)
@@ -345,7 +331,7 @@ int platform_get_exit_reason(struct platform *p)
 {
     uint64_t exit_reason = rvmcs(p->vcpu, VMCS_RO_EXIT_REASON);
 
-    switch ((int)exit_reason) {    
+    switch ((int)exit_reason) {
     case VMX_REASON_HLT:
         return EXIT_HLT;
     case VMX_REASON_RDTSC:
@@ -368,7 +354,7 @@ int platform_get_exit_reason(struct platform *p)
             && (((irq_info >> 8) & 0x3) == 3)
             && ((irq_info & 0xff) == 1))
             return EXIT_DEBUG;
-            
+
         printf("EXIT_REASON_EXCEPTION\n");
         if (idt_vector_info) {
             printf("idt_vector_info = 0x%x\n", idt_vector_info);
@@ -379,7 +365,7 @@ int platform_get_exit_reason(struct platform *p)
             printf("  vector = %d (0x%x)\n",
                    irq_info & 0xff,
                    irq_info & 0xff);
-            switch((irq_info >> 8) & 0x3) {
+            switch ((irq_info >> 8) & 0x3) {
             case 0:
                 printf("  type = external\n");
                 break;
@@ -395,9 +381,8 @@ int platform_get_exit_reason(struct platform *p)
             default:
                 printf("  type = BOGUS!!!\n");
             }
-            if ((irq_info >> 11) & 0x1) {
+            if ((irq_info >> 11) & 0x1)
                 printf("irq_error = 0x%x\n", irq_error);
-            }
         }
 
         printf("RIP was 0x%llx\n", rreg(p->vcpu, HV_X86_RIP));
@@ -426,18 +411,21 @@ int platform_get_io_port(struct platform *p)
 uint64_t platform_get_io_data(struct platform *p)
 {
     uint64_t rax = rreg(p->vcpu, HV_X86_RAX);
+
     return GUEST_PIO32_TO_PADDR(&rax);
 }
 
 void platform_advance_rip(struct platform *p)
 {
     uint64_t len = rvmcs(p->vcpu, VMCS_RO_VMEXIT_INSTR_LEN);
+
     wvmcs(p->vcpu, VMCS_GUEST_RIP, rreg(p->vcpu, HV_X86_RIP) + len);
 }
 
 void platform_init_time(uint64_t *freq)
 {
     size_t len = sizeof(*freq);
+
     host_get_clock_service(mach_host_self(),
                            CALENDAR_CLOCK, &cclock);
 
@@ -448,7 +436,7 @@ uint64_t platform_get_exec_time(struct platform *p)
 {
     uint64_t exec_time;
 
-    if (hv_vcpu_get_exec_time(p->vcpu, &exec_time)) 
+    if (hv_vcpu_get_exec_time(p->vcpu, &exec_time))
         errx(1, "couldn't get exec time");
 
     return exec_time;
@@ -459,10 +447,11 @@ void platform_emul_rdtsc(struct platform *p, uint64_t new_tsc)
     wreg(p->vcpu, HV_X86_RAX, new_tsc & 0xffffffff);
     wreg(p->vcpu, HV_X86_RDX, (new_tsc >> 32) & 0xffffffff);
 }
-            
+
 void platform_get_timestamp(uint64_t *s, uint64_t *ns)
 {
     mach_timespec_t mts;
+
     clock_get_time(cclock, &mts);
     *s = mts.tv_sec;
     *ns = mts.tv_nsec;

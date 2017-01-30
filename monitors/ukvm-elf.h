@@ -806,3 +806,4 @@ typedef struct {
 #define	NT_NUM		21
 
 #endif	/* _SYS_ELF_H */
+

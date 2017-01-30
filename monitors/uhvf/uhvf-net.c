@@ -27,10 +27,10 @@ static int netfd;
 static struct ukvm_netinfo netinfo;
 
 struct vmnet_state {
-	interface_ref iface;
+    interface_ref iface;
     const char *mac;
-	unsigned int mtu;
-	unsigned int max_packet_size;
+    unsigned int mtu;
+    unsigned int max_packet_size;
 
     dispatch_queue_t if_q;
     int write_fd;
@@ -42,49 +42,51 @@ static void vmn_enable_notifications(void)
 {
     /* Whenever there are packets available we write to a pipe so that
      * the generic poll on the pipe's fd can pick it up.  This is not
-     * ideal. */
+     * ideal.
+     */
     vmnet_interface_set_event_callback(vms.iface,
                                        VMNET_INTERFACE_PACKETS_AVAILABLE,
                                        vms.if_q,
     ^(interface_event_t event_id, xpc_object_t event)
     {
         size_t num_written;
+
         num_written = write(vms.write_fd, "x", 1);
         assert(num_written == 1);
-        
+
         /* Disable the notifications until we're ready to hear about more.*/
         vmnet_interface_set_event_callback(vms.iface,
                                            VMNET_INTERFACE_PACKETS_AVAILABLE,
                                            NULL,
                                            NULL);
-	});
+    });
 }
 
 static int vmn_create(void)
 {
     int pipefds[2];
     xpc_object_t iface_desc;
-	uuid_t uuid;
-    
-	__block interface_ref iface = NULL;
-	__block vmnet_return_t iface_status = 0;
-        
-	iface_desc = xpc_dictionary_create(NULL, NULL, 0);
-	xpc_dictionary_set_uint64(iface_desc, vmnet_operation_mode_key,
+    uuid_t uuid;
+
+    __block interface_ref iface = NULL;
+    __block vmnet_return_t iface_status = 0;
+
+    iface_desc = xpc_dictionary_create(NULL, NULL, 0);
+    xpc_dictionary_set_uint64(iface_desc, vmnet_operation_mode_key,
                               VMNET_SHARED_MODE);
 
 #ifdef USE_TEST_UUID
     /* This will result in a test MAC address of 64:65:3a:31:64:3a */
-    uint8_t test_uuid[] = {0x40,0xab,0xea,0x25,
-                           0x95,0x2f,0x44,0xe8,
-                           0x85,0x79,0xb7,0x73,
-                           0x67,0x3c,0x2e,0xb8};
- 
+    uint8_t test_uuid[] = {0x40, 0xab, 0xea, 0x25,
+                           0x95, 0x2f, 0x44, 0xe8,
+                           0x85, 0x79, 0xb7, 0x73,
+                           0x67, 0x3c, 0x2e, 0xb8};
+
     memcpy(&uuid, test_uuid, sizeof(uuid));
 #else
     uuid_generate_random(uuid);
 #endif
-	xpc_dictionary_set_uuid(iface_desc, vmnet_interface_id_key, uuid);
+    xpc_dictionary_set_uuid(iface_desc, vmnet_interface_id_key, uuid);
 
     pipe(pipefds);
     vms.write_fd = pipefds[1];
@@ -97,7 +99,7 @@ static int vmn_create(void)
         if_create_q = dispatch_queue_create("uhvf.vmnet.create",
                                             DISPATCH_QUEUE_SERIAL);
         if_create_sema = dispatch_semaphore_create(0);
-        
+
         iface = vmnet_start_interface(iface_desc, if_create_q,
                 ^(vmnet_return_t status,
                   xpc_object_t x)
@@ -120,16 +122,16 @@ static int vmn_create(void)
     }
 
     if (!iface || iface_status != VMNET_SUCCESS) {
-		printf("vmnet: vmnet_start_interface failed\n");
+        printf("vmnet: vmnet_start_interface failed\n");
         goto out;
     }
 
-	vms.iface = iface;
-	vms.if_q = dispatch_queue_create("uhvf.vmnet.iface_q", 0);
+    vms.iface = iface;
+    vms.if_q = dispatch_queue_create("uhvf.vmnet.iface_q", 0);
 
     vmn_enable_notifications();
-    
-	return pipefds[0];
+
+    return pipefds[0];
 
  out:
     close(pipefds[0]);
@@ -137,49 +139,51 @@ static int vmn_create(void)
     return -1;
 }
 
-static ssize_t vmn_read(uint8_t *data, int len) {
+static ssize_t vmn_read(uint8_t *data, int len)
+{
     struct iovec iov;
-	vmnet_return_t r;
-	struct vmpktdesc v;
-	int pktcnt;
+    vmnet_return_t r;
+    struct vmpktdesc v;
+    int pktcnt;
 
-	v.vm_pkt_size = len;
+    v.vm_pkt_size = len;
 
-	assert(v.vm_pkt_size >= vms.max_packet_size);
+    assert(v.vm_pkt_size >= vms.max_packet_size);
 
     iov.iov_base = data;
     iov.iov_len = len;
-	v.vm_pkt_iov = &iov;
-	v.vm_pkt_iovcnt = 1;
-	v.vm_flags = 0;
-	pktcnt = 1;
+    v.vm_pkt_iov = &iov;
+    v.vm_pkt_iovcnt = 1;
+    v.vm_flags = 0;
+    pktcnt = 1;
 
-	r = vmnet_read(vms.iface, &v, &pktcnt);
+    r = vmnet_read(vms.iface, &v, &pktcnt);
     {
         char throwaway;
         size_t num_read;
+
         num_read = read(netfd, &throwaway, 1);
         assert(num_read == 1);
 
         /* We're ready now for another notification. */
         vmn_enable_notifications();
     }
-    
-	assert(r == VMNET_SUCCESS);
-    
-	if (pktcnt < 1) {
-		return 0;
-	}
 
-	return ((ssize_t) v.vm_pkt_size);
+    assert(r == VMNET_SUCCESS);
+
+    if (pktcnt < 1)
+        return 0;
+
+    return (ssize_t)v.vm_pkt_size;
 }
 
-static size_t vmn_write(uint8_t *data, int len) {
+static size_t vmn_write(uint8_t *data, int len)
+{
     struct iovec iov;
     vmnet_return_t r;
     struct vmpktdesc v;
     int pktcnt;
-    
+
     v.vm_pkt_size = len;
     assert(len <= vms.max_packet_size);
 
@@ -189,9 +193,9 @@ static size_t vmn_write(uint8_t *data, int len) {
     v.vm_pkt_iovcnt = 1;
     v.vm_flags = 0;
     pktcnt = 1;
-    
+
     r = vmnet_write(vms.iface, &v, &pktcnt);
-	assert(r == VMNET_SUCCESS);
+    assert(r == VMNET_SUCCESS);
 
     return iov.iov_len;
 }
@@ -200,6 +204,7 @@ static void ukvm_port_netinfo(uint8_t *mem, uint64_t paddr)
 {
     GUEST_CHECK_PADDR(paddr, GUEST_SIZE, sizeof (struct ukvm_netinfo));
     struct ukvm_netinfo *info = (struct ukvm_netinfo *)(mem + paddr);
+
     printf("netinfo!\n");
     memcpy(info->mac_str, netinfo.mac_str, sizeof(netinfo.mac_str));
 }
@@ -209,7 +214,7 @@ static void ukvm_port_netwrite(uint8_t *mem, uint64_t paddr)
     GUEST_CHECK_PADDR(paddr, GUEST_SIZE, sizeof (struct ukvm_netwrite));
     struct ukvm_netwrite *wr = (struct ukvm_netwrite *)(mem + paddr);
     int ret;
-    
+
     GUEST_CHECK_PADDR(wr->data, GUEST_SIZE, wr->len);
     ret = vmn_write(mem + wr->data, wr->len);
     if (wr->len != ret)
@@ -239,7 +244,7 @@ static int handle_exit(struct platform *p)
 {
     if (platform_get_exit_reason(p) != EXIT_IO)
         return -1;
-    
+
     int port = platform_get_io_port(p);
     uint64_t data = platform_get_io_data(p);
 
@@ -271,7 +276,7 @@ static int handle_cmdarg(char *cmdarg)
 
 static int setup(struct platform *p)
 {
-    
+
     /* set up virtual network */
     netfd = vmn_create();
     if (netfd <= 0) {
@@ -283,7 +288,7 @@ static int setup(struct platform *p)
             vms.mac[0], vms.mac[1], vms.mac[2],
             vms.mac[3], vms.mac[4], vms.mac[5]);
 
-    printf("Providing network: guest address %s\n", 
+    printf("Providing network: guest address %s\n",
             netinfo.mac_str);
 
     return 0;
@@ -306,3 +311,4 @@ struct ukvm_module ukvm_net = {
     .setup = setup,
     .usage = usage
 };
+

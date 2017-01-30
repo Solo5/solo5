@@ -83,7 +83,7 @@ struct ukvm_module *modules[] = {
 #define BOOT_GDT_MAX     6
 
 static uint64_t sleep_time_s;  /* track unikernel sleeping time */
-static uint64_t sleep_time_ns; 
+static uint64_t sleep_time_ns;
 static uint64_t tsc_freq;
 
 static void setup_boot_info(uint8_t *mem,
@@ -253,8 +253,7 @@ static void load_code(const char *file, uint8_t *mem,     /* IN */
             if (add_overflow(result, (align - 1), _end))
                 goto out_invalid;
             _end = _end & -align;
-        }
-        else {
+        } else {
             _end = result;
         }
         if (_end > *p_end)
@@ -275,8 +274,8 @@ static void load_code(const char *file, uint8_t *mem,     /* IN */
         }
     }
 
-    free (phdr);
-    close (fd_kernel);
+    free(phdr);
+    close(fd_kernel);
     *p_entry = hdr.e_entry;
     return;
 
@@ -294,12 +293,10 @@ static void setup_system_64bit(struct platform *p)
         & ~(X86_CR0_NW | X86_CR0_CD);
     uint64_t cr4 = X86_CR4_PAE | X86_CR4_VMXE;
     uint64_t efer = X86_EFER_LME | X86_EFER_LMA;
-    
-    if (1){
-        /* enable sse */
-        cr0 = (cr0 | X86_CR0_MP) & ~(X86_CR0_EM);
-        cr4 = cr4 | X86_CR4_FXSR | X86_CR4_XMM; /* OSFXSR and OSXMMEXCPT */
-    }
+
+    /* enable sse */
+    cr0 = (cr0 | X86_CR0_MP) & ~(X86_CR0_EM);
+    cr4 = cr4 | X86_CR4_FXSR | X86_CR4_XMM; /* OSFXSR and OSXMMEXCPT */
 
     platform_setup_system_64bit(p, cr0, cr4, efer);
 }
@@ -372,14 +369,13 @@ static void ukvm_port_time_init(uint8_t *mem, uint64_t paddr)
     struct ukvm_time_init *p = (struct ukvm_time_init *) (mem + paddr);
     struct timeval tv;
     int ret;
-    
+
     p->freq = tsc_freq;
     ret = gettimeofday(&tv, NULL);
     assert(ret == 0);
     /* get ns since epoch */
     p->rtc_boot = (((uint64_t)tv.tv_sec * 1000000)
                    + (uint64_t)tv.tv_usec) * 1000;
-    
 }
 
 static void ukvm_port_poll(uint8_t *mem, uint64_t paddr)
@@ -393,14 +389,15 @@ static void ukvm_port_poll(uint8_t *mem, uint64_t paddr)
     fd_set readfds;
 
     platform_get_timestamp(&ts_s1, &ts_ns1);
-    
+
     FD_ZERO(&readfds);
     for (i = 0; i < NUM_MODULES; i++) {
         int fd = modules[i]->get_fd();
 
         if (fd) {
             FD_SET(fd, &readfds);
-            if (fd > max_fd) max_fd = fd;
+            if (fd > max_fd)
+                max_fd = fd;
         }
     }
 
@@ -419,11 +416,12 @@ static void ukvm_port_poll(uint8_t *mem, uint64_t paddr)
     platform_get_timestamp(&ts_s2, &ts_ns2);
     sleep_time_s += ts_s2 - ts_s1;
     sleep_time_ns += ts_ns2 - ts_ns1;
-    
+
     t->ret = rc;
 }
 
-static void tsc_init(void) {
+static void tsc_init(void)
+{
     platform_init_time(&tsc_freq);
     printf("tsc_freq=0x%" PRIx64 "(%" PRIu64 ")\n",
            tsc_freq, tsc_freq);
@@ -485,7 +483,7 @@ static int vcpu_loop(struct platform *p)
             uint64_t new_tsc;
             double tsc_f;
             int dbg_sanity_check_rdtsc = 0;
-                
+
             exec_time = platform_get_exec_time(p);
 
             if (dbg_sanity_check_rdtsc) {
@@ -493,7 +491,7 @@ static int vcpu_loop(struct platform *p)
                 assert(exec_time > last_exec_time);
                 last_exec_time = exec_time;
             }
-            
+
             sleep_time = ((sleep_time_s * 1000000000ULL) + sleep_time_ns);
 
             if (dbg_sanity_check_rdtsc) {
@@ -502,13 +500,12 @@ static int vcpu_loop(struct platform *p)
                 last_sleep_time = sleep_time;
             }
 
-
             tsc_f = (((double)exec_time + (double)sleep_time)
                      * (double)tsc_freq) / 1000000000ULL;
-            
+
             new_tsc = (uint64_t)tsc_f;
-            
-            {
+
+            if (dbg_sanity_check_rdtsc) {
                 static uint64_t last_tsc;
                 assert(new_tsc > last_tsc);
                 last_tsc = new_tsc;
@@ -576,6 +573,7 @@ int main(int argc, char **argv)
     uint64_t kernel_end;
     const char *prog;
     const char *elffile;
+    struct sigaction sa;
     int matched;
     int rc;
 
@@ -621,8 +619,7 @@ int main(int argc, char **argv)
     argc--;
     argv++;
 
-    struct sigaction sa;
-    memset (&sa, 0, sizeof (struct sigaction));
+    memset(&sa, 0, sizeof (struct sigaction));
     sa.sa_handler = sig_handler;
     sigfillset(&sa.sa_mask);
     if (sigaction(SIGINT, &sa, NULL) == -1)

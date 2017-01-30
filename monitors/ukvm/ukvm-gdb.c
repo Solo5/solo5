@@ -25,7 +25,7 @@ int platform_get_regs(struct platform *p, long *registers)
 {
             struct kvm_regs regs;
             int ret;
-            
+
             ret = ioctl(p->vcpu, KVM_GET_REGS, &regs);
             if (ret == -1)
                 err(1, "KVM_GET_REGS");

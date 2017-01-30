@@ -84,8 +84,8 @@ static int tap_attach(const char *dev)
     }
     /*
      * If we got back a different device than the one requested, e.g. because
-     * the caller mistakenly passed in '%d' (yes, that's really in the Linux API)
-     * then fail.
+     * the caller mistakenly passed in '%d' (yes, that's really in the Linux
+     * API) then fail.
      */
     if (strncmp(ifr.ifr_name, dev, IFNAMSIZ) != 0) {
         close(fd);
