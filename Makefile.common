@@ -17,10 +17,9 @@
 # CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 # Be clear about some common programs we use!
-AS=as
-CC=cc
-LD=ld
-OBJCOPY=objcopy
+CC?=cc
+LD?=ld
+OBJCOPY?=objcopy
 
 # This Makefile defines global defaults for building Solo5 (kernel/) and the
 # in-tree test programs. These can be overriden either on the command line, or
@@ -30,6 +29,6 @@ include $(TOP)/Makeconf
 # Exported to OPAM via pkg-config.
 MD_CFLAGS=$(HOST_CFLAGS) -ffreestanding -mno-red-zone
 # Likewise.
-LDFLAGS=-nostdlib -z max-page-size=0x1000 -static
+LDFLAGS=-z max-page-size=0x1000 -static
 # CFLAGS used for building kernel/ and in-tree tests.
 CFLAGS=$(MD_CFLAGS) -isystem $(TOP)/include-host -std=gnu99 -Wall -Wextra -Werror -O2 -g

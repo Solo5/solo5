@@ -25,12 +25,22 @@ die()
 
 cc_is_clang()
 {
-    ${CC:-cc} -v 2>&1 | grep -q "clang version"
+    ${CC:-cc} -v 2>&1 | grep -q "clang"
 }
 
 cc_is_gcc()
 {
     ${CC:-cc} -v 2>&1 | grep -q "^gcc version"
+}
+
+ld_is_x86_64_elf()
+{
+    ${LD:-ld} --help 2>&1 |grep "supported targets" 2>&1 | grep -q elf64-x86-64
+}
+
+objcopy_exists()
+{
+    ${OBJCOPY:-objcopy} --version 2>&1 | grep -q "GNU objcopy"
 }
 
 # Host-provided header files are installed here for in-tree builds. OPAM will
@@ -73,6 +83,47 @@ case $(uname -s) in
         for f in ${SRCS}; do cp -f ${INCDIR}/$f ${HOST_INCDIR}; done
 
         HOST_CFLAGS="-nostdlibinc"
+        BUILD_UKVM=
+        BUILD_VIRTIO="yes"
+        ;;
+    Darwin)
+        # On MacOSX we use clang and approximate the FreeBSD header
+        # copying.  While clang is good enough to build the kernel, we
+        # need a cross-linker that understands ELF, rather than
+        # Mach-O.  As of Jan 2016, the llvm linker was not able to
+        # link the unikernel, so we require a GNU binutils linker (and
+        # objcopy).
+        #
+        # Binutils from Homebrew does not contain ld, so you can build
+        # from source.  After downloading binutils source, do:
+        #
+        #   ./configure --prefix=/usr/local/opt/binutils-x86_64 \
+        #       --target=x86_64-elf --disable-nls --disable-werror
+        #    make
+        #    make install
+        #
+        # Then add the newly compiled cross-binutils to your path
+        #    export PATH="/usr/local/opt/binutils-x86_64/bin:$PATH"
+        cc_is_clang || die "Only 'clang' is supported on MacOSX"
+        ld_is_x86_64_elf || die "LD must be a cross-linker for elf64-x86-64." \
+                                "You may need to build GNU binutils from source."
+        objcopy_exists || die "OBJCOPY should point to GNU objcopy." \
+                              "You may need to build GNU binutils from source."
+        INCDIR=/usr/include
+        SRCS_MACH="machine/_types.h machine/endian.h \
+            machine/_limits.h"
+        SRCS_SYS="sys/cdefs.h"
+        SRCS_X86="i386/endian.h i386/_types.h i386/_limits.h"
+        SRCS="_types.h"
+
+        mkdir -p ${HOST_INCDIR}
+        mkdir -p ${HOST_INCDIR}/machine ${HOST_INCDIR}/sys ${HOST_INCDIR}/i386
+        for f in ${SRCS_MACH}; do cp -f ${INCDIR}/$f ${HOST_INCDIR}/machine; done
+        for f in ${SRCS_SYS}; do cp -f ${INCDIR}/$f ${HOST_INCDIR}/sys; done
+        for f in ${SRCS_X86}; do cp -f ${INCDIR}/$f ${HOST_INCDIR}/i386; done
+        for f in ${SRCS}; do cp -f ${INCDIR}/$f ${HOST_INCDIR}; done
+
+        HOST_CFLAGS="-nostdlibinc -target x86_64-elf"
         BUILD_UKVM=
         BUILD_VIRTIO="yes"
         ;;
