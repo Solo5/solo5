@@ -29,6 +29,6 @@ include $(TOP)/Makeconf
 # Exported to OPAM via pkg-config.
 MD_CFLAGS=$(HOST_CFLAGS) -ffreestanding -mno-red-zone
 # Likewise.
-LDFLAGS=-z max-page-size=0x1000 -static
+LDFLAGS=-nostdlib -z max-page-size=0x1000 -static
 # CFLAGS used for building kernel/ and in-tree tests.
 CFLAGS=$(MD_CFLAGS) -isystem $(TOP)/include-host -std=gnu99 -Wall -Wextra -Werror -O2 -g
