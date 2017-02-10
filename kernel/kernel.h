@@ -95,7 +95,7 @@ extern int intr_depth;
 
 /* mem.c: low-level page alloc routines */
 uint64_t mem_max_addr(void);
-void *sbrk(intptr_t increment);
+void *sbrk(ptrdiff_t increment);
 
 /* malloc.c: memory allocation */
 void *malloc(size_t bytes);
@@ -124,7 +124,6 @@ size_t strlen(const char *s);
 
 /* platform.c: specifics for ukvm or virito platform */
 void platform_exit(void) __attribute__((noreturn));
-int platform_puts(const char *buf, int n);
 
 /* platform_intr.c: platform-specific interrupt handling */
 void platform_intr_init(void);

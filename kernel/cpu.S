@@ -15,8 +15,10 @@
 # TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 # PERFORMANCE OF THIS SOFTWARE.
 
-#define ENTRY(x) .text; .globl x; .type x,%function; x:
-#define END(x)   .size x, . - x
+    ## define ENTRY(x) .text; .globl x; .type x,%function; x:
+#define ENTRY(x) .text; .globl x; x:
+   ## define END(x)   .size x, . - x
+#define END(x)   
 
 .text
 .code64

@@ -55,7 +55,7 @@ void mem_init(uint64_t size, uint64_t kernel_end)
 /*
  * Called by dlmalloc to allocate or free memory.
  */
-void *sbrk(intptr_t increment)
+void *sbrk(ptrdiff_t increment)
 {
     uint64_t prev, brk;
     uint64_t heap_max = (uint64_t)&prev - STACK_GUARD_SIZE;

@@ -41,7 +41,7 @@
 
 .macro TRAP_ENTRY trapno, has_ec
 .global cpu_trap_\trapno
-.type cpu_trap_\trapno, @function
+    ## .type cpu_trap_\trapno, @function 
 cpu_trap_\trapno:
     cld
 
@@ -67,7 +67,7 @@ cpu_trap_\trapno:
     
 .macro IRQ_ENTRY irqno
 .global cpu_irq_\irqno
-.type cpu_irq_\irqno, @function
+    ## .type cpu_irq_\irqno, @function
 cpu_irq_\irqno:
     cld
 

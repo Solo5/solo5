@@ -61,14 +61,6 @@
 #define EINVAL -1      /* Invalid argument */
 
 /*
- * Export Solo5 public interfaces defined in this file
- */
-void *solo5_malloc(size_t) __attribute__ ((alias ("malloc")));
-void solo5_free(void *) __attribute__ ((alias ("free")));
-void *solo5_calloc(size_t, size_t) __attribute__ ((alias ("calloc")));
-void *solo5_realloc(void *, size_t) __attribute__ ((alias ("realloc")));
-
-/*
   This is a version (aka dlmalloc) of malloc/free/realloc written by
   Doug Lea and released to the public domain, as explained at
   http://creativecommons.org/publicdomain/zero/1.0/ Send questions,
@@ -863,12 +855,15 @@ extern "C" {
 /* ------------------- Declarations of public routines ------------------- */
 
 #ifndef USE_DL_PREFIX
-#define dlcalloc               calloc
-#define dlfree                 free
-#define dlmalloc               malloc
+
+/* Export Solo5 public interfaces defined in this file */
+#define dlcalloc               solo5_calloc
+#define dlfree                 solo5_free
+#define dlmalloc               solo5_malloc
+#define dlrealloc              solo5_realloc
+
 #define dlmemalign             memalign
 #define dlposix_memalign       posix_memalign
-#define dlrealloc              realloc
 #define dlrealloc_in_place     realloc_in_place
 #define dlvalloc               valloc
 #define dlpvalloc              pvalloc
@@ -6044,3 +6039,5 @@ History:
          structure of old version,  but most details differ.)
 
 */
+
+

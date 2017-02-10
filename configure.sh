@@ -105,8 +105,8 @@ case $(uname -s) in
         # Then add the newly compiled cross-binutils to your path
         #    export PATH="/usr/local/opt/binutils-x86_64/bin:$PATH"
         cc_is_clang || die "Only 'clang' is supported on MacOSX"
-        ld_is_x86_64_elf || die "LD must be a cross-linker for elf64-x86-64." \
-                                "You may need to build GNU binutils from source."
+        # ld_is_x86_64_elf || die "LD must be a cross-linker for elf64-x86-64." \
+        #                         "You may need to build GNU binutils from source."
         objcopy_exists || die "OBJCOPY should point to GNU objcopy." \
                               "You may need to build GNU binutils from source."
         INCDIR=/usr/include
@@ -123,9 +123,10 @@ case $(uname -s) in
         for f in ${SRCS_X86}; do cp -f ${INCDIR}/$f ${HOST_INCDIR}/i386; done
         for f in ${SRCS}; do cp -f ${INCDIR}/$f ${HOST_INCDIR}; done
 
-        HOST_CFLAGS="-nostdlibinc -target x86_64-elf"
-        BUILD_UKVM=
-        BUILD_VIRTIO="yes"
+        #HOST_CFLAGS="-nostdlibinc -target x86_64-elf"
+        HOST_CFLAGS="-nostdlibinc"
+        BUILD_UKVM="yes"
+        BUILD_VIRTIO=
         ;;
     *)
         die "Unsupported build OS: $(uname -s)"
