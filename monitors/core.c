@@ -331,15 +331,15 @@ static void setup_system_page_tables(struct platform *p)
 
 static void setup_system_gdt(struct platform *p, uint64_t off)
 {
-	uint64_t *gdt_entry;
+    uint64_t *gdt_entry;
 
     gdt_entry = ((uint64_t *) (p->mem + off));
-	gdt_entry[0] = 0x0000000000000000;
-    gdt_entry[1] = 0x00af9b000000ffff;	/* 64bit CS		*/
-    gdt_entry[2] = 0x00cf9b000000ffff;	/* 32bit CS		*/
-    gdt_entry[3] = 0x00cf93000000ffff;	/* DS			*/
-	gdt_entry[4] = 0x0000000000000000;	/* TSS part 1 (via C)	*/
-	gdt_entry[5] = 0x0000000000000000;	/* TSS part 2 (via C)	*/
+    gdt_entry[0] = 0x0000000000000000;
+    gdt_entry[1] = 0x00af9b000000ffff;    /* 64bit CS */
+    gdt_entry[2] = 0x00cf9b000000ffff;    /* 32bit CS */
+    gdt_entry[3] = 0x00cf93000000ffff;    /* DS */
+    gdt_entry[4] = 0x0000000000000000;    /* TSS part 1 (via C) */
+    gdt_entry[5] = 0x0000000000000000;    /* TSS part 2 (via C) */
 
     platform_setup_system_gdt(p, BOOT_GDT_CODE, BOOT_GDT_DATA,
                               off, (sizeof(uint64_t) * BOOT_GDT_MAX) - 1);
@@ -642,5 +642,5 @@ int main(int argc, char **argv)
 
     rc = vcpu_loop(p);
     platform_cleanup(p);
-	return rc;
+    return rc;
 }
