@@ -29,15 +29,9 @@ void _start(struct ukvm_boot_info *bi)
     printf("\\__ \\ (   | | (   |  ) |\n");
     printf("____/\\___/ _|\\___/____/\n");
 
-    gdt_init();
     mem_init(bi->mem_size, bi->kernel_end);
-    intr_init();
 
-    /* for floating point */
-    cpu_sse_enable();
     time_init();
-
-    intr_enable();
 
     ret = solo5_app_main((char *)bi->cmdline);
     printf("Solo5: solo5_app_main() returned with %d\n", ret);

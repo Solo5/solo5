@@ -48,6 +48,6 @@ int solo5_poll(uint64_t until_nsecs)
     else
         t.timeout_nsecs = until_nsecs - now;
     outl(UKVM_PORT_POLL, ukvm_ptr(&t));
-    cc_barrier();
+    cpu_cc_barrier();
     return t.ret;
 }
