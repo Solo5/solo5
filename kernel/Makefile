@@ -76,7 +76,7 @@ virtio/solo5.o: $(VIRTIO_COBJS) virtio/solo5.lds
 
 ukvm/solo5.o: $(UKVM_COBJS) ukvm/solo5.lds
 	$(LD) -r $(LDFLAGS) -o $@ $(UKVM_COBJS)
-	$(OBJCOPY) -w -G solo5_\* -G _start $@ $@
+#	$(OBJCOPY) -w -G solo5_\* -G _start $@ $@
 
 .PHONY: clean
 clean:

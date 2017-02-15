@@ -39,10 +39,10 @@ Makefile.ukvm: $(UKVM_SRC)/ukvm-configure
 	$(UKVM_SRC)/ukvm-configure $(UKVM_SRC) $(UKVM_MODULES)
 
 -include Makefile.ukvm
+#	$(LD) -T $(SOLO5_DIR)/ukvm/solo5.lds \
 
 %.ukvm: %.o $(SOLO5_DIR)/ukvm/solo5.lds $(SOLO5_DIR)/ukvm/solo5.o
-	$(LD) -T $(SOLO5_DIR)/ukvm/solo5.lds \
-			 $(LDFLAGS) -o $@ $(SOLO5_DIR)/ukvm/solo5.o $< $(LDLIBS)
+	$(LD) $(LDFLAGS) -o $@ $(SOLO5_DIR)/ukvm/solo5.o $< $(LDLIBS)
 
 $(SOLO5_DIR)/ukvm/solo5.o: 
 	$(MAKE) -C $(SOLO5_DIR) ukvm
