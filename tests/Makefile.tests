@@ -42,7 +42,7 @@ Makefile.ukvm: $(UKVM_SRC)/ukvm-configure
 #	$(LD) -T $(SOLO5_DIR)/ukvm/solo5.lds \
 
 %.ukvm: %.o $(SOLO5_DIR)/ukvm/solo5.lds $(SOLO5_DIR)/ukvm/solo5.o
-	$(LD) $(LDFLAGS) -o $@ $(SOLO5_DIR)/ukvm/solo5.o $< $(LDLIBS)
+	$(LD) -e __start -segalign 1000 -seg1addr 100000 $(LDFLAGS) -o $@ $(SOLO5_DIR)/ukvm/solo5.o $< $(LDLIBS)
 
 $(SOLO5_DIR)/ukvm/solo5.o: 
 	$(MAKE) -C $(SOLO5_DIR) ukvm

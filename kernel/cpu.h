@@ -21,13 +21,23 @@
 #ifndef __CPU_H__
 #define __CPU_H__
 
-/* cpu.S: low-level CPU functions */
-void cpu_halt(void) __attribute__((noreturn));
-uint64_t cpu_rdtsc(void);
-
 /* compiler-only memory "barrier" */
 #define cpu_cc_barrier() __asm__ __volatile__("" : : : "memory")
 #define cpu_mfence_memory() __asm__ ("mfence" ::: "memory");
+
+static inline void cpu_halt(void) __attribute__((noreturn));
+static inline void cpu_halt(void) { 
+    for (;;)
+        __asm__("hlt");
+}
+
+static inline uint64_t cpu_rdtsc(void)
+{
+    uint32_t edx_, eax_;
+
+    __asm__("rdtsc" : "=a" (eax_), "=d" (edx_));
+    return (uint64_t)eax_ + ((uint64_t)edx_ << 32);
+}
 
 static inline void cpu_wrmsr(uint64_t a, uint32_t b, uint32_t c)
 {
@@ -54,6 +64,8 @@ static inline void cpu_x86_cpuid(uint32_t level,
     *ecx_out = ecx_;
     *edx_out = edx_;
 }
+
+
 
 static inline uint64_t cpu_mul64_32(uint64_t a, uint32_t b)
 {

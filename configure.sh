@@ -123,8 +123,8 @@ case $(uname -s) in
         for f in ${SRCS_X86}; do cp -f ${INCDIR}/$f ${HOST_INCDIR}/i386; done
         for f in ${SRCS}; do cp -f ${INCDIR}/$f ${HOST_INCDIR}; done
 
-        #HOST_CFLAGS="-nostdlibinc -target x86_64-elf"
-        HOST_CFLAGS="-nostdlibinc"
+        # Where is the stack protector library on OSX?
+        HOST_CFLAGS="-nostdlibinc -arch x86_64 -fno-stack-protector"
         BUILD_UKVM="yes"
         BUILD_VIRTIO=
         ;;

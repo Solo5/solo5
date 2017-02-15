@@ -41,11 +41,11 @@ void *memcpy(void *dst, const void *src, size_t size)
 
 void *memmove(void *dst, const void *src, size_t n)
 {
-    uint8_t *tmp = (uint8_t *)malloc(n);
+    uint8_t *tmp = (uint8_t *)solo5_malloc(n);
 
     memcpy(tmp, src, n);
     memcpy(dst, tmp, n);
-    free(tmp);
+    solo5_free(tmp);
 
     return dst;
 }
