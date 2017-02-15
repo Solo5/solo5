@@ -21,9 +21,7 @@ include $(TOP)/Makefile.common
 COMMON_COBJS=\
 abort.o \
 cpu.o \
-cpu_vectors.o \
 ee_printf.o \
-intr.o \
 lib.o \
 malloc.o \
 exit.o \
@@ -31,18 +29,19 @@ pvclock.o
 
 UKVM_COBJS=\
 ukvm/kernel.o \
-ukvm/gdt.o \
 ukvm/io.o \
 ukvm/platform.o \
-ukvm/platform_intr.o \
 ukvm/mem.o \
 ukvm/time.o \
 $(COMMON_COBJS)
 
 VIRTIO_COBJS=\
 virtio/boot.o \
+virtio/cpu.o \
+virtio/cpu_vectors.o \
 virtio/kernel.o \
 virtio/platform.o \
+virtio/intr.o \
 virtio/platform_intr.o \
 virtio/mem.o \
 virtio/pci.o \

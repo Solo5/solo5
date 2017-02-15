@@ -42,19 +42,26 @@
  */
 #define X86_EFLAGS_CF	0x00000001 /* Carry Flag */
 
-/*
- * Basic CPU control in CR0
- */
-#define X86_CR0_PE_BIT		0 /* Protection Enable */
-#define X86_CR0_PE		_BITUL(X86_CR0_PE_BIT)
-#define X86_CR0_PG_BIT		31 /* Paging */
-#define X86_CR0_PG		_BITUL(X86_CR0_PG_BIT)
+
 
 /*
- * Intel CPU features in CR4
+ * CPU control registers
  */
-#define X86_CR4_PAE_BIT		5 /* enable physical address extensions */
-#define X86_CR4_PAE		_BITUL(X86_CR4_PAE_BIT)
+#define X86_CR0_PE 0x00000001 /* Protected mode Enable */
+#define X86_CR0_NE 0x00000020 /* Numeric Error enable (EX16 vs IRQ13) */
+#define X86_CR0_PG 0x80000000 /* PaGing enable */
+#define X86_CR0_NW 0x20000000 /* Not Write-through */
+#define X86_CR0_CD 0x40000000 /* Cache Disable */
+#define X86_CR0_MP 0x00000002 /* "Math" (fpu) Present */
+#define X86_CR0_EM 0x00000004 /* EMulate FPU instructions. (trap ESC only) */
+
+#define X86_CR4_PAE 0x00000020 /* Physical address extension */
+#define X86_CR4_VMXE 0x00002000 /* enable VMX operation (Intel-specific) */
+#define X86_CR4_FXSR 0x00000200 /* Fast FPU save/restore used by OS */
+#define X86_CR4_XMM 0x00000400 /* enable SIMD/MMX2 to use except 16 */
+
+#define X86_EFER_LME 0x000000100 /* Long mode enable (R/W) */
+#define X86_EFER_LMA 0x000000400 /* Long mode active (R) */
 
 /*
  * Intel long mode page directory/table entries

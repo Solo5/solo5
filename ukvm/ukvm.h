@@ -27,6 +27,12 @@ struct ukvm_boot_info {
     uint64_t cmdline;		/* Address of command line (C string) */
 };
 
+/* On x86, I/O ports are used for hypercalls to ukvm. */
+static inline void outl(uint16_t port, uint32_t v)
+{
+    __asm__ __volatile__("outl %0,%1" : : "a" (v), "dN" (port));
+}
+
 /*
  * We can only send 32 bits via ports, so sending pointers will only
  * work for 32-bit addresses.  If we have unikernels with more than
