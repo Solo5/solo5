@@ -654,26 +654,6 @@ MAX_RELEASE_CHECK_RATE   default: 4095 unless not HAVE_MMAP
 /* The maximum possible size_t value has all bits set */
 #define MAX_SIZE_T           (~(size_t)0)
 
-#ifndef USE_LOCKS /* ensure true if spin or recursive locks set */
-#define USE_LOCKS  ((defined(USE_SPIN_LOCKS) && USE_SPIN_LOCKS != 0) || \
-                    (defined(USE_RECURSIVE_LOCKS) && USE_RECURSIVE_LOCKS != 0))
-#endif /* USE_LOCKS */
-
-#if USE_LOCKS /* Spin locks for gcc >= 4.1, older gcc on x86, MSC >= 1310 */
-#if ((defined(__GNUC__) &&                                              \
-      ((__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 1)) ||      \
-       defined(__i386__) || defined(__x86_64__))) ||                    \
-     (defined(_MSC_VER) && _MSC_VER>=1310))
-#ifndef USE_SPIN_LOCKS
-#define USE_SPIN_LOCKS 1
-#endif /* USE_SPIN_LOCKS */
-#elif USE_SPIN_LOCKS
-#error "USE_SPIN_LOCKS defined without implementation"
-#endif /* ... locks available... */
-#elif !defined(USE_SPIN_LOCKS)
-#define USE_SPIN_LOCKS 0
-#endif /* USE_LOCKS */
-
 #ifndef ONLY_MSPACES
 #define ONLY_MSPACES 0
 #endif  /* ONLY_MSPACES */
@@ -1560,39 +1540,6 @@ extern void*     sbrk(ptrdiff_t);
 #endif /* LACKS_UNISTD_H */
 
 /* Declarations for locking */
-#if USE_LOCKS
-#ifndef WIN32
-#if defined (__SVR4) && defined (__sun)  /* solaris */
-#include <thread.h>
-#elif !defined(LACKS_SCHED_H)
-#include <sched.h>
-#endif /* solaris or LACKS_SCHED_H */
-#if (defined(USE_RECURSIVE_LOCKS) && USE_RECURSIVE_LOCKS != 0) || !USE_SPIN_LOCKS
-#include <pthread.h>
-#endif /* USE_RECURSIVE_LOCKS ... */
-#elif defined(_MSC_VER)
-#ifndef _M_AMD64
-/* These are already defined on AMD64 builds */
-#ifdef __cplusplus
-extern "C" {
-#endif /* __cplusplus */
-LONG __cdecl _InterlockedCompareExchange(LONG volatile *Dest, LONG Exchange, LONG Comp);
-LONG __cdecl _InterlockedExchange(LONG volatile *Target, LONG Value);
-#ifdef __cplusplus
-}
-#endif /* __cplusplus */
-#endif /* _M_AMD64 */
-#pragma intrinsic (_InterlockedCompareExchange)
-#pragma intrinsic (_InterlockedExchange)
-#define interlockedcompareexchange _InterlockedCompareExchange
-#define interlockedexchange _InterlockedExchange
-#elif defined(WIN32) && defined(__GNUC__)
-#define interlockedcompareexchange(a, b, c) __sync_val_compare_and_swap(a, c, b)
-#define interlockedexchange __sync_lock_test_and_set
-#endif /* Win32 */
-#else /* USE_LOCKS */
-#endif /* USE_LOCKS */
-
 #ifndef LOCK_AT_FORK
 #define LOCK_AT_FORK 0
 #endif
@@ -1870,6 +1817,7 @@ static FORCEINLINE int win32munmap(void* ptr, size_t size) {
 
 */
 
+/* For Solo5, we don't USE_LOCKS */
 #define USE_LOCK_BIT               (0U)
 #define INITIAL_LOCK(l)            (0)
 #define DESTROY_LOCK(l)            (0)
@@ -2425,9 +2373,6 @@ struct malloc_state {
   size_t     max_footprint;
   size_t     footprint_limit; /* zero means no limit */
   flag_t     mflags;
-#if USE_LOCKS
-  MLOCK_T    mutex;     /* locate lock among fields that rarely change */
-#endif /* USE_LOCKS */
   msegment   seg;
   void*      extp;      /* Unused but available for extensions */
   size_t     exts;
@@ -2475,11 +2420,8 @@ static struct malloc_state _gm_;
 
 #define use_lock(M)           ((M)->mflags &   USE_LOCK_BIT)
 #define enable_lock(M)        ((M)->mflags |=  USE_LOCK_BIT)
-#if USE_LOCKS
-#define disable_lock(M)       ((M)->mflags &= ~USE_LOCK_BIT)
-#else
 #define disable_lock(M)
-#endif
+
 
 #define use_mmap(M)           ((M)->mflags &   USE_MMAP_BIT)
 #define enable_mmap(M)        ((M)->mflags |=  USE_MMAP_BIT)
@@ -2571,11 +2513,6 @@ static int has_segment_link(mstate m, msegmentptr ss) {
   anything you like.
 */
 
-#if USE_LOCKS
-#define PREACTION(M)  ((use_lock(M))? ACQUIRE_LOCK(&(M)->mutex) : 0)
-#define POSTACTION(M) { if (use_lock(M)) RELEASE_LOCK(&(M)->mutex); }
-#else /* USE_LOCKS */
-
 #ifndef PREACTION
 #define PREACTION(M) (0)
 #endif  /* PREACTION */
@@ -2583,8 +2520,6 @@ static int has_segment_link(mstate m, msegmentptr ss) {
 #ifndef POSTACTION
 #define POSTACTION(M)
 #endif  /* POSTACTION */
-
-#endif /* USE_LOCKS */
 
 /*
   CORRUPTION_ERROR_ACTION is triggered upon detected bad addresses.
@@ -4393,10 +4328,6 @@ void* dlmalloc(size_t bytes) {
 
      The ugly goto's here ensure that postaction occurs along all paths.
   */
-
-#if USE_LOCKS
-  ensure_initialization(); /* initialize in sys_alloc if not using locks */
-#endif
 
   if (!PREACTION(gm)) {
     void* mem;
