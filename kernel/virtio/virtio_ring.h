@@ -1,5 +1,3 @@
-#ifndef VIRTQUEUE_H
-#define VIRTQUEUE_H
 /* An interface for efficient virtio implementation.
  *
  * This header is BSD licensed so anyone can use the definitions
@@ -32,6 +30,9 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
+#ifndef VIRTQUEUE_H
+#define VIRTQUEUE_H
+
 typedef uint16_t le16;
 typedef uint32_t le32;
 typedef uint64_t le64;

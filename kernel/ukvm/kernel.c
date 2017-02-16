@@ -1,5 +1,7 @@
-/* Copyright (c) 2015, IBM
- * Author(s): Dan Williams <djwillia@us.ibm.com>
+/* 
+ * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
+ *
+ * This file is part of Solo5, a unikernel base layer.
  *
  * Permission to use, copy, modify, and/or distribute this software
  * for any purpose with or without fee is hereby granted, provided
@@ -41,15 +43,8 @@ void _start(struct ukvm_boot_info *bi)
     unsigned default_mxcsr = 0x1f80;
     __asm__ __volatile__("ldmxcsr %0\n" : : "m"(default_mxcsr));
 
-    //gdt_init();
     mem_init(bi->mem_size, bi->kernel_end);
-    //intr_init();
-
-    /* for floating point */
-    //cpu_sse_enable();
     time_init();
-
-    intr_enable();
 
     ret = solo5_app_main((char *)bi->cmdline);
     printf("Solo5: solo5_app_main() returned with %d\n", ret);

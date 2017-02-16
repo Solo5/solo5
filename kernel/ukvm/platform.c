@@ -1,5 +1,7 @@
-/* Copyright (c) 2016, IBM
- * Author(s): Dan Williams <djwillia@us.ibm.com>
+/* 
+ * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
+ *
+ * This file is part of Solo5, a unikernel base layer.
  *
  * Permission to use, copy, modify, and/or distribute this software
  * for any purpose with or without fee is hereby granted, provided
@@ -26,7 +28,7 @@ void platform_exit(void)
     cpu_halt();
 }
 
-int platform_puts(const char *buf, int n)
+static inline int platform_puts(const char *buf, size_t n)
 {
     struct ukvm_puts str;
 
@@ -38,5 +40,6 @@ int platform_puts(const char *buf, int n)
     return str.len;
 }
 
-int solo5_console_write(const char *, size_t)
-    __attribute__ ((alias("platform_puts")));
+int solo5_console_write(const char *buf, size_t n) {
+    return platform_puts(buf, n);
+}

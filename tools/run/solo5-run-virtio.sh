@@ -1,4 +1,24 @@
 #!/bin/sh
+# Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
+#
+# This file is part of Solo5, a unikernel base layer.
+#
+# Permission to use, copy, modify, and/or distribute this software
+# for any purpose with or without fee is hereby granted, provided
+# that the above copyright notice and this permission notice appear
+# in all copies.
+#
+# THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
+# WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
+# WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
+# AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR
+# CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS
+# OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT,
+# NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
+# CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+
+READLINK=${READLINK:-readlink}
+
 usage ()
 {
     cat <<EOM 1>&2
@@ -26,6 +46,11 @@ die ()
     exit 1
 }
 
+have_readlink_f ()
+{
+    ${READLINK:-readlink} -f . > /dev/null 2>&1 
+}
+
 hv_addargs ()
 {
     if [ -z "${HVCMD}" ]; then
@@ -40,6 +65,9 @@ is_quiet ()
     [ -n "${QUIET}" ]
 }
 
+have_readlink_f || die "Please set the env var READLINK to a" \
+                       "'readlink' program that supports -f"
+
 # Parse command line arguments.
 ARGS=$(getopt d:m:n:qH: $*)
 [ $? -ne 0 ] && usage
@@ -52,7 +80,7 @@ QUIET=
 while true; do
     case "$1" in
     -d)
-        BLKIMG=$(readlink -f $2)
+        BLKIMG=$(${READLINK} -f $2)
         [ -f ${BLKIMG} ] || die "not found: ${BLKIMG}"
         shift; shift
         ;;
@@ -80,7 +108,7 @@ while true; do
 done
 [ $# -lt 1 ] && usage
 
-UNIKERNEL=$(readlink -f $1)
+UNIKERNEL=$(${READLINK} -f $1)
 [ -n "${UNIKERNEL}" -a -f "${UNIKERNEL}" ] || die "not found: $1}"
 shift
 VMNAME=vm$$
@@ -101,6 +129,9 @@ if [ "${HV}" = "best" ]; then
         [ $(id -u) -eq 0 ] || die "Root privileges required for bhyve"
         type grub-bhyve >/dev/null 2>&1 \
             || die "Please install grub-bhyve from ports"
+        ;;
+    Darwin)
+        HV=qemu
         ;;
     *)
         die "unsupported os: ${SYS}"

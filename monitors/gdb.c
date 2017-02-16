@@ -1,6 +1,7 @@
-/* Copyright (c) 2015, IBM
- * Author(s): Dan Williams <djwillia@us.ibm.com>
- *            Ricardo Koller <kollerr@us.ibm.com>
+/* 
+ * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
+ *
+ * This file is part of ukvm, a unikernel monitor.
  *
  * Permission to use, copy, modify, and/or distribute this software
  * for any purpose with or without fee is hereby granted, provided

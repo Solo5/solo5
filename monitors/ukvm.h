@@ -1,6 +1,7 @@
-/* Copyright (c) 2015, IBM
- * Author(s): Dan Williams <djwillia@us.ibm.com>
- *            Ricardo Koller <kollerr@us.ibm.com>
+/* 
+ * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
+ *
+ * This file is part of ukvm, a unikernel monitor.
  *
  * Permission to use, copy, modify, and/or distribute this software
  * for any purpose with or without fee is hereby granted, provided
@@ -25,6 +26,12 @@ struct ukvm_boot_info {
     uint64_t kernel_end;	/* Address of end of kernel */
     uint64_t cmdline;		/* Address of command line (C string) */
 };
+
+/* On x86, I/O ports are used for hypercalls to ukvm. */
+static inline void outl(uint16_t port, uint32_t v)
+{
+    __asm__ __volatile__("outl %0,%1" : : "a" (v), "dN" (port));
+}
 
 /*
  * We can only send 32 bits via ports, so sending pointers will only

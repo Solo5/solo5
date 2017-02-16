@@ -1,5 +1,7 @@
-/* Copyright (c) 2015, IBM
- * Author(s): Dan Williams <djwillia@us.ibm.com>
+/* 
+ * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
+ *
+ * This file is part of Solo5, a unikernel base layer.
  *
  * Permission to use, copy, modify, and/or distribute this software
  * for any purpose with or without fee is hereby granted, provided
@@ -47,6 +49,6 @@ int solo5_poll(uint64_t until_nsecs)
     else
         t.timeout_nsecs = until_nsecs - now;
     outl(UKVM_PORT_POLL, ukvm_ptr(&t));
-    cc_barrier();
+    cpu_cc_barrier();
     return t.ret;
 }

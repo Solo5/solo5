@@ -1,5 +1,7 @@
-/* Copyright (c) 2015, IBM
- * Author(s): Dan Williams <djwillia@us.ibm.com>
+/* 
+ * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
+ *
+ * This file is part of Solo5, a unikernel base layer.
  *
  * Permission to use, copy, modify, and/or distribute this software
  * for any purpose with or without fee is hereby granted, provided
@@ -39,11 +41,11 @@ void *memcpy(void *dst, const void *src, size_t size)
 
 void *memmove(void *dst, const void *src, size_t n)
 {
-    uint8_t *tmp = (uint8_t *)malloc(n);
+    uint8_t *tmp = (uint8_t *)solo5_malloc(n);
 
     memcpy(tmp, src, n);
     memcpy(dst, tmp, n);
-    free(tmp);
+    solo5_free(tmp);
 
     return dst;
 }

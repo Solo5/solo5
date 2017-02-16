@@ -1,7 +1,7 @@
-#ifndef VIRTIO_PCI_H
-#define VIRTIO_PCI_H
-/* Copyright (c) 2015, IBM
- * Author(s): Dan Williams <djwillia@us.ibm.com>
+/* 
+ * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
+ *
+ * This file is part of Solo5, a unikernel base layer.
  *
  * Permission to use, copy, modify, and/or distribute this software
  * for any purpose with or without fee is hereby granted, provided
@@ -17,6 +17,9 @@
  * NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
+
+#ifndef VIRTIO_PCI_H
+#define VIRTIO_PCI_H
 
 /* virtio config space layout */
 #define VIRTIO_PCI_HOST_FEATURES        0    /* 32-bit r/o */

@@ -1,3 +1,23 @@
+/* 
+ * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
+ *
+ * This file is part of Solo5, a unikernel base layer.
+ *
+ * Permission to use, copy, modify, and/or distribute this software
+ * for any purpose with or without fee is hereby granted, provided
+ * that the above copyright notice and this permission notice appear
+ * in all copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
+ * WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
+ * AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR
+ * CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS
+ * OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT,
+ * NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
+ * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ */
+
 #include "kernel.h"
 
 /*
@@ -39,14 +59,6 @@
 /* return values from posix_memalign() */
 #define ENOMEM -1      /* Out of memory */
 #define EINVAL -1      /* Invalid argument */
-
-/*
- * Export Solo5 public interfaces defined in this file
- */
-void *solo5_malloc(size_t) __attribute__ ((alias ("malloc")));
-void solo5_free(void *) __attribute__ ((alias ("free")));
-void *solo5_calloc(size_t, size_t) __attribute__ ((alias ("calloc")));
-void *solo5_realloc(void *, size_t) __attribute__ ((alias ("realloc")));
 
 /*
   This is a version (aka dlmalloc) of malloc/free/realloc written by
@@ -634,26 +646,6 @@ MAX_RELEASE_CHECK_RATE   default: 4095 unless not HAVE_MMAP
 /* The maximum possible size_t value has all bits set */
 #define MAX_SIZE_T           (~(size_t)0)
 
-#ifndef USE_LOCKS /* ensure true if spin or recursive locks set */
-#define USE_LOCKS  ((defined(USE_SPIN_LOCKS) && USE_SPIN_LOCKS != 0) || \
-                    (defined(USE_RECURSIVE_LOCKS) && USE_RECURSIVE_LOCKS != 0))
-#endif /* USE_LOCKS */
-
-#if USE_LOCKS /* Spin locks for gcc >= 4.1, older gcc on x86, MSC >= 1310 */
-#if ((defined(__GNUC__) &&                                              \
-      ((__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 1)) ||      \
-       defined(__i386__) || defined(__x86_64__))) ||                    \
-     (defined(_MSC_VER) && _MSC_VER>=1310))
-#ifndef USE_SPIN_LOCKS
-#define USE_SPIN_LOCKS 1
-#endif /* USE_SPIN_LOCKS */
-#elif USE_SPIN_LOCKS
-#error "USE_SPIN_LOCKS defined without implementation"
-#endif /* ... locks available... */
-#elif !defined(USE_SPIN_LOCKS)
-#define USE_SPIN_LOCKS 0
-#endif /* USE_LOCKS */
-
 #ifndef ONLY_MSPACES
 #define ONLY_MSPACES 0
 #endif  /* ONLY_MSPACES */
@@ -863,12 +855,15 @@ extern "C" {
 /* ------------------- Declarations of public routines ------------------- */
 
 #ifndef USE_DL_PREFIX
-#define dlcalloc               calloc
-#define dlfree                 free
-#define dlmalloc               malloc
+
+/* Export Solo5 public interfaces defined in this file */
+#define dlcalloc               solo5_calloc
+#define dlfree                 solo5_free
+#define dlmalloc               solo5_malloc
+#define dlrealloc              solo5_realloc
+
 #define dlmemalign             memalign
 #define dlposix_memalign       posix_memalign
-#define dlrealloc              realloc
 #define dlrealloc_in_place     realloc_in_place
 #define dlvalloc               valloc
 #define dlpvalloc              pvalloc
@@ -1540,39 +1535,6 @@ extern void*     sbrk(ptrdiff_t);
 #endif /* LACKS_UNISTD_H */
 
 /* Declarations for locking */
-#if USE_LOCKS
-#ifndef WIN32
-#if defined (__SVR4) && defined (__sun)  /* solaris */
-#include <thread.h>
-#elif !defined(LACKS_SCHED_H)
-#include <sched.h>
-#endif /* solaris or LACKS_SCHED_H */
-#if (defined(USE_RECURSIVE_LOCKS) && USE_RECURSIVE_LOCKS != 0) || !USE_SPIN_LOCKS
-#include <pthread.h>
-#endif /* USE_RECURSIVE_LOCKS ... */
-#elif defined(_MSC_VER)
-#ifndef _M_AMD64
-/* These are already defined on AMD64 builds */
-#ifdef __cplusplus
-extern "C" {
-#endif /* __cplusplus */
-LONG __cdecl _InterlockedCompareExchange(LONG volatile *Dest, LONG Exchange, LONG Comp);
-LONG __cdecl _InterlockedExchange(LONG volatile *Target, LONG Value);
-#ifdef __cplusplus
-}
-#endif /* __cplusplus */
-#endif /* _M_AMD64 */
-#pragma intrinsic (_InterlockedCompareExchange)
-#pragma intrinsic (_InterlockedExchange)
-#define interlockedcompareexchange _InterlockedCompareExchange
-#define interlockedexchange _InterlockedExchange
-#elif defined(WIN32) && defined(__GNUC__)
-#define interlockedcompareexchange(a, b, c) __sync_val_compare_and_swap(a, c, b)
-#define interlockedexchange __sync_lock_test_and_set
-#endif /* Win32 */
-#else /* USE_LOCKS */
-#endif /* USE_LOCKS */
-
 #ifndef LOCK_AT_FORK
 #define LOCK_AT_FORK 0
 #endif
@@ -1850,248 +1812,12 @@ static FORCEINLINE int win32munmap(void* ptr, size_t size) {
 
 */
 
-#if !USE_LOCKS
+/* For Solo5, we don't USE_LOCKS */
 #define USE_LOCK_BIT               (0U)
 #define INITIAL_LOCK(l)            (0)
 #define DESTROY_LOCK(l)            (0)
 #define ACQUIRE_MALLOC_GLOBAL_LOCK()
 #define RELEASE_MALLOC_GLOBAL_LOCK()
-
-#else
-#if USE_LOCKS > 1
-/* -----------------------  User-defined locks ------------------------ */
-/* Define your own lock implementation here */
-/* #define INITIAL_LOCK(lk)  ... */
-/* #define DESTROY_LOCK(lk)  ... */
-/* #define ACQUIRE_LOCK(lk)  ... */
-/* #define RELEASE_LOCK(lk)  ... */
-/* #define TRY_LOCK(lk) ... */
-/* static MLOCK_T malloc_global_mutex = ... */
-
-#elif USE_SPIN_LOCKS
-
-/* First, define CAS_LOCK and CLEAR_LOCK on ints */
-/* Note CAS_LOCK defined to return 0 on success */
-
-#if defined(__GNUC__)&& (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 1))
-#define CAS_LOCK(sl)     __sync_lock_test_and_set(sl, 1)
-#define CLEAR_LOCK(sl)   __sync_lock_release(sl)
-
-#elif (defined(__GNUC__) && (defined(__i386__) || defined(__x86_64__)))
-/* Custom spin locks for older gcc on x86 */
-static FORCEINLINE int x86_cas_lock(int *sl) {
-  int ret;
-  int val = 1;
-  int cmp = 0;
-  __asm__ __volatile__  ("lock; cmpxchgl %1, %2"
-                         : "=a" (ret)
-                         : "r" (val), "m" (*(sl)), "0"(cmp)
-                         : "memory", "cc");
-  return ret;
-}
-
-static FORCEINLINE void x86_clear_lock(int* sl) {
-  assert(*sl != 0);
-  int prev = 0;
-  int ret;
-  __asm__ __volatile__ ("lock; xchgl %0, %1"
-                        : "=r" (ret)
-                        : "m" (*(sl)), "0"(prev)
-                        : "memory");
-}
-
-#define CAS_LOCK(sl)     x86_cas_lock(sl)
-#define CLEAR_LOCK(sl)   x86_clear_lock(sl)
-
-#else /* Win32 MSC */
-#define CAS_LOCK(sl)     interlockedexchange(sl, (LONG)1)
-#define CLEAR_LOCK(sl)   interlockedexchange (sl, (LONG)0)
-
-#endif /* ... gcc spins locks ... */
-
-/* How to yield for a spin lock */
-#define SPINS_PER_YIELD       63
-#if defined(_MSC_VER)
-#define SLEEP_EX_DURATION     50 /* delay for yield/sleep */
-#define SPIN_LOCK_YIELD  SleepEx(SLEEP_EX_DURATION, FALSE)
-#elif defined (__SVR4) && defined (__sun) /* solaris */
-#define SPIN_LOCK_YIELD   thr_yield();
-#elif !defined(LACKS_SCHED_H)
-#define SPIN_LOCK_YIELD   sched_yield();
-#else
-#define SPIN_LOCK_YIELD
-#endif /* ... yield ... */
-
-#if !defined(USE_RECURSIVE_LOCKS) || USE_RECURSIVE_LOCKS == 0
-/* Plain spin locks use single word (embedded in malloc_states) */
-static int spin_acquire_lock(int *sl) {
-  int spins = 0;
-  while (*(volatile int *)sl != 0 || CAS_LOCK(sl)) {
-    if ((++spins & SPINS_PER_YIELD) == 0) {
-      SPIN_LOCK_YIELD;
-    }
-  }
-  return 0;
-}
-
-#define MLOCK_T               int
-#define TRY_LOCK(sl)          !CAS_LOCK(sl)
-#define RELEASE_LOCK(sl)      CLEAR_LOCK(sl)
-#define ACQUIRE_LOCK(sl)      (CAS_LOCK(sl)? spin_acquire_lock(sl) : 0)
-#define INITIAL_LOCK(sl)      (*sl = 0)
-#define DESTROY_LOCK(sl)      (0)
-static MLOCK_T malloc_global_mutex = 0;
-
-#else /* USE_RECURSIVE_LOCKS */
-/* types for lock owners */
-#ifdef WIN32
-#define THREAD_ID_T           DWORD
-#define CURRENT_THREAD        GetCurrentThreadId()
-#define EQ_OWNER(X,Y)         ((X) == (Y))
-#else
-/*
-  Note: the following assume that pthread_t is a type that can be
-  initialized to (casted) zero. If this is not the case, you will need to
-  somehow redefine these or not use spin locks.
-*/
-#define THREAD_ID_T           pthread_t
-#define CURRENT_THREAD        pthread_self()
-#define EQ_OWNER(X,Y)         pthread_equal(X, Y)
-#endif
-
-struct malloc_recursive_lock {
-  int sl;
-  unsigned int c;
-  THREAD_ID_T threadid;
-};
-
-#define MLOCK_T  struct malloc_recursive_lock
-static MLOCK_T malloc_global_mutex = { 0, 0, (THREAD_ID_T)0};
-
-static FORCEINLINE void recursive_release_lock(MLOCK_T *lk) {
-  assert(lk->sl != 0);
-  if (--lk->c == 0) {
-    CLEAR_LOCK(&lk->sl);
-  }
-}
-
-static FORCEINLINE int recursive_acquire_lock(MLOCK_T *lk) {
-  THREAD_ID_T mythreadid = CURRENT_THREAD;
-  int spins = 0;
-  for (;;) {
-    if (*((volatile int *)(&lk->sl)) == 0) {
-      if (!CAS_LOCK(&lk->sl)) {
-        lk->threadid = mythreadid;
-        lk->c = 1;
-        return 0;
-      }
-    }
-    else if (EQ_OWNER(lk->threadid, mythreadid)) {
-      ++lk->c;
-      return 0;
-    }
-    if ((++spins & SPINS_PER_YIELD) == 0) {
-      SPIN_LOCK_YIELD;
-    }
-  }
-}
-
-static FORCEINLINE int recursive_try_lock(MLOCK_T *lk) {
-  THREAD_ID_T mythreadid = CURRENT_THREAD;
-  if (*((volatile int *)(&lk->sl)) == 0) {
-    if (!CAS_LOCK(&lk->sl)) {
-      lk->threadid = mythreadid;
-      lk->c = 1;
-      return 1;
-    }
-  }
-  else if (EQ_OWNER(lk->threadid, mythreadid)) {
-    ++lk->c;
-    return 1;
-  }
-  return 0;
-}
-
-#define RELEASE_LOCK(lk)      recursive_release_lock(lk)
-#define TRY_LOCK(lk)          recursive_try_lock(lk)
-#define ACQUIRE_LOCK(lk)      recursive_acquire_lock(lk)
-#define INITIAL_LOCK(lk)      ((lk)->threadid = (THREAD_ID_T)0, (lk)->sl = 0, (lk)->c = 0)
-#define DESTROY_LOCK(lk)      (0)
-#endif /* USE_RECURSIVE_LOCKS */
-
-#elif defined(WIN32) /* Win32 critical sections */
-#define MLOCK_T               CRITICAL_SECTION
-#define ACQUIRE_LOCK(lk)      (EnterCriticalSection(lk), 0)
-#define RELEASE_LOCK(lk)      LeaveCriticalSection(lk)
-#define TRY_LOCK(lk)          TryEnterCriticalSection(lk)
-#define INITIAL_LOCK(lk)      (!InitializeCriticalSectionAndSpinCount((lk), 0x80000000|4000))
-#define DESTROY_LOCK(lk)      (DeleteCriticalSection(lk), 0)
-#define NEED_GLOBAL_LOCK_INIT
-
-static MLOCK_T malloc_global_mutex;
-static volatile LONG malloc_global_mutex_status;
-
-/* Use spin loop to initialize global lock */
-static void init_malloc_global_mutex() {
-  for (;;) {
-    long stat = malloc_global_mutex_status;
-    if (stat > 0)
-      return;
-    /* transition to < 0 while initializing, then to > 0) */
-    if (stat == 0 &&
-        interlockedcompareexchange(&malloc_global_mutex_status, (LONG)-1, (LONG)0) == 0) {
-      InitializeCriticalSection(&malloc_global_mutex);
-      interlockedexchange(&malloc_global_mutex_status, (LONG)1);
-      return;
-    }
-    SleepEx(0, FALSE);
-  }
-}
-
-#else /* pthreads-based locks */
-#define MLOCK_T               pthread_mutex_t
-#define ACQUIRE_LOCK(lk)      pthread_mutex_lock(lk)
-#define RELEASE_LOCK(lk)      pthread_mutex_unlock(lk)
-#define TRY_LOCK(lk)          (!pthread_mutex_trylock(lk))
-#define INITIAL_LOCK(lk)      pthread_init_lock(lk)
-#define DESTROY_LOCK(lk)      pthread_mutex_destroy(lk)
-
-#if defined(USE_RECURSIVE_LOCKS) && USE_RECURSIVE_LOCKS != 0 && defined(linux) && !defined(PTHREAD_MUTEX_RECURSIVE)
-/* Cope with old-style linux recursive lock initialization by adding */
-/* skipped internal declaration from pthread.h */
-extern int pthread_mutexattr_setkind_np __P ((pthread_mutexattr_t *__attr,
-                                              int __kind));
-#define PTHREAD_MUTEX_RECURSIVE PTHREAD_MUTEX_RECURSIVE_NP
-#define pthread_mutexattr_settype(x,y) pthread_mutexattr_setkind_np(x,y)
-#endif /* USE_RECURSIVE_LOCKS ... */
-
-static MLOCK_T malloc_global_mutex = PTHREAD_MUTEX_INITIALIZER;
-
-static int pthread_init_lock (MLOCK_T *lk) {
-  pthread_mutexattr_t attr;
-  if (pthread_mutexattr_init(&attr)) return 1;
-#if defined(USE_RECURSIVE_LOCKS) && USE_RECURSIVE_LOCKS != 0
-  if (pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE)) return 1;
-#endif
-  if (pthread_mutex_init(lk, &attr)) return 1;
-  if (pthread_mutexattr_destroy(&attr)) return 1;
-  return 0;
-}
-
-#endif /* ... lock types ... */
-
-/* Common code for all lock types */
-#define USE_LOCK_BIT               (2U)
-
-#ifndef ACQUIRE_MALLOC_GLOBAL_LOCK
-#define ACQUIRE_MALLOC_GLOBAL_LOCK()  ACQUIRE_LOCK(&malloc_global_mutex);
-#endif
-
-#ifndef RELEASE_MALLOC_GLOBAL_LOCK
-#define RELEASE_MALLOC_GLOBAL_LOCK()  RELEASE_LOCK(&malloc_global_mutex);
-#endif
-
-#endif /* USE_LOCKS */
 
 /* -----------------------  Chunk representations ------------------------ */
 
@@ -2642,9 +2368,6 @@ struct malloc_state {
   size_t     max_footprint;
   size_t     footprint_limit; /* zero means no limit */
   flag_t     mflags;
-#if USE_LOCKS
-  MLOCK_T    mutex;     /* locate lock among fields that rarely change */
-#endif /* USE_LOCKS */
   msegment   seg;
   void*      extp;      /* Unused but available for extensions */
   size_t     exts;
@@ -2692,11 +2415,8 @@ static struct malloc_state _gm_;
 
 #define use_lock(M)           ((M)->mflags &   USE_LOCK_BIT)
 #define enable_lock(M)        ((M)->mflags |=  USE_LOCK_BIT)
-#if USE_LOCKS
-#define disable_lock(M)       ((M)->mflags &= ~USE_LOCK_BIT)
-#else
 #define disable_lock(M)
-#endif
+
 
 #define use_mmap(M)           ((M)->mflags &   USE_MMAP_BIT)
 #define enable_mmap(M)        ((M)->mflags |=  USE_MMAP_BIT)
@@ -2788,11 +2508,6 @@ static int has_segment_link(mstate m, msegmentptr ss) {
   anything you like.
 */
 
-#if USE_LOCKS
-#define PREACTION(M)  ((use_lock(M))? ACQUIRE_LOCK(&(M)->mutex) : 0)
-#define POSTACTION(M) { if (use_lock(M)) RELEASE_LOCK(&(M)->mutex); }
-#else /* USE_LOCKS */
-
 #ifndef PREACTION
 #define PREACTION(M) (0)
 #endif  /* PREACTION */
@@ -2800,8 +2515,6 @@ static int has_segment_link(mstate m, msegmentptr ss) {
 #ifndef POSTACTION
 #define POSTACTION(M)
 #endif  /* POSTACTION */
-
-#endif /* USE_LOCKS */
 
 /*
   CORRUPTION_ERROR_ACTION is triggered upon detected bad addresses.
@@ -4611,10 +4324,6 @@ void* dlmalloc(size_t bytes) {
      The ugly goto's here ensure that postaction occurs along all paths.
   */
 
-#if USE_LOCKS
-  ensure_initialization(); /* initialize in sys_alloc if not using locks */
-#endif
-
   if (!PREACTION(gm)) {
     void* mem;
     size_t nb;
@@ -6330,3 +6039,5 @@ History:
          structure of old version,  but most details differ.)
 
 */
+
+

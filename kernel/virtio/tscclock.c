@@ -1,3 +1,23 @@
+/* 
+ * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
+ *
+ * This file is part of Solo5, a unikernel base layer.
+ *
+ * Permission to use, copy, modify, and/or distribute this software
+ * for any purpose with or without fee is hereby granted, provided
+ * that the above copyright notice and this permission notice appear
+ * in all copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
+ * WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
+ * AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR
+ * CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS
+ * OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT,
+ * NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
+ * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ */
+
 /*-
  * Copyright (c) 2014, 2015 Antti Kantee.  All Rights Reserved.
  * Copyright (c) 2015 Martin Lucina.  All Rights Reserved.
@@ -159,7 +179,7 @@ uint64_t tscclock_monotonic(void) {
      */
     tsc_now = cpu_rdtsc();
     tsc_delta = tsc_now - tsc_base;
-    time_base += mul64_32(tsc_delta, tsc_mult);
+    time_base += cpu_mul64_32(tsc_delta, tsc_mult);
     tsc_base = tsc_now;
 
     return time_base;
@@ -203,7 +223,7 @@ int tscclock_init(void) {
      * Monotonic time begins at tsc_base (first read of TSC before
      * calibration).
      */
-    time_base = mul64_32(tsc_base, tsc_mult);
+    time_base = cpu_mul64_32(tsc_base, tsc_mult);
 
     /*
      * Compute RTC epoch offset by subtracting monotonic time_base from RTC
@@ -259,7 +279,7 @@ void cpu_block(uint64_t until) {
      * the timeout.
      */
     delta_ns = until - now;
-    delta_ticks = mul64_32(delta_ns, pit_mult);
+    delta_ticks = cpu_mul64_32(delta_ns, pit_mult);
     if (delta_ticks < PIT_MIN_DELTA) {
         /*
          * Since we are "spinning", quickly enable interrupts in

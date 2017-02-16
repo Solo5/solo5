@@ -7,7 +7,7 @@
 
 Solo5 is most useful as a "base layer" to run
 [MirageOS](https://mirage.io/) unikernels, either on various existing
-hypervisors (KVM/QEMU, Bhyve) or on a specialized "unikernel monitor" called
+hypervisors (KVM/QEMU, bhyve) or on a specialized "unikernel monitor" called
 `ukvm`.
 
 # About ukvm
@@ -26,64 +26,38 @@ and
 [presentation](https://www.usenix.org/sites/default/files/conference/protected-files/hotcloud16_slides_williams.pdf)
 from USENIX HotCloud '16 for more information.
 
-# Building Mirage/Solo5 unikernels
+# Building MirageOS unikernels with Solo5
 
-These instructions assume that you have an OCaml (4.02.3 or newer)
-development environment with the OPAM package manager installed. If you
-are developing with Docker, you can use the one of the pre-built
-`ocaml/opam` [images](https://hub.docker.com/r/ocaml/opam/).
-
-Mirage/Solo5 supports two different targets to `mirage configure`:
+Support for Solo5 as a target is integrated since the release of MirageOS 3.0,
+which adds two new targets to the `mirage configure` command:
 
 1. `ukvm`: A specialized "unikernel monitor" which runs on Linux
    (`x86_64`) and uses KVM directly via `/dev/kvm`.
 2. `virtio`: An `x86_64` system with `virtio` network and disk
-   interfaces. Use this target for QEMU/KVM, plain QEMU, Bhyve or other
+   interfaces. Use this target for QEMU/KVM, plain QEMU, bhyve or other
    hypervisors (see below).
 
-Start with a fresh OPAM switch for the Mirage/Solo5 target you will be
-using: (If you are using the pre-built Docker images you can skip this
-step.)
+You can build for either of these targets using the standard MirageOS build
+process, which will output either a `.ukvm` or `.virtio` unikernel binary.
 
-    opam switch --alias-of 4.03.0 mirage-solo5-dev
+For the `ukvm` target, in addition to the `.ukvm` unikernel binary a `ukvm-bin`
+binary will be built. This is the `ukvm` monitor specialised for your
+unikernel.
 
-While Solo5 support has been merged into upstream MirageOS, this has not
-yet been officially released. To use the latest development version of
-MirageOS you will need to add the `mirage-dev` OPAM repository:
+# Running Solo5 unikernels directly
 
-    opam repo add mirage-dev git://github.com/mirage/mirage-dev
+The following examples use the standalone
+[test_ping_serve](tests/test_ping_serve/test_ping_serve.c) unikernel which is
+built as part of the normal Solo5 build process. 
 
-Install the MirageOS frontend:
-
-    opam depext -i mirage
-
-Clone the MirageOS example applications repository (`mirage-dev` branch):
-
-    git clone -b mirage-dev https://github.com/mirage/mirage-skeleton
-
-Build the `stackv4` example:
-
-    cd mirage-skeleton/stackv4
-    mirage configure -t ukvm
-    make
-
-This will build the unikernel as `mir-stackv4.ukvm` (with a `ukvm-bin`
-in the same directory) or `mir-stackv4.virtio`, depending on which
-target you selected.
-
-# Running Mirage/Solo5 unikernels directly
-
-These examples show how to run Mirage/Solo5 unikernels directly.  If
-you'd like to use Docker instead, skip to the next section.
+`test_ping_serve` is a minimalist network test which will respond only to ARP
+and ICMP echo requests sent to the hard-coded IP address of `10.0.0.2`. It
+accepts two possible command line arguments: Either `verbose` for verbose
+operation or `limit` to terminate after having sent 100,000 ICMP echo replies.
 
 **Setting up**
 
-The following examples assume you have successfully built the MirageOS
-`stackv4` application, and use the default networking configuration for
-the unikernel (a static IP address of `10.0.0.2/24`). Run the `stackv4`
-unikernel with an argument of `--help=plain` to see the options for
-modifying this. By convention, we will use the `tap100` interface to talk to
-the unikernel.
+By convention, we will use the `tap100` interface to talk to the unikernel.
 
 To set up the `tap100` interface on Linux, run (as root):
 
@@ -91,7 +65,7 @@ To set up the `tap100` interface on Linux, run (as root):
     ip addr add 10.0.0.1/24 dev tap100
     ip link set dev tap100 up
 
-To set up Bhyve and the `tap100` interface on FreeBSD, run (as root):
+To set up bhyve and the `tap100` interface on FreeBSD, run (as root):
 
     kldload vmm
     kldload if_tap
@@ -108,20 +82,21 @@ no arguments or `--help`.
 
 To launch the unikernel:
 
-    ./ukvm-bin --net=tap100 ./mir-stackv4.ukvm
+    ./ukvm-bin --net=tap100 ./test_ping_serve.ukvm verbose
 
 Use `^C` to terminate the unikernel.
 
-**Running with KVM/QEMU on Linux, or Bhyve on FreeBSD**
+**Running with KVM/QEMU on Linux, or bhyve on FreeBSD**
 
 To launch the unikernel:
 
-    solo5-run-virtio -n tap100 ./mir-stackv4.virtio
+    solo5-run-virtio -n tap100 ./test_ping_serve.virtio verbose
 
 Use `^C` to terminate the unikernel.
 
 The [solo5-run-virtio](tools/run/solo5-run-virtio.sh) script is automatically
-installed in your `$PATH` when using the `solo5-kernel-virtio` OPAM package.
+installed in your `$PATH` when using the `solo5-kernel-virtio` OPAM package as
+part of a MirageOS build environment.
 Using it is not required; by default it will print the commands used to setup
 and launch the guest VM. You can run these manually if desired.
 
@@ -134,7 +109,7 @@ kernel directly then this is the preferred method.
 If your hypervisor requires a full disk image to boot, you can use the
 [solo5-mkimage](tools/mkimage/solo5-mkimage.sh) tool to build one. This tool is
 automatically installed in your `$PATH` when using the `solo5-kernel-virtio`
-OPAM package.
+OPAM package as part of a MirageOS build environment.
 
 `solo5-mkimage` supports the following image formats:
 
@@ -152,21 +127,6 @@ Note that Solo5 on virtio does not support ACPI power-off. This can manifest
 itself in delays shutting down Solo5 guests running on hypervisors which wait
 for the guest to respond to ACPI power-off before performing a hard shutdown.
 
-# Running Mirage/Solo5 unikernels with Docker
-
-[Unikernel runner](https://github.com/mato/docker-unikernel-runner)
-integrates seamlessly with Docker networking and runs the unikernel and
-`ukvm` in a container. Running the `stackv4` example is as simple as:
-
-    docker run -ti --rm \
-        --device=/dev/kvm:/dev/kvm \
-        --device=/dev/net/tun:/dev/net/tun \
-        --cap-add=NET_ADMIN mir-stackv4-ukvm
-
-Refer to the
-[documentation](https://github.com/mato/docker-unikernel-runner/blob/master/README.md)
-for details.
-
 # Developing Solo5 and ukvm
 
 If you'd like to develop Solo5, ukvm and/or investigate porting other
@@ -177,9 +137,8 @@ and subject to change.
 We also have some simple standalone unikernels written in C to test
 Solo5, see `tests` for these.
 
-The coding style for this project is "Linux with 4 spaces instead of
-tabs".  The modified `checkpatch.pl` script helps give hints about
-what violates this style.
+The coding style for this project is "as for the Linux kernel, but with 4
+spaces instead of tabs".
 
 The best place for Mirage-related discussions about Solo5 and/or
 `ukvm` is to post to the [MirageOS-devel mailing list](http://lists.xenproject.org/cgi-bin/mailman/listinfo/mirageos-devel),
@@ -231,15 +190,3 @@ Here is a typical gdb session:
 
     Breakpoint 11, camlUnikernel__loop_1401 () at unikernel.ml:9
     9            C.log c "hello";
-
-# Acknowledgements
-
-`ukvm` was originally written by Dan Williams and Ricardo Koller.  The
-Solo5 kernel was originally written by Dan Williams.  The OPAM
-packaging was done by Martin Lucina and Dan Williams.
-
-This kernel got its start following the bare bones kernel tutorial at
-<http://wiki.osdev.org/Bare_Bones>
-
-Thanks to Daniel Bokser, who was an early code contributor who wrote
-the timing code.

@@ -52,7 +52,7 @@ uint64_t ukvmclock_monotonic(void) {
      */
     tsc_now = cpu_rdtsc();
     tsc_delta = tsc_now - tsc_base;
-    time_base += mul64_32(tsc_delta, tsc_mult);
+    time_base += cpu_mul64_32(tsc_delta, tsc_mult);
     tsc_base = tsc_now;
 
     return time_base;
@@ -66,7 +66,7 @@ int ukvmclock_init(void) {
     struct ukvm_time_init t;
 
     outl(UKVM_PORT_TIME_INIT, ukvm_ptr(&t));
-    cc_barrier();
+    cpu_cc_barrier();
 
     /*
      * Read RTC "time at boot". This must be done just before tsc_base is
@@ -89,7 +89,7 @@ int ukvmclock_init(void) {
      * Monotonic time begins at tsc_base (first read of TSC before
      * calibration).
      */
-    time_base = mul64_32(tsc_base, tsc_mult);
+    time_base = cpu_mul64_32(tsc_base, tsc_mult);
 
     /*
      * Compute RTC epoch offset by subtracting monotonic time_base from RTC
