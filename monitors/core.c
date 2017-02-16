@@ -125,6 +125,7 @@ static void setup_boot_info(uint8_t *mem,
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <mach-o/loader.h>
+#include <mach/machine/thread_status.h>
 
 ssize_t pread_in_full(int fd, void *buf, size_t count, off_t offset)
 {
@@ -192,15 +193,20 @@ static void load_code(const char *file, uint8_t *mem,     /* IN */
         printf("0x%08x ", off);
         switch (lc->cmd) {
         case LC_UNIXTHREAD: {
-            struct thread_command *tc = (struct thread_command *)(macho +off);
+            struct x86_thread_state *ts = (struct x86_thread_state *)(macho + off
+                                                    + sizeof(struct load_command));
             printf("LC_UNIXTHREAD [%d]\n", lc->cmdsize);
-            assert(tc->flavor == X86_THREAD_STATE64);
-            int b;
-            for (b = 0; b < lc->cmdsize; b++) {
-                if ((b % 16) == 0) printf("\n");
-                printf("%02x ", macho[off + b]);
-            }
+            assert(ts->tsh.flavor == x86_THREAD_STATE64);
+
+            *p_entry = ts->uts.ts64.__rip;
+
+            /* 
+             * For some reason the linker is putting everything
+             * above 4GB. If we fix that, then we won't need this.
+             */
+            *p_entry -= 0x100000000;
             
+            printf("    entry point is 0x%llx\n", *p_entry);
             break;
         }
         case LC_UUID:
