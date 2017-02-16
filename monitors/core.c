@@ -191,9 +191,18 @@ static void load_code(const char *file, uint8_t *mem,     /* IN */
         
         printf("0x%08x ", off);
         switch (lc->cmd) {
-        case LC_UNIXTHREAD:
-            printf("LC_UNIXTHREAD\n");
+        case LC_UNIXTHREAD: {
+            struct thread_command *tc = (struct thread_command *)(macho +off);
+            printf("LC_UNIXTHREAD [%d]\n", lc->cmdsize);
+            assert(tc->flavor == X86_THREAD_STATE64);
+            int b;
+            for (b = 0; b < lc->cmdsize; b++) {
+                if ((b % 16) == 0) printf("\n");
+                printf("%02x ", macho[off + b]);
+            }
+            
             break;
+        }
         case LC_UUID:
             printf("LC_UUID\n");
             break;
