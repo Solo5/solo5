@@ -29,22 +29,26 @@
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
-#include <sys/mman.h>
 #include <assert.h>
 #include <libgen.h> /* for `basename` */
 #include <inttypes.h>
 #include <signal.h>
+#include <limits.h>
 
+#include <sys/mman.h>
+#include <sys/stat.h>
 #include <sys/sysctl.h>
 #include <sys/select.h>
 #include <Hypervisor/hv.h>
 #include <Hypervisor/hv_vmx.h>
 
-#include "../ukvm-elf.h"
 #include "../ukvm-private.h"
 #include "../ukvm-cpu.h"
 #include "../ukvm.h"
 #include "../unikernel-monitor.h"
+
+#include <mach-o/loader.h>
+#include <mach/machine/thread_status.h>
 
 #ifdef __MACH__
 #include <mach/clock.h>
@@ -116,6 +120,128 @@ static void wvmcs(hv_vcpuid_t vcpu, uint32_t field, uint64_t v)
 static uint64_t cap2ctrl(uint64_t cap, uint64_t ctrl)
 {
     return (ctrl | (cap & 0xffffffff)) & (cap >> 32);
+}
+
+
+void platform_load_code(struct platform *p, const char *file, /* IN */
+                        uint64_t *p_entry, uint64_t *p_end)   /* OUT */
+{
+    int fd_kernel;
+    uint32_t off;
+    int i;
+    uint8_t *macho;
+    struct stat fd_stat;
+    struct mach_header_64 *hdr;
+    int dbg = 0;
+    
+    fd_kernel = open(file, O_RDONLY);
+    if (fd_kernel == -1)
+        goto out_error;
+    fstat(fd_kernel, &fd_stat);
+    
+    macho = mmap(NULL, fd_stat.st_size, PROT_READ, MAP_SHARED, fd_kernel, 0);
+    if (macho == MAP_FAILED)
+        goto out_error;
+
+    hdr = (struct mach_header_64 *)macho;
+
+    if (hdr->magic != MH_MAGIC_64
+        || hdr->cputype != CPU_TYPE_X86_64)
+        goto out_invalid;
+
+    off = sizeof(struct mach_header_64);
+    if (dbg) printf("%d load commands\n", hdr->ncmds);
+    
+    for (i = 0; i < hdr->ncmds; i++) {
+        struct load_command *lc = (struct load_command *)(macho + off);
+        
+        if (dbg) printf("0x%08x ", off);
+        switch (lc->cmd) {
+        case LC_UNIXTHREAD: {
+            struct x86_thread_state *ts;
+            ts = (struct x86_thread_state *)(macho + off
+                                             + sizeof(struct load_command));
+
+            if (dbg) printf("LC_UNIXTHREAD [%d]\n", lc->cmdsize);
+            assert(ts->tsh.flavor == x86_THREAD_STATE64);
+
+            *p_entry = ts->uts.ts64.__rip;
+
+            /* 
+             * For some reason the linker is putting everything
+             * above 4GB. If we fix that, then we won't need this.
+             */
+            *p_entry -= 0x100000000;
+            
+            if (dbg) printf("    entry point is 0x%llx\n", *p_entry);
+            break;
+        }
+        case LC_UUID:
+            if (dbg) printf("LC_UUID\n");
+            break;
+        case LC_SOURCE_VERSION:
+            if (dbg) printf("LC_SOURCE_VERSION\n");
+            break;
+        case LC_SYMTAB:
+            if (dbg) printf("LC_SYMTAB\n");
+            break;
+        case LC_SEGMENT_64: {
+            struct segment_command_64 *sc;
+            int sects;
+
+            sc = (struct segment_command_64 *)(macho + off);
+            if (dbg)
+                printf("LC_SEGMENT_64 [%08llx - %08llx] %s (%d sections)\n",
+                       sc->vmaddr, sc->vmaddr + sc->vmsize,
+                       sc->segname, sc->nsects);
+
+            for (sects = 0; sects < sc->nsects; sects++) {
+                struct section_64 *s = (struct section_64 *)(macho + off
+                                        + sizeof(struct segment_command_64)
+                                        + sects * sizeof(struct section_64));
+
+                /* 
+                 * For some reason the linker is putting everything
+                 * above 4GB. If we fix that, then we won't need this.
+                 */
+                uint64_t addr = s->addr - 0x100000000; 
+
+                if (dbg) printf("    [%08llx - %08llx] (0x%x) %s:%s\n",
+                                addr, addr + s->size, s->flags,
+                                s->segname, s->sectname);
+
+                if ((s->flags & 0x7) == S_ZEROFILL) {
+                    if (dbg) printf("zeroing %lld bytes at 0x%llx\n",
+                                    s->size, addr);
+                    memset(p->mem + addr, 0, s->size);
+                } else {
+                    if (dbg) printf("copying %lld bytes from 0x%x to 0x%llx\n",
+                                    s->size, s->offset, addr);
+                    memcpy(p->mem + addr, macho + s->offset, s->size);
+                }
+            }
+
+            *p_end = sc->vmaddr + sc->vmsize;
+            /* 
+             * For some reason the linker is putting everything
+             * above 4GB. If we fix that, then we won't need this.
+             */
+            *p_end -= 0x100000000;
+            break;
+        }
+        default:
+            printf("unknown %x (%d)\n", lc->cmd, lc->cmd);
+        }
+            
+        off += lc->cmdsize;
+    }
+    
+    return;
+
+ out_error:
+    err(1, "%s", file);
+out_invalid:
+    errx(1, "%s: Exec format error", file);
 }
 
 void platform_setup_system_64bit(struct platform *p, uint64_t cr0,

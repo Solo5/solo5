@@ -33,7 +33,6 @@
 #include <sys/time.h>
 
 /* from ukvm */
-#include "ukvm-elf.h"
 #include "ukvm-private.h"
 #include "ukvm-modules.h"
 #include "ukvm-cpu.h"
@@ -112,163 +111,6 @@ static void setup_boot_info(uint8_t *mem,
         cmdline_p += alen;
     }
 
-}
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdint.h>
-#include <err.h>
-#include <limits.h>
-#include <errno.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <sys/mman.h>
-#include <sys/stat.h>
-#include <mach-o/loader.h>
-#include <mach/machine/thread_status.h>
-
-ssize_t pread_in_full(int fd, void *buf, size_t count, off_t offset)
-{
-    ssize_t total = 0;
-    char *p = buf;
-
-    if (count > SSIZE_MAX) {
-        errno = E2BIG;
-        return -1;
-    }
-
-    while (count > 0) {
-        ssize_t nr;
-
-        nr = pread(fd, p, count, offset);
-        if (nr == 0)
-            return total;
-        else if (nr == -1 && errno == EINTR)
-            continue;
-        else if (nr == -1)
-            return -1;
-
-        count -= nr;
-        total += nr;
-        p += nr;
-        offset += nr;
-    }
-
-    return total;
-}
-
-static void load_code(const char *file, uint8_t *mem,     /* IN */
-                      uint64_t *p_entry, uint64_t *p_end) /* OUT */
-{
-    int fd_kernel;
-    uint32_t off;
-    int i;
-    uint8_t *macho;
-    struct stat fd_stat;
-    struct mach_header_64 *hdr;
-
-    fd_kernel = open(file, O_RDONLY);
-    if (fd_kernel == -1)
-        goto out_error;
-    fstat(fd_kernel, &fd_stat);
-    
-    macho = mmap(NULL, fd_stat.st_size, PROT_READ, MAP_SHARED, fd_kernel, 0);
-    if (macho == MAP_FAILED)
-        goto out_error;
-
-    hdr = (struct mach_header_64 *)macho;
-    printf("magic is 0x%x (0x%x)\n", hdr->magic, MH_MAGIC_64);
-    printf("cputype is 0x%x (0x%x)\n", hdr->cputype, CPU_TYPE_X86_64);
-    
-    if (hdr->magic != MH_MAGIC_64
-        || hdr->cputype != CPU_TYPE_X86_64)
-        goto out_invalid;
-
-    off = sizeof(struct mach_header_64);
-    printf("%d load commands\n", hdr->ncmds);
-    
-    for (i = 0; i < hdr->ncmds; i++) {
-        struct load_command *lc = (struct load_command *)(macho + off);
-        
-        printf("0x%08x ", off);
-        switch (lc->cmd) {
-        case LC_UNIXTHREAD: {
-            struct x86_thread_state *ts = (struct x86_thread_state *)(macho + off
-                                                    + sizeof(struct load_command));
-            printf("LC_UNIXTHREAD [%d]\n", lc->cmdsize);
-            assert(ts->tsh.flavor == x86_THREAD_STATE64);
-
-            *p_entry = ts->uts.ts64.__rip;
-
-            /* 
-             * For some reason the linker is putting everything
-             * above 4GB. If we fix that, then we won't need this.
-             */
-            *p_entry -= 0x100000000;
-            
-            printf("    entry point is 0x%llx\n", *p_entry);
-            break;
-        }
-        case LC_UUID:
-            printf("LC_UUID\n");
-            break;
-        case LC_SOURCE_VERSION:
-            printf("LC_SOURCE_VERSION\n");
-            break;
-        case LC_SYMTAB:
-            printf("LC_SYMTAB\n");
-            break;
-        case LC_SEGMENT_64: {
-            struct segment_command_64 *sc;
-            int sects;
-
-            sc = (struct segment_command_64 *)(macho + off);
-            printf("LC_SEGMENT_64 [%08llx - %08llx] %s (%d sections)\n",
-                   sc->vmaddr, sc->vmaddr + sc->vmsize,
-                   sc->segname, sc->nsects);
-
-            for (sects = 0; sects < sc->nsects; sects++) {
-                struct section_64 *s = (struct section_64 *)(macho + off
-                                        + sizeof(struct segment_command_64)
-                                        + sects * sizeof(struct section_64));
-
-                /* 
-                 * For some reason the linker is putting everything
-                 * above 4GB. If we fix that, then we won't need this.
-                 */
-                uint64_t addr = s->addr - 0x100000000; 
-
-                printf("    [%08llx - %08llx] (0x%x) %s:%s\n",
-                       addr, addr + s->size, s->flags,
-                       s->segname, s->sectname);
-
-                if ((s->flags & 0x7) == S_ZEROFILL) {
-                    printf("zeroing %lld bytes at 0x%llx\n", s->size, addr);
-                    memset(mem + addr, 0, s->size);
-                } else {
-                    printf("copying %lld bytes from 0x%x to 0x%llx\n",
-                           s->size, s->offset, addr);
-                    memcpy(mem + addr, macho + s->offset, s->size);
-                }
-                
-
-            }
-            
-            break;
-        }
-        default:
-            printf("unknown %x (%d)\n", lc->cmd, lc->cmd);
-        }
-            
-        off += lc->cmdsize;
-    }
-    
-    return;
-
- out_error:
-    err(1, "%s", file);
-out_invalid:
-    errx(1, "%s: Exec format error", file);
 }
 
 static void setup_system_64bit(struct platform *p)
@@ -553,10 +395,10 @@ static void usage(const char *prog)
 int main(int argc, char **argv)
 {
     struct platform *p;
-    uint64_t elf_entry;
+    uint64_t entrypoint;
     uint64_t kernel_end;
     const char *prog;
-    const char *elffile;
+    const char *file;
     struct sigaction sa;
     int matched;
     int rc;
@@ -599,7 +441,7 @@ int main(int argc, char **argv)
         warnx("Missing KERNEL operand");
         usage(prog);
     }
-    elffile = *argv;
+    file = *argv;
     argc--;
     argv++;
 
@@ -614,10 +456,10 @@ int main(int argc, char **argv)
     if (platform_init(&p))
         err(1, "platform init");
 
-    load_code(elffile, p->mem, &elf_entry, &kernel_end);
+    platform_load_code(p, file, &entrypoint, &kernel_end);
 
     /* Setup x86 registers and memory */
-    setup_system(p, elf_entry);
+    setup_system(p, entrypoint);
     /* Setup ukvm_boot_info and command line */
     setup_boot_info(p->mem, GUEST_SIZE, kernel_end, argc, argv);
 

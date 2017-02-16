@@ -28,6 +28,9 @@ struct platform {
 /* in <platform>/<platform>-core.c */
 int platform_init(struct platform **p);
 
+void platform_load_code(struct platform *p, const char *file, /* IN */
+                        uint64_t *p_entry, uint64_t *p_end);  /* OUT */
+
 void platform_setup_system_64bit(struct platform *p, uint64_t cr0,
                                  uint64_t cr4, uint64_t efer);
 void platform_setup_system_page_tables(struct platform *p, uint64_t pml4);
@@ -36,8 +39,6 @@ void platform_setup_system_gdt(struct platform *p,
                                uint64_t off, uint64_t limit);
 void platform_setup_system(struct platform *p, uint64_t entry,
                            uint64_t boot_info);
-
-
 
 int platform_run(struct platform *p);
 int platform_get_exit_reason(struct platform *p);
