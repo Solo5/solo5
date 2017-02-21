@@ -18,24 +18,36 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include "kernel.h"
+#define ENTRY(x) .text; .globl x; .type x,%function; x:
+#define END(x)   .size x, . - x
 
-/*
- * Interrupts are not used on the ukvm platform, hence these are stubs.
- */
+.text
+.code64
 
-void platform_intr_init(void)
-{
-}
+ENTRY(cpu_idt_load)
+    lidt 0(%rdi)
+    ret
+END(cpu_idt_load)
 
-void platform_intr_ack_irq(unsigned irq __attribute__((unused)))
-{
-}
+ENTRY(cpu_gdt_load)
+    lgdt 0(%rdi)
+    ret
+END(cpu_gdt_load)
 
-void platform_intr_mask_irq(unsigned irq __attribute__((unused)))
-{
-}
+ENTRY(cpu_tss_load)
+    ltr %di
+    ret
+END(cpu_tss_load)
 
-void platform_intr_clear_irq(unsigned irq __attribute__((unused)))
-{
-}
+ENTRY(cpu_sse_enable)
+    mov %cr0, %rax
+    and $0xfffb, %ax                    /* clear CR0.EM */
+    or $0x2, %ax                        /* set CR0.MP */
+    mov %rax, %cr0
+
+    mov %cr4, %rax
+    or $(3<<9), %ax                     /* set CR4.OSFXSR and CR4.OSXMMEXCPT */
+    mov %rax, %cr4
+
+    ret
+END(cpu_sse_enable)

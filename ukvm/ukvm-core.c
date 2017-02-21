@@ -294,8 +294,18 @@ out_invalid:
 
 static void setup_system_64bit(struct kvm_sregs *sregs)
 {
-    sregs->cr0 |= X86_CR0_PE;
-    sregs->efer |= EFER_LME;
+    uint64_t cr0 = (X86_CR0_NE | X86_CR0_PE | X86_CR0_PG)
+        & ~(X86_CR0_NW | X86_CR0_CD);
+    uint64_t cr4 = X86_CR4_PAE;
+    uint64_t efer = X86_EFER_LME | X86_EFER_LMA;
+
+    /* enable sse */
+    cr0 = (cr0 | X86_CR0_MP) & ~(X86_CR0_EM);
+    cr4 = cr4 | X86_CR4_FXSR | X86_CR4_XMM; /* OSFXSR and OSXMMEXCPT */
+
+    sregs->cr0 = cr0;
+    sregs->efer = efer;
+    sregs->cr4 = cr4;
 }
 
 
