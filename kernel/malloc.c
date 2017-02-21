@@ -55,6 +55,7 @@
 #define LACKS_SCHED_H
 #define LACKS_TIME_H
 #define MALLOC_FAILURE_ACTION
+#define USE_LOCKS 0
 
 /* return values from posix_memalign() */
 #define ENOMEM -1      /* Out of memory */
