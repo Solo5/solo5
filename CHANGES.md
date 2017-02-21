@@ -1,3 +1,8 @@
+## 0.2.1 (2017-02-21)
+
+Point release to address a compilation issue on systems with Clang 3.9 (#158)
+and correct license headers for some source files (#159).
+
 ## 0.2.0 (2017-01-26)
 
 This release is targeted for use with MirageOS 3.0.
