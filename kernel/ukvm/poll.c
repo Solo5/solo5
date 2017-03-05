@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
  *
  * This file is part of Solo5, a unikernel base layer.
@@ -20,18 +20,16 @@
 
 #include "kernel.h"
 
-void time_init(struct ukvm_boot_info *bi)
+int solo5_poll(uint64_t until_nsecs)
 {
-    assert(tscclock_init(bi->cpu.tsc_freq) == 0);
-}
+    struct ukvm_poll t;
+    uint64_t now;
 
-uint64_t solo5_clock_monotonic(void)
-{
-    return tscclock_monotonic();
-}
-
-/* return wall time in nsecs */
-uint64_t solo5_clock_wall(void)
-{
-    return tscclock_monotonic() + tscclock_epochoffset();
+    now = solo5_clock_monotonic();
+    if (until_nsecs <= now)
+        t.timeout_nsecs = 0;
+    else
+        t.timeout_nsecs = until_nsecs - now;
+    ukvm_do_hypercall(UKVM_HYPERCALL_POLL, &t);
+    return t.ret;
 }
