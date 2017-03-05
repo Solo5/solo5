@@ -37,6 +37,7 @@ ukvm/platform.o \
 ukvm/platform_intr.o \
 ukvm/time.o \
 ukvm/tscclock.o \
+ukvm/poll.o \
 ukvm/console.o \
 ukvm/net.o \
 ukvm/block.o \
