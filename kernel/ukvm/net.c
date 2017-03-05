@@ -58,3 +58,7 @@ char *solo5_net_mac_str(void)
     memcpy(mac_str, (void *)&info, 18);
     return mac_str;
 }
+
+void net_init(void)
+{
+}
