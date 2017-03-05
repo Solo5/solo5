@@ -47,6 +47,10 @@
  */
 #define X86_CR0_PE_BIT          0 /* Protection Enable */
 #define X86_CR0_PE              _BITUL(X86_CR0_PE_BIT)
+#define X86_CR0_MP_BIT          1 /* Monitor Coprocessor */
+#define X86_CR0_MP              _BITUL(X86_CR0_MP_BIT)
+#define X86_CR0_EM_BIT          2 /* Emulation */
+#define X86_CR0_EM              _BITUL(X86_CR0_EM_BIT)
 #define X86_CR0_PG_BIT          31 /* Paging */
 #define X86_CR0_PG              _BITUL(X86_CR0_PG_BIT)
 
@@ -55,6 +59,10 @@
  */
 #define X86_CR4_PAE_BIT         5 /* enable physical address extensions */
 #define X86_CR4_PAE             _BITUL(X86_CR4_PAE_BIT)
+#define X86_CR4_OSFXSR_BIT      9 /* OS support for FXSAVE/FXRSTOR */
+#define X86_CR4_OSFXSR          _BITUL(X86_CR4_OSFXSR_BIT)
+#define X86_CR4_OSXMMEXCPT_BIT  10 /* OS support for FP exceptions */
+#define X86_CR4_OSXMMEXCPT      _BITUL(X86_CR4_OSXMMEXCPT_BIT)
 
 /*
  * Intel long mode page directory/table entries

@@ -33,8 +33,6 @@ void _start(struct ukvm_boot_info *bi)
     mem_init(bi->mem_size, bi->kernel_end);
     intr_init();
 
-    /* for floating point */
-    cpu_sse_enable();
     time_init();
 
     intr_enable();
