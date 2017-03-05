@@ -31,14 +31,17 @@ exit.o \
 log.o \
 cmdline.o
 
-UKVM_COBJS=\
+COMMON_UKVM_COBJS=\
 ukvm/kernel.o \
 ukvm/platform.o \
-ukvm/platform_init.o \
 ukvm/platform_intr.o \
-ukvm/time.o \
-ukvm/tscclock.o \
+ukvm/time.o
+
+UKVM_COBJS=\
+$(COMMON_UKVM_COBJS) \
+ukvm/platform_init.o \
 ukvm/poll.o \
+ukvm/tscclock.o \
 ukvm/console.o \
 ukvm/net.o \
 ukvm/block.o \
