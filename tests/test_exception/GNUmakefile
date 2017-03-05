@@ -18,6 +18,7 @@
 
 UKVM_TARGETS=test_exception.ukvm ukvm-bin
 VIRTIO_TARGETS=test_exception.virtio
+MUEN_TARGETS=test_exception.muen
 UKVM_MODULES=
 
 include ../Makefile.tests

@@ -18,6 +18,7 @@
 
 UKVM_TARGETS=test_globals.ukvm ukvm-bin
 VIRTIO_TARGETS=test_globals.virtio
+MUEN_TARGETS=test_globals.muen
 UKVM_MODULES=
 
 include ../Makefile.tests
