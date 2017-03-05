@@ -45,16 +45,16 @@
 /*
  * Basic CPU control in CR0
  */
-#define X86_CR0_PE_BIT		0 /* Protection Enable */
-#define X86_CR0_PE		_BITUL(X86_CR0_PE_BIT)
-#define X86_CR0_PG_BIT		31 /* Paging */
-#define X86_CR0_PG		_BITUL(X86_CR0_PG_BIT)
+#define X86_CR0_PE_BIT          0 /* Protection Enable */
+#define X86_CR0_PE              _BITUL(X86_CR0_PE_BIT)
+#define X86_CR0_PG_BIT          31 /* Paging */
+#define X86_CR0_PG              _BITUL(X86_CR0_PG_BIT)
 
 /*
  * Intel CPU features in CR4
  */
-#define X86_CR4_PAE_BIT		5 /* enable physical address extensions */
-#define X86_CR4_PAE		_BITUL(X86_CR4_PAE_BIT)
+#define X86_CR4_PAE_BIT         5 /* enable physical address extensions */
+#define X86_CR4_PAE             _BITUL(X86_CR4_PAE_BIT)
 
 /*
  * Intel long mode page directory/table entries
