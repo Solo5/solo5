@@ -53,7 +53,7 @@ fi
 # Returns:
 #     0: Success
 #     98: Skipped
-#     99: Failed (ran to completion but no SUCCESS in logs)
+#     99: Failed (ran to completion but no SUCCESS/ABORT in logs)
 #     124: Timeout
 #     (anything else): Other error
 run_test ()
@@ -67,16 +67,18 @@ run_test ()
     local ARGS
     local DISK
     local NET
+    local WANT_ABORT
     local NAME
     local UNIKERNEL
     local TEST_DIR
     local STATUS
 
-    ARGS=$(getopt dn $*)
+    ARGS=$(getopt dna $*)
     [ $? -ne 0 ] && die "Invalid test options"
     set -- ${ARGS}
     DISK=
     NET=
+    WANT_ABORT=
     while true; do
         case "$1" in
         -d)
@@ -86,6 +88,11 @@ run_test ()
         -n)
             NET=tap100
             NET_IP=10.0.0.2
+            shift
+            ;;
+        -a)
+            # This test must ABORT
+            WANT_ABORT=true
             shift
             ;;
         --)
@@ -158,7 +165,11 @@ run_test ()
     0|2|83) 
         LOGS=$(find ${TMPDIR} -type f -name ${NAME}.log.\*)
         STATUS=99
-        [ -n "${LOGS}" ] && grep -q SUCCESS ${LOGS} && STATUS=0
+        if [ -z "${WANT_ABORT}" ]; then
+            [ -n "${LOGS}" ] && grep -q SUCCESS ${LOGS} && STATUS=0
+        else
+            [ -n "${LOGS}" ] && grep -q ABORT ${LOGS} && STATUS=0
+        fi
         ;;
     esac
 
@@ -225,12 +236,14 @@ TESTS=
 if [ -n "${BUILD_UKVM}" ]; then
     add_test test_hello.ukvm::SUCCESS
     add_test test_globals.ukvm
+    add_test test_exception.ukvm:-a
     add_test test_blk.ukvm:-d
     add_test test_ping_serve.ukvm:-n:limit
 fi
 if [ -n "${BUILD_VIRTIO}" ]; then
     add_test test_hello.virtio::SUCCESS
     add_test test_globals.virtio
+    add_test test_exception.virtio:-a
     add_test test_blk.virtio:-d
     add_test test_ping_serve.virtio:-n:limit
 fi

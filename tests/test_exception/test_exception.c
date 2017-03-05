@@ -18,38 +18,28 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include "kernel.h"
+#include "solo5.h"
 
-/*
- * These functions deliberately do not call printf() or malloc() in order to
- * abort as quickly as possible without triggering further errors.
- */
+static size_t strlen(const char *s)
+{
+    size_t len = 0;
+
+    while (*s++)
+        len += 1;
+    return len;
+}
 
 static void puts(const char *s)
 {
-    (void)platform_puts(s, strlen(s));
+    solo5_console_write(s, strlen(s));
 }
 
-void _assert_fail(const char *file, const char *line, const char *e)
+int solo5_app_main(char *cmdline __attribute__((unused)))
 {
-    puts("Solo5: ABORT: ");
-    puts(file);
-    puts(":");
-    puts(line);
-    puts(": Assertion `");
-    puts(e);
-    puts("' failed\n");
-    platform_exit();
-}
+    puts("\n**** Solo5 standalone test_exception ****\n\n");
 
-void _abort(const char *file, const char *line, const char *s)
-{
-    puts("Solo5: ABORT: ");
-    puts(file);
-    puts(":");
-    puts(line);
-    puts(": ");
-    puts(s);
-    puts("\n");
-    platform_exit();
+    uint64_t addr_invalid = 2ULL << 33;
+    *(uint8_t *)addr_invalid = 1;
+
+    return 0;
 }
