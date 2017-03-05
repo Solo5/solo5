@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
  *
  * This file is part of Solo5, a unikernel base layer.
@@ -20,31 +20,17 @@
 
 #include "kernel.h"
 
-static const char *cmdline;
-static uint64_t mem_size;
-
-void platform_init(void *arg)
+int platform_puts(const char *buf, int n)
 {
-    struct ukvm_boot_info *bi = arg;
+    struct ukvm_puts str;
 
-    cmdline = bi->cmdline;
-    mem_size = bi->mem_size;
+    str.data = (char *)buf;
+    str.len = n;
+
+    ukvm_do_hypercall(UKVM_HYPERCALL_PUTS, &str);
+
+    return str.len;
 }
 
-const char *platform_cmdline(void)
-{
-    return cmdline;
-}
-
-uint64_t platform_mem_size(void)
-{
-    return mem_size;
-}
-
-void platform_exit(void)
-{
-    /*
-     * Halt will cause an exit (as in "shutdown") on ukvm.
-     */
-    cpu_halt();
-}
+int solo5_console_write(const char *, size_t)
+    __attribute__ ((alias("platform_puts")));
