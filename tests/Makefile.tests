@@ -25,6 +25,9 @@ ukvm: $(UKVM_TARGETS)
 .PHONY: virtio
 virtio:	$(VIRTIO_TARGETS)
 
+.PHONY: muen
+muen: $(MUEN_TARGETS)
+
 SOLO5_DIR=$(TOP)/kernel
 UKVM_SRC=$(TOP)/ukvm
 
@@ -46,6 +49,15 @@ Makefile.ukvm: $(UKVM_SRC)/ukvm-configure
 
 $(SOLO5_DIR)/ukvm/solo5.o: 
 	$(MAKE) -C $(SOLO5_DIR) ukvm
+endif
+
+ifeq ($(BUILD_MUEN), yes)
+%.muen: %.o $(SOLO5_DIR)/ukvm/solo5.lds $(SOLO5_DIR)/muen/solo5.o
+	$(LD) -T $(SOLO5_DIR)/ukvm/solo5.lds \
+			 $(LDFLAGS) -o $@ $(SOLO5_DIR)/muen/solo5.o $< $(LDLIBS)
+
+$(SOLO5_DIR)/muen/solo5.o:
+	$(MAKE) -C $(SOLO5_DIR) muen
 endif
 
 %.virtio: %.o $(SOLO5_DIR)/virtio/solo5.lds $(SOLO5_DIR)/virtio/solo5.o

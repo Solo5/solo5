@@ -18,6 +18,7 @@
 
 UKVM_TARGETS=test_time.ukvm ukvm-bin
 VIRTIO_TARGETS=test_time.virtio
+MUEN_TARGETS=test_time.muen
 UKVM_MODULES=
 
 include ../Makefile.tests
