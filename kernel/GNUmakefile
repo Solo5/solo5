@@ -33,12 +33,13 @@ cmdline.o
 
 UKVM_COBJS=\
 ukvm/kernel.o \
-ukvm/io.o \
 ukvm/platform.o \
 ukvm/platform_intr.o \
 ukvm/time.o \
 ukvm/tscclock.o \
 ukvm/console.o \
+ukvm/net.o \
+ukvm/block.o \
 $(COMMON_COBJS)
 
 VIRTIO_COBJS=\
