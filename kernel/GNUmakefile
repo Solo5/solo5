@@ -38,6 +38,7 @@ ukvm/platform.o \
 ukvm/platform_intr.o \
 ukvm/time.o \
 ukvm/tscclock.o \
+ukvm/console.o \
 $(COMMON_COBJS)
 
 VIRTIO_COBJS=\
