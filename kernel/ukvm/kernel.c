@@ -25,6 +25,7 @@ void _start(void *arg)
     int ret;
     char *cmdline;
 
+    console_init();
     cpu_init();
     platform_init(arg);
     cmdline = cmdline_parse(platform_cmdline());
@@ -36,6 +37,7 @@ void _start(void *arg)
 
     mem_init();
     time_init(arg);
+    net_init();
 
     ret = solo5_app_main(cmdline);
     log(DEBUG, "Solo5: solo5_app_main() returned with %d\n", ret);

@@ -25,6 +25,8 @@
 #include "ukvm_guest.h"
 
 void time_init(struct ukvm_boot_info *bi);
+void console_init(void);
+void net_init(void);
 
 /* tscclock.c: TSC-based clock */
 uint64_t tscclock_monotonic(void);

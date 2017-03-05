@@ -34,3 +34,7 @@ int platform_puts(const char *buf, int n)
 
 int solo5_console_write(const char *, size_t)
     __attribute__ ((alias("platform_puts")));
+
+void console_init(void)
+{
+}
