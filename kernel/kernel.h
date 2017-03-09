@@ -115,11 +115,12 @@ int snprintf(char *str, size_t size, const char *format, ...);
 int vsnprintf(char *buf, size_t size, const char *fmt, va_list args);
 
 /* lib.c: expect this to grow... */
-void *memset(void *ptr, uint8_t c, size_t size);
-void *memcpy(void *dst, const void *src, size_t size);
-void *memmove(void *dst, const void *src, size_t n);
-int memcmp(const void *s1, const void *s2, size_t n);
-char *strcpy(char *dst, const char *src);
+void *memset(void *dest, int c, size_t n);
+void *memcpy(void *restrict dest, const void *restrict src, size_t n);
+void *memmove(void *dest, const void *src, size_t n);
+int memcmp(const void *vl, const void *vr, size_t n);
+int strcmp(const char *l, const char *r);
+char *strcpy(char *restrict dest, const char *restrict src);
 size_t strlen(const char *s);
 
 /* platform.c: specifics for ukvm or virito platform */

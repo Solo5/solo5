@@ -234,7 +234,7 @@ MAKECONF=${SCRIPT_DIR}/../Makeconf
 #
 TESTS=
 if [ -n "${BUILD_UKVM}" ]; then
-    add_test test_hello.ukvm::SUCCESS
+    add_test test_hello.ukvm::Hello_Solo5
     add_test test_globals.ukvm
     add_test test_exception.ukvm:-a
     add_test test_fpu.ukvm
@@ -242,7 +242,7 @@ if [ -n "${BUILD_UKVM}" ]; then
     add_test test_ping_serve.ukvm:-n:limit
 fi
 if [ -n "${BUILD_VIRTIO}" ]; then
-    add_test test_hello.virtio::SUCCESS
+    add_test test_hello.virtio::Hello_Solo5
     add_test test_globals.virtio
     add_test test_exception.virtio:-a
     add_test test_fpu.virtio
