@@ -19,15 +19,7 @@
  */
 
 #include "solo5.h"
-
-static size_t strlen(const char *s)
-{
-    size_t len = 0;
-
-    while (*s++)
-        len += 1;
-    return len;
-}
+#include "../../kernel/lib.c"
 
 static void puts(const char *s)
 {
@@ -37,8 +29,6 @@ static void puts(const char *s)
 int solo5_app_main(char *cmdline)
 {
     puts("\n**** Solo5 standalone test_hello ****\n\n");
-
-    /* "SUCCESS" will be passed in via the command line */
     puts("Hello, World\nCommand line is: '");
 
     size_t len = 0;
@@ -49,6 +39,10 @@ int solo5_app_main(char *cmdline)
     solo5_console_write(cmdline, len);
 
     puts("'\n");
+
+    /* "Hello_Solo5" will be passed in via the command line */
+    if (strcmp(cmdline, "Hello_Solo5") == 0)
+        puts("SUCCESS\n");
 
     return 0;
 }
