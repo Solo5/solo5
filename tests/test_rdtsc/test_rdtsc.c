@@ -20,6 +20,23 @@
 
 #include "solo5.h"
 
+static char *digits = "0123456789abcdef";
+
+#define STRLEN 16
+static char strbuf[STRLEN + 1];
+
+void hex_to_str(char *target, uint64_t val) {
+    int i;
+    for (i = 0; i < STRLEN; i++) {
+        int digit = val & 0xf;
+        target[STRLEN - i - 1] = digits[digit];
+        val = val >> 4;
+    }
+    target[STRLEN] = '\n';
+    
+}
+
+
 static size_t strlen(const char *s)
 {
     size_t len = 0;
@@ -34,21 +51,31 @@ static void puts(const char *s)
     solo5_console_write(s, strlen(s));
 }
 
-int solo5_app_main(char *cmdline)
+static inline uint64_t cpu_rdtsc(void)
 {
-    puts("\n**** Solo5 standalone test_hello ****\n\n");
+    uint32_t edx_, eax_;
 
-    /* "SUCCESS" will be passed in via the command line */
-    puts("Hello, World\nCommand line is: '");
+    __asm__("rdtsc" : "=a" (eax_), "=d" (edx_));
+    return (uint64_t)eax_ + ((uint64_t)edx_ << 32);
+}
 
-    size_t len = 0;
-    char *p = cmdline;
 
-    while (*p++)
-        len++;
-    solo5_console_write(cmdline, len);
+#define RDTSC_LOOPS 100
 
-    puts("'\n");
+int solo5_app_main(char *cmdline __attribute__((unused)))
+{
+    volatile uint64_t start, end;
+    int i;
+    
+    puts("\n**** Solo5 standalone test_rdtsc ****\n\n");
 
+    start = cpu_rdtsc();
+    for (i = 0; i < RDTSC_LOOPS; i++) {
+        end = cpu_rdtsc();
+    }
+    puts("rdtsc diff: ");
+    hex_to_str(strbuf, end - start);
+    solo5_console_write(strbuf, STRLEN + 1);
+    
     return 0;
 }

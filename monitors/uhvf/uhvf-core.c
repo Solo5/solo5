@@ -406,12 +406,21 @@ int platform_init(struct platform **pdata_p)
      * necessary for a bunch of things to work, including
      * CPU_BASED_HLT (bit 7) and MONITOR_TRAP_FLAG (bit 27)
      */
+    if (0) {
+    VMX_CTRLS(vcpu, HV_VMX_CAP_PROCBASED, VMCS_CTRL_CPU_BASED, 0
+              | CPU_BASED_HLT | CPU_BASED_INVLPG
+              | CPU_BASED_MWAIT | CPU_BASED_RDPMC
+              | CPU_BASED_UNCOND_IO
+              | CPU_BASED_CR8_LOAD | CPU_BASED_CR8_STORE
+              | CPU_BASED_CR3_LOAD | CPU_BASED_CR3_STORE);
+    } else {
     VMX_CTRLS(vcpu, HV_VMX_CAP_PROCBASED, VMCS_CTRL_CPU_BASED, 0
               | CPU_BASED_HLT | CPU_BASED_INVLPG
               | CPU_BASED_MWAIT | CPU_BASED_RDPMC
               | CPU_BASED_RDTSC | CPU_BASED_UNCOND_IO
               | CPU_BASED_CR8_LOAD | CPU_BASED_CR8_STORE
               | CPU_BASED_CR3_LOAD | CPU_BASED_CR3_STORE);
+    }
     VMX_CTRLS(vcpu, HV_VMX_CAP_PROCBASED2, VMCS_CTRL_CPU_BASED2, 0
               | CPU_BASED2_DESC_TABLE | CPU_BASED2_RDRAND);
     VMX_CTRLS(vcpu, HV_VMX_CAP_ENTRY, VMCS_CTRL_VMENTRY_CONTROLS, 0
