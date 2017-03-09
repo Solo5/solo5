@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
  *
  * This file is part of Solo5, a unikernel base layer.
@@ -18,27 +18,47 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include "kernel.h"
+#include "solo5.h"
 
-void _start(struct ukvm_boot_info *bi)
+static size_t strlen(const char *s)
 {
-    int ret;
+    size_t len = 0;
 
-    printf("            |      ___|\n");
-    printf("  __|  _ \\  |  _ \\ __ \\\n");
-    printf("\\__ \\ (   | | (   |  ) |\n");
-    printf("____/\\___/ _|\\___/____/\n");
+    while (*s++)
+        len += 1;
+    return len;
+}
 
-    gdt_init();
-    mem_init(bi->mem_size, bi->kernel_end);
-    intr_init();
+static void puts(const char *s)
+{
+    solo5_console_write(s, strlen(s));
+}
 
-    time_init();
+int solo5_app_main(char *cmdline __attribute__((unused)))
+{
+    float a, b, c[2];
 
-    intr_enable();
+    puts("\n**** Solo5 standalone test_fpu ****\n\n");
 
-    ret = solo5_app_main((char *)bi->cmdline);
-    printf("Solo5: solo5_app_main() returned with %d\n", ret);
+    c[0] = 2.0;
+    c[1] = 5.0;
+     __asm__ (
+         "movups %0,%%xmm1;"
+         "mulps %%xmm1, %%xmm1;"
+         "movups %%xmm1, %0"
+         : "=m" (c)
+         : "m" (c)
+         : "xmm1"
+    );
 
-    platform_exit();
+    a = 1.5;
+    b = 5.0;
+    a *= b;
+
+    if (a == 7.5 && c[0] == 4.0 && c[1] == 25.0)
+        puts("SUCCESS\n");
+    else
+        return 1;
+
+    return 0;
 }

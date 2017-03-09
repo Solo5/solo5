@@ -298,6 +298,13 @@ static void setup_system_64bit(struct kvm_sregs *sregs)
     sregs->efer |= EFER_LME;
 }
 
+static void setup_system_sse(struct kvm_sregs *sregs)
+{
+    sregs->cr0 &= ~X86_CR0_EM;
+    sregs->cr0 |= X86_CR0_MP;
+    sregs->cr4 |= X86_CR4_OSFXSR;
+    sregs->cr4 |= X86_CR4_OSXMMEXCPT;
+}
 
 static void setup_system_page_tables(struct kvm_sregs *sregs, uint8_t *mem)
 {
@@ -367,6 +374,7 @@ static void setup_system(int vcpufd, uint8_t *mem)
     setup_system_gdt(&sregs, mem, BOOT_GDT);
     setup_system_page_tables(&sregs, mem);
     setup_system_64bit(&sregs);
+    setup_system_sse(&sregs);
 
     ret = ioctl(vcpufd, KVM_SET_SREGS, &sregs);
     if (ret == -1)
