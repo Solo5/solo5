@@ -145,11 +145,14 @@ type mtools >/dev/null 2>/dev/null || die "need mtools installed"
 type mkdosfs >/dev/null 2>/dev/null || die "need dosfstools installed"
 
 SYSLINUX_MBR=$(maybefind /usr/lib/syslinux/mbr/mbr.bin \
-    /usr/share/syslinux/mbr.bin) || die "can't find syslinux mbr.bin"
+                         /usr/share/syslinux/mbr.bin \
+                         /usr/lib/syslinux/bios/mbr.bin) || die "can't find syslinux mbr.bin"
 SYSLINUX_COM32=$(maybefind /usr/lib/syslinux/modules/bios/libcom32.c32 \
-    /usr/share/syslinux/libcom32.c32) || die "can't find syslinux libcom32.c32"
+                           /usr/share/syslinux/libcom32.c32 \
+                           /usr/lib/syslinux/bios/libcom32.c32) || die "can't find syslinux libcom32.c32"
 SYSLINUX_MBOOT=$(maybefind /usr/lib/syslinux/modules/bios/mboot.c32 \
-    /usr/share/syslinux/mboot.c32) || die "can't find syslinux mboot.c32"
+                           /usr/share/syslinux/mboot.c32 \
+                           /usr/lib/syslinux/bios/mboot.c32) || die "can't find syslinux mboot.c32"
 
 trap nuketmpdir 0 INT TERM
 TMPDIR=$(mktemp -d)
