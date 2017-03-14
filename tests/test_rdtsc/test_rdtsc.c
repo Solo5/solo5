@@ -60,7 +60,7 @@ static inline uint64_t cpu_rdtsc(void)
 }
 
 
-#define RDTSC_LOOPS 100
+#define RDTSC_LOOPS 1000000
 
 int solo5_app_main(char *cmdline __attribute__((unused)))
 {
