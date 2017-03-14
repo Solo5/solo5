@@ -81,11 +81,11 @@ while true; do
     -n)
         NETIF="$2"
         # Check dependencies
-        type ip &>/dev/null ||
-            type ifconfig &>/dev/null ||
+        type ip >/dev/null 2>&1 ||
+            type ifconfig >/dev/null 2>&1 ||
             die "need ip or ifconfig installed"
-        ip a show ${NETIF} &>/dev/null ||
-            ifconfig ${NETIF} &>/dev/null ||
+        ip a show ${NETIF} >/dev/null 2>&1 ||
+            ifconfig ${NETIF} >/dev/null 2>&1 ||
             die "no such network interface: ${NETIF}"
         shift; shift
         ;;
