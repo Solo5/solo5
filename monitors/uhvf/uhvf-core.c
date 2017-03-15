@@ -167,12 +167,6 @@ void platform_load_code(struct platform *p, const char *file, /* IN */
 
             *p_entry = ts->uts.ts64.__rip;
 
-            /* 
-             * For some reason the linker is putting everything
-             * above 4GB. If we fix that, then we won't need this.
-             */
-            *p_entry -= 0x100000000;
-            
             if (dbg) printf("    entry point is 0x%llx\n", *p_entry);
             break;
         }
@@ -200,33 +194,22 @@ void platform_load_code(struct platform *p, const char *file, /* IN */
                                         + sizeof(struct segment_command_64)
                                         + sects * sizeof(struct section_64));
 
-                /* 
-                 * For some reason the linker is putting everything
-                 * above 4GB. If we fix that, then we won't need this.
-                 */
-                uint64_t addr = s->addr - 0x100000000; 
-
                 if (dbg) printf("    [%08llx - %08llx] (0x%x) %s:%s\n",
-                                addr, addr + s->size, s->flags,
+                                s->addr, s->addr + s->size, s->flags,
                                 s->segname, s->sectname);
 
                 if ((s->flags & 0x7) == S_ZEROFILL) {
                     if (dbg) printf("zeroing %lld bytes at 0x%llx\n",
-                                    s->size, addr);
-                    memset(p->mem + addr, 0, s->size);
+                                    s->size, s->addr);
+                    memset(p->mem + s->addr, 0, s->size);
                 } else {
                     if (dbg) printf("copying %lld bytes from 0x%x to 0x%llx\n",
-                                    s->size, s->offset, addr);
-                    memcpy(p->mem + addr, macho + s->offset, s->size);
+                                    s->size, s->offset, s->addr);
+                    memcpy(p->mem + s->addr, macho + s->offset, s->size);
                 }
             }
 
             *p_end = sc->vmaddr + sc->vmsize;
-            /* 
-             * For some reason the linker is putting everything
-             * above 4GB. If we fix that, then we won't need this.
-             */
-            *p_end -= 0x100000000;
             break;
         }
         default:
