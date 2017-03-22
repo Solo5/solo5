@@ -17,6 +17,7 @@
  * NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
+#ifdef __x86_64__
 
 /***************************************************************************
  *
@@ -125,9 +126,8 @@
 #include <assert.h>
 #include <linux/kvm.h>
 
-#include "ukvm-private.h"
-#include "ukvm-modules.h"
 #include "ukvm.h"
+#include "ukvm_hv_kvm.h"
 
 static int use_gdb;
 
@@ -486,7 +486,7 @@ int gdb_remove_breakpoint(uint64_t addr)
 }
 
 
-void gdb_handle_exception(uint8_t *mem, int vcpufd, int sig)
+void gdb_handle_exception(uint8_t *mem, size_t mem_size, int vcpufd, int sig)
 {
     unsigned char *buffer;
     char obuf[4096];
@@ -522,7 +522,7 @@ void gdb_handle_exception(uint8_t *mem, int vcpufd, int sig)
             addr = strtoull((char *)&buffer[1], &ebuf, 16);
             len = strtoul(ebuf + 1, NULL, 16);
 
-            if ((addr + len) >= GUEST_SIZE)
+            if ((addr + len) >= mem_size)
                 memset(obuf, '0', len);
             else
                 mem2hex((char *)mem + addr, obuf, len);
@@ -632,7 +632,7 @@ void gdb_handle_exception(uint8_t *mem, int vcpufd, int sig)
     return;
 }
 
-static void gdb_stub_start(int vcpufd, uint8_t *mem)
+static void gdb_stub_start(struct ukvm_hv *hv)
 {
     int i;
 
@@ -640,26 +640,26 @@ static void gdb_stub_start(int vcpufd, uint8_t *mem)
         breakpoints[i] = 0;
 
     wait_for_connect(1234);
-    gdb_handle_exception(mem, vcpufd, 0);
+    gdb_handle_exception(hv->mem, hv->mem_size, hv->b->vcpufd, 0);
 }
 
 
 
-static int handle_exit(struct kvm_run *run, int vcpufd, uint8_t *mem)
+static int handle_exit(struct ukvm_hv *hv)
 {
     struct kvm_debug_exit_arch *arch_info;
 
-    if (run->exit_reason != KVM_EXIT_DEBUG)
+    if (hv->b->vcpurun->exit_reason != KVM_EXIT_DEBUG)
         return -1;
 
-    arch_info = &run->debug.arch;
+    arch_info = &hv->b->vcpurun->debug.arch;
     if (gdb_is_pc_breakpointing(arch_info->pc))
-        gdb_handle_exception(mem, vcpufd, 1);
+        gdb_handle_exception(hv->mem, hv->mem_size, hv->b->vcpufd, 1);
 
     return 0;
 }
 
-static int setup(int vcpufd, uint8_t *mem)
+static int setup(struct ukvm_hv *hv)
 {
     if (!use_gdb)
         return 0;
@@ -669,10 +669,11 @@ static int setup(int vcpufd, uint8_t *mem)
         .control = KVM_GUESTDBG_ENABLE | KVM_GUESTDBG_SINGLESTEP,
     };
 
-    if (ioctl(vcpufd, KVM_SET_GUEST_DEBUG, &debug) < 0)
-        printf("KVM_SET_GUEST_DEBUG failed");
+    if (ioctl(hv->b->vcpufd, KVM_SET_GUEST_DEBUG, &debug) == -1)
+        err(1, "KVM_SET_GUEST_DEBUG failed");
 
-    gdb_stub_start(vcpufd, mem);
+    assert(ukvm_core_register_vmexit(handle_exit) == 0);
+    gdb_stub_start(hv);
 
     return 0;
 }
@@ -687,21 +688,34 @@ static int handle_cmdarg(char *cmdarg)
     return 0;
 }
 
-static int get_fd(void)
-{
-    return 0; /* no events for poll */
-}
-
 static char *usage(void)
 {
     return "--gdb (optional flag for running in a gdb debug session)";
 }
 
-struct ukvm_module ukvm_gdb = {
-    .get_fd = get_fd,
-    .handle_exit = handle_exit,
-    .handle_cmdarg = handle_cmdarg,
+#else /* !x86_64 */
+#warning GDB module is unsupported on your architecture, stubbing it out
+#include "ukvm.h"
+
+static int setup(struct ukvm_hv *hv)
+{
+    return 0;
+}
+
+static int handle_cmdarg(char *cmdarg)
+{
+    return -1;
+}
+
+static char *usage(void)
+{
+    return "--gdb (unsupported on your architecture)";
+}
+#endif
+
+struct ukvm_module ukvm_module_gdb = {
+    .name = "gdb",
     .setup = setup,
-    .usage = usage,
-    .name = "gdb"
+    .handle_cmdarg = handle_cmdarg,
+    .usage = usage
 };

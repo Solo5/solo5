@@ -19,7 +19,6 @@
  */
 
 #include "kernel.h"
-#include "ukvm.h"
 
 void time_init(void)
 {
@@ -47,7 +46,6 @@ int solo5_poll(uint64_t until_nsecs)
         t.timeout_nsecs = 0;
     else
         t.timeout_nsecs = until_nsecs - now;
-    outl(UKVM_PORT_POLL, ukvm_ptr(&t));
-    cc_barrier();
+    ukvm_do_hypercall(UKVM_HYPERCALL_POLL, &t);
     return t.ret;
 }

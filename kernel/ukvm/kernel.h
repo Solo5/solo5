@@ -22,7 +22,7 @@
 #define __UKVM_KERNEL_H__
 
 #include "../kernel.h"
-#include "ukvm.h"
+#include "ukvm_guest.h"
 
 /* gdt.c: initialize segment descriptors */
 /* TODO: remove these, as they should be already done in ukvm */

@@ -18,22 +18,14 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef __UKVM_MODULES_H__
-#define __UKVM_MODULES_H__
+#ifndef __UKVM_HV_KVM_H__
+#define __UKVM_HV_KVM_H__
 
-/* hypercall interfaces exported by modules are in ukvm.h */
-
-struct ukvm_module {
-    int (*get_fd)(void);
-    int (*handle_exit)(struct kvm_run *run, int vcpufd, uint8_t *mem);
-    int (*handle_cmdarg)(char *cmdarg);
-    int (*setup)(int vcpufd, uint8_t *mem);
-    char *(*usage)(void);
-    const char *name;
+struct ukvm_hvb {
+    int kvmfd;
+    int vmfd;
+    int vcpufd;
+    struct kvm_run *vcpurun;
 };
-
-extern struct ukvm_module ukvm_blk;
-extern struct ukvm_module ukvm_net;
-extern struct ukvm_module ukvm_gdb;
 
 #endif

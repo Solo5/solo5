@@ -35,7 +35,7 @@ int platform_puts(const char *buf, int n)
     str.data = (char *)buf;
     str.len = n;
 
-    outl(UKVM_PORT_PUTS, ukvm_ptr(&str));
+    ukvm_do_hypercall(UKVM_HYPERCALL_PUTS, &str);
 
     return str.len;
 }

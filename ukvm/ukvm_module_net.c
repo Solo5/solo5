@@ -18,34 +18,31 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <linux/kvm.h>
-#include <stdbool.h>
+#include <assert.h>
+#include <err.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <inttypes.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/ioctl.h>
 #include <unistd.h>
-#include <assert.h>
-#include <errno.h>
 
-#include <sys/select.h>
-
-/* for net */
+/*
+ * Linux TAP device specific.
+ */
 #include <sys/socket.h>
 #include <linux/if.h>
 #include <linux/if_tun.h>
-#include <fcntl.h>
-#include <sys/ioctl.h>
-#include <err.h>
 
-#include "ukvm-private.h"
-#include "ukvm-modules.h"
 #include "ukvm.h"
 
 static char *netiface;
 static int netfd;
 static struct ukvm_netinfo netinfo;
-static bool cmdline_mac = false;
+static int cmdline_mac = 0;
 
 /*
  * Attach to an existing TAP interface named 'dev'.
@@ -132,34 +129,32 @@ static int tap_attach(const char *dev)
     return fd;
 }
 
-static void ukvm_port_netinfo(uint8_t *mem, uint64_t paddr)
+static void hypercall_netinfo(struct ukvm_hv *hv, ukvm_gpa_t gpa)
 {
-    GUEST_CHECK_PADDR(paddr, GUEST_SIZE, sizeof (struct ukvm_netinfo));
-    struct ukvm_netinfo *info = (struct ukvm_netinfo *)(mem + paddr);
+    struct ukvm_netinfo *info =
+        UKVM_CHECKED_GPA_P(hv, gpa, sizeof (struct ukvm_netinfo));
 
     memcpy(info->mac_str, netinfo.mac_str, sizeof(netinfo.mac_str));
 }
 
-static void ukvm_port_netwrite(uint8_t *mem, uint64_t paddr)
+static void hypercall_netwrite(struct ukvm_hv *hv, ukvm_gpa_t gpa)
 {
-    GUEST_CHECK_PADDR(paddr, GUEST_SIZE, sizeof (struct ukvm_netwrite));
-    struct ukvm_netwrite *wr = (struct ukvm_netwrite *)(mem + paddr);
+    struct ukvm_netwrite *wr =
+        UKVM_CHECKED_GPA_P(hv, gpa, sizeof (struct ukvm_netwrite));
     int ret;
 
-    GUEST_CHECK_PADDR(wr->data, GUEST_SIZE, wr->len);
-    ret = write(netfd, mem + wr->data, wr->len);
+    ret = write(netfd, UKVM_CHECKED_GPA_P(hv, wr->data, wr->len), wr->len);
     assert(wr->len == ret);
     wr->ret = 0;
 }
 
-static void ukvm_port_netread(uint8_t *mem, uint64_t paddr)
+static void hypercall_netread(struct ukvm_hv *hv, ukvm_gpa_t gpa)
 {
-    GUEST_CHECK_PADDR(paddr, GUEST_SIZE, sizeof (struct ukvm_netread));
-    struct ukvm_netread *rd = (struct ukvm_netread *)(mem + paddr);
+    struct ukvm_netread *rd =
+        UKVM_CHECKED_GPA_P(hv, gpa, sizeof (struct ukvm_netread));
     int ret;
 
-    GUEST_CHECK_PADDR(rd->data, GUEST_SIZE, rd->len);
-    ret = read(netfd, mem + rd->data, rd->len);
+    ret = read(netfd, UKVM_CHECKED_GPA_P(hv, rd->data, rd->len), rd->len);
     if ((ret == 0) ||
         (ret == -1 && errno == EAGAIN)) {
         rd->ret = -1;
@@ -168,33 +163,6 @@ static void ukvm_port_netread(uint8_t *mem, uint64_t paddr)
     assert(ret > 0);
     rd->len = ret;
     rd->ret = 0;
-}
-
-static int handle_exit(struct kvm_run *run, int vcpufd, uint8_t *mem)
-{
-    if ((run->exit_reason != KVM_EXIT_IO) ||
-        (run->io.direction != KVM_EXIT_IO_OUT) ||
-        (run->io.size != 4))
-        return -1;
-
-    uint64_t paddr =
-        GUEST_PIO32_TO_PADDR((uint8_t *)run + run->io.data_offset);
-
-    switch (run->io.port) {
-    case UKVM_PORT_NETINFO:
-        ukvm_port_netinfo(mem, paddr);
-        break;
-    case UKVM_PORT_NETWRITE:
-        ukvm_port_netwrite(mem, paddr);
-        break;
-    case UKVM_PORT_NETREAD:
-        ukvm_port_netread(mem, paddr);
-        break;
-    default:
-        return -1;
-    }
-
-    return 0;
 }
 
 static int handle_cmdarg(char *cmdarg)
@@ -213,14 +181,14 @@ static int handle_cmdarg(char *cmdarg)
             return -1;
         }
         snprintf(netinfo.mac_str, sizeof(netinfo.mac_str), "%s", macptr);
-        cmdline_mac = true;
+        cmdline_mac = 1;
         return 0;
     } else {
         return -1;
     }
 }
 
-static int setup(int vcpufd, uint8_t *mem)
+static int setup(struct ukvm_hv *hv)
 {
     if (netiface == NULL)
         return -1;
@@ -253,12 +221,15 @@ static int setup(int vcpufd, uint8_t *mem)
                  guest_mac[3], guest_mac[4], guest_mac[5]);
     }
 
-    return 0;
-}
+    assert(ukvm_core_register_hypercall(UKVM_HYPERCALL_NETINFO,
+                hypercall_netinfo) == 0);
+    assert(ukvm_core_register_hypercall(UKVM_HYPERCALL_NETWRITE,
+                hypercall_netwrite) == 0);
+    assert(ukvm_core_register_hypercall(UKVM_HYPERCALL_NETREAD,
+                hypercall_netread) == 0);
+    assert(ukvm_core_register_pollfd(netfd) == 0);
 
-static int get_fd(void)
-{
-    return netfd;
+    return 0;
 }
 
 static char *usage(void)
@@ -267,11 +238,9 @@ static char *usage(void)
         "    [ --net-mac=HWADDR ] (guest MAC address)";
 }
 
-struct ukvm_module ukvm_net = {
-    .get_fd = get_fd,
-    .handle_exit = handle_exit,
-    .handle_cmdarg = handle_cmdarg,
+struct ukvm_module ukvm_module_net = {
+    .name = "net",
     .setup = setup,
-    .usage = usage,
-    .name = "net"
+    .handle_cmdarg = handle_cmdarg,
+    .usage = usage
 };

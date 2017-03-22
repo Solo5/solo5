@@ -19,39 +19,34 @@
  */
 
 #define _GNU_SOURCE
+#include <assert.h>
 #include <err.h>
 #include <fcntl.h>
-#include <linux/kvm.h>
-#include <stdint.h>
+#include <limits.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <assert.h>
-#include <limits.h>
 
-#include "ukvm-private.h"
-#include "ukvm-modules.h"
 #include "ukvm.h"
 
 static struct ukvm_blkinfo blkinfo;
 static char *diskfile;
 static int diskfd;
 
-static void ukvm_port_blkinfo(uint8_t *mem, uint64_t paddr)
+static void hypercall_blkinfo(struct ukvm_hv *hv, ukvm_gpa_t gpa)
 {
-    GUEST_CHECK_PADDR(paddr, GUEST_SIZE, sizeof (struct ukvm_blkinfo));
-    struct ukvm_blkinfo *info = (struct ukvm_blkinfo *)(mem + paddr);
+    struct ukvm_blkinfo *info =
+        UKVM_CHECKED_GPA_P(hv, gpa, sizeof (struct ukvm_blkinfo));
 
     info->sector_size = blkinfo.sector_size;
     info->num_sectors = blkinfo.num_sectors;
     info->rw = blkinfo.rw;
 }
 
-static void ukvm_port_blkwrite(uint8_t *mem, uint64_t paddr)
+static void hypercall_blkwrite(struct ukvm_hv *hv, ukvm_gpa_t gpa)
 {
-    GUEST_CHECK_PADDR(paddr, GUEST_SIZE, sizeof (struct ukvm_blkwrite));
-    struct ukvm_blkwrite *wr = (struct ukvm_blkwrite *)(mem + paddr);
+    struct ukvm_blkwrite *wr =
+        UKVM_CHECKED_GPA_P(hv, gpa, sizeof (struct ukvm_blkwrite));
     ssize_t ret;
     off_t pos, end;
 
@@ -67,16 +62,16 @@ static void ukvm_port_blkwrite(uint8_t *mem, uint64_t paddr)
         return;
     }
 
-    GUEST_CHECK_PADDR(wr->data, GUEST_SIZE, wr->len);
-    ret = pwrite(diskfd, mem + wr->data, wr->len, pos);
+    ret = pwrite(diskfd, UKVM_CHECKED_GPA_P(hv, wr->data, wr->len), wr->len,
+            pos);
     assert(ret == wr->len);
     wr->ret = 0;
 }
 
-static void ukvm_port_blkread(uint8_t *mem, uint64_t paddr)
+static void hypercall_blkread(struct ukvm_hv *hv, ukvm_gpa_t gpa)
 {
-    GUEST_CHECK_PADDR(paddr, GUEST_SIZE, sizeof (struct ukvm_blkread));
-    struct ukvm_blkread *rd = (struct ukvm_blkread *)(mem + paddr);
+    struct ukvm_blkread *rd =
+        UKVM_CHECKED_GPA_P(hv, gpa, sizeof (struct ukvm_blkread));
     ssize_t ret;
     off_t pos, end;
 
@@ -92,37 +87,10 @@ static void ukvm_port_blkread(uint8_t *mem, uint64_t paddr)
         return;
     }
 
-    GUEST_CHECK_PADDR(rd->data, GUEST_SIZE, rd->len);
-    ret = pread(diskfd, mem + rd->data, rd->len, pos);
+    ret = pread(diskfd, UKVM_CHECKED_GPA_P(hv, rd->data, rd->len), rd->len,
+            pos);
     assert(ret == rd->len);
     rd->ret = 0;
-}
-
-static int handle_exit(struct kvm_run *run, int vcpufd, uint8_t *mem)
-{
-    if ((run->exit_reason != KVM_EXIT_IO) ||
-        (run->io.direction != KVM_EXIT_IO_OUT) ||
-        (run->io.size != 4))
-        return -1;
-
-    uint64_t paddr =
-        GUEST_PIO32_TO_PADDR((uint8_t *)run + run->io.data_offset);
-
-    switch (run->io.port) {
-    case UKVM_PORT_BLKINFO:
-        ukvm_port_blkinfo(mem, paddr);
-        break;
-    case UKVM_PORT_BLKWRITE:
-        ukvm_port_blkwrite(mem, paddr);
-        break;
-    case UKVM_PORT_BLKREAD:
-        ukvm_port_blkread(mem, paddr);
-        break;
-    default:
-        return -1;
-    }
-
-    return 0;
 }
 
 static int handle_cmdarg(char *cmdarg)
@@ -134,7 +102,7 @@ static int handle_cmdarg(char *cmdarg)
     return 0;
 }
 
-static int setup(int vcpufd, uint8_t *mem)
+static int setup(struct ukvm_hv *hv)
 {
     if (diskfile == NULL)
         return -1;
@@ -148,12 +116,14 @@ static int setup(int vcpufd, uint8_t *mem)
     blkinfo.num_sectors = lseek(diskfd, 0, SEEK_END) / 512;
     blkinfo.rw = 1;
 
-    return 0;
-}
+    assert(ukvm_core_register_hypercall(UKVM_HYPERCALL_BLKINFO,
+                hypercall_blkinfo) == 0);
+    assert(ukvm_core_register_hypercall(UKVM_HYPERCALL_BLKWRITE,
+                hypercall_blkwrite) == 0);
+    assert(ukvm_core_register_hypercall(UKVM_HYPERCALL_BLKREAD,
+                hypercall_blkread) == 0);
 
-static int get_fd(void)
-{
-    return 0; /* no fd for poll to sleep on (synchronous) */
+    return 0;
 }
 
 static char *usage(void)
@@ -161,12 +131,9 @@ static char *usage(void)
     return "--disk=IMAGE (file exposed to the unikernel as a raw block device)";
 }
 
-struct ukvm_module ukvm_blk = {
-    .get_fd = get_fd,
-    .handle_exit = handle_exit,
-    .handle_cmdarg = handle_cmdarg,
+struct ukvm_module ukvm_module_blk = {
+    .name = "blk",
     .setup = setup,
-    .usage = usage,
-    .name = "blk"
+    .handle_cmdarg = handle_cmdarg,
+    .usage = usage
 };
-
