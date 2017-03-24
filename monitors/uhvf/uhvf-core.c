@@ -389,7 +389,7 @@ int platform_init(struct platform **pdata_p)
      * necessary for a bunch of things to work, including
      * CPU_BASED_HLT (bit 7) and MONITOR_TRAP_FLAG (bit 27)
      */
-    if (0) {
+    if (1) {
     VMX_CTRLS(vcpu, HV_VMX_CAP_PROCBASED, VMCS_CTRL_CPU_BASED, 0
               | CPU_BASED_HLT | CPU_BASED_INVLPG
               | CPU_BASED_MWAIT | CPU_BASED_RDPMC
@@ -452,8 +452,12 @@ int platform_get_exit_reason(struct platform *p)
     switch ((int)exit_reason) {
     case VMX_REASON_HLT:
         return EXIT_HLT;
+    case VMX_REASON_CPUID:
+        return EXIT_CPUID;
     case VMX_REASON_RDTSC:
         return EXIT_RDTSC;
+    case VMX_REASON_RDRAND:
+        return EXIT_RDRAND;
     case VMX_REASON_IO:
         return EXIT_IO;
 
@@ -573,4 +577,41 @@ void platform_get_timestamp(uint64_t *s, uint64_t *ns)
     clock_get_time(cclock, &mts);
     *s = mts.tv_sec;
     *ns = mts.tv_nsec;
+}
+
+static int decode_reg(int reg) {
+    switch(reg) {
+    case RAX:
+        return HV_X86_RAX;
+    case RBX:
+        return HV_X86_RBX;
+    case RCX:
+        return HV_X86_RCX;
+    case RDX:
+        return HV_X86_RDX;
+    default:
+        errx(1, "Couldn't decode reg\n");
+    }
+}
+
+uint64_t platform_get_reg(struct platform *p, int reg)
+{
+    return rreg(p->vcpu, decode_reg(reg));
+}
+void platform_set_reg(struct platform *p, int reg, uint64_t val)
+{
+    wreg(p->vcpu, decode_reg(reg), val);
+}
+void platform_emul_rdrand(struct platform *p, uint64_t r)
+{
+    uint32_t instr_info = rvmcs(p->vcpu, VMCS_RO_VMX_INSTR_INFO);
+    int reg = (instr_info >> 3) & 0xf;
+    int size = (instr_info >> 11) & 0x3;
+
+    if (reg != 0) /* eax */
+        errx(1, "rdrand to non-eax unimplemented\n");
+    if (size != 2) /* 64-bit */
+        errx(1, "non-64-bit rdrand unimplemented\n");
+
+    wreg(p->vcpu, HV_X86_RAX, r);
 }

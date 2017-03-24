@@ -253,6 +253,7 @@ static void tsc_init(void)
            tsc_freq, tsc_freq);
 }
 
+static int dbg_rdtsc_cnt;
 
 static int vcpu_loop(struct platform *p)
 {
@@ -278,6 +279,7 @@ static int vcpu_loop(struct platform *p)
         switch (platform_get_exit_reason(p)) {
         case EXIT_HLT:
             /* Guest has halted the CPU, this is considered as a normal exit. */
+            printf("RDTSC count is %d\n", dbg_rdtsc_cnt);
             return 0;
 
         case EXIT_IO: {
@@ -310,6 +312,7 @@ static int vcpu_loop(struct platform *p)
             double tsc_f;
             int dbg_sanity_check_rdtsc = 0;
 
+            dbg_rdtsc_cnt++;
             exec_time = platform_get_exec_time(p);
 
             if (dbg_sanity_check_rdtsc) {
@@ -342,6 +345,45 @@ static int vcpu_loop(struct platform *p)
             break;
         }
 
+        case EXIT_CPUID: {
+            uint32_t eax, ebx, ecx, edx;
+            uint64_t code = platform_get_reg(p, RAX);
+
+            eax = ebx = ecx = edx = 0;
+            switch (code) {
+            case 0: /* genuine intel */
+            case 1: /* family/model, etc. */
+                break;
+            default:
+                // XXX make sure all of these are OK
+                //printf("unsupported cpuid %llx\n", code);
+                //return -1;
+                break;
+            }
+    
+            printf("cpuid with code 0x%llx\n", code);
+            __asm__ volatile("cpuid"
+                             :"=a"(eax),"=b"(ebx),"=c"(ecx),"=d"(edx)
+                             :"a"((uint32_t)code));
+            
+            printf("cpuid results are 0x%x 0x%x 0x%x 0x%x\n", eax, ebx, ecx, edx);
+            platform_set_reg(p, RAX, (uint64_t)eax & 0xffffffff);
+            platform_set_reg(p, RBX, (uint64_t)ebx & 0xffffffff);
+            platform_set_reg(p, RCX, (uint64_t)ecx & 0xffffffff);
+            platform_set_reg(p, RDX, (uint64_t)edx & 0xffffffff);
+
+            platform_advance_rip(p);
+            break;
+        }
+            
+        case EXIT_RDRAND: {
+            uint64_t r;
+            __asm__ volatile ("rdrand %0;":"=r"(r));
+            platform_emul_rdrand(p, r);
+            platform_advance_rip(p);
+            break;
+        }
+            
         case EXIT_IGNORE:
             break;
 
@@ -371,6 +413,7 @@ int setup_modules(struct platform *p)
 
 void sig_handler(int signo)
 {
+    printf("RDTSC count is %d\n", dbg_rdtsc_cnt);
     errx(1, "Exiting on signal %d", signo);
 }
 

@@ -4,8 +4,12 @@
 
 enum {
     EXIT_HLT,
-    EXIT_RDTSC,
     EXIT_IO,
+
+    EXIT_RDTSC,
+    EXIT_CPUID,
+    EXIT_RDRAND,
+
     EXIT_DEBUG,
     EXIT_IGNORE,
     EXIT_FAIL,
@@ -44,14 +48,18 @@ int platform_run(struct platform *p);
 int platform_get_exit_reason(struct platform *p);
 int platform_get_io_port(struct platform *p);
 uint64_t platform_get_io_data(struct platform *p);
+
 void platform_advance_rip(struct platform *p);
 void platform_cleanup(struct platform *p);
-
 
 void platform_init_time(uint64_t *freq);
 void platform_get_timestamp(uint64_t *s, uint64_t *ns);
 uint64_t platform_get_exec_time(struct platform *p);
 void platform_emul_rdtsc(struct platform *p, uint64_t new_tsc);
+void platform_emul_rdrand(struct platform *p, uint64_t r);
+
+uint64_t platform_get_reg(struct platform *p, int reg);
+void platform_set_reg(struct platform *p, int reg, uint64_t val);
 
 
 /* in <platform>/<platform>-gdb.c */

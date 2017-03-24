@@ -112,15 +112,24 @@ case $(uname -s) in
         INCDIR=/usr/include
         SRCS_MACH="machine/_types.h machine/endian.h \
             machine/_limits.h"
-        SRCS_SYS="sys/cdefs.h"
+        SRCS_SYS="sys/cdefs.h sys/_symbol_aliasing.h sys/_posix_availability.h \
+            sys/_endian.h sys/_types.h"
+        SRCS_SYS_PTHREAD="sys/_pthread/_pthread_types.h"
         SRCS_X86="i386/endian.h i386/_types.h i386/_limits.h"
+        SRCS_LIBKERN="libkern/_OSByteOrder.h"
+        SRCS_LIBKERN_I386="libkern/i386/_OSByteOrder.h"
         SRCS="_types.h"
 
         mkdir -p ${HOST_INCDIR}
-        mkdir -p ${HOST_INCDIR}/machine ${HOST_INCDIR}/sys ${HOST_INCDIR}/i386
+        mkdir -p ${HOST_INCDIR}/machine ${HOST_INCDIR}/sys ${HOST_INCDIR}/i386 \
+              ${HOST_INCDIR}/libkern ${HOST_INCDIR}/libkern/i386 \
+              ${HOST_INCDIR}/sys/_pthread
         for f in ${SRCS_MACH}; do cp -f ${INCDIR}/$f ${HOST_INCDIR}/machine; done
         for f in ${SRCS_SYS}; do cp -f ${INCDIR}/$f ${HOST_INCDIR}/sys; done
+        for f in ${SRCS_SYS_PTHREAD}; do cp -f ${INCDIR}/$f ${HOST_INCDIR}/sys/_pthread; done
         for f in ${SRCS_X86}; do cp -f ${INCDIR}/$f ${HOST_INCDIR}/i386; done
+        for f in ${SRCS_LIBKERN}; do cp -f ${INCDIR}/$f ${HOST_INCDIR}/libkern; done
+        for f in ${SRCS_LIBKERN_I386}; do cp -f ${INCDIR}/$f ${HOST_INCDIR}/libkern/i386; done
         for f in ${SRCS}; do cp -f ${INCDIR}/$f ${HOST_INCDIR}; done
 
         # Where is the stack protector library on OSX?
