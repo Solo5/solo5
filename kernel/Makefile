@@ -63,6 +63,8 @@ all: virtio ukvm
 virtio: virtio/solo5.o 
 ukvm: ukvm/solo5.o 
 
+CFLAGS+=-D__SOLO5_KERNEL__
+
 %.o: %.c $(HEADERS)
 	$(CC) $(CFLAGS) -c $< -o $@
 

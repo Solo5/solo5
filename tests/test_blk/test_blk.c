@@ -19,15 +19,7 @@
  */
 
 #include "solo5.h"
-
-static size_t strlen(const char *s)
-{
-    size_t len = 0;
-
-    while (*s++)
-        len += 1;
-    return len;
-}
+//#include "../../kernel/lib.c"
 
 static void puts(const char *s)
 {

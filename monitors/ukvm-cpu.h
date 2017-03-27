@@ -27,10 +27,6 @@
 /*
  * Basic CPU control in CR0
  */
-//#define X86_CR0_PE_BIT		0 /* Protection Enable */
-//#define X86_CR0_PE		_BITUL(X86_CR0_PE_BIT)
-//#define X86_CR0_PG_BIT		31 /* Paging */
-//#define X86_CR0_PG		_BITUL(X86_CR0_PG_BIT)
 #define	X86_CR0_PE	0x00000001	/* Protected mode Enable */
 #define	X86_CR0_NE	0x00000020	/* Numeric Error enable (EX16 vs IRQ13) */
 #define	X86_CR0_PG	0x80000000	/* PaGing enable */
@@ -42,8 +38,6 @@
 /*
  * Intel CPU features in CR4
  */
-//#define X86_CR4_PAE_BIT		5 /* enable physical address extensions */
-//#define X86_CR4_PAE		_BITUL(X86_CR4_PAE_BIT)
 #define	X86_CR4_PAE	 0x00000020	/* Physical address extension */
 #define	X86_CR4_VMXE 0x00002000	/* enable VMX operation (Intel-specific) */
 #define	X86_CR4_FXSR 0x00000200	/* Fast FPU save/restore used by OS */

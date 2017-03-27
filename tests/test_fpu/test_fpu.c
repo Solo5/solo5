@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
  *
  * This file is part of Solo5, a unikernel base layer.
@@ -18,38 +18,39 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include "kernel.h"
-
-/*
- * These functions deliberately do not call printf() or malloc() in order to
- * abort as quickly as possible without triggering further errors.
- */
+#include "solo5.h"
+//#include "../../kernel/lib.c"
 
 static void puts(const char *s)
 {
-    (void)solo5_console_write(s, strlen(s));
+    solo5_console_write(s, strlen(s));
 }
 
-void _assert_fail(const char *file, const char *line, const char *e)
+int solo5_app_main(char *cmdline __attribute__((unused)))
 {
-    puts("Solo5: ABORT: ");
-    puts(file);
-    puts(":");
-    puts(line);
-    puts(": Assertion `");
-    puts(e);
-    puts("' failed\n");
-    platform_exit();
-}
+    float a, b, c[2];
 
-void _abort(const char *file, const char *line, const char *s)
-{
-    puts("Solo5: ABORT: ");
-    puts(file);
-    puts(":");
-    puts(line);
-    puts(": ");
-    puts(s);
-    puts("\n");
-    platform_exit();
+    puts("\n**** Solo5 standalone test_fpu ****\n\n");
+
+    c[0] = 2.0;
+    c[1] = 5.0;
+     __asm__ (
+         "movups %0,%%xmm1;"
+         "mulps %%xmm1, %%xmm1;"
+         "movups %%xmm1, %0"
+         : "=m" (c)
+         : "m" (c)
+         : "xmm1"
+    );
+
+    a = 1.5;
+    b = 5.0;
+    a *= b;
+
+    if (a == 7.5 && c[0] == 4.0 && c[1] == 25.0)
+        puts("SUCCESS\n");
+    else
+        return 1;
+
+    return 0;
 }

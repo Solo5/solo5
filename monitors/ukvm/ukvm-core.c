@@ -415,7 +415,7 @@ int platform_init(struct platform **pdata_p)
      * slots: one before the pci gap, and one after it.
      * Reference: kvmtool x86/kvm.c:kvm__init_ram()
      */
-    assert(GUEST_SIZE < KVM_32BIT_GAP_SIZE);
+    assert(GUEST_SIZE < KVM_32BIT_GAP_START);
 
     /* Allocate GUEST_SIZE page-aligned guest memory. */
     mem = mmap(NULL, GUEST_SIZE, PROT_READ | PROT_WRITE,

@@ -19,39 +19,7 @@
  */
 
 #include "solo5.h"
-
-/* Liberally copied / reinvented libc bits */
-
-static void *memcpy(void *dst, const void *src, size_t size)
-{
-    size_t i;
-
-    for (i = 0; i < size; i++)
-        ((uint8_t *)dst)[i] = ((uint8_t *)src)[i];
-    return dst;
-}
-
-static int memcmp(const void *s1, const void *s2, size_t n)
-{
-    size_t i;
-
-    for (i = 0; i < n; i++) {
-        if (((uint8_t *)s1)[i] < ((uint8_t *)s2)[i])
-            return -1;
-        if (((uint8_t *)s1)[i] > ((uint8_t *)s2)[i])
-            return 1;
-    }
-    return 0;
-}
-
-static size_t strlen(const char *s)
-{
-    size_t len = 0;
-
-    while (*s++)
-        len += 1;
-    return len;
-}
+//#include "../../kernel/lib.c"
 
 static void puts(const char *s)
 {
