@@ -31,7 +31,7 @@
 #include "ukvm.h"
 #include "ukvm_hv_kvm.h"
 
-struct ukvm_hv *ukvm_hv_init(uint8_t *mem, size_t mem_size)
+struct ukvm_hv *ukvm_hv_init(size_t mem_size)
 {
     int ret;
 
@@ -70,18 +70,22 @@ struct ukvm_hv *ukvm_hv_init(uint8_t *mem, size_t mem_size)
     if (hvb->vcpurun == MAP_FAILED)
         err(1, "KVM: VCPU mmap failed");
 
+    hv->mem = mmap(NULL, mem_size, PROT_READ | PROT_WRITE,
+               MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+    if (hv->mem == MAP_FAILED)
+        err(1, "Error allocating guest memory");
+    hv->mem_size = mem_size;
+
     struct kvm_userspace_memory_region region = {
         .slot = 0,
         .guest_phys_addr = 0,
-        .memory_size = mem_size,
-        .userspace_addr = (uint64_t)mem,
+        .memory_size = hv->mem_size,
+        .userspace_addr = (uint64_t)hv->mem,
     };
     ret = ioctl(hvb->vmfd, KVM_SET_USER_MEMORY_REGION, &region);
     if (ret == -1)
         err(1, "KVM: ioctl (SET_USER_MEMORY_REGION) failed");
 
     hv->b = hvb;
-    hv->mem = mem;
-    hv->mem_size = mem_size;
     return hv;
 }

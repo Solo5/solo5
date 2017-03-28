@@ -68,9 +68,10 @@ inline void *ukvm_checked_gpa_p(struct ukvm_hv *hv, ukvm_gpa_t gpa, size_t sz,
 }
 
 /*
- * Initialise hypervisor, with (mem_size) bytes of guest memory at (mem).
+ * Initialise hypervisor, with (mem_size) bytes of guest memory.
+ * (hv->mem) and (hv->mem_size) are valid after this function has been called.
  */
-struct ukvm_hv *ukvm_hv_init(uint8_t *mem, size_t mem_size);
+struct ukvm_hv *ukvm_hv_init(size_t mem_size);
 
 /*
  * Initialise VCPU state with (gpa_ep) as the entry point and (gpa_kend) as the

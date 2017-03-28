@@ -21,6 +21,7 @@
 #define _GNU_SOURCE
 #include <assert.h>
 #include <err.h>
+#include <libgen.h>
 #include <signal.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -110,7 +111,6 @@ static void usage(const char *prog)
 
 int main(int argc, char **argv)
 {
-    uint8_t *mem;
     size_t mem_size = 0x20000000;
     ukvm_gpa_t gpa_ep, gpa_kend;
     const char *prog;
@@ -163,14 +163,9 @@ int main(int argc, char **argv)
     if (sigaction(SIGTERM, &sa, NULL) == -1)
         err(1, "Could not install signal handler");
 
-    mem = mmap(NULL, mem_size, PROT_READ | PROT_WRITE,
-               MAP_SHARED | MAP_ANONYMOUS, -1, 0);
-    if (mem == MAP_FAILED)
-        err(1, "Error allocating guest memory");
+    struct ukvm_hv *hv = ukvm_hv_init(mem_size);
 
-    ukvm_elf_load(elffile, mem, mem_size, &gpa_ep, &gpa_kend);
-
-    struct ukvm_hv *hv = ukvm_hv_init(mem, mem_size);
+    ukvm_elf_load(elffile, hv->mem, hv->mem_size, &gpa_ep, &gpa_kend);
 
     char *cmdline;
     ukvm_hv_vcpu_init(hv, gpa_ep, gpa_kend, &cmdline);
