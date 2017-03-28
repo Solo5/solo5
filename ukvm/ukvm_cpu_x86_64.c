@@ -50,15 +50,27 @@ void ukvm_x86_setup_pagetables(uint8_t *mem, size_t mem_size)
         *pde = paddr | (X86_PDPT_P | X86_PDPT_RW | X86_PDPT_PS);
 }
 
-static struct x86_gdt_desc seg_to_desc(const struct x86_seg *seg)
+static struct x86_gdt_desc sreg_to_desc(const struct x86_sreg *sreg)
 {
+    /*
+     * Translate our shadow register representation to a GDT entry.
+     *
+     * XXX: This function will only work correctly for certain descriptor types
+     * add assertions/tests to verify inputs.
+     *
+     * NOTE: Technically to boot the VCPU we only need the shadow registers
+     * set, everything will work fine with no GDT until the guest attempts to
+     * load a segment register.
+     */
+    uint32_t limit = (sreg->g) ? ((sreg->limit & 0xfffff000) >> 12)
+                               : sreg->limit;
     struct x86_gdt_desc desc = {
-        .base_lo = seg->base & 0xffffff,
-        .base_hi = (seg->base & 0xff000000) >> 24,
-        .limit_lo = seg->limit & 0xffff,
-        .limit_hi = (seg->limit & 0xf0000) >> 16,
-        .type = seg->type, .s = seg->s, .dpl = seg->dpl, .p = seg->p,
-        .avl = seg->avl,. l = seg->l, .db = seg->db, .g = seg->g
+        .base_lo = sreg->base & 0xffffff,
+        .base_hi = (sreg->base & 0xff000000) >> 24,
+        .limit_lo = limit & 0xffff,
+        .limit_hi = (limit & 0xf0000) >> 16,
+        .type = sreg->type, .s = sreg->s, .dpl = sreg->dpl, .p = sreg->p,
+        .avl = sreg->avl, .l = sreg->l, .db = sreg->db, .g = sreg->g
     };
     return desc;
 }
@@ -69,8 +81,6 @@ void ukvm_x86_setup_gdt(uint8_t *mem)
     struct x86_gdt_desc null = { 0 };
 
     gdt[X86_GDT_NULL] = null;
-    gdt[X86_GDT_CODE] = seg_to_desc(&ukvm_x86_seg_code);
-    gdt[X86_GDT_DATA] = seg_to_desc(&ukvm_x86_seg_data);
-    gdt[X86_GDT_TSS_LO] = null;
-    gdt[X86_GDT_TSS_HI] = null;
+    gdt[X86_GDT_CODE] = sreg_to_desc(&ukvm_x86_sreg_code);
+    gdt[X86_GDT_DATA] = sreg_to_desc(&ukvm_x86_sreg_data);
 }

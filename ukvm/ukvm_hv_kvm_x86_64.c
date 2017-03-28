@@ -50,15 +50,19 @@ static void setup_cpuid(struct ukvm_hvb *hvb)
         err(1, "KVM: ioctl (SET_CPUID2) failed");
 }
 
-static struct kvm_segment seg_to_kvm(const struct x86_seg *seg,
-        unsigned index)
+static struct kvm_segment sreg_to_kvm(const struct x86_sreg *sreg)
 {
+    /*
+     * On x86, (struct kvm_segment) maps 1:1 to our shadow register
+     * representation.
+     */
     struct kvm_segment kvm = {
-        .selector = index * 8,
-        .base = seg->base & 0xffffffff,
-        .limit = seg->limit & 0xfffff,
-        .type = seg->type, .present = seg->p, .dpl = seg->dpl, .db = seg->db,
-        .s = seg->s, .l = seg->l, .g = seg->g, .avl = seg->avl
+        .base = sreg->base,
+        .limit = sreg->limit,
+        .selector = sreg->selector * 8,
+        .type = sreg->type, .present = sreg->p, .dpl = sreg->dpl,
+        .db = sreg->db, .s = sreg->s, .l = sreg->l, .g = sreg->g,
+        .avl = sreg->avl, .unusable = sreg->unusable
     };
     return kvm;
 }
@@ -67,7 +71,6 @@ void ukvm_hv_vcpu_init(struct ukvm_hv *hv, ukvm_gpa_t gpa_ep,
         ukvm_gpa_t gpa_kend, char **cmdline)
 {
     struct ukvm_hvb *hvb = hv->b;
-    struct kvm_sregs sregs;
     int ret;
 
     ukvm_x86_setup_gdt(hv->mem);
@@ -75,24 +78,23 @@ void ukvm_hv_vcpu_init(struct ukvm_hv *hv, ukvm_gpa_t gpa_ep,
 
     setup_cpuid(hvb);
 
-    ret = ioctl(hvb->vcpufd, KVM_GET_SREGS, &sregs);
-    if (ret == -1)
-        err(1, "KVM: ioctl (GET_SREGS) failed");
-    
-    sregs.cs = seg_to_kvm(&ukvm_x86_seg_code, X86_GDT_CODE);
-    sregs.ds = seg_to_kvm(&ukvm_x86_seg_data, X86_GDT_DATA);
-    sregs.es = sregs.ds;
-    sregs.fs = sregs.ds;
-    sregs.gs = sregs.ds;
-    sregs.ss = sregs.ds;
-    sregs.gdt.base = X86_GDT_BASE;
-    sregs.gdt.limit = X86_GDTR_LIMIT;
+    struct kvm_sregs sregs = {
+        .cr0 = X86_CR0_INIT,
+        .cr3 = X86_CR3_INIT,
+        .cr4 = X86_CR4_INIT,
+        .efer = X86_EFER_INIT,
 
-    sregs.efer |= X86_INIT_EFER_SET;
-    sregs.cr0 &= ~X86_INIT_CR0_CLEAR;
-    sregs.cr0 |= X86_INIT_CR0_SET;
-    sregs.cr3 = X86_INIT_CR3;
-    sregs.cr4 |= X86_INIT_CR4_SET;
+        .cs = sreg_to_kvm(&ukvm_x86_sreg_code),
+        .ss = sreg_to_kvm(&ukvm_x86_sreg_data),
+        .ds = sreg_to_kvm(&ukvm_x86_sreg_data),
+        .es = sreg_to_kvm(&ukvm_x86_sreg_data),
+        .fs = sreg_to_kvm(&ukvm_x86_sreg_data),
+        .gs = sreg_to_kvm(&ukvm_x86_sreg_data),
+
+        .gdt = { .base = X86_GDT_BASE, .limit = X86_GDTR_LIMIT },
+        .tr = sreg_to_kvm(&ukvm_x86_sreg_tr),
+        .ldt = sreg_to_kvm(&ukvm_x86_sreg_unusable)
+    };
 
     ret = ioctl(hvb->vcpufd, KVM_SET_SREGS, &sregs);
     if (ret == -1)
@@ -109,7 +111,7 @@ void ukvm_hv_vcpu_init(struct ukvm_hv *hv, ukvm_gpa_t gpa_ep,
      */
     struct kvm_regs regs = {
         .rip = gpa_ep,
-        .rflags = X86_INIT_RFLAGS,
+        .rflags = X86_RFLAGS_INIT,
         .rsp = hv->mem_size - 8, /* x86_64 ABI requires ((rsp + 8) % 16) == 0 */
         .rdi = X86_BOOT_INFO_BASE,                  /* arg1 is ukvm_boot_info */
     };
