@@ -20,20 +20,20 @@
 
 #include "kernel.h"
 
-void time_init(void)
+void time_init(uint64_t tsc_freq)
 {
-    assert(pvclock_init() == 0);
+    assert(tscclock_init(tsc_freq) == 0);
 }
 
 uint64_t solo5_clock_monotonic(void)
 {
-    return pvclock_monotonic();
+    return tscclock_monotonic();
 }
 
 /* return wall time in nsecs */
 uint64_t solo5_clock_wall(void)
 {
-    return pvclock_monotonic() + pvclock_epochoffset();
+    return tscclock_monotonic() + tscclock_epochoffset();
 }
 
 int solo5_poll(uint64_t until_nsecs)

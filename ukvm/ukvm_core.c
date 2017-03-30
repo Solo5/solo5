@@ -29,6 +29,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/mman.h>
+#include <time.h>
 #include <unistd.h>
 
 #include "ukvm.h"
@@ -76,6 +77,17 @@ int ukvm_core_register_vmexit(ukvm_vmexit_fn_t fn)
     return 0;
 }
 
+static void hypercall_walltime(struct ukvm_hv *hv, ukvm_gpa_t gpa)
+{
+    struct ukvm_walltime *t =
+        UKVM_CHECKED_GPA_P(hv, gpa, sizeof (struct ukvm_walltime));
+    struct timespec ts;
+
+    int rc = clock_gettime(CLOCK_REALTIME, &ts);
+    assert(rc == 0);
+    t->nsecs = (ts.tv_sec * 1000000000ULL) + ts.tv_nsec;
+}
+
 static void hypercall_puts(struct ukvm_hv *hv, ukvm_gpa_t gpa)
 {
     struct ukvm_puts *p =
@@ -86,6 +98,7 @@ static void hypercall_puts(struct ukvm_hv *hv, ukvm_gpa_t gpa)
 
 static struct pollfd pollfds[NUM_MODULES];
 static int npollfds = 0;
+static sigset_t pollsigmask;
 
 int ukvm_core_register_pollfd(int fd)
 {
@@ -108,19 +121,27 @@ static void hypercall_poll(struct ukvm_hv *hv, ukvm_gpa_t gpa)
     ts.tv_sec = t->timeout_nsecs / 1000000000ULL;
     ts.tv_nsec = t->timeout_nsecs % 1000000000ULL;
 
-    do {
-        rc = ppoll(pollfds, npollfds, &ts, NULL);
-    } while (rc == -1 && errno == EINTR);
+    rc = ppoll(pollfds, npollfds, &ts, &pollsigmask);
     assert(rc >= 0);
     t->ret = rc;
 }
 
 static int setup(struct ukvm_hv *hv)
 {
+    assert(ukvm_core_register_hypercall(UKVM_HYPERCALL_WALLTIME,
+                hypercall_walltime) == 0);
     assert(ukvm_core_register_hypercall(UKVM_HYPERCALL_PUTS,
                 hypercall_puts) == 0);
     assert(ukvm_core_register_hypercall(UKVM_HYPERCALL_POLL,
                 hypercall_poll) == 0);
+
+    /*
+     * XXX: This needs documenting / coordination with the top-level caller.
+     */
+    sigfillset(&pollsigmask);
+    sigdelset(&pollsigmask, SIGTERM);
+    sigdelset(&pollsigmask, SIGINT);
+
     return 0;
 }
 

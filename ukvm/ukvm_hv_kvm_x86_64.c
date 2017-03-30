@@ -106,6 +106,25 @@ void ukvm_hv_vcpu_init(struct ukvm_hv *hv, ukvm_gpa_t gpa_ep,
     bi->kernel_end = gpa_kend;
     bi->cmdline = X86_CMDLINE_BASE;
 
+    ret = ioctl(hvb->kvmfd, KVM_CHECK_EXTENSION, KVM_CAP_GET_TSC_KHZ);
+    if (ret == -1)
+        err(1, "KVM: ioctl (KVM_CHECK_EXTENSION) failed");
+    if (ret != 1)
+        errx(1, "KVM: host does not support KVM_CAP_GET_TSC_KHZ");
+    int tsc_khz = ioctl(hvb->vcpufd, KVM_GET_TSC_KHZ);
+    if (tsc_khz == -1) {
+        if (errno == EIO)
+            errx(1, "KVM: host TSC is unstable, cannot continue");
+        else
+            err(1, "KVM: ioctl (KVM_GET_TSC_KHZ) failed");
+    }
+    /*
+     * KVM gives us the VCPU's TSC frequency in kHz; this is marginally less
+     * accurate than what we want, but no less accurate than any other
+     * KVM-based monitor.
+     */
+    bi->cpu.tsc_freq = tsc_khz * 1000ULL;
+
     /*
      * Initialize user registers using (Linux) x86_64 ABI convention.
      */
