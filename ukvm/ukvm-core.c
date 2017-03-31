@@ -402,9 +402,11 @@ void ukvm_port_puts(uint8_t *mem, uint64_t paddr)
 {
     GUEST_CHECK_PADDR(paddr, GUEST_SIZE, sizeof (struct ukvm_puts));
     struct ukvm_puts *p = (struct ukvm_puts *)(mem + paddr);
+    int ret;
 
     GUEST_CHECK_PADDR(p->data, GUEST_SIZE, p->len);
-    assert(write(1, mem + p->data, p->len) != -1);
+    ret = write(1, mem + p->data, p->len);
+    assert(ret != -1);
 }
 
 void ukvm_port_poll(uint8_t *mem, uint64_t paddr)
