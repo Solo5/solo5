@@ -139,7 +139,18 @@ run_test ()
 
         case ${NAME} in
         *.ukvm)
-            [ -c /dev/kvm -a -w /dev/kvm ] || exit 98
+            OS="$(uname -s)"
+            case ${OS} in
+                Linux)
+                    [ -c /dev/kvm -a -w /dev/kvm ] || exit 98
+                    ;;
+                FreeBSD)
+                    # TODO, just try and run the test anyway
+                    ;;
+                *)
+                    die "Don't know how to run ${NAME} on ${OS}"
+                    ;;
+            esac
             UKVM=${TEST_DIR}/ukvm-bin
             [ -n "${DISK}" ] && UKVM="${UKVM} --disk=${DISK}"
             [ -n "${NET}" ] && UKVM="${UKVM} --net=${NET}"

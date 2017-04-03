@@ -22,6 +22,7 @@
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <ifaddrs.h>
 #include <inttypes.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -30,12 +31,22 @@
 #include <sys/ioctl.h>
 #include <unistd.h>
 
+#if defined(__linux__)
+
 /*
  * Linux TAP device specific.
  */
 #include <sys/socket.h>
 #include <linux/if.h>
 #include <linux/if_tun.h>
+
+#elif defined(__FreeBSD__)
+
+#else /* !__linux__ && !__FreeBSD__ */
+
+#error Unsupported target
+
+#endif
 
 #include "ukvm.h"
 
@@ -45,31 +56,55 @@ static struct ukvm_netinfo netinfo;
 static int cmdline_mac = 0;
 
 /*
- * Attach to an existing TAP interface named 'dev'.
+ * Attach to an existing TAP interface named 'ifname'.
  *
- * This function abstracts away the horrible implementation details of the
- * Linux tun API by ensuring (as much as is possible) success if and only if
- * the TAP device named 'dev' already exists.
- *
- * Returns -1 and an appropriate errno on failure (ENODEV if the device does
+ * Returns -1 and an appropriate errno on failure (ENOENT if the interface does
  * not exist), and the tap device file descriptor on success.
  */
-static int tap_attach(const char *dev)
+static int tap_attach(const char *ifname)
 {
-    struct ifreq ifr;
-    int fd, err;
+    int fd;
 
     /*
-     * Syntax @<number> indicates a prexisting open fd onto the correct device.
+     * Syntax @<number> indicates a pre-existing open fd, so just pass it
+     * through without any checks.
      */
-    if (dev[0] == '@') {
-        fd = atoi(&dev[1]);
+    if (ifname[0] == '@') {
+        fd = atoi(&ifname[1]);
 
         if (fcntl(fd, F_SETFL, O_NONBLOCK) == -1)
             return -1;
 
         return fd;
     }
+
+    /*
+     * Verify that the interface exists. If we don't do this then we get
+     * "create on open" behaviour on most systems which is not what we want.
+     */
+    struct ifaddrs *ifa, *ifp;
+    int found = 0;
+
+    if (getifaddrs(&ifa) == -1)
+        return -1;
+    ifp = ifa;
+    while (ifp) {
+        if (strcmp(ifp->ifa_name, ifname) == 0) {
+            found = 1;
+            break;
+        }
+        ifp = ifp->ifa_next;
+    }
+    freeifaddrs(ifa);
+    if (!found) {
+        errno = ENOENT;
+        return -1;
+    }
+
+#if defined(__linux__)
+
+    int err;
+    struct ifreq ifr;
 
     fd = open("/dev/net/tun", O_RDWR | O_NONBLOCK);
     if (fd == -1)
@@ -83,15 +118,15 @@ static int tap_attach(const char *dev)
      * TODO: IFF_NO_PI may silently truncate packets on read().
      */
     ifr.ifr_flags = IFF_TAP | IFF_NO_PI;
-    if (strlen(dev) > IFNAMSIZ) {
+    if (strlen(ifname) > IFNAMSIZ) {
         errno = EINVAL;
         return -1;
     }
-    strncpy(ifr.ifr_name, dev, IFNAMSIZ);
+    strncpy(ifr.ifr_name, ifname, IFNAMSIZ);
 
     /*
-     * Try to create OR attach to an existing device. The Linux API has no way
-     * to differentiate between the two, but see below.
+     * Attach to the tap device; we have already verified that it exists, but
+     * see below.
      */
     if (ioctl(fd, TUNSETIFF, (void *)&ifr) == -1) {
         err = errno;
@@ -101,30 +136,25 @@ static int tap_attach(const char *dev)
     }
     /*
      * If we got back a different device than the one requested, e.g. because
-     * the caller mistakenly passed in '%d' (yes, that's really in the Linux API)
-     * then fail.
+     * the caller mistakenly passed in '%d' (yes, that's really in the Linux
+     * API) then fail.
      */
-    if (strncmp(ifr.ifr_name, dev, IFNAMSIZ) != 0) {
+    if (strncmp(ifr.ifr_name, ifname, IFNAMSIZ) != 0) {
         close(fd);
-        errno = ENODEV;
+        errno = EINVAL;
         return -1;
     }
 
-    /*
-     * Attempt a zero-sized write to the device. If the device was freshly
-     * created (as opposed to attached to an existing one) this will fail with
-     * EIO. Ignore any other error return since that may indicate the device
-     * is up.
-     *
-     * If this check produces a false positive then caller's later writes to fd
-     * will fail with EIO, which is not great but at least we tried.
-     */
-    char buf[1] = { 0 };
-    if (write(fd, buf, 0) == -1 && errno == EIO) {
-        close(fd);
-        errno = ENODEV;
+#elif defined(__FreeBSD__)
+
+    char devname[strlen(ifname) + 6];
+
+    snprintf(devname, sizeof devname, "/dev/%s", ifname);
+    fd = open(devname, O_RDWR | O_NONBLOCK);
+    if (fd == -1)
         return -1;
-    }
+
+#endif
 
     return fd;
 }

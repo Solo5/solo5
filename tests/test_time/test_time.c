@@ -61,7 +61,7 @@ int solo5_app_main(char *cmdline __attribute__((unused)))
      * Verify that we did not sleep more than requested, within reason
      * (scheduling delays, general inaccuracy of the current timing code).
      */
-    if ((tb - ta) > (NSEC_PER_SEC + 20000000ULL)) {
+    if ((tb - ta) > (NSEC_PER_SEC + 100000000ULL)) {
         puts("ERROR: slept too much\n");
         return 1;
     }

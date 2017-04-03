@@ -17,7 +17,7 @@
  * NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
-#ifdef __x86_64__
+#if defined(__x86_64__) && defined(__linux__)
 
 /***************************************************************************
  *
@@ -694,7 +694,6 @@ static char *usage(void)
 }
 
 #else /* !x86_64 */
-#warning GDB module is unsupported on your architecture, stubbing it out
 #include "ukvm.h"
 
 static int setup(struct ukvm_hv *hv)

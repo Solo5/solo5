@@ -73,7 +73,7 @@ case $(uname -s) in
         for f in ${SRCS}; do cp -f ${INCDIR}/$f ${HOST_INCDIR}; done
 
         HOST_CFLAGS="-nostdlibinc"
-        BUILD_UKVM=
+        BUILD_UKVM=yes
         BUILD_VIRTIO="yes"
         ;;
     *)
