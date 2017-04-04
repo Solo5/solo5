@@ -23,10 +23,13 @@
  *
  * This header file must be kept self-contained with no external dependencies
  * other than C99 headers.
+ *
+ * This header file is dual-use; monitor code will define UKVM_HOST when
+ * including it.
  */
 
-#ifndef __UKVM_GUEST_H__
-#define __UKVM_GUEST_H__
+#ifndef UKVM_GUEST_H
+#define UKVM_GUEST_H
 
 #include <stddef.h>
 #include <stdint.h>
@@ -44,7 +47,7 @@ struct ukvm_cpu_boot_info {
  */
 #define UKVM_HYPERCALL_PIO_BASE 0x500
 
-#    ifdef __UKVM_HOST__
+#    ifdef UKVM_HOST
 /*
  * Non-dereferencable monitor-side type representing a guest physical address.
  */
@@ -81,7 +84,7 @@ static inline void ukvm_do_hypercall(int n, volatile void *arg)
  * This ensures that these pointers are not directly dereferencable on the
  * monitor side.
  */
-#ifdef __UKVM_HOST__
+#ifdef UKVM_HOST
 #    define UKVM_GUEST_PTR(T) ukvm_gpa_t
 #else
 #    define UKVM_GUEST_PTR(T) T
@@ -211,4 +214,4 @@ struct ukvm_poll {
     int ret;
 };
 
-#endif
+#endif /* UKVM_GUEST_H */

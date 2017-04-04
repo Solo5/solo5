@@ -22,8 +22,8 @@
  * ukvm_hv_kvm.h: KVM backend definitions.
  */
 
-#ifndef __UKVM_HV_KVM_H__
-#define __UKVM_HV_KVM_H__
+#ifndef UKVM_HV_KVM_H
+#define UKVM_HV_KVM_H
 
 struct ukvm_hvb {
     int kvmfd;
@@ -32,4 +32,4 @@ struct ukvm_hvb {
     struct kvm_run *vcpurun;
 };
 
-#endif
+#endif /* UKVM_HV_KVM_H */

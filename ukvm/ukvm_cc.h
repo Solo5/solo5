@@ -22,8 +22,8 @@
  * ukvm_cc.h: Compiler support macros.
  */
 
-#ifndef __UKVM_CC_H__
-#define __UKVM_CC_H__
+#ifndef UKVM_CC_H
+#define UKVM_CC_H
 
 #if defined(__GNUC__)
 #if __GNUC__ >= 5
@@ -81,4 +81,4 @@
 #endif /* _HAS_BUILTIN_ADD_OVERFLOW */
 #undef _HAS_BUILTIN_ADD_OVERFLOW
 
-#endif
+#endif /* UKVM_CC_H */

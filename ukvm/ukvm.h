@@ -25,14 +25,14 @@
  * other header files.
  */
 
-#ifndef __UKVM_H__
-#define __UKVM_H__
+#ifndef UKVM_H
+#define UKVM_H
 
 #include <inttypes.h>
 #include <err.h>
 
 #include "ukvm_cc.h"
-#define __UKVM_HOST__
+#define UKVM_HOST
 #include "ukvm_guest.h"
 
 /*
@@ -142,4 +142,4 @@ extern struct ukvm_module ukvm_module_blk;
 extern struct ukvm_module ukvm_module_net;
 extern struct ukvm_module ukvm_module_gdb;
 
-#endif
+#endif /* UKVM_H */

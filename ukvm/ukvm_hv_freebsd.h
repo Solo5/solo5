@@ -22,8 +22,8 @@
  * ukvm_hv_freebsd.h: FreeBSD vmm(4) backend definitions.
  */
 
-#ifndef __UKVM_HV_FREEBSD_H__
-#define __UKVM_HV_FREEBSD_H__
+#ifndef UKVM_HV_FREEBSD_H
+#define UKVM_HV_FREEBSD_H
 
 struct ukvm_hvb {
     char *vmname;
@@ -31,4 +31,4 @@ struct ukvm_hvb {
     struct vm_run vmrun;
 };
 
-#endif
+#endif /* UKVM_HV_FREEBSD_H */
