@@ -18,6 +18,10 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+/*
+ * ukvm_hv_kvm.c: Architecture-independent part of KVM backend implementation.
+ */
+
 #define _GNU_SOURCE
 #include <assert.h>
 #include <err.h>

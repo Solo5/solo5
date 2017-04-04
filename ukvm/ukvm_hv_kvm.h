@@ -18,6 +18,10 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+/*
+ * ukvm_hv_kvm.h: KVM backend definitions.
+ */
+
 #ifndef __UKVM_HV_KVM_H__
 #define __UKVM_HV_KVM_H__
 

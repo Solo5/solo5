@@ -18,6 +18,13 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+/*
+ * ukvm.h: Monitor API definitions.
+ *
+ * Architecture and backend-independent users should not need to include any
+ * other header files.
+ */
+
 #ifndef __UKVM_H__
 #define __UKVM_H__
 

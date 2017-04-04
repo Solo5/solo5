@@ -18,6 +18,13 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+/*
+ * ukvm_core.c: Core functionality.
+ *
+ * Maintains tables of modules, hypercall handlers and vmexit handlers.
+ * Implements core hypercall functionality which is always present.
+ */
+
 #define _GNU_SOURCE
 #include <assert.h>
 #include <err.h>

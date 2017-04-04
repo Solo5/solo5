@@ -17,6 +17,14 @@
  * NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
+
+/*
+ * ukvm_module_gdb.c: GDB server support.
+ *
+ * This module is currently only implemented for the KVM backend on the x86_64
+ * architecture.
+ */
+
 #if defined(__x86_64__) && defined(__linux__)
 
 /***************************************************************************

@@ -18,6 +18,10 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+/*
+ * ukvm_module_blk.c: Block device module.
+ */
+
 #define _GNU_SOURCE
 #include <assert.h>
 #include <err.h>

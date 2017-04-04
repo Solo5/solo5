@@ -18,6 +18,13 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+/*
+ * ukvm_guest.h: UKVM guest-side API definitions.
+ *
+ * This header file must be kept self-contained with no external dependencies
+ * other than C99 headers.
+ */
+
 #ifndef __UKVM_GUEST_H__
 #define __UKVM_GUEST_H__
 

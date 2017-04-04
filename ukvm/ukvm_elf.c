@@ -18,6 +18,13 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+/*
+ * ukvm_elf.c: ELF loader.
+ *
+ * This module should be kept backend-independent and architectural
+ * dependencies should be self-contained.
+ */
+
 #define _GNU_SOURCE
 #include <err.h>
 #include <elf.h>

@@ -18,6 +18,10 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+/*
+ * ukvm_module_net.c: Network device module.
+ */
+
 #include <assert.h>
 #include <err.h>
 #include <errno.h>

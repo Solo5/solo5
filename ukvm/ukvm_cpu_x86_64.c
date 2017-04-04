@@ -18,6 +18,11 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+/*
+ * ukvm_cpu_x86_64.c: Common architecture-dependent code supporting x86_64
+ * backend implementations.
+ */
+
 #include <assert.h>
 #include <stddef.h>
 #include <stdint.h>

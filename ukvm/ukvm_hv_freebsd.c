@@ -18,6 +18,11 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+/*
+ * ukvm_hv_freebsd.c: Architecture-independent part of FreeBSD vmm(4) backend
+ * implementation.
+ */
+
 #include <assert.h>
 #include <err.h>
 #include <errno.h>

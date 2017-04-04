@@ -18,8 +18,12 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef __UKVM_HV_BHYVE_H__
-#define __UKVM_HV_BHYVE_H__
+/*
+ * ukvm_hv_freebsd.h: FreeBSD vmm(4) backend definitions.
+ */
+
+#ifndef __UKVM_HV_FREEBSD_H__
+#define __UKVM_HV_FREEBSD_H__
 
 struct ukvm_hvb {
     char *vmname;

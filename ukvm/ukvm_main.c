@@ -18,6 +18,10 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+/*
+ * ukvm_main.c: Main program.
+ */
+
 #define _GNU_SOURCE
 #include <assert.h>
 #include <err.h>

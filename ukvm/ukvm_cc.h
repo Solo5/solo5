@@ -18,6 +18,10 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+/*
+ * ukvm_cc.h: Compiler support macros.
+ */
+
 #ifndef __UKVM_CC_H__
 #define __UKVM_CC_H__
 

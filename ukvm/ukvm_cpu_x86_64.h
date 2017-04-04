@@ -18,6 +18,11 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+/*
+ * ukvm_cpu_x86_64.h: CPU constants and initialisation data common to x86_64
+ * backend implementations.
+ */
+
 #ifndef __UKVM_CPU_X86_64_H__
 #define __UKVM_CPU_X86_64_H__
 

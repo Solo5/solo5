@@ -18,6 +18,11 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+/*
+ * ukvm_hv_freebsd_x86_64.c: x86_64 architecture-dependent part of FreeBSD
+ * vmm(4) backend implementation.
+ */
+
 #define _GNU_SOURCE
 #include <assert.h>
 #include <err.h>
