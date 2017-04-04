@@ -1,3 +1,26 @@
+## 0.2.2 (2017-04-04)
+
+This release incorporates fixes since the release of MirageOS 3.0.
+
+The changes in #166 may have a security impact, all users are encouraged to
+rebuild their deployed unikernels against this release.
+
+Notable changes:
+
+* Add self-test for guest exception handling (#162).
+* Setup FPU in ukvm and add self-test for FPU/SSE operation (#163).
+* Fix check for KVM 32-bit gap (#165).
+* Replace kernel/lib.c with musl-derived implementations (#166).
+* solo5-virtio-run.sh support for Arch Linux (#168, #169).
+
+Acknowledgements:
+
+Thanks to the following new contributors to this release:
+
+* Adrian-Ken Rueegsegger
+* Michael LeMay
+* Gabriel Jaldon
+
 ## 0.2.1 (2017-02-21)
 
 Point release to address a compilation issue on systems with Clang 3.9 (#158)
