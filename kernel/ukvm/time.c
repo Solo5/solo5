@@ -23,18 +23,18 @@
 
 void time_init(void)
 {
-    assert(pvclock_init() == 0);
+    assert(ukvmclock_init() == 0);
 }
 
 uint64_t solo5_clock_monotonic(void)
 {
-    return pvclock_monotonic();
+    return ukvmclock_monotonic();
 }
 
 /* return wall time in nsecs */
 uint64_t solo5_clock_wall(void)
 {
-    return pvclock_monotonic() + pvclock_epochoffset();
+    return ukvmclock_monotonic() + ukvmclock_epochoffset();
 }
 
 int solo5_poll(uint64_t until_nsecs)
@@ -42,12 +42,13 @@ int solo5_poll(uint64_t until_nsecs)
     struct ukvm_poll t;
     uint64_t now;
 
+    
     now = solo5_clock_monotonic();
     if (until_nsecs <= now)
         t.timeout_nsecs = 0;
     else
         t.timeout_nsecs = until_nsecs - now;
     outl(UKVM_PORT_POLL, ukvm_ptr(&t));
-    cc_barrier();
+    cpu_cc_barrier();
     return t.ret;
 }

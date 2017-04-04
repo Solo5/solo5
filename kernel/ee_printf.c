@@ -709,7 +709,7 @@ static int ee_vprintf(const char *fmt, va_list args)
     n = vsnprintf(buf, PRINTF_BUF_LEN, fmt, args);
     assert(n < PRINTF_BUF_LEN);
 
-    return platform_puts(buf, n);
+    return solo5_console_write(buf, n);
 }
 
 int printf(const char *fmt, ...)

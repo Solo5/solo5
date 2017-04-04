@@ -24,19 +24,6 @@
 .text
 .code64
 
-ENTRY(cpu_halt)
-    cli
-    hlt
-    jmp cpu_halt
-END(cpu_halt)
-
-ENTRY(cpu_rdtsc)
-    rdtsc
-    shl $32, %rdx
-    add %rdx, %rax
-    ret
-END(cpu_rdtsc)
-
 ENTRY(cpu_idt_load)
     lidt 0(%rdi)
     ret

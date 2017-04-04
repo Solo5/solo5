@@ -1,7 +1,6 @@
-/* 
- * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
- *
- * This file is part of Solo5, a unikernel base layer.
+/* Copyright (c) 2015, IBM
+ * Author(s): Dan Williams <djwillia@us.ibm.com>
+ *            Ricardo Koller <kollerr@us.ibm.com>
  *
  * Permission to use, copy, modify, and/or distribute this software
  * for any purpose with or without fee is hereby granted, provided
@@ -18,24 +17,3 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include "kernel.h"
-
-/*
- * Interrupts are not used on the ukvm platform, hence these are stubs.
- */
-
-void platform_intr_init(void)
-{
-}
-
-void platform_intr_ack_irq(unsigned irq __attribute__((unused)))
-{
-}
-
-void platform_intr_mask_irq(unsigned irq __attribute__((unused)))
-{
-}
-
-void platform_intr_clear_irq(unsigned irq __attribute__((unused)))
-{
-}

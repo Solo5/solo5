@@ -1,23 +1,3 @@
-/* 
- * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
- *
- * This file is part of ukvm, a unikernel monitor.
- *
- * Permission to use, copy, modify, and/or distribute this software
- * for any purpose with or without fee is hereby granted, provided
- * that the above copyright notice and this permission notice appear
- * in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
- * WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
- * WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
- * AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR
- * CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS
- * OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT,
- * NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
- * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
- */
-
 #ifndef __UKVM_CPU_H__
 #define __UKVM_CPU_H__
 
@@ -41,28 +21,44 @@
  * EFLAGS bits
  */
 #define X86_EFLAGS_CF	0x00000001 /* Carry Flag */
+#define X86_EFLAGS_TF_BIT   8 /* Trap flag (single step) */
+#define X86_EFLAGS_TF   _BITUL(X86_EFLAGS_TF_BIT)
 
 /*
  * Basic CPU control in CR0
  */
-#define X86_CR0_PE_BIT          0 /* Protection Enable */
-#define X86_CR0_PE              _BITUL(X86_CR0_PE_BIT)
-#define X86_CR0_MP_BIT          1 /* Monitor Coprocessor */
-#define X86_CR0_MP              _BITUL(X86_CR0_MP_BIT)
-#define X86_CR0_EM_BIT          2 /* Emulation */
-#define X86_CR0_EM              _BITUL(X86_CR0_EM_BIT)
-#define X86_CR0_PG_BIT          31 /* Paging */
-#define X86_CR0_PG              _BITUL(X86_CR0_PG_BIT)
+#define	X86_CR0_PE	0x00000001	/* Protected mode Enable */
+#define	X86_CR0_NE	0x00000020	/* Numeric Error enable (EX16 vs IRQ13) */
+#define	X86_CR0_PG	0x80000000	/* PaGing enable */
+#define	X86_CR0_NW  0x20000000	/* Not Write-through */
+#define	X86_CR0_CD  0x40000000	/* Cache Disable */
+#define	X86_CR0_MP	0x00000002	/* "Math" (fpu) Present */
+#define	X86_CR0_EM	0x00000004	/* EMulate FPU instructions. (trap ESC only) */
 
 /*
  * Intel CPU features in CR4
  */
-#define X86_CR4_PAE_BIT         5 /* enable physical address extensions */
-#define X86_CR4_PAE             _BITUL(X86_CR4_PAE_BIT)
-#define X86_CR4_OSFXSR_BIT      9 /* OS support for FXSAVE/FXRSTOR */
-#define X86_CR4_OSFXSR          _BITUL(X86_CR4_OSFXSR_BIT)
-#define X86_CR4_OSXMMEXCPT_BIT  10 /* OS support for FP exceptions */
-#define X86_CR4_OSXMMEXCPT      _BITUL(X86_CR4_OSXMMEXCPT_BIT)
+#define	X86_CR4_PAE	 0x00000020	/* Physical address extension */
+#define	X86_CR4_VMXE 0x00002000	/* enable VMX operation (Intel-specific) */
+#define	X86_CR4_FXSR 0x00000200	/* Fast FPU save/restore used by OS */
+#define	X86_CR4_XMM	 0x00000400	/* enable SIMD/MMX2 to use except 16 */
+
+
+#define	X86_EFER_LME 0x000000100	/* Long mode enable (R/W) */
+#define	X86_EFER_LMA 0x000000400	/* Long mode active (R) */
+
+/* AMD64 MSR's */
+#define	MSR_EFER	0xc0000080	/* extended features */
+#define	MSR_STAR	0xc0000081	/* legacy mode SYSCALL target/cs/ss */
+#define	MSR_LSTAR	0xc0000082	/* long mode SYSCALL target rip */
+#define	MSR_CSTAR	0xc0000083	/* compat mode SYSCALL target rip */
+#define	MSR_SF_MASK	0xc0000084	/* syscall flags mask */
+#define	MSR_FSBASE	0xc0000100	/* base address of the %fs "segment" */
+#define	MSR_GSBASE	0xc0000101	/* base address of the %gs "segment" */
+#define	MSR_KGSBASE	0xc0000102	/* base address of the kernel %gs */
+#define	MSR_SYSENTER_CS_MSR	0x174
+#define	MSR_SYSENTER_ESP_MSR	0x175
+#define	MSR_SYSENTER_EIP_MSR	0x176
 
 /*
  * Intel long mode page directory/table entries
@@ -99,27 +95,27 @@
      (((limit) & _AC(0x0000ffff, ULL))))
 
 struct _kvm_segment {
-    __u64 base;
-    __u32 limit;
-    __u16 selector;
-    __u8 type;
-    __u8 present, dpl, db, s, l, g, avl;
-    __u8 unusable;
-    __u8 padding;
+    uint64_t base;
+    uint32_t limit;
+    uint16_t selector;
+    uint8_t type;
+    uint8_t present, dpl, db, s, l, g, avl;
+    uint8_t unusable;
+    uint8_t padding;
 };
 
-#define GDT_GET_G(x)   (__u8)(((x) & 0x0080000000000000) >> 55)
-#define GDT_GET_DB(x)  (__u8)(((x) & 0x0040000000000000) >> 54)
-#define GDT_GET_L(x)   (__u8)(((x) & 0x0020000000000000) >> 53)
-#define GDT_GET_AVL(x) (__u8)(((x) & 0x0010000000000000) >> 52)
-#define GDT_GET_P(x)   (__u8)(((x) & 0x0000800000000000) >> 47)
-#define GDT_GET_DPL(x) (__u8)(((x) & 0x0000600000000000) >> 45)
-#define GDT_GET_S(x)   (__u8)(((x) & 0x0000100000000000) >> 44)
-#define GDT_GET_TYPE(x)(__u8)(((x) & 0x00000F0000000000) >> 40)
+#define GDT_GET_G(x)   (uint8_t)(((x) & 0x0080000000000000) >> 55)
+#define GDT_GET_DB(x)  (uint8_t)(((x) & 0x0040000000000000) >> 54)
+#define GDT_GET_L(x)   (uint8_t)(((x) & 0x0020000000000000) >> 53)
+#define GDT_GET_AVL(x) (uint8_t)(((x) & 0x0010000000000000) >> 52)
+#define GDT_GET_P(x)   (uint8_t)(((x) & 0x0000800000000000) >> 47)
+#define GDT_GET_DPL(x) (uint8_t)(((x) & 0x0000600000000000) >> 45)
+#define GDT_GET_S(x)   (uint8_t)(((x) & 0x0000100000000000) >> 44)
+#define GDT_GET_TYPE(x)(uint8_t)(((x) & 0x00000F0000000000) >> 40)
 
 #define GDT_TO_KVM_SEGMENT(seg, gdt_table, sel) \
     do {                                        \
-        __u64 gdt_ent = gdt_table[sel];         \
+        uint64_t gdt_ent = gdt_table[sel];         \
         seg.base = GDT_GET_BASE(gdt_ent);       \
         seg.limit = GDT_GET_LIMIT(gdt_ent);     \
         seg.selector = sel * 8;                 \
@@ -134,3 +130,4 @@ struct _kvm_segment {
     } while (0)
 
 #endif
+

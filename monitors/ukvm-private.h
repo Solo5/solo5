@@ -87,7 +87,7 @@
  * Given a pointer to 32-bit guest I/O write data, dereference and return as
  * a guest physical address (uint64_t).
  */
-#define GUEST_PIO32_TO_PADDR(x) (uint64_t)(* (uint32_t *)(x))
+#define GUEST_PIO32_TO_PADDR(x) (uint64_t)(*(uint32_t *)(x))
 
 /*
  * Given a guest physical address (p), validate that:
@@ -97,7 +97,7 @@
  * (p) and (l) must be of type uint64_t. (sz) must be of type size_t or
  * compatible.
  */
-#define GUEST_CHECK_PADDR(p, l, sz) \
+#define GUEST_CHECK_PADDR(p, l, sz)                                     \
     {                                                                          \
         uint64_t __e;                                                          \
         if ((p >= l) || add_overflow(p, sz, __e) || (__e >= l))                \
@@ -107,3 +107,4 @@
     }
 
 #endif
+

@@ -27,7 +27,7 @@
 
 static void puts(const char *s)
 {
-    (void)platform_puts(s, strlen(s));
+    (void)solo5_console_write(s, strlen(s));
 }
 
 void _assert_fail(const char *file, const char *line, const char *e)

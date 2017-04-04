@@ -65,4 +65,14 @@ uint64_t solo5_clock_wall(void);
  */
 int solo5_poll(uint64_t until_nsecs);
 
+
+/* TODO: Replace lib stuff */
+void *memset(void *dest, int c, size_t n);
+void *memcpy(void *restrict dest, const void *restrict src, size_t n);
+void *memmove(void *dest, const void *src, size_t n);
+int memcmp(const void *vl, const void *vr, size_t n);
+int strcmp(const char *l, const char *r);
+char *strcpy(char *restrict dest, const char *restrict src);
+size_t strlen(const char *s);
+
 #endif

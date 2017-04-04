@@ -21,7 +21,6 @@
 #define _GNU_SOURCE
 #include <err.h>
 #include <fcntl.h>
-#include <linux/kvm.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -98,30 +97,29 @@ static void ukvm_port_blkread(uint8_t *mem, uint64_t paddr)
     rd->ret = 0;
 }
 
-static int handle_exit(struct kvm_run *run, int vcpufd, uint8_t *mem)
+static int handle_exit(struct platform *p)
 {
-    if ((run->exit_reason != KVM_EXIT_IO) ||
-        (run->io.direction != KVM_EXIT_IO_OUT) ||
-        (run->io.size != 4))
+    if (platform_get_exit_reason(p) != EXIT_IO)
         return -1;
 
-    uint64_t paddr =
-        GUEST_PIO32_TO_PADDR((uint8_t *)run + run->io.data_offset);
+    int port = platform_get_io_port(p);
+    uint64_t data = platform_get_io_data(p);
 
-    switch (run->io.port) {
+    switch (port) {
     case UKVM_PORT_BLKINFO:
-        ukvm_port_blkinfo(mem, paddr);
+        ukvm_port_blkinfo(p->mem, data);
         break;
     case UKVM_PORT_BLKWRITE:
-        ukvm_port_blkwrite(mem, paddr);
+        ukvm_port_blkwrite(p->mem, data);
         break;
     case UKVM_PORT_BLKREAD:
-        ukvm_port_blkread(mem, paddr);
+        ukvm_port_blkread(p->mem, data);
         break;
     default:
         return -1;
     }
 
+    platform_advance_rip(p);
     return 0;
 }
 
@@ -134,7 +132,7 @@ static int handle_cmdarg(char *cmdarg)
     return 0;
 }
 
-static int setup(int vcpufd, uint8_t *mem)
+static int setup(struct platform *p)
 {
     if (diskfile == NULL)
         return -1;
@@ -169,4 +167,3 @@ struct ukvm_module ukvm_blk = {
     .usage = usage,
     .name = "blk"
 };
-

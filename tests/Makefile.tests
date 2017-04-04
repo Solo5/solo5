@@ -26,7 +26,7 @@ ukvm: $(UKVM_TARGETS)
 virtio:	$(VIRTIO_TARGETS)
 
 SOLO5_DIR=$(TOP)/kernel
-UKVM_SRC=$(TOP)/ukvm
+UKVM_SRC=$(TOP)/monitors
 
 CFLAGS+=-I$(SOLO5_DIR)
 
@@ -39,10 +39,10 @@ Makefile.ukvm: $(UKVM_SRC)/ukvm-configure
 	$(UKVM_SRC)/ukvm-configure $(UKVM_SRC) $(UKVM_MODULES)
 
 -include Makefile.ukvm
+#	$(LD) -T $(SOLO5_DIR)/ukvm/solo5.lds \
 
 %.ukvm: %.o $(SOLO5_DIR)/ukvm/solo5.lds $(SOLO5_DIR)/ukvm/solo5.o
-	$(LD) -T $(SOLO5_DIR)/ukvm/solo5.lds \
-			 $(LDFLAGS) -o $@ $(SOLO5_DIR)/ukvm/solo5.o $< $(LDLIBS)
+	$(LD) -e __start -segalign 1000 -seg1addr -fff00000 $(LDFLAGS) -o $@ $(SOLO5_DIR)/ukvm/solo5.o $< $(LDLIBS)
 
 $(SOLO5_DIR)/ukvm/solo5.o: 
 	$(MAKE) -C $(SOLO5_DIR) ukvm

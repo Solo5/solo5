@@ -19,7 +19,7 @@
  */
 
 #include "solo5.h"
-#include "../../kernel/lib.c"
+//#include "../../kernel/lib.c"
 
 static void puts(const char *s)
 {

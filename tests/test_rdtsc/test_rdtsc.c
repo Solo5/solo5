@@ -19,30 +19,53 @@
  */
 
 #include "solo5.h"
-//#include "../../kernel/lib.c"
+
+static char *digits = "0123456789abcdef";
+
+#define STRLEN 16
+static char strbuf[STRLEN + 1];
+
+void hex_to_str(char *target, uint64_t val) {
+    int i;
+    for (i = 0; i < STRLEN; i++) {
+        int digit = val & 0xf;
+        target[STRLEN - i - 1] = digits[digit];
+        val = val >> 4;
+    }
+    target[STRLEN] = '\n';
+    
+}
 
 static void puts(const char *s)
 {
     solo5_console_write(s, strlen(s));
 }
 
-/*
- * Verify that global variables are initialised and writable. (See #73)
- */
-
-char s[] = "RUCCESS\n";
-
-void do_test(void)
+static inline uint64_t cpu_rdtsc(void)
 {
-    s[0]++;
-    puts(s);
+    uint32_t edx_, eax_;
+
+    __asm__("rdtsc" : "=a" (eax_), "=d" (edx_));
+    return (uint64_t)eax_ + ((uint64_t)edx_ << 32);
 }
+
+
+#define RDTSC_LOOPS 1000000
 
 int solo5_app_main(char *cmdline __attribute__((unused)))
 {
-    puts("\n**** Solo5 standalone test_globals ****\n\n");
+    volatile uint64_t start, end;
+    int i;
+    
+    puts("\n**** Solo5 standalone test_rdtsc ****\n\n");
 
-    do_test();
-
+    start = cpu_rdtsc();
+    for (i = 0; i < RDTSC_LOOPS; i++) {
+        end = cpu_rdtsc();
+    }
+    puts("rdtsc diff: ");
+    hex_to_str(strbuf, end - start);
+    solo5_console_write(strbuf, STRLEN + 1);
+    
     return 0;
 }

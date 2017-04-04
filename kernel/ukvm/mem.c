@@ -31,17 +31,17 @@ uint64_t mem_max_addr(void)
 
 void mem_init(uint64_t size, uint64_t kernel_end)
 {
-    extern char _stext[], _etext[], _erodata[], _end[];
+    /* extern char _stext[], _etext[], _erodata[], _end[]; */
 
     max_addr = size;
     heap_start = (kernel_end + PAGE_SIZE - 1) & PAGE_MASK;
     heap_top = heap_start;
 
     printf("Solo5: Memory map: %lu MB addressable:\n", max_addr >> 20);
-    printf("Solo5:     unused @ (0x0 - 0x%lx)\n", &_stext[-1]);
-    printf("Solo5:       text @ (0x%lx - 0x%lx)\n", &_stext, &_etext[-1]);
-    printf("Solo5:     rodata @ (0x%lx - 0x%lx)\n", &_etext, &_erodata[-1]);
-    printf("Solo5:       data @ (0x%lx - 0x%lx)\n", &_erodata, &_end[-1]);
+    /* printf("Solo5:     unused @ (0x0 - 0x%lx)\n", &_stext[-1]); */
+    /* printf("Solo5:       text @ (0x%lx - 0x%lx)\n", &_stext, &_etext[-1]); */
+    /* printf("Solo5:     rodata @ (0x%lx - 0x%lx)\n", &_etext, &_erodata[-1]); */
+    /* printf("Solo5:       data @ (0x%lx - 0x%lx)\n", &_erodata, &_end[-1]); */
     printf("Solo5:       heap >= 0x%lx < stack < 0x%lx\n", heap_start,
         max_addr);
 }
@@ -55,7 +55,7 @@ void mem_init(uint64_t size, uint64_t kernel_end)
 /*
  * Called by dlmalloc to allocate or free memory.
  */
-void *sbrk(intptr_t increment)
+void *sbrk(ptrdiff_t increment)
 {
     uint64_t prev, brk;
     uint64_t heap_max = (uint64_t)&prev - STACK_GUARD_SIZE;
