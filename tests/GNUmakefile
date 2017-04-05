@@ -16,7 +16,7 @@
 # NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
 # CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-TESTDIRS=test_hello test_globals test_ping_serve test_blk test_exception test_fpu
+TESTDIRS=test_hello test_globals test_ping_serve test_blk test_exception test_fpu test_time
 
 UKVM_TESTS=$(subst test, _test_ukvm, $(TESTDIRS))
 VIRTIO_TESTS=$(subst test, _test_virtio, $(TESTDIRS))

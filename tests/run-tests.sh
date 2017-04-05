@@ -139,7 +139,18 @@ run_test ()
 
         case ${NAME} in
         *.ukvm)
-            [ -c /dev/kvm -a -w /dev/kvm ] || exit 98
+            OS="$(uname -s)"
+            case ${OS} in
+                Linux)
+                    [ -c /dev/kvm -a -w /dev/kvm ] || exit 98
+                    ;;
+                FreeBSD)
+                    # TODO, just try and run the test anyway
+                    ;;
+                *)
+                    die "Don't know how to run ${NAME} on ${OS}"
+                    ;;
+            esac
             UKVM=${TEST_DIR}/ukvm-bin
             [ -n "${DISK}" ] && UKVM="${UKVM} --disk=${DISK}"
             [ -n "${NET}" ] && UKVM="${UKVM} --net=${NET}"
@@ -238,6 +249,7 @@ if [ -n "${BUILD_UKVM}" ]; then
     add_test test_globals.ukvm
     add_test test_exception.ukvm:-a
     add_test test_fpu.ukvm
+    add_test test_time.ukvm
     add_test test_blk.ukvm:-d
     add_test test_ping_serve.ukvm:-n:limit
 fi
@@ -246,6 +258,7 @@ if [ -n "${BUILD_VIRTIO}" ]; then
     add_test test_globals.virtio
     add_test test_exception.virtio:-a
     add_test test_fpu.virtio
+    add_test test_time.virtio
     add_test test_blk.virtio:-d
     add_test test_ping_serve.virtio:-n:limit
 fi

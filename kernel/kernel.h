@@ -104,9 +104,6 @@ void *calloc(size_t nmemb, size_t size);
 void *realloc(void *ptr, size_t size);
 void *memalign(size_t alignment, size_t bytes);
 
-/* time.c: clocksource */
-void time_init(void);
-
 /* ee_printf.c: a third-party printf slightly modified and with
  *              snprintf added
  */

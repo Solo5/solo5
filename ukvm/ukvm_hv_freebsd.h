@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
  *
  * This file is part of ukvm, a unikernel monitor.
@@ -18,22 +18,17 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef __UKVM_MODULES_H__
-#define __UKVM_MODULES_H__
+/*
+ * ukvm_hv_freebsd.h: FreeBSD vmm(4) backend definitions.
+ */
 
-/* hypercall interfaces exported by modules are in ukvm.h */
+#ifndef UKVM_HV_FREEBSD_H
+#define UKVM_HV_FREEBSD_H
 
-struct ukvm_module {
-    int (*get_fd)(void);
-    int (*handle_exit)(struct kvm_run *run, int vcpufd, uint8_t *mem);
-    int (*handle_cmdarg)(char *cmdarg);
-    int (*setup)(int vcpufd, uint8_t *mem);
-    char *(*usage)(void);
-    const char *name;
+struct ukvm_hvb {
+    char *vmname;
+    int vmfd;
+    struct vm_run vmrun;
 };
 
-extern struct ukvm_module ukvm_blk;
-extern struct ukvm_module ukvm_net;
-extern struct ukvm_module ukvm_gdb;
-
-#endif
+#endif /* UKVM_HV_FREEBSD_H */

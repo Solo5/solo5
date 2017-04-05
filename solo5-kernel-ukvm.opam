@@ -21,4 +21,7 @@ depexts: [
   [["ubuntu"] ["linux-libc-dev"]]
 ]
 conflicts: "solo5-kernel-virtio"
-available: [ocaml-version >= "4.02.3" & arch = "x86_64" & os = "linux"]
+available: [
+  ocaml-version >= "4.02.3" & (arch = "x86_64" | arch = "amd64") &
+  (os = "linux" | os = "freebsd")
+]

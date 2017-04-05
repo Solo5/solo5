@@ -18,133 +18,128 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef __UKVM_H__
-#define __UKVM_H__
+/*
+ * ukvm.h: Monitor API definitions.
+ *
+ * Architecture and backend-independent users should not need to include any
+ * other header files.
+ */
 
-struct ukvm_boot_info {
-    uint64_t mem_size;		/* Memory size in bytes */
-    uint64_t kernel_end;	/* Address of end of kernel */
-    uint64_t cmdline;		/* Address of command line (C string) */
+#ifndef UKVM_H
+#define UKVM_H
+
+#include <inttypes.h>
+#include <err.h>
+
+#include "ukvm_cc.h"
+#define UKVM_HOST
+#include "ukvm_guest.h"
+
+/*
+ * Hypervisor {arch,backend}-independent data is defined here.
+ * {arch,backend}-dependent data (b) is defined in ukvm_hv_{backend}.h.
+ */
+struct ukvm_hv {
+    uint8_t *mem;
+    size_t mem_size;
+    struct ukvm_hvb *b;
 };
 
 /*
- * We can only send 32 bits via ports, so sending pointers will only
- * work for 32-bit addresses.  If we have unikernels with more than
- * 4GB of memory, we could be in trouble.
+ * Load an ELF binary from (file) into (mem_size) bytes of (mem), returning
+ * the entry point (gpa_ep) and last byte used by the binary (gpa_kend).
  */
-static inline uint32_t ukvm_ptr(volatile void *p)
-{
-	assert((((uint64_t)p) & 0xffffffff00000000) == 0);
-	return (uint32_t)((uint64_t)p & 0xffffffff);
+void ukvm_elf_load(const char *file, uint8_t *mem, size_t mem_size,
+        ukvm_gpa_t *p_entry, ukvm_gpa_t *p_end);                
+
+/*
+ * Check that (gpa) and (gpa + sz) are within guest memory. Returns a host-side
+ * pointer to (gpa) if successful, aborts if not.
+ */
+#define UKVM_CHECKED_GPA_P(hv, gpa, sz) \
+    ukvm_checked_gpa_p((hv), (gpa), (sz), __FILE__, __LINE__)
+
+inline void *ukvm_checked_gpa_p(struct ukvm_hv *hv, ukvm_gpa_t gpa, size_t sz,
+        const char *file, int line)
+{    
+    ukvm_gpa_t r;
+
+    if ((gpa >= hv->mem_size) || add_overflow(gpa, sz, r) ||
+            (r >= hv->mem_size)) {
+        errx(1, "%s:%d: Invalid guest access: gpa=0x%" PRIx64 ", sz=%zu",
+                file, line, gpa, sz);
+    }
+    else {
+        return (void *)(hv->mem + gpa);
+    }
 }
 
-#define UKVM_PORT_PUTS      0x499
-/* was UKVM_PORT_NANOSLEEP 0x500 */
-
-#define UKVM_PORT_BLKINFO   0x502
-#define UKVM_PORT_BLKWRITE  0x503
-#define UKVM_PORT_BLKREAD   0x504
-
-#define UKVM_PORT_NETINFO   0x505
-#define UKVM_PORT_NETWRITE  0x506
-#define UKVM_PORT_NETREAD   0x507
-
-/* was UKVM_PORT_DBG_STACK 0x508 */
-
-#define UKVM_PORT_POLL      0x509
+/*
+ * Initialise hypervisor, with (mem_size) bytes of guest memory.
+ * (hv->mem) and (hv->mem_size) are valid after this function has been called.
+ */
+struct ukvm_hv *ukvm_hv_init(size_t mem_size);
 
 /*
- * Guest-provided pointers in UKVM I/O operations MUST be declared with
- * UKVM_GUEST_PTR(type), where type is the desired guest-side pointer type.
- *
- * This ensures that these pointers are not directly dereferencable on the host
- * (ukvm) side.
+ * Initialise VCPU state with (gpa_ep) as the entry point and (gpa_kend) as the
+ * last byte of memory used by the guest binary. In (*cmdline), returns a
+ * buffer with UKVM_CMDLINE_SIZE bytes of space for the guest command line.
  */
-#ifdef __UKVM_HOST__
-#define UKVM_GUEST_PTR(T) uint64_t
-#else
-#define UKVM_GUEST_PTR(T) T
-#endif
+void ukvm_hv_vcpu_init(struct ukvm_hv *hv, ukvm_gpa_t gpa_ep,
+        ukvm_gpa_t gpa_kend, char **cmdline);
 
-/* UKVM_PORT_PUTS */
-struct ukvm_puts {
-	/* IN */
-	UKVM_GUEST_PTR(const char *) data;
-	size_t len;
-};
+/*
+ * Run the VCPU. Returns on normal guest exit.
+ */
+void ukvm_hv_vcpu_loop(struct ukvm_hv *hv);
 
-/* UKVM_PORT_BLKINFO */
-struct ukvm_blkinfo {
-	/* OUT */
-	size_t sector_size;
-	size_t num_sectors;
-	int rw;
-};
+/*
+ * Register the file descriptor (fd) for use with UKVM_HYPERCALL_POLL.
+ */
+int ukvm_core_register_pollfd(int fd);
 
-/* UKVM_PORT_BLKWRITE */
-struct ukvm_blkwrite {
-	/* IN */
-	size_t sector;
-	UKVM_GUEST_PTR(const void *) data;
-	size_t len;
+/*
+ * Register (fn) as the handler for hypercall (nr).
+ */
+typedef void (*ukvm_hypercall_fn_t)(struct ukvm_hv *hv, ukvm_gpa_t gpa);
+int ukvm_core_register_hypercall(int nr, ukvm_hypercall_fn_t fn);
 
-	/* OUT */
-	int ret;
-};
+/*
+ * Dispatch array of [UKVM_HYPERCALL_MAX] hypercalls. NULL = no handler.
+ */
+extern ukvm_hypercall_fn_t ukvm_core_hypercalls[];
 
-/* UKVM_PORT_BLKREAD */
-struct ukvm_blkread {
-	/* IN */
-	size_t sector;
-	UKVM_GUEST_PTR(void *) data;
+/*
+ * Register a custom vmexit handler (fn). (fn) must return 0 if the vmexit was
+ * handled, -1 if not.
+ */
+typedef int (*ukvm_vmexit_fn_t)(struct ukvm_hv *hv);
+int ukvm_core_register_vmexit(ukvm_vmexit_fn_t fn);
 
-	/* IN/OUT */
-	size_t len;
+/*
+ * Dispatch array of module-registered vmexit handlers. NULL terminated.
+ */
+extern ukvm_vmexit_fn_t ukvm_core_vmexits[];
 
-	/* OUT */
-	int ret;
-};
-
-/* UKVM_PORT_NETINFO */
-struct ukvm_netinfo {
-	/* OUT */
-	char mac_str[18];
-};
-
-/* UKVM_PORT_NETWRITE */
-struct ukvm_netwrite {
-	/* IN */
-	UKVM_GUEST_PTR(const void *) data;
-	size_t len;
-
-	/* OUT */
-	int ret;
-};
-
-/* UKVM_PORT_NETREAD */
-struct ukvm_netread {
-	/* IN */
-	UKVM_GUEST_PTR(void *) data;
-
-	/* IN/OUT */
-	size_t len;
-
-	/* OUT */
-	int ret;
+/*
+ * Module definition. (name) and (setup) are required, all other functions are
+ * optional.
+ */
+struct ukvm_module {
+    const char *name;
+    int (*setup)(struct ukvm_hv *hv);
+    int (*handle_cmdarg)(char *cmdarg);
+    char *(*usage)(void);
 };
 
 /*
- * UKVM_PORT_POLL: Block until timeout_nsecs have passed or I/O is possible,
- * whichever is sooner. Returns 1 if I/O is possible, otherwise 0.
- *
- * TODO: Extend this interface to select which I/O events are of interest.
+ * Array of compiled-in modules. NULL terminated.
  */
-struct ukvm_poll {
-    /* IN */
-    uint64_t timeout_nsecs;
+extern struct ukvm_module *ukvm_core_modules[];
 
-    /* OUT */
-    int ret;
-};
+extern struct ukvm_module ukvm_module_core;
+extern struct ukvm_module ukvm_module_blk;
+extern struct ukvm_module ukvm_module_net;
+extern struct ukvm_module ukvm_module_gdb;
 
-#endif
+#endif /* UKVM_H */

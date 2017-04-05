@@ -1,7 +1,7 @@
 /* 
  * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
  *
- * This file is part of Solo5, a unikernel base layer.
+ * This file is part of ukvm, a unikernel monitor.
  *
  * Permission to use, copy, modify, and/or distribute this software
  * for any purpose with or without fee is hereby granted, provided
@@ -18,34 +18,18 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include "kernel.h"
+/*
+ * ukvm_hv_kvm.h: KVM backend definitions.
+ */
 
-void time_init(uint64_t tsc_freq)
-{
-    assert(tscclock_init(tsc_freq) == 0);
-}
+#ifndef UKVM_HV_KVM_H
+#define UKVM_HV_KVM_H
 
-uint64_t solo5_clock_monotonic(void)
-{
-    return tscclock_monotonic();
-}
+struct ukvm_hvb {
+    int kvmfd;
+    int vmfd;
+    int vcpufd;
+    struct kvm_run *vcpurun;
+};
 
-/* return wall time in nsecs */
-uint64_t solo5_clock_wall(void)
-{
-    return tscclock_monotonic() + tscclock_epochoffset();
-}
-
-int solo5_poll(uint64_t until_nsecs)
-{
-    struct ukvm_poll t;
-    uint64_t now;
-
-    now = solo5_clock_monotonic();
-    if (until_nsecs <= now)
-        t.timeout_nsecs = 0;
-    else
-        t.timeout_nsecs = until_nsecs - now;
-    ukvm_do_hypercall(UKVM_HYPERCALL_POLL, &t);
-    return t.ret;
-}
+#endif /* UKVM_HV_KVM_H */

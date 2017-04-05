@@ -26,8 +26,7 @@ ee_printf.o \
 intr.o \
 lib.o \
 malloc.o \
-exit.o \
-pvclock.o
+exit.o
 
 UKVM_COBJS=\
 ukvm/kernel.o \
@@ -37,6 +36,7 @@ ukvm/platform.o \
 ukvm/platform_intr.o \
 ukvm/mem.o \
 ukvm/time.o \
+ukvm/tscclock.o \
 $(COMMON_COBJS)
 
 VIRTIO_COBJS=\
@@ -53,6 +53,7 @@ virtio/virtio_net.o \
 virtio/virtio_blk.o \
 virtio/tscclock.o \
 virtio/clock_subr.o \
+virtio/pvclock.o \
 $(COMMON_COBJS)
 
 HEADERS=\

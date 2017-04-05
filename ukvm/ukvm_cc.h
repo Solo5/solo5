@@ -18,14 +18,12 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef __UKVM_PRIVATE_H__
-#define __UKVM_PRIVATE_H__
+/*
+ * ukvm_cc.h: Compiler support macros.
+ */
 
-#include <inttypes.h>
-#include <err.h>
-
-#define GUEST_SIZE      0x20000000 /* 512 MBs */
-#define GUEST_PAGE_SIZE 0x200000   /* 2 MB pages in guest */
+#ifndef UKVM_CC_H
+#define UKVM_CC_H
 
 #if defined(__GNUC__)
 #if __GNUC__ >= 5
@@ -83,27 +81,4 @@
 #endif /* _HAS_BUILTIN_ADD_OVERFLOW */
 #undef _HAS_BUILTIN_ADD_OVERFLOW
 
-/*
- * Given a pointer to 32-bit guest I/O write data, dereference and return as
- * a guest physical address (uint64_t).
- */
-#define GUEST_PIO32_TO_PADDR(x) (uint64_t)(* (uint32_t *)(x))
-
-/*
- * Given a guest physical address (p), validate that:
- *   - (p) is within the limit (l)
- *   - (p + sz) does not overflow and is within the limit (l)
- *
- * (p) and (l) must be of type uint64_t. (sz) must be of type size_t or
- * compatible.
- */
-#define GUEST_CHECK_PADDR(p, l, sz) \
-    {                                                                          \
-        uint64_t __e;                                                          \
-        if ((p >= l) || add_overflow(p, sz, __e) || (__e >= l))                \
-            errx(1, "%s:%d: Invalid guest access: "                            \
-                    "paddr=0x%" PRIx64 ", sz=%zu",                             \
-                    __FILE__, __LINE__, p, sz);                                \
-    }
-
-#endif
+#endif /* UKVM_CC_H */

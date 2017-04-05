@@ -37,12 +37,16 @@ endif
 ukvm:
 ifeq ($(BUILD_UKVM), yes)
 	$(MAKE) -C kernel ukvm
+	$(MAKE) -C ukvm
 	$(MAKE) -C tests ukvm
 endif
 
 .PHONY: clean
 clean:
 	$(MAKE) -C kernel clean
+ifeq ($(BUILD_UKVM), yes)
+	$(MAKE) -C ukvm clean
+endif
 	$(MAKE) -C tests clean
 	$(RM) solo5-kernel-virtio.pc
 	$(RM) solo5-kernel-ukvm.pc
