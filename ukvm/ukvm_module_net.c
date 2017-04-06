@@ -83,11 +83,13 @@ static int tap_attach(const char *ifname)
     }
 
     /*
-     * Verify that the interface exists. If we don't do this then we get
-     * "create on open" behaviour on most systems which is not what we want.
+     * Verify that the interface exists and is up and running. If we don't do
+     * this then we get "create on open" behaviour on most systems which is not
+     * what we want.
      */
     struct ifaddrs *ifa, *ifp;
     int found = 0;
+    int up = 0;
 
     if (getifaddrs(&ifa) == -1)
         return -1;
@@ -95,6 +97,7 @@ static int tap_attach(const char *ifname)
     while (ifp) {
         if (strcmp(ifp->ifa_name, ifname) == 0) {
             found = 1;
+            up = ifp->ifa_flags & (IFF_UP | IFF_RUNNING);
             break;
         }
         ifp = ifp->ifa_next;
@@ -102,6 +105,10 @@ static int tap_attach(const char *ifname)
     freeifaddrs(ifa);
     if (!found) {
         errno = ENOENT;
+        return -1;
+    }
+    if (!up) {
+        errno = ENETDOWN;
         return -1;
     }
 
