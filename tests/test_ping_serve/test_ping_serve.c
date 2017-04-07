@@ -272,16 +272,9 @@ static void ping_serve(int verbose, int limit)
         int len = sizeof(buf);
 
         /* wait for packet */
-        /* XXX doing the below produces an assert in ukvm, look into it */
-        /*
         while (solo5_net_read_sync(buf, &len) != 0) {
             solo5_poll(solo5_clock_monotonic() + 1000000000ULL);
         }
-        */
-        while (solo5_poll(solo5_clock_monotonic() + 1000000000ULL) == 0) {
-            ;
-        }
-        assert(solo5_net_read_sync(buf, &len) == 0);
 
         if (memcmp(p->target, macaddr, HLEN_ETHER) &&
             memcmp(p->target, macaddr_brd, HLEN_ETHER))
