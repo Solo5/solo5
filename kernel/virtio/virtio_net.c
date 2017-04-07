@@ -170,7 +170,7 @@ void virtio_config_network(struct pci_config_info *pci)
              virtio_net_mac[3],
              virtio_net_mac[4],
              virtio_net_mac[5]);
-    printf("Solo5: PCI:%02x:%02x: configured, mac=%s, features=0x%x\n",
+    log(INFO, "Solo5: PCI:%02x:%02x: configured, mac=%s, features=0x%x\n",
         pci->bus, pci->dev, virtio_net_mac_str, host_features);
 
     /*

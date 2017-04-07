@@ -24,6 +24,7 @@ extern void bounce_stack(uint64_t stack_start, void (*tramp)(void));
 static void kernel_main2(void) __attribute__((noreturn));
 
 static char cmdline[8192];
+static char *app_cmdline;
 
 void kernel_main(uint32_t arg)
 {
@@ -31,13 +32,8 @@ void kernel_main(uint32_t arg)
 
     serial_init();
 
-    printf("            |      ___|\n");
-    printf("  __|  _ \\  |  _ \\ __ \\\n");
-    printf("\\__ \\ (   | | (   |  ) |\n");
-    printf("____/\\___/ _|\\___/____/\n");
-
     if (!gdb)
-        printf("Solo5: Waiting for gdb...\n");
+        log(INFO, "Solo5: Waiting for gdb...\n");
     while (gdb == 0)
         ;
 
@@ -65,12 +61,19 @@ void kernel_main(uint32_t arg)
 
         if (cmdline_len >= sizeof(cmdline)) {
             cmdline_len = sizeof(cmdline) - 1;
-            printf("Solo5: warning: command line too long, truncated\n");
+            log(WARN, "Solo5: warning: command line too long, truncated\n");
         }
         memcpy(cmdline, mi_cmdline, cmdline_len);
     } else {
         cmdline[0] = 0;
     }
+
+    app_cmdline = cmdline_parse((const char *) cmdline);
+
+    log(INFO, "            |      ___|\n");
+    log(INFO, "  __|  _ \\  |  _ \\ __ \\\n");
+    log(INFO, "\\__ \\ (   | | (   |  ) |\n");
+    log(INFO, "____/\\___/ _|\\___/____/\n");
 
     /*
      * Initialise memory map, then immediately switch stack to top of RAM.
@@ -93,8 +96,8 @@ static void kernel_main2(void)
 
     intr_enable();
 
-    ret = solo5_app_main(cmdline);
-    printf("Solo5: solo5_app_main() returned with %d\n", ret);
+    ret = solo5_app_main(app_cmdline);
+    log(DEBUG, "Solo5: solo5_app_main() returned with %d\n", ret);
 
     platform_exit();
 }

@@ -22,6 +22,6 @@
 
 void solo5_exit(void)
 {
-    printf("Solo5: solo5_exit() called\n");
+    log(INFO, "Solo5: solo5_exit() called\n");
     platform_exit();
 }
