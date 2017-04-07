@@ -17,31 +17,27 @@
  * NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
-
 #include "kernel.h"
 
-void _start(struct ukvm_boot_info *bi)
+static log_level_t log_level = INFO;
+
+int ee_vprintf(const char *fmt, va_list args);
+
+int log(log_level_t level, const char *fmt, ...)
 {
-    int ret;
-    char *cmdline;
+    va_list args;
+    int ret = 0;
 
-    cmdline = cmdline_parse((const char *) bi->cmdline);
+    if (log_level >= level) {
+        va_start(args, fmt);
+        ret = ee_vprintf(fmt, args);
+        va_end(args);
+    }
 
-    log(INFO, "            |      ___|\n");
-    log(INFO, "  __|  _ \\  |  _ \\ __ \\\n");
-    log(INFO, "\\__ \\ (   | | (   |  ) |\n");
-    log(INFO, "____/\\___/ _|\\___/____/\n");
+    return ret;
+}
 
-    gdt_init();
-    mem_init(bi->mem_size, bi->kernel_end);
-    intr_init();
-
-    time_init(bi->cpu.tsc_freq);
-
-    intr_enable();
-
-    ret = solo5_app_main(cmdline);
-    log(DEBUG, "Solo5: solo5_app_main() returned with %d\n", ret);
-
-    platform_exit();
+void log_set_level(log_level_t level)
+{
+    log_level = level;
 }

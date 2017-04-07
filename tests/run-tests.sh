@@ -73,12 +73,13 @@ run_test ()
     local TEST_DIR
     local STATUS
 
-    ARGS=$(getopt dna $*)
+    ARGS=$(getopt dnav $*)
     [ $? -ne 0 ] && die "Invalid test options"
     set -- ${ARGS}
     DISK=
     NET=
     WANT_ABORT=
+    WANT_QUIET=
     while true; do
         case "$1" in
         -d)
@@ -94,6 +95,11 @@ run_test ()
             # This test must ABORT
             WANT_ABORT=true
             shift
+            ;;
+        -v)
+            # This test must run in quiet mode
+            WANT_QUIET=true
+            shift;
             ;;
         --)
             shift; break
@@ -175,11 +181,20 @@ run_test ()
     # XXX Should this be abstracted out in solo5-run-virtio.sh?
     0|2|83) 
         LOGS=$(find ${TMPDIR} -type f -name ${NAME}.log.\*)
+
         STATUS=99
         if [ -z "${WANT_ABORT}" ]; then
             [ -n "${LOGS}" ] && grep -q SUCCESS ${LOGS} && STATUS=0
         else
             [ -n "${LOGS}" ] && grep -q ABORT ${LOGS} && STATUS=0
+        fi
+        if [ ${STATUS} -eq "0" ]; then
+            if [ -n "${WANT_QUIET}" ]; then
+                STATUS=99
+		# There shouldn't be a single "Solo5:" in quiet mode (unless
+		# there is an error).
+                [ -n "${LOGS}" ] && grep -q "Solo5:" ${LOGS} || STATUS=0
+            fi
         fi
         ;;
     esac
@@ -241,26 +256,28 @@ MAKECONF=${SCRIPT_DIR}/../Makeconf
 #
 # List of tests to run is defined here.
 #
-# Syntax: add_test test_foo.TARGET[:[OPTIONS]:[ARGS]]
+# Syntax: add_test test_foo.TARGET[/[OPTIONS]/[ARGS]]
 #
 TESTS=
 if [ -n "${BUILD_UKVM}" ]; then
-    add_test test_hello.ukvm::Hello_Solo5
+    add_test test_hello.ukvm//Hello_Solo5
+    add_test test_quiet.ukvm/-v/--solo5:quiet
     add_test test_globals.ukvm
-    add_test test_exception.ukvm:-a
+    add_test test_exception.ukvm/-a
     add_test test_fpu.ukvm
     add_test test_time.ukvm
-    add_test test_blk.ukvm:-d
-    add_test test_ping_serve.ukvm:-n:limit
+    add_test test_blk.ukvm/-d
+    add_test test_ping_serve.ukvm/-n/limit
 fi
 if [ -n "${BUILD_VIRTIO}" ]; then
-    add_test test_hello.virtio::Hello_Solo5
+    add_test test_hello.virtio//Hello_Solo5
+    add_test test_quiet.virtio/-v/--solo5:quiet
     add_test test_globals.virtio
-    add_test test_exception.virtio:-a
+    add_test test_exception.virtio/-a
     add_test test_fpu.virtio
     add_test test_time.virtio
-    add_test test_blk.virtio:-d
-    add_test test_ping_serve.virtio:-n:limit
+    add_test test_blk.virtio/-d
+    add_test test_ping_serve.virtio/-n/limit
 fi
 
 echo "--------------------------------------------------------------------------------"
@@ -270,7 +287,7 @@ FAILED=
 SKIPPED=
 for T in ${TESTS}; do
     OLDIFS=$IFS
-    IFS=:
+    IFS=/
     set -- ${T}
     IFS=$OLDIFS
     [ $# -lt 1 -o $# -gt 3 ] && die "Error in test specification: '${T}'"
@@ -281,7 +298,7 @@ for T in ${TESTS}; do
         OPTS=
     fi
     printf "%-32s: " "${NAME}"
-    run_test ${OPTS} ${NAME} "$@"
+    run_test ${OPTS} ${NAME} -- "$@"
     case $? in
     0)
         STATUS=0

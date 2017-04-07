@@ -700,7 +700,7 @@ repeat:
 }
 
 #define PRINTF_BUF_LEN (4*80)
-static int ee_vprintf(const char *fmt, va_list args)
+int ee_vprintf(const char *fmt, va_list args)
 {
     /* XXX Replace ee_printf() with a version that does not need buffers */
     char buf[PRINTF_BUF_LEN];

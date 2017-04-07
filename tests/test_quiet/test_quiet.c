@@ -18,30 +18,27 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include "kernel.h"
+#include "solo5.h"
 
-void _start(struct ukvm_boot_info *bi)
+static size_t strlen(const char *s)
 {
-    int ret;
-    char *cmdline;
+    size_t len = 0;
 
-    cmdline = cmdline_parse((const char *) bi->cmdline);
+    while (*s++)
+        len += 1;
+    return len;
+}
 
-    log(INFO, "            |      ___|\n");
-    log(INFO, "  __|  _ \\  |  _ \\ __ \\\n");
-    log(INFO, "\\__ \\ (   | | (   |  ) |\n");
-    log(INFO, "____/\\___/ _|\\___/____/\n");
+static void puts(const char *s)
+{
+    solo5_console_write(s, strlen(s));
+}
 
-    gdt_init();
-    mem_init(bi->mem_size, bi->kernel_end);
-    intr_init();
-
-    time_init(bi->cpu.tsc_freq);
-
-    intr_enable();
-
-    ret = solo5_app_main(cmdline);
-    log(DEBUG, "Solo5: solo5_app_main() returned with %d\n", ret);
-
-    platform_exit();
+int solo5_app_main(char *cmdline __attribute__((unused)))
+{
+    puts("\n**** Solo5 standalone test_verbose ****\n\n");
+    puts("SUCCESS");
+    /* The run-tests.sh script will run this with --quiet and checks that
+     * there is no "Solo5:". */
+    return 0;
 }

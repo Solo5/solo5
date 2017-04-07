@@ -41,13 +41,12 @@ int virtq_add_descriptor_chain(struct virtq *vq,
     uint16_t mask = vq->num - 1;
     struct virtq_desc *desc;
     uint16_t i;
-    int dbg = 0;
     uint16_t used_descs = num;
 
     if (vq->num_avail < used_descs) {
-        printf("Solo5: virtq full! next_avail:%d last_used:%d\n",
-               vq->next_avail, vq->last_used);
-            return -1;
+        log(WARN, "Solo5: virtq full! next_avail:%d last_used:%d\n",
+            vq->next_avail, vq->last_used);
+        return -1;
     }
 
     assert(used_descs > 0);
@@ -74,10 +73,6 @@ int virtq_add_descriptor_chain(struct virtq *vq,
     /* The last descriptor in the chain does not have a next */
     desc->next = 0;
     desc->flags &= ~VIRTQ_DESC_F_NEXT;
-
-    if (dbg)
-        atomic_printf("0x%p returning head %d\n",
-                      vq, head);
 
     vq->num_avail -= num;
     /* Memory barriers should be unnecessary with one processor */

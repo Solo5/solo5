@@ -117,8 +117,10 @@ void *memcpy(void *restrict dest, const void *restrict src, size_t n);
 void *memmove(void *dest, const void *src, size_t n);
 int memcmp(const void *vl, const void *vr, size_t n);
 int strcmp(const char *l, const char *r);
+int strncmp(const char *l, const char *r, size_t n);
 char *strcpy(char *restrict dest, const char *restrict src);
 size_t strlen(const char *s);
+int isspace(int c);
 
 /* platform.c: specifics for ukvm or virito platform */
 void platform_exit(void) __attribute__((noreturn));
@@ -134,6 +136,19 @@ void platform_intr_ack_irq(unsigned irq);
 int pvclock_init(void);
 uint64_t pvclock_monotonic(void);
 uint64_t pvclock_epochoffset(void);
+
+/* cmdline.c: command line parsing */
+char *cmdline_parse(const char *cmdline);
+
+/* log.c: */
+typedef enum {
+    ERROR=0,
+    WARN, 
+    INFO, 
+    DEBUG,
+} log_level_t;
+int log(log_level_t level, const char *fmt, ...);
+void log_set_level(log_level_t level);
 
 /* accessing devices via port space */
 

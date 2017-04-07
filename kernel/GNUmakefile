@@ -26,7 +26,9 @@ ee_printf.o \
 intr.o \
 lib.o \
 malloc.o \
-exit.o
+exit.o \
+log.o \
+cmdline.o
 
 UKVM_COBJS=\
 ukvm/kernel.o \
