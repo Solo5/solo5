@@ -46,6 +46,8 @@
 
 #elif defined(__FreeBSD__)
 
+#include <net/if.h>
+
 #else /* !__linux__ && !__FreeBSD__ */
 
 #error Unsupported target
