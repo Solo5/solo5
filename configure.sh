@@ -30,7 +30,7 @@ cc_is_clang()
 
 cc_is_gcc()
 {
-    ${CC:-cc} -v 2>&1 | grep -q "^gcc version"
+    ${CC:-cc} -v 2>&1 | grep -E -q "^gcc( version|-Version)"
 }
 
 # Host-provided header files are installed here for in-tree builds. OPAM will
