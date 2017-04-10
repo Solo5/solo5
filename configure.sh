@@ -23,14 +23,19 @@ die()
     exit 1
 }
 
+cc_maybe_gcc()
+{
+    ${CC:-cc} -dM -E - </dev/null | grep -Eq '^#define __GNUC__ [4-9]$'
+}
+
 cc_is_clang()
 {
-    ${CC:-cc} -v 2>&1 | grep -q "clang version"
+    ${CC:-cc} -dM -E - </dev/null | grep -Eq '^#define __clang__ 1$'
 }
 
 cc_is_gcc()
 {
-    ${CC:-cc} -v 2>&1 | grep -q "^gcc version"
+    cc_maybe_gcc && ! cc_is_clang
 }
 
 # Host-provided header files are installed here for in-tree builds. OPAM will
@@ -41,7 +46,7 @@ HOST_INCDIR=${PWD}/include-host
 case $(uname -s) in
     Linux)
         # On Linux/gcc we use -nostdinc and copy all the gcc-provided headers.
-        cc_is_gcc || die "Only 'gcc' is supported on Linux"
+        cc_is_gcc || die "Only 'gcc' 4.x+ is supported on Linux"
         CC_INCDIR=$(${CC:-cc} -print-file-name=include)
         [ -d "${CC_INCDIR}" ] || die "Cannot determine gcc include directory"
         mkdir -p ${HOST_INCDIR}
