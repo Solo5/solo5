@@ -182,7 +182,7 @@ kvm|qemu)
 bhyve)
     # Load the VM using grub-bhyve. Kill stdout as this is normal GRUB output.
     (is_quiet || set -x; \
-        printf "multiboot ${UNIKERNEL} placeholder %s\nboot\n" "$*" \
+        printf -- "multiboot ${UNIKERNEL} placeholder %s\nboot\n" "$*" \
         | grub-bhyve -M ${MEM} "${VMNAME}" >/dev/null) \
         || die "Could not initialise VM"
 

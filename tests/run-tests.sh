@@ -189,11 +189,14 @@ run_test ()
             [ -n "${LOGS}" ] && grep -q ABORT ${LOGS} && STATUS=0
         fi
         if [ ${STATUS} -eq "0" ]; then
-            if [ -n "${WANT_QUIET}" ]; then
-                STATUS=99
-		# There shouldn't be a single "Solo5:" in quiet mode (unless
-		# there is an error).
-                [ -n "${LOGS}" ] && grep -q "Solo5:" ${LOGS} || STATUS=0
+            if [ -n "${WANT_QUIET}" -a -n "${LOGS}" ]; then
+                # XXX This is all just horribly fragile.
+                # If "quiet mode" was requested, there should not be any output
+                # on the console with "Solo5:" in it unless there was an error,
+                # with the exception of "Solo5: Halted" on non-QEMU hypervisors.
+                if sed -e '/^Solo5: Halted$/d' ${LOGS} | grep -q 'Solo5:'; then
+                    STATUS=99
+                fi
             fi
         fi
         ;;
@@ -298,7 +301,7 @@ for T in ${TESTS}; do
         OPTS=
     fi
     printf "%-32s: " "${NAME}"
-    run_test ${OPTS} ${NAME} -- "$@"
+    run_test ${OPTS} -- ${NAME} "$@"
     case $? in
     0)
         STATUS=0
