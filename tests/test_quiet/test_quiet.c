@@ -37,7 +37,7 @@ static void puts(const char *s)
 int solo5_app_main(char *cmdline __attribute__((unused)))
 {
     puts("\n**** Solo5 standalone test_verbose ****\n\n");
-    puts("SUCCESS");
+    puts("SUCCESS\n");
     /* The run-tests.sh script will run this with --quiet and checks that
      * there is no "Solo5:". */
     return 0;
