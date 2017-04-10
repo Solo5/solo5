@@ -191,8 +191,8 @@ run_test ()
         if [ ${STATUS} -eq "0" ]; then
             if [ -n "${WANT_QUIET}" ]; then
                 STATUS=99
-		# There shouldn't be a single "Solo5:" in quiet mode (unless
-		# there is an error).
+                # There shouldn't be a single "Solo5:" in quiet mode (unless
+                # there is an error).
                 [ -n "${LOGS}" ] && grep -q "Solo5:" ${LOGS} || STATUS=0
             fi
         fi
