@@ -298,7 +298,7 @@ for T in ${TESTS}; do
         OPTS=
     fi
     printf "%-32s: " "${NAME}"
-    run_test ${OPTS} ${NAME} -- "$@"
+    run_test ${OPTS} -- ${NAME} "$@"
     case $? in
     0)
         STATUS=0
