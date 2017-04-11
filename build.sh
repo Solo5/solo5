@@ -12,5 +12,7 @@ else
 fi
 
 set -xe
+uname -a
+cc --version
 ${MAKE}
 # Don't run any tests yet
