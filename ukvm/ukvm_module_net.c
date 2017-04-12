@@ -109,12 +109,13 @@ static int tap_attach(const char *ifname)
         errno = ENOENT;
         return -1;
     }
+
+#if defined(__linux__)
+
     if (!up) {
         errno = ENETDOWN;
         return -1;
     }
-
-#if defined(__linux__)
 
     int err;
     struct ifreq ifr;
