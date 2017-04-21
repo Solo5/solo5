@@ -25,6 +25,7 @@ void _start(struct ukvm_boot_info *bi)
     int ret;
     char *cmdline;
 
+    cpu_init();
     cmdline = cmdline_parse((const char *) bi->cmdline);
 
     log(INFO, "            |      ___|\n");
@@ -32,13 +33,8 @@ void _start(struct ukvm_boot_info *bi)
     log(INFO, "\\__ \\ (   | | (   |  ) |\n");
     log(INFO, "____/\\___/ _|\\___/____/\n");
 
-    gdt_init();
     mem_init(bi->mem_size, bi->kernel_end);
-    intr_init();
-
     time_init(bi->cpu.tsc_freq);
-
-    intr_enable();
 
     ret = solo5_app_main(cmdline);
     log(DEBUG, "Solo5: solo5_app_main() returned with %d\n", ret);

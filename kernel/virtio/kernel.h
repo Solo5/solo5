@@ -32,6 +32,11 @@ void serial_putc(char a);
 
 void time_init(void);
 
+/* pvclock.c: KVM paravirtualized clock */
+int pvclock_init(void);
+uint64_t pvclock_monotonic(void);
+uint64_t pvclock_epochoffset(void);
+
 /* tscclock.c: TSC/PIT-based clock and sleep */
 int tscclock_init(void);
 uint64_t tscclock_monotonic(void);

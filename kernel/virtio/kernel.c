@@ -37,6 +37,8 @@ void kernel_main(uint32_t arg)
     while (gdb == 0)
         ;
 
+    cpu_init();
+
     /*
      * The multiboot structures may be anywhere in memory, so take a copy of
      * the command line before we initialise memory allocation.
@@ -87,9 +89,6 @@ static void kernel_main2(void)
 {
     int ret;
 
-    intr_init();
-    /* ocaml needs floating point */
-    cpu_sse_enable();
     time_init();
 
     pci_enumerate();

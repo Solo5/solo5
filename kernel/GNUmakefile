@@ -20,8 +20,8 @@ include $(TOP)/Makefile.common
 
 COMMON_COBJS=\
 abort.o \
-cpu.o \
-cpu_vectors.o \
+cpu_x86_64.o \
+cpu_vectors_x86_64.o \
 ee_printf.o \
 intr.o \
 lib.o \
@@ -32,7 +32,6 @@ cmdline.o
 
 UKVM_COBJS=\
 ukvm/kernel.o \
-ukvm/gdt.o \
 ukvm/io.o \
 ukvm/platform.o \
 ukvm/platform_intr.o \

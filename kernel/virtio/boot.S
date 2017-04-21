@@ -95,7 +95,7 @@ ENTRY(_start)
 
 	/* 1: enable pae and sse */
 	movl %cr4, %eax
-	orl $0x620, %eax
+	orl $0x620, %eax /* OSFXSR | OSXMMEXCPT | PAE */
 	movl %eax, %cr4
 
 	/* 2: enable long mode */
@@ -141,8 +141,7 @@ END(_start)
 
 .data
 .align 64
-.globl cpu_gdt64
-cpu_gdt64:
+gdt64:
 	.quad 0x0000000000000000
 	.quad 0x00af9b000000ffff	/* 64bit CS		*/
 	.quad 0x00cf9b000000ffff	/* 32bit CS		*/
@@ -154,14 +153,20 @@ gdt64_end:
 
 .type gdt64_ptr, @object
 gdt64_ptr:
-	.word gdt64_end-cpu_gdt64-1
-	.quad cpu_gdt64
+	.word gdt64_end-gdt64-1
+	.quad gdt64
 
 .code64
 
 ENTRY(_start64)
 	movq $bootstack, %rsp
 	xorq %rbp, %rbp
+
+        /* enable floating point */
+	mov %cr0, %rax
+	and $0xfffb, %ax                    /* clear CR0.EM */
+	or $0x2, %ax                        /* set CR0.MP */
+	mov %rax, %cr0
 
 	/* read multiboot info pointer */
 	movq -8(%rsp), %rdi

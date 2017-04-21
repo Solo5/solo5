@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
  *
  * This file is part of Solo5, a unikernel base layer.
@@ -67,7 +67,7 @@ cpu_trap_\trapno:
 
     iretq
 .endm
-    
+
 .macro IRQ_ENTRY irqno
 .global cpu_irq_\irqno
 .type cpu_irq_\irqno, @function
