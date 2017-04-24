@@ -163,7 +163,7 @@ static char *traps[32] = {
     "#22", "#23", "#24", "#25", "#26", "#27", "#28", "#29", "#30", "#31"
 };
 
-void trap_handler(uint64_t num, struct trap_regs *regs)
+void cpu_trap_handler(uint64_t num, struct trap_regs *regs)
 {
     log(INFO, "Solo5: trap: type=%s ec=0x%lx rip=0x%lx rsp=0x%lx rflags=0x%lx\n",
         traps[num], regs->ec, regs->rip, regs->rsp, regs->rflags);
@@ -172,20 +172,20 @@ void trap_handler(uint64_t num, struct trap_regs *regs)
     PANIC("Fatal trap");
 }
 
-/* keeps track of how many stacked "interrupts_disable"'s there are */
-int intr_depth = 1;
+/* keeps track of cpu_intr_disable() depth */
+int cpu_intr_depth = 1;
 
-void intr_disable(void)
+void cpu_intr_disable(void)
 {
     __asm__ __volatile__("cli");
-    intr_depth++;
+    cpu_intr_depth++;
 }
 
-void intr_enable(void)
+void cpu_intr_enable(void)
 {
-    assert(intr_depth > 0);
+    assert(cpu_intr_depth > 0);
 
-    if (--intr_depth == 0)
+    if (--cpu_intr_depth == 0)
         __asm__ __volatile__("sti");
 }
 

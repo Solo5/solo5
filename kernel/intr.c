@@ -39,13 +39,13 @@ void intr_register_irq(unsigned irq, int (*handler)(void *), void *arg)
     h->handler = handler;
     h->arg = arg;
 
-    intr_disable();
+    cpu_intr_disable();
     SLIST_INSERT_HEAD(&irq_handlers[irq], h, entries);
-    intr_enable();
+    cpu_intr_enable();
     platform_intr_clear_irq(irq);
 }
 
-void irq_handler(uint64_t irq)
+void intr_irq_handler(uint64_t irq)
 {
     struct irq_handler *h;
     int handled = 0;

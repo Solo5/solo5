@@ -93,7 +93,7 @@ static void kernel_main2(void)
 
     pci_enumerate();
 
-    intr_enable();
+    cpu_intr_enable();
 
     ret = solo5_app_main(app_cmdline);
     log(DEBUG, "Solo5: solo5_app_main() returned with %d\n", ret);

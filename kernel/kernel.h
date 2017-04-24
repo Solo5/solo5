@@ -64,12 +64,15 @@ void _abort(const char *, const char *, const char *)
 /* cpu_<architecture>.c: low-level CPU functions */
 void cpu_init(void);
 void cpu_halt(void) __attribute__((noreturn));
-void intr_enable(void);
-void intr_disable(void);
-extern int intr_depth;
+void cpu_intr_enable(void);
+void cpu_intr_disable(void);
+extern int cpu_intr_depth;
+
+/* CPU trap and interrupt vectors are defined in cpu_vectors_<architecture>.S */
 
 /* intr.c: interrupt handling */
 void intr_register_irq(unsigned irq, int (*handler)(void *), void *arg);
+void intr_irq_handler(uint64_t irq);
 
 /* mem.c: low-level page alloc routines */
 uint64_t mem_max_addr(void);
