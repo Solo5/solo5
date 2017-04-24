@@ -23,14 +23,18 @@
 
 /* This is the main header file for everything in the kernel */
 
-/* common headers from the x86_64-elf gcc cross compiler */
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdarg.h>
 
 #include "solo5.h"
+
+#ifdef __x86_64__
 #include "cpu_x86_64.h"
+#else
+#error Unsupported architecture
+#endif
 
 /* alignment macros */
 #define ALIGN_4K __attribute__((aligned(0x1000)))

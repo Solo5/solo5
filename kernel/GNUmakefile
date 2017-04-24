@@ -20,8 +20,8 @@ include $(TOP)/Makefile.common
 
 COMMON_COBJS=\
 abort.o \
-cpu_x86_64.o \
-cpu_vectors_x86_64.o \
+cpu_${TARGET_ARCH}.o \
+cpu_vectors_${TARGET_ARCH}.o \
 ee_printf.o \
 intr.o \
 lib.o \
