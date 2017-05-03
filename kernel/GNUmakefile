@@ -68,6 +68,12 @@ ukvm: ukvm/solo5.o
 
 CFLAGS+=-D__SOLO5_KERNEL__
 
+ifeq ($(TARGET_ARCH), x86_64)
+# Prevent the compiler from adding optimizations that use shared FPU state.
+# This is necessary for early boot code and trap handlers.
+MD_CFLAGS+=-mno-sse -mno-mmx -mno-aes -mno-avx
+endif
+
 %.o: %.c $(HEADERS)
 	$(CC) $(CFLAGS) -c $< -o $@
 
