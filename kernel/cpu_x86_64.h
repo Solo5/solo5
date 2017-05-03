@@ -18,6 +18,56 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#ifndef _BITUL
+
+#ifdef ASM_FILE
+#define _AC(X,Y)                X
+#define _AT(T,X)                X
+#else
+#define __AC(X,Y)               (X##Y)
+#define _AC(X,Y)                __AC(X,Y)
+#define _AT(T,X)                ((T)(X))
+#endif
+
+#define _BITUL(x)               (_AC(1,UL) << (x))
+#define _BITULL(x)              (_AC(1,ULL) << (x))
+
+#endif
+
+/*
+ * Basic CPU control in CR0
+ */
+#define X86_CR0_PE_BIT          0 /* Protection Enable */
+#define X86_CR0_PE              _BITUL(X86_CR0_PE_BIT)
+#define X86_CR0_MP_BIT          1 /* Monitor Coprocessor */
+#define X86_CR0_MP              _BITUL(X86_CR0_MP_BIT)
+#define X86_CR0_EM_BIT          2 /* Emulation */
+#define X86_CR0_EM              _BITUL(X86_CR0_EM_BIT)
+#define X86_CR0_NE_BIT          5 /* Numeric Exception */
+#define X86_CR0_NE              _BITUL(X86_CR0_NE_BIT)
+#define X86_CR0_PG_BIT          31 /* Paging */
+#define X86_CR0_PG              _BITUL(X86_CR0_PG_BIT)
+
+/*
+ * Intel CPU features in CR4
+ */
+#define X86_CR4_PAE_BIT         5 /* enable physical address extensions */
+#define X86_CR4_PAE             _BITUL(X86_CR4_PAE_BIT)
+#define X86_CR4_OSFXSR_BIT      9 /* OS support for FXSAVE/FXRSTOR */
+#define X86_CR4_OSFXSR          _BITUL(X86_CR4_OSFXSR_BIT)
+#define X86_CR4_OSXMMEXCPT_BIT  10 /* OS support for FP exceptions */
+#define X86_CR4_OSXMMEXCPT      _BITUL(X86_CR4_OSXMMEXCPT_BIT)
+#define X86_CR4_VMXE_BIT        13 /* VMX enabled */
+#define X86_CR4_VMXE            _BITUL(X86_CR4_VMXE_BIT)
+
+/*
+ * Intel CPU features in EFER
+ */
+#define X86_EFER_LME_BIT        8 /* Long mode enable (R/W) */
+#define X86_EFER_LME            _BITUL(X86_EFER_LME_BIT)
+#define X86_EFER_LMA_BIT        10 /* Long mode active (R/O) */
+#define X86_EFER_LMA            _BITUL(X86_EFER_LMA_BIT)
+
 #define PAGE_SIZE 4096
 #define PAGE_SHIFT 12
 #define PAGE_MASK ~(0xfff)
@@ -40,6 +90,11 @@
  * type data rw (9), limit (16-19)
  */
 #define GDT_DESC_DATA_VAL (0x00cf92000000ffff)
+
+#ifndef ASM_FILE
+/*
+ * The remainder of this file is used only from C.
+ */
 
 struct gdtptr {
     uint16_t limit;
@@ -168,3 +223,5 @@ static inline uint64_t inq(uint16_t port_lo)
 
     return ((uint64_t)lo) | ((uint64_t)hi << 32);
 }
+
+#endif /* !ASM_FILE */

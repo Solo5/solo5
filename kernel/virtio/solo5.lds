@@ -3,19 +3,12 @@ ENTRY(_start)
 SECTIONS {
     . = 0x100000;
 
-    /* Multiboot header */
-    .bootstrap :
-    {
-        *(.bootstrap)
-    }
-
-    . = ALIGN(0x1000);
-
     /* Code */
     _stext = .;
 
     .text :
     {
+        *(.data.multiboot)
         *(.text)
         *(.text.*)
     }
