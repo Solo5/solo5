@@ -254,7 +254,7 @@ SCRIPT_DIR=$(readlink -f $(dirname $0))
 # Grab variables from Makeconf to determine which targets have been built.
 MAKECONF=${SCRIPT_DIR}/../Makeconf
 [ ! -f ${MAKECONF} ] && die "Can't find Makeconf, looked in ${MAKECONF}"
-. ${MAKECONF}
+eval $(grep -E ^BUILD_.+=.+ ${MAKECONF})
 
 #
 # List of tests to run is defined here.

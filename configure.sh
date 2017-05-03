@@ -33,6 +33,11 @@ cc_is_clang()
     ${CC} -dM -E - </dev/null | grep -Eq '^#define __clang__ 1$'
 }
 
+cc_has_pie()
+{
+    ${CC} -dM -E - </dev/null | grep -Eq '^#define __PIE__ [1-9]$'
+}
+
 cc_is_gcc()
 {
     cc_maybe_gcc && ! cc_is_clang
@@ -70,6 +75,12 @@ case $(uname -s) in
         cp -R ${CC_INCDIR}/. ${HOST_INCDIR}
 
         HOST_CFLAGS="-nostdinc"
+        # Recent distributions now default to PIE enabled. Disable it explicitly
+        # if that's the case here.
+        cc_has_pie && HOST_CFLAGS="${HOST_CFLAGS} -fno-pie"
+        # Same for the stack protector, no robust way to detect if this is on by
+        # default so always disable it.
+        HOST_CFLAGS="${HOST_CFLAGS} -fno-stack-protector"
         BUILD_UKVM="yes"
         BUILD_VIRTIO="yes"
         ;;
