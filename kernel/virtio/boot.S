@@ -142,9 +142,9 @@ END(_start)
 .align 64
 gdt64:
 	.quad 0x0000000000000000
-	.quad 0x00af9b000000ffff	/* 64bit CS		*/
+	.quad GDT_DESC_CODE_VAL		/* 64bit CS		*/
 	.quad 0x00cf9b000000ffff	/* 32bit CS		*/
-	.quad 0x00cf93000000ffff	/* DS			*/
+	.quad GDT_DESC_DATA_VAL		/* DS			*/
 	.quad 0x0000000000000000	/* TSS part 1 (via C)	*/
 	.quad 0x0000000000000000	/* TSS part 2 (via C)	*/
 gdt64_end:

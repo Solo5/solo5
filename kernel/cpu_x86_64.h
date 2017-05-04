@@ -68,28 +68,29 @@
 #define X86_EFER_LMA_BIT        10 /* Long mode active (R/O) */
 #define X86_EFER_LMA            _BITUL(X86_EFER_LMA_BIT)
 
-#define PAGE_SIZE 4096
-#define PAGE_SHIFT 12
-#define PAGE_MASK ~(0xfff)
+#define PAGE_SIZE               4096
+#define PAGE_SHIFT              12
+#define PAGE_MASK               ~(0xfff)
 
-#define GDT_NUM_ENTRIES 6
-#define GDT_DESC_NULL 0
-#define GDT_DESC_CODE 1
-/* 2 == unused / 32-bit bootstrap */
-#define GDT_DESC_DATA 3
-#define GDT_DESC_TSS_LO  4
-#define GDT_DESC_TSS_HI  5
-#define GDT_DESC_TSS  GDT_DESC_TSS_LO
-#define GDT_DESC_OFFSET(n) ((n) * 0x8)
+/*
+ * GDT layout
+ *
+ * This should be kept consistent with the layout used by the ukvm target (as
+ * defined in ukvm/ukvm_cpu_x86_64.h.
+ */
+#define GDT_DESC_NULL           0
+#define GDT_DESC_CODE           1
+#define GDT_DESC_CODE32         2 /* Used by boot.S on virtio targets */
+#define GDT_DESC_DATA           3
+#define GDT_DESC_TSS_LO         4
+#define GDT_DESC_TSS_HI         5
+#define GDT_DESC_TSS            GDT_DESC_TSS_LO
 
-/* granularity (23), long mode (21), present (15),
- * always 1 (12, 11), readable (9), limit (16-19)
- */
-#define GDT_DESC_CODE_VAL (0x00af9a000000ffff)
-/* granularity (23), big data seg (22), present (15),
- * type data rw (9), limit (16-19)
- */
-#define GDT_DESC_DATA_VAL (0x00cf92000000ffff)
+#define GDT_DESC_OFFSET(n)      ((n) * 0x8)
+#define GDT_NUM_ENTRIES         6
+
+#define GDT_DESC_CODE_VAL       0x00af99000000ffff
+#define GDT_DESC_DATA_VAL       0x00cf93000000ffff
 
 #ifndef ASM_FILE
 /*
