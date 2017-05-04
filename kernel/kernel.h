@@ -104,6 +104,7 @@ size_t strlen(const char *s);
 int isspace(int c);
 
 /* platform.c: specifics for ukvm or virito platform */
+void platform_init(void);
 void platform_exit(void) __attribute__((noreturn));
 int platform_puts(const char *buf, int n);
 

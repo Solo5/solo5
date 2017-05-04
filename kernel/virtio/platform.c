@@ -20,6 +20,11 @@
 
 #include "kernel.h"
 
+void platform_init(void)
+{
+    platform_intr_init();
+}
+
 void platform_exit(void)
 {
     /*

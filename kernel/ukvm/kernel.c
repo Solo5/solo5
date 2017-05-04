@@ -26,6 +26,7 @@ void _start(struct ukvm_boot_info *bi)
     char *cmdline;
 
     cpu_init();
+    platform_init();
     cmdline = cmdline_parse((const char *) bi->cmdline);
 
     log(INFO, "            |      ___|\n");

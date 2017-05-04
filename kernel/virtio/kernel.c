@@ -38,6 +38,7 @@ void kernel_main(uint32_t arg)
         ;
 
     cpu_init();
+    platform_init();
 
     /*
      * The multiboot structures may be anywhere in memory, so take a copy of

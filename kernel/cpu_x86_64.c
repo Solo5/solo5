@@ -154,7 +154,6 @@ void cpu_init(void)
     gdt_init();
     tss_init();
     idt_init();
-    platform_intr_init();
 }
 
 static char *traps[32] = {
