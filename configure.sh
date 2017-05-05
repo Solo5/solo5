@@ -85,13 +85,19 @@ case $(uname -s) in
         # default so always disable it.
         HOST_CFLAGS="${HOST_CFLAGS} -fno-stack-protector"
         BUILD_UKVM="yes"
-        BUILD_VIRTIO="yes"
+        if [ "${TARGET_ARCH}" = "x86_64" ]; then
+            BUILD_VIRTIO="yes"
+        else
+            BUILD_VIRTIO="no"
+        fi
         ;;
     FreeBSD)
         # On FreeBSD/clang we use -nostdlibinc which gives us access to the
         # clang-provided headers for compiler instrinsics. We copy the rest
         # (std*.h, float.h and their dependencies) from the host.
         cc_is_clang || die "Only 'clang' is supported on FreeBSD"
+        [ "${TARGET_ARCH}" = "x86_64" ] ||
+            die "Only 'x86_64' is supported on FreeBSD"
         INCDIR=/usr/include
         SRCS_MACH="machine/_stdint.h machine/_types.h machine/endian.h \
             machine/_limits.h"
