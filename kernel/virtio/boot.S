@@ -46,7 +46,7 @@ _multiboot_header:
 .long 0x100000
 .long _edata
 .long _ebss
-.long _start
+.long _start32
 
 .section .bss
 
@@ -63,7 +63,7 @@ bootstack:
  */
 .code32
 
-ENTRY(_start)
+ENTRY(_start32)
 	cld
 	movl $bootstack, %esp
 
@@ -128,7 +128,7 @@ haltme:
 	cli
 	hlt
 	jmp haltme
-END(_start)
+END(_start32)
 
 /*
  * amd64 programmer's manual:
@@ -183,14 +183,15 @@ ENTRY(_start64)
 	pushq $0x0
 	pushq $0x0
 
-	call kernel_main
+	call _start
 
 	cli
 	hlt
 END(_start64)
 
-ENTRY(bounce_stack)
+ENTRY(_newstack)
 	movq %rdi, %rsp
+	movq %rdx, %rdi
 
 	pushq $0x0
 	pushq $0x0
@@ -199,4 +200,4 @@ ENTRY(bounce_stack)
 
 	cli
 	hlt
-END(bounce_stack)
+END(_newstack)

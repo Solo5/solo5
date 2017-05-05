@@ -75,7 +75,7 @@ void intr_register_irq(unsigned irq, int (*handler)(void *), void *arg);
 void intr_irq_handler(uint64_t irq);
 
 /* mem.c: low-level page alloc routines */
-uint64_t mem_max_addr(void);
+void mem_init(void);
 void *sbrk(intptr_t increment);
 
 /* malloc.c: memory allocation */
@@ -104,7 +104,9 @@ size_t strlen(const char *s);
 int isspace(int c);
 
 /* platform.c: specifics for ukvm or virito platform */
-void platform_init(void);
+void platform_init(void *arg);
+const char *platform_cmdline(void);
+uint64_t platform_mem_size(void);
 void platform_exit(void) __attribute__((noreturn));
 int platform_puts(const char *buf, int n);
 

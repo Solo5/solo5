@@ -20,8 +20,25 @@
 
 #include "kernel.h"
 
-void platform_init(void)
+static const char *cmdline;
+static uint64_t mem_size;
+
+void platform_init(void *arg)
 {
+    struct ukvm_boot_info *bi = arg;
+
+    cmdline = bi->cmdline;
+    mem_size = bi->mem_size;
+}
+
+const char *platform_cmdline(void)
+{
+    return cmdline;
+}
+
+uint64_t platform_mem_size(void)
+{
+    return mem_size;
 }
 
 void platform_exit(void)

@@ -24,9 +24,7 @@
 #include "../kernel.h"
 #include "ukvm_guest.h"
 
-void mem_init(uint64_t size, uint64_t _kernel_end);
-
-void time_init(uint64_t tsc_freq);
+void time_init(struct ukvm_boot_info *bi);
 
 /* tscclock.c: TSC-based clock */
 uint64_t tscclock_monotonic(void);

@@ -20,9 +20,81 @@
 
 #include "kernel.h"
 
-void platform_init(void)
+static char cmdline[8192];
+
+#define PLATFORM_MEM_START 0x100000
+#define PLATFORM_MAX_MEM_SIZE 0x40000000
+
+static uint64_t mem_size;
+
+void platform_init(void *arg)
 {
+    /*
+     * The multiboot structures may be anywhere in memory, so take a copy of
+     * the command line before we initialise memory allocation.
+     */
+    struct multiboot_info *mi = (struct multiboot_info *)arg;
+
+    if (mi->flags & MULTIBOOT_INFO_CMDLINE) {
+        char *mi_cmdline = (char *)(uint64_t)mi->cmdline;
+        size_t cmdline_len = strlen(mi_cmdline);
+
+        /*
+         * Skip the first token in the cmdline as it is an opaque "name" for
+         * the kernel coming from the bootloader.
+         */
+        for (; *mi_cmdline; mi_cmdline++, cmdline_len--) {
+            if (*mi_cmdline == ' ') {
+                mi_cmdline++;
+                cmdline_len--;
+                break;
+            }
+        }
+
+        if (cmdline_len >= sizeof(cmdline)) {
+            cmdline_len = sizeof(cmdline) - 1;
+            log(WARN, "Solo5: warning: command line too long, truncated\n");
+        }
+        memcpy(cmdline, mi_cmdline, cmdline_len);
+    } else {
+        cmdline[0] = 0;
+    }
+
+    /*
+     * Look for the first chunk of memory at PLATFORM_MEM_START.
+     */
+    multiboot_memory_map_t *m;
+    uint32_t offset;
+
+    for (offset = 0; offset < mi->mmap_length;
+            offset += m->size + sizeof(m->size)) {
+        m = (void *)(uintptr_t)(mi->mmap_addr + offset);
+        if (m->addr == PLATFORM_MEM_START &&
+                m->type == MULTIBOOT_MEMORY_AVAILABLE) {
+            break;
+        }
+    }
+    assert(offset < mi->mmap_length);
+
+    /*
+     * Cap our memory size to PLATFORM_MAX_MEM_SIZE which boot.S defines page
+     * tables for.
+     */
+    mem_size = m->addr + m->len;
+    if (mem_size > PLATFORM_MAX_MEM_SIZE)
+        mem_size = PLATFORM_MAX_MEM_SIZE;
+
     platform_intr_init();
+}
+
+const char *platform_cmdline(void)
+{
+    return cmdline;
+}
+
+uint64_t platform_mem_size(void)
+{
+    return mem_size;
 }
 
 void platform_exit(void)

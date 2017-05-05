@@ -25,6 +25,7 @@ cpu_vectors_${TARGET_ARCH}.o \
 ee_printf.o \
 intr.o \
 lib.o \
+mem.o \
 malloc.o \
 exit.o \
 log.o \
@@ -35,7 +36,6 @@ ukvm/kernel.o \
 ukvm/io.o \
 ukvm/platform.o \
 ukvm/platform_intr.o \
-ukvm/mem.o \
 ukvm/time.o \
 ukvm/tscclock.o \
 $(COMMON_COBJS)
@@ -45,7 +45,6 @@ virtio/boot.o \
 virtio/kernel.o \
 virtio/platform.o \
 virtio/platform_intr.o \
-virtio/mem.o \
 virtio/pci.o \
 virtio/serial.o \
 virtio/time.o \
@@ -82,11 +81,11 @@ endif
 
 virtio/solo5.o: $(VIRTIO_COBJS) virtio/solo5.lds
 	$(LD) -r $(LDFLAGS) -o $@ $(VIRTIO_COBJS)
-	$(OBJCOPY) -w -G solo5_\* -G _start $@ $@
+	$(OBJCOPY) -w -G solo5_\* -G _start\* $@ $@
 
 ukvm/solo5.o: $(UKVM_COBJS) ukvm/solo5.lds
 	$(LD) -r $(LDFLAGS) -o $@ $(UKVM_COBJS)
-	$(OBJCOPY) -w -G solo5_\* -G _start $@ $@
+	$(OBJCOPY) -w -G solo5_\* -G _start\* $@ $@
 
 .PHONY: clean
 clean:
