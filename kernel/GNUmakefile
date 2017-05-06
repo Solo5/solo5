@@ -34,6 +34,7 @@ cmdline.o
 UKVM_COBJS=\
 ukvm/kernel.o \
 ukvm/platform.o \
+ukvm/platform_init.o \
 ukvm/platform_intr.o \
 ukvm/time.o \
 ukvm/tscclock.o \
