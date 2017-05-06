@@ -23,7 +23,7 @@
 static const char *cmdline;
 static uint64_t mem_size;
 
-void platform_init(void *arg)
+void process_bootinfo(void *arg)
 {
     struct ukvm_boot_info *bi = arg;
 
