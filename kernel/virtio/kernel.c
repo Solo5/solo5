@@ -20,13 +20,10 @@
 
 #include "kernel.h"
 
-extern void bounce_stack(uint64_t stack_start, void (*tramp)(void));
-static void kernel_main2(void) __attribute__((noreturn));
+extern void _newstack(uint64_t stack_start, void (*tramp)(void *), void *arg);
+static void _start2(void *arg) __attribute__((noreturn));
 
-static char cmdline[8192];
-static char *app_cmdline;
-
-void kernel_main(uint32_t arg)
+void _start(void *arg)
 {
     volatile int gdb = 1;
 
@@ -37,66 +34,33 @@ void kernel_main(uint32_t arg)
     while (gdb == 0)
         ;
 
+    cpu_init();
+    platform_init(arg);
+
     /*
-     * The multiboot structures may be anywhere in memory, so take a copy of
-     * the command line before we initialise memory allocation.
+     * Switch away from the bootstrap stack (in boot.S) as early as possible.
      */
-    struct multiboot_info *mi = (struct multiboot_info *)(uint64_t)arg;
+    _newstack(platform_mem_size(), _start2, 0);
+}
 
-    if (mi->flags & MULTIBOOT_INFO_CMDLINE) {
-        char *mi_cmdline = (char *)(uint64_t)mi->cmdline;
-        size_t cmdline_len = strlen(mi_cmdline);
+static void _start2(void *arg __attribute__((unused)))
+{
+    int ret;
+    char *cmdline;
 
-        /*
-         * Skip the first token in the cmdline as it is an opaque "name" for
-         * the kernel coming from the bootloader.
-         */
-        for (; *mi_cmdline; mi_cmdline++, cmdline_len--) {
-            if (*mi_cmdline == ' ') {
-                mi_cmdline++;
-                cmdline_len--;
-                break;
-            }
-        }
-
-        if (cmdline_len >= sizeof(cmdline)) {
-            cmdline_len = sizeof(cmdline) - 1;
-            log(WARN, "Solo5: warning: command line too long, truncated\n");
-        }
-        memcpy(cmdline, mi_cmdline, cmdline_len);
-    } else {
-        cmdline[0] = 0;
-    }
-
-    app_cmdline = cmdline_parse((const char *) cmdline);
+    cmdline = cmdline_parse(platform_cmdline());
 
     log(INFO, "            |      ___|\n");
     log(INFO, "  __|  _ \\  |  _ \\ __ \\\n");
     log(INFO, "\\__ \\ (   | | (   |  ) |\n");
     log(INFO, "____/\\___/ _|\\___/____/\n");
 
-    /*
-     * Initialise memory map, then immediately switch stack to top of RAM.
-     * Indirectly calls kernel_main2().
-     */
-    mem_init(mi);
-    bounce_stack(mem_max_addr(), kernel_main2);
-}
-
-static void kernel_main2(void)
-{
-    int ret;
-
-    intr_init();
-    /* ocaml needs floating point */
-    cpu_sse_enable();
+    mem_init();
     time_init();
-
     pci_enumerate();
+    cpu_intr_enable();
 
-    intr_enable();
-
-    ret = solo5_app_main(app_cmdline);
+    ret = solo5_app_main(cmdline);
     log(DEBUG, "Solo5: solo5_app_main() returned with %d\n", ret);
 
     platform_exit();

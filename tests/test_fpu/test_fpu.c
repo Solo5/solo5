@@ -28,9 +28,10 @@ static void puts(const char *s)
 
 int solo5_app_main(char *cmdline __attribute__((unused)))
 {
-    float a, b, c[2];
-
     puts("\n**** Solo5 standalone test_fpu ****\n\n");
+
+#ifdef __x86_64__
+    float a, b, c[2];
 
     c[0] = 2.0;
     c[1] = 5.0;
@@ -51,6 +52,9 @@ int solo5_app_main(char *cmdline __attribute__((unused)))
         puts("SUCCESS\n");
     else
         return 1;
+#else
+    puts("SUCCESS\n");
+#endif
 
     return 0;
 }

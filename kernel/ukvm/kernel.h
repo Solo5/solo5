@@ -24,18 +24,11 @@
 #include "../kernel.h"
 #include "ukvm_guest.h"
 
-/* gdt.c: initialize segment descriptors */
-/* TODO: remove these, as they should be already done in ukvm */
-void gdt_init(void);
-void gdt_load(uint64_t gdtptr);
-void tss_load(uint16_t tss);
-
-void mem_init(uint64_t size, uint64_t _kernel_end);
-
-void time_init(uint64_t tsc_freq);
+void time_init(struct ukvm_boot_info *bi);
 
 /* tscclock.c: TSC-based clock */
 uint64_t tscclock_monotonic(void);
 int tscclock_init(uint64_t tsc_freq);
 uint64_t tscclock_epochoffset(void);
+
 #endif

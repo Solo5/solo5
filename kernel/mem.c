@@ -20,62 +20,40 @@
 
 #include "kernel.h"
 
-#define MEM_START 0x100000
-#define MEM_MAX_ADDR 0x40000000
-
 static uint64_t heap_start;
 static uint64_t heap_top;
-static uint64_t max_addr;
+static uint64_t stack_guard_size;
 
-uint64_t mem_max_addr(void)
+void mem_init(void)
 {
-    return max_addr;
-}
-
-void mem_init(struct multiboot_info *mb)
-{
-    multiboot_memory_map_t *m;
-    uint32_t offset;
     extern char _stext[], _etext[], _erodata[], _end[];
-    uint64_t kernel_end;
+    uint64_t mem_size;
 
-    /*
-     * Look for the first chunk of memory at MEM_START and use it, up to
-     * MEM_MAX_ADDR as boot.S maps only the first 1GB of RAM.
-     */
-    for (offset = 0; offset < mb->mmap_length;
-            offset += m->size + sizeof(m->size)) {
-        m = (void *)(uintptr_t)(mb->mmap_addr + offset);
-        if (m->addr == MEM_START &&
-                m->type == MULTIBOOT_MEMORY_AVAILABLE) {
-            break;
-        }
-    }
-    assert(offset < mb->mmap_length);
-    max_addr = m->addr + m->len;
-    if (max_addr > MEM_MAX_ADDR)
-        max_addr = MEM_MAX_ADDR;
-
-    kernel_end = (uint64_t)&_end;
-    assert(kernel_end <= max_addr);
-
-    heap_start = (kernel_end + PAGE_SIZE - 1) & PAGE_MASK;
+    mem_size = platform_mem_size();
+    heap_start = ((uint64_t)&_end + PAGE_SIZE - 1) & PAGE_MASK;
     heap_top = heap_start;
+    /*
+     * Cowardly refuse to run with less than 512KB of free memory.
+     */
+    if (heap_start + 0x80000 > mem_size)
+	PANIC("Not enough memory");
+    /*
+     * If we have <1MB of free memory then don't let the heap grow to more than
+     * roughly half of free memory, otherwise don't let it grow to within 1MB
+     * of the stack.
+     * TODO: Use guard pages here instead?
+     */
+    stack_guard_size = (mem_size - heap_start >= 0x100000) ?
+	0x100000 : ((mem_size - heap_start) / 2);
 
-    log(INFO, "Solo5: Memory map: %lu MB addressable:\n", max_addr >> 20);
+    log(INFO, "Solo5: Memory map: %lu MB addressable:\n", mem_size >> 20);
     log(INFO, "Solo5:     unused @ (0x0 - 0x%lx)\n", &_stext[-1]);
     log(INFO, "Solo5:       text @ (0x%lx - 0x%lx)\n", &_stext, &_etext[-1]);
     log(INFO, "Solo5:     rodata @ (0x%lx - 0x%lx)\n", &_etext, &_erodata[-1]);
     log(INFO, "Solo5:       data @ (0x%lx - 0x%lx)\n", &_erodata, &_end[-1]);
     log(INFO, "Solo5:       heap >= 0x%lx < stack < 0x%lx\n", heap_start,
-        max_addr);
+        mem_size);
 }
-
-/*
- * Prevent the heap from overflowing into the stack.
- * TODO: Use guard pages here, this does not protect from the converse.
- */
-#define STACK_GUARD_SIZE 0x100000
 
 /*
  * Called by dlmalloc to allocate or free memory.
@@ -83,7 +61,7 @@ void mem_init(struct multiboot_info *mb)
 void *sbrk(intptr_t increment)
 {
     uint64_t prev, brk;
-    uint64_t heap_max = (uint64_t)&prev - STACK_GUARD_SIZE;
+    uint64_t heap_max = (uint64_t)&prev - stack_guard_size;
     prev = brk = heap_top;
 
     /*

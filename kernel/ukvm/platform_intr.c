@@ -24,10 +24,6 @@
  * Interrupts are not used on the ukvm platform, hence these are stubs.
  */
 
-void platform_intr_init(void)
-{
-}
-
 void platform_intr_ack_irq(unsigned irq __attribute__((unused)))
 {
 }

@@ -24,13 +24,16 @@
 #include "../kernel.h"
 #include "multiboot.h"
 
-void mem_init(struct multiboot_info *mb);
-
 /* serial.c: console output for debugging */
 void serial_init(void);
 void serial_putc(char a);
 
 void time_init(void);
+
+/* pvclock.c: KVM paravirtualized clock */
+int pvclock_init(void);
+uint64_t pvclock_monotonic(void);
+uint64_t pvclock_epochoffset(void);
 
 /* tscclock.c: TSC/PIT-based clock and sleep */
 int tscclock_init(void);

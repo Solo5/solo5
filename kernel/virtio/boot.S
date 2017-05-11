@@ -27,6 +27,7 @@
  */
 
 #include "multiboot.h"
+#include "../cpu_x86_64.h"
 
 #define ENTRY(x) .text; .globl x; .type x,%function; x:
 #define END(x)   .size x, . - x
@@ -34,22 +35,20 @@
 #define MYMULTIBOOT_FLAGS \
     (MULTIBOOT_PAGE_ALIGN | MULTIBOOT_MEMORY_INFO | MULTIBOOT_AOUT_KLUDGE)
 
-.section .bootstrap, "ax"
-
-.code32
+.section .data.multiboot
 
 .align 4
-bootstrap:
+_multiboot_header:
 .long MULTIBOOT_HEADER_MAGIC
 .long MYMULTIBOOT_FLAGS
 .long -(MULTIBOOT_HEADER_MAGIC+MYMULTIBOOT_FLAGS)
-.long bootstrap
+.long _multiboot_header
 .long 0x100000
 .long _edata
 .long _ebss
-.long _start
+.long _start32
 
-.data
+.section .bss
 
 .space 4096
 bootstack:
@@ -62,7 +61,9 @@ bootstack:
  * and switch to long mode.  Notably, we can't call C code until
  * we've switched to long mode.
  */
-ENTRY(_start)
+.code32
+
+ENTRY(_start32)
 	cld
 	movl $bootstack, %esp
 
@@ -93,15 +94,15 @@ ENTRY(_start)
 	 * x86_64 switch to long mode
 	 */
 
-	/* 1: enable pae and sse */
+	/* 1: enable pae */
 	movl %cr4, %eax
-	orl $0x620, %eax
+	orl $X86_CR4_PAE, %eax
 	movl %eax, %cr4
 
 	/* 2: enable long mode */
 	movl $0xc0000080, %ecx
 	rdmsr
-	movl $0x100, %eax
+	orl $X86_EFER_LME, %eax
 	wrmsr
 
 	/* 3: load pml4 pointer */
@@ -110,7 +111,7 @@ ENTRY(_start)
 
 	/* 4: enable paging */
 	movl %cr0, %eax
-	orl $0x80010001, %eax
+	orl $X86_CR0_PG, %eax
 	movl %eax, %cr0
 
 	/* 5: poetically longjump to longmode */
@@ -127,9 +128,7 @@ haltme:
 	cli
 	hlt
 	jmp haltme
-END(_start)
-
-#include "pagetable.S"
+END(_start32)
 
 /*
  * amd64 programmer's manual:
@@ -141,12 +140,11 @@ END(_start)
 
 .data
 .align 64
-.globl cpu_gdt64
-cpu_gdt64:
+gdt64:
 	.quad 0x0000000000000000
-	.quad 0x00af9b000000ffff	/* 64bit CS		*/
+	.quad GDT_DESC_CODE_VAL		/* 64bit CS		*/
 	.quad 0x00cf9b000000ffff	/* 32bit CS		*/
-	.quad 0x00cf93000000ffff	/* DS			*/
+	.quad GDT_DESC_DATA_VAL		/* DS			*/
 	.quad 0x0000000000000000	/* TSS part 1 (via C)	*/
 	.quad 0x0000000000000000	/* TSS part 2 (via C)	*/
 gdt64_end:
@@ -154,8 +152,14 @@ gdt64_end:
 
 .type gdt64_ptr, @object
 gdt64_ptr:
-	.word gdt64_end-cpu_gdt64-1
-	.quad cpu_gdt64
+	.word gdt64_end-gdt64-1
+	.quad gdt64
+
+.type mxcsr_ptr, @object
+mxcsr_ptr:
+	.word 0x1f80			/* Intel SDM power-on default */
+
+#include "pagetable.S"
 
 .code64
 
@@ -163,20 +167,31 @@ ENTRY(_start64)
 	movq $bootstack, %rsp
 	xorq %rbp, %rbp
 
+	/* enable FPU and SSE units */
+	movq %cr0, %rax
+	andq $(~X86_CR0_EM), %rax
+	orq $(X86_CR0_MP | X86_CR0_NE), %rax
+	movq %rax, %cr0
+	movq %cr4, %rax
+	orq $(X86_CR4_OSXMMEXCPT | X86_CR4_OSFXSR), %rax
+	movq %rax, %cr4
+	ldmxcsr (mxcsr_ptr)
+
 	/* read multiboot info pointer */
 	movq -8(%rsp), %rdi
 
 	pushq $0x0
 	pushq $0x0
 
-	call kernel_main
+	call _start
 
 	cli
 	hlt
 END(_start64)
 
-ENTRY(bounce_stack)
+ENTRY(_newstack)
 	movq %rdi, %rsp
+	movq %rdx, %rdi
 
 	pushq $0x0
 	pushq $0x0
@@ -185,4 +200,4 @@ ENTRY(bounce_stack)
 
 	cli
 	hlt
-END(bounce_stack)
+END(_newstack)

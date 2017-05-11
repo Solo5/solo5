@@ -3,6 +3,7 @@
 *.pcap
 Makeconf
 cscope.*
+tags
 include-host/
 tests/*/*.ukvm
 tests/*/*.virtio

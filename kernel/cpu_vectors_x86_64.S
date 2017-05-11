@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
  *
  * This file is part of Solo5, a unikernel base layer.
@@ -60,14 +60,14 @@ cpu_trap_\trapno:
     movq $\trapno, %rdi
     movq %rsp, %rsi
     addq $72, %rsi                      /* struct trap_regs is at %rsp + 72 */
-    call trap_handler
+    call cpu_trap_handler
 
     POP_CALLER_SAVE
     addq $16, %rsp                      /* discard error code and %cr2 */
 
     iretq
 .endm
-    
+
 .macro IRQ_ENTRY irqno
 .global cpu_irq_\irqno
 .type cpu_irq_\irqno, @function
@@ -77,7 +77,7 @@ cpu_irq_\irqno:
     PUSH_CALLER_SAVE
 
     movq $\irqno, %rdi
-    call irq_handler
+    call intr_irq_handler
 
     POP_CALLER_SAVE
 

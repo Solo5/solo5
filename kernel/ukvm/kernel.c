@@ -20,25 +20,22 @@
 
 #include "kernel.h"
 
-void _start(struct ukvm_boot_info *bi)
+void _start(void *arg)
 {
     int ret;
     char *cmdline;
 
-    cmdline = cmdline_parse((const char *) bi->cmdline);
+    cpu_init();
+    platform_init(arg);
+    cmdline = cmdline_parse(platform_cmdline());
 
     log(INFO, "            |      ___|\n");
     log(INFO, "  __|  _ \\  |  _ \\ __ \\\n");
     log(INFO, "\\__ \\ (   | | (   |  ) |\n");
     log(INFO, "____/\\___/ _|\\___/____/\n");
 
-    gdt_init();
-    mem_init(bi->mem_size, bi->kernel_end);
-    intr_init();
-
-    time_init(bi->cpu.tsc_freq);
-
-    intr_enable();
+    mem_init();
+    time_init(arg);
 
     ret = solo5_app_main(cmdline);
     log(DEBUG, "Solo5: solo5_app_main() returned with %d\n", ret);
