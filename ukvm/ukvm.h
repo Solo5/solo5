@@ -142,4 +142,18 @@ extern struct ukvm_module ukvm_module_blk;
 extern struct ukvm_module ukvm_module_net;
 extern struct ukvm_module ukvm_module_gdb;
 
+/*
+ * GDB specific functions to be implemented on all backends for all
+ * architectures.
+ */
+int ukvm_gdb_read_registers(struct ukvm_hv *hv, uint8_t *reg, uint64_t *len);
+int ukvm_gdb_write_registers(struct ukvm_hv *hv, uint8_t *reg, uint64_t len);
+int ukvm_gdb_enable_ss(struct ukvm_hv *hv);
+int ukvm_gdb_disable_ss(struct ukvm_hv *hv);
+int ukvm_gdb_read_last_signal(struct ukvm_hv *hv, int *signal);
+int ukvm_gdb_add_breakpoint(struct ukvm_hv *hv, uint32_t type,
+                            uint64_t addr, uint32_t len);
+int ukvm_gdb_remove_breakpoint(struct ukvm_hv *hv, uint32_t type,
+                               uint64_t addr, uint32_t len);
+
 #endif /* UKVM_H */

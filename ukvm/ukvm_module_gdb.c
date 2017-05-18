@@ -3,6 +3,9 @@
  *
  * This file is part of ukvm, a unikernel monitor.
  *
+ * Based on binutils-gdb/gdb/stubs/i386-stub.c, which is:
+ * Not copyrighted.
+ *
  * Permission to use, copy, modify, and/or distribute this software
  * for any purpose with or without fee is hereby granted, provided
  * that the above copyright notice and this permission notice appear
@@ -19,105 +22,11 @@
  */
 
 /*
- * ukvm_module_gdb.c: GDB server support.
- *
- * This module is currently only implemented for the KVM backend on the x86_64
- * architecture.
+ * ukvm_module_gdb.c: Implements the GDB Remote Serial Protocol
+ * https://sourceware.org/gdb/onlinedocs/gdb/Overview.html
  */
 
-#if defined(__x86_64__) && defined(__linux__)
-
-/***************************************************************************
- *
- *                THIS SOFTWARE IS NOT COPYRIGHTED
- *
- * HP offers the following for use in the public domain.  HP makes no
- * warranty with regard to the software or it's performance and the
- * user accepts the software "AS IS" with all faults.
- *
- * HP DISCLAIMS ANY WARRANTIES, EXPRESS OR IMPLIED, WITH REGARD
- * TO THIS SOFTWARE INCLUDING BUT NOT LIMITED TO THE WARRANTIES
- * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
- *
- **************************************************************************/
-
-/****************************************************************************
- *  Header: remcom.c,v 1.34 91/03/09 12:29:49 glenne Exp $
- *
- *  Module name: remcom.c $
- *  Revision: 1.34 $
- *  Date: 91/03/09 12:29:49 $
- *  Contributor:     Lake Stevens Instrument Division$
- *
- *  Description:     low level support for gdb debugger. $
- *
- *  Considerations:  only works on target hardware $
- *
- *  Written by:      Glenn Engel $
- *  ModuleState:     Experimental $
- *
- *  NOTES:           See Below $
- *
- *  Modified for 386 by Jim Kingdon, Cygnus Support.
- *
- *  To enable debugger support, two things need to happen.  One, a
- *  call to set_debug_traps() is necessary in order to allow any breakpoints
- *  or error conditions to be properly intercepted and reported to gdb.
- *  Two, a breakpoint needs to be generated to begin communication.  This
- *  is most easily accomplished by a call to breakpoint().  Breakpoint()
- *  simulates a breakpoint by executing a trap #1.
- *
- *  The external function exceptionHandler() is
- *  used to attach a specific handler to a specific 386 vector number.
- *  It should use the same privilege level it runs at.  It should
- *  install it as an interrupt gate so that interrupts are masked
- *  while the handler runs.
- *
- *  Because gdb will sometimes write to the stack area to execute function
- *  calls, this program cannot rely on using the supervisor stack so it
- *  uses it's own stack area reserved in the int array remcomStack.
- *
- *************
- *
- *    The following gdb commands are supported:
- *
- * command          function                               Return value
- *
- *    g             return the value of the CPU registers  hex data or ENN
- *    G             set the value of the CPU registers     OK or ENN
- *
- *    mAA..AA,LLLL  Read LLLL bytes at address AA..AA      hex data or ENN
- *    MAA..AA,LLLL: Write LLLL bytes at address AA.AA      OK or ENN
- *
- *    c             Resume at current address              SNN   ( signal NN)
- *    cAA..AA       Continue at address AA..AA             SNN
- *
- *    s             Step one instruction                   SNN
- *    sAA..AA       Step one instruction from AA..AA       SNN
- *
- *    k             kill
- *
- *    ?             What was the last sigval ?             SNN   (signal NN)
- *
- * All commands and responses are sent with a packet which includes a
- * checksum.  A packet consists of
- *
- * $<packet info>#<checksum>.
- *
- * where
- * <packet info> :: <characters representing the command or response>
- * <checksum>    :: < two hex digits computed as modulo 256 sum of <packetinfo>>
- *
- * When a packet is received, it is first acknowledged with either '+' or '-'.
- * '+' indicates a successful transfer.  '-' indicates a failed transfer.
- *
- * Example:
- *
- * Host:                  Reply:
- * $m0,10#2a               +$00010203040506070809101112131415#42
- *
- ****************************************************************************/
-
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -132,156 +41,23 @@
 #include <signal.h>
 #include <netdb.h>
 #include <assert.h>
-#include <linux/kvm.h>
 
 #include "ukvm.h"
-#include "ukvm_hv_kvm.h"
+#include "ukvm_gdb.h"
 
-static int use_gdb;
-
-static int listen_socket_fd;
-static int socket_fd;
-static int stepping;
-
-#define MAX_BREAKPOINTS    8
-static uint64_t breakpoints[MAX_BREAKPOINTS];
-
-
-static void wait_for_connect(int portn)
-{
-    struct sockaddr_in sockaddr;
-    socklen_t sockaddr_len;
-    struct protoent *protoent;
-    int r;
-    int opt;
-
-    printf("GDB trying to get a connection at port %d\n", portn);
-
-    listen_socket_fd = socket(PF_INET, SOCK_STREAM, 0);
-    assert(listen_socket_fd != -1);
-
-    /* Allow rapid reuse of this port */
-    opt = 1;
-    r = setsockopt(listen_socket_fd, SOL_SOCKET, SO_REUSEADDR, &opt,
-                   sizeof(opt));
-    if (r == -1)
-        perror("setsockopt(SO_REUSEADDR) failed");
-
-    memset(&sockaddr, '\000', sizeof(sockaddr));
-    sockaddr.sin_family = AF_INET;
-    sockaddr.sin_port = htons(portn);
-    sockaddr.sin_addr.s_addr = htonl(INADDR_ANY);
-
-    r = bind(listen_socket_fd, (struct sockaddr *) &sockaddr,
-             sizeof(sockaddr));
-    if (r == -1)
-        perror("Failed to bind socket");
-
-    r = listen(listen_socket_fd, 0);
-    if (r == -1)
-        perror("Failed to listen on socket");
-
-    sockaddr_len = sizeof(sockaddr);
-    socket_fd = accept(listen_socket_fd, (struct sockaddr *) &sockaddr,
-                       &sockaddr_len);
-    if (socket_fd == -1)
-        perror("Failed to accept on socket");
-
-    close(listen_socket_fd);
-
-    protoent = getprotobyname("tcp");
-    if (!protoent) {
-        perror("getprotobyname (\"tcp\") failed");
-        return;
-    }
-
-    /* Disable Nagle - allow small packets to be sent without delay. */
-    opt = 1;
-    r = setsockopt(socket_fd, protoent->p_proto, TCP_NODELAY, &opt,
-                   sizeof(opt));
-    if (r == -1)
-        perror("setsockopt(TCP_NODELAY) failed");
-
-    int ip = sockaddr.sin_addr.s_addr;
-
-    printf("GDB Connected to %d.%d.%d.%d\n", ip & 0xff, (ip >> 8) & 0xff,
-           (ip >> 16) & 0xff, (ip >> 24) & 0xff);
-}
-
-
-static char buf[4096], *bufptr = buf;
-static void flush_debug_buffer(void)
-{
-    char *p = buf;
-
-    while (p != bufptr) {
-        int n;
-
-        n = send(socket_fd, p, bufptr - p, 0);
-        if (n == -1) {
-            perror("error on debug socket: %m");
-            break;
-        }
-        p += n;
-    }
-    bufptr = buf;
-}
-
-
-void putDebugChar(int ch)
-{
-    if (bufptr == buf + sizeof(buf))
-        flush_debug_buffer();
-    *bufptr++ = ch;
-}
-
-
-int getDebugChar(void)
-{
-    char ch;
-
-    recv(socket_fd, &ch, 1, 0);
-
-    return ch;
-}
-
-
-/************************************************************************/
-/* BUFMAX defines the maximum number of characters in inbound/outbound buffers*/
-/* at least NUMREGBYTES*2 are needed for register packets */
-#define BUFMAX (400 * 4)
-
-int remote_debug;
-/*  debug >  0 prints ill-formed commands in valid packets & checksum errors */
-
+static int use_gdb = 0;
+static int socket_fd = 0;
+static int portno = 1234; /* Default port number */
 static const char hexchars[] = "0123456789abcdef";
 
-/* Number of registers.  */
-#define NUMREGS        32
+#define BUFMAX                         4096
+static uint8_t in_buffer[BUFMAX];
+static uint8_t registers[BUFMAX];
 
-/* Number of bytes of registers.  */
-#define NUMREGBYTES (NUMREGS * 8)
+/* The actual error code is ignored by GDB, so any number will do. */
+#define GDB_ERROR_MSG                  "E01"
 
-/* list is here: gdb/amd64-linux-nat.c */
-enum regnames {
-    RAX, RBX, RCX, RDX,
-    RSI, RDI, RBP, RSP,
-    R8, R9, R10, R11,
-    R12, R13, R14, R15,
-    RIP, EFLAGS, CS, SS,
-    DS, ES, FS, GS
-};
-
-/*
- * these should not be static cuz they can be used outside this module
- */
-long registers[NUMREGS];
-
-/***************************  ASSEMBLY CODE MACROS *************************/
-/*                                                                            */
-
-
-int hex(char ch)
+static int hex(char ch)
 {
     if ((ch >= 'a') && (ch <= 'f'))
         return (ch - 'a' + 10);
@@ -292,26 +68,128 @@ int hex(char ch)
     return -1;
 }
 
-
-static unsigned char remcomInBuffer[BUFMAX];
-
-
-/* scan for the sequence $<data>#<checksum>     */
-
-unsigned char *getpacket(void)
+/*
+ * Converts the memory pointed to by mem into an hex string in buf.
+ * Returns a pointer to the last char put in buf (null).
+ */
+static char *mem2hex(char *mem, char *buf, int count)
 {
-    unsigned char *buffer = &remcomInBuffer[0];
-    unsigned char checksum;
-    unsigned char xmitcsum;
+    int i;
+    uint8_t ch;
+
+    for (i = 0; i < count; i++) {
+        ch = *mem++;
+        *buf++ = hexchars[ch >> 4];
+        *buf++ = hexchars[ch % 16];
+    }
+    *buf = 0;
+    return buf;
+}
+
+/*
+ * Converts the hex string in buf into binary in mem.
+ * Returns a pointer to the character AFTER the last byte written.
+ */
+static char *hex2mem(char *buf, char *mem, int count)
+{
+    int i;
+    uint8_t ch;
+
+    for (i = 0; i < count; i++) {
+        ch = hex(*buf++) << 4;
+        ch = ch + hex(*buf++);
+        *mem++ = ch;
+    }
+    return mem;
+}
+
+static int wait_for_connect()
+{
+    int listen_socket_fd;
+    struct sockaddr_in server_addr, client_addr;
+    struct protoent *protoent;
+    struct in_addr ip_addr;
+    socklen_t len;
+    int opt;
+
+    listen_socket_fd = socket(AF_INET, SOCK_STREAM, 0);
+    if (listen_socket_fd == -1) {
+        perror("GDB: Could not create socket");
+        return -1;
+    }
+    
+    opt = 1;
+    if (setsockopt(listen_socket_fd, SOL_SOCKET, SO_REUSEADDR, &opt,
+                   sizeof(opt)) < 0)
+        perror("GDB: setsockopt(SO_REUSEADDR) failed");
+
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    server_addr.sin_port = htons(portno);
+     
+    if (bind(listen_socket_fd, (struct sockaddr *)&server_addr,
+             sizeof(server_addr)) < 0) {
+        perror("GDB: bind failed");
+        return -1;
+    }
+     
+    listen(listen_socket_fd , 0);
+     
+    puts("GDB: Waiting for a debugger...");
+     
+    len = sizeof(client_addr);
+    socket_fd = accept(listen_socket_fd, (struct sockaddr *)&client_addr, &len);
+    if (socket_fd < 0) {
+        perror("GDB: accept failed");
+        return -1;
+    }
+
+    close(listen_socket_fd);
+
+    protoent = getprotobyname("tcp");
+    if (!protoent) {
+        perror("GDB: getprotobyname (\"tcp\") failed");
+        return -1;
+    }
+
+    opt = 1;
+    if (setsockopt(socket_fd, protoent->p_proto, TCP_NODELAY, &opt,
+                   sizeof(opt)) < 0)
+        perror("GDB: setsockopt(TCP_NODELAY) failed");
+
+    ip_addr.s_addr = client_addr.sin_addr.s_addr;
+    printf("GDB: connection from debugger at %s\n", inet_ntoa(ip_addr));
+
+    return 0;
+}
+
+static void send_char(char ch)
+{
+    /* TCP is already buffering, so no need to buffer here as well. */
+    send(socket_fd, &ch, 1, 0);
+}
+
+static char recv_char(void)
+{
+    char ch;
+    recv(socket_fd, &ch, 1, 0);
+    return ch;
+}
+
+/* scan for the sequence $<data>#<checksum> */
+static uint8_t *recv_packet(void)
+{
+    uint8_t *buffer = &in_buffer[0];
+    uint8_t checksum;
+    uint8_t xmitcsum;
     int count;
     char ch;
 
     while (1) {
         /* wait around for the start character, ignore all other characters */
         do {
-            ch = getDebugChar();
+            ch = recv_char();
         } while (ch != '$');
-
 
 retry:
         checksum = 0;
@@ -320,7 +198,7 @@ retry:
 
         /* now, read until a # or end of buffer is found */
         while (count < BUFMAX - 1) {
-            ch = getDebugChar();
+            ch = recv_char();
             if (ch == '$')
                 goto retry;
             if (ch == '#')
@@ -332,25 +210,23 @@ retry:
         buffer[count] = 0;
 
         if (ch == '#') {
-            ch = getDebugChar();
+            ch = recv_char();
             xmitcsum = hex(ch) << 4;
-            ch = getDebugChar();
+            ch = recv_char();
             xmitcsum += hex(ch);
 
             if (checksum != xmitcsum) {
-                if (remote_debug) {
-                    fprintf(stderr,
-                            "bad checksum.  My count = 0x%x, sent=0x%x. buf=%s\n",
-                            checksum, xmitcsum, buffer);
-                }
-                putDebugChar('-');        /* failed checksum */
+                fprintf(stderr,
+                        "bad checksum.  My count = 0x%x, sent=0x%x. buf=%s\n",
+                        checksum, xmitcsum, buffer);
+                send_char('-');        /* failed checksum */
             } else {
-                putDebugChar('+');        /* successful transfer */
+                send_char('+');        /* successful transfer */
 
                 /* if a sequence char is present, reply the sequence ID */
                 if (buffer[2] == ':') {
-                    putDebugChar(buffer[0]);
-                    putDebugChar(buffer[1]);
+                    send_char(buffer[0]);
+                    send_char(buffer[1]);
 
                     return &buffer[3];
                 }
@@ -361,278 +237,209 @@ retry:
     }
 }
 
-/* send the packet in buffer.  */
-
-void putpacket(char *buffer)
+static void send_packet(char *buffer)
 {
-    unsigned char checksum;
+    uint8_t checksum;
     int count;
     char ch;
 
     /*  $<packet info>#<checksum>.  */
     do {
-        putDebugChar('$');
+        send_char('$');
         checksum = 0;
         count = 0;
 
         ch = buffer[count];
         while (ch) {
-            putDebugChar(ch);
+            send_char(ch);
             checksum += ch;
             count += 1;
             ch = buffer[count];
         }
 
-        putDebugChar('#');
-        putDebugChar(hexchars[checksum >> 4]);
-        putDebugChar(hexchars[checksum % 16]);
-        flush_debug_buffer();
-    } while (getDebugChar() != '+');
+        send_char('#');
+        send_char(hexchars[checksum >> 4]);
+        send_char(hexchars[checksum % 16]);
+    } while (recv_char() != '+');
 }
 
-void debug_error(char *format, char *parm)
+static void gdb_handle_exception(struct ukvm_hv *hv, int sigval)
 {
-    if (remote_debug)
-        fprintf(stderr, format, parm);
-}
+    uint8_t *packet;
+    char obuf[BUFMAX];
 
+    /* Notify the debugger of our last signal */
+    snprintf(obuf, sizeof(obuf), "S%02x", sigval);
+    send_packet(obuf);
 
-/* Indicate to caller of mem2hex or hex2mem that there has been an error. */
-static volatile int mem_err;
+    for (;;) {
+        uint64_t addr = 0, result;
+        uint32_t type, len;
+        int command, ret;
 
-void set_mem_err(void)
-{
-    mem_err = 1;
-}
+        packet = recv_packet();
 
-/* These are separate functions so that they are so short and sweet
- * that the compiler won't save any registers (if there is a fault to
- * mem_fault, they won't get restored, so there better not be any
- * saved).
- */
-int get_char(char *addr)
-{
-    return *addr;
-}
-
-
-void set_char(char *addr, int val)
-{
-    *addr = val;
-}
-
-
-char *mem2hex(char *mem, char *buf, int count)
-{
-    int i;
-    unsigned char ch;
-
-    for (i = 0; i < count; i++) {
-        ch = get_char(mem++);
-        *buf++ = hexchars[ch >> 4];
-        *buf++ = hexchars[ch % 16];
-    }
-    *buf = 0;
-    return buf;
-}
-
-
-/* convert the hex array pointed to by buf into binary to be placed in mem */
-/* return a pointer to the character AFTER the last byte written */
-char *hex2mem(char *buf, char *mem, int count)
-{
-    int i;
-    unsigned char ch;
-
-    for (i = 0; i < count; i++) {
-        ch = hex(*buf++) << 4;
-        ch = ch + hex(*buf++);
-        set_char(mem++, ch);
-    }
-    return mem;
-}
-
-
-int gdb_is_pc_breakpointing(uint64_t addr)
-{
-    int i;
-
-    if (stepping)
-        return 1;
-
-    for (i = 0; i < MAX_BREAKPOINTS; i++) {
-        if (addr == breakpoints[i])
-            return 1;
-    }
-    return 0;
-}
-
-
-int gdb_insert_breakpoint(uint64_t addr)
-{
-    int i;
-
-    for (i = 0; i < MAX_BREAKPOINTS; i++) {
-        if (breakpoints[i] == 0) {
-            breakpoints[i] = addr;
-            return 1;
-        }
-    }
-    return 0;
-}
-
-
-int gdb_remove_breakpoint(uint64_t addr)
-{
-    int i;
-
-    for (i = 0; i < MAX_BREAKPOINTS; i++) {
-        if (addr == breakpoints[i])
-            breakpoints[i] = 0;
-    }
-    return 0;
-}
-
-
-void gdb_handle_exception(uint8_t *mem, size_t mem_size, int vcpufd, int sig)
-{
-    unsigned char *buffer;
-    char obuf[4096];
-    int ne = 0;
-
-    if (sig != 0) {
-        snprintf(obuf, sizeof(obuf), "S%02x", 5);
-        putpacket(obuf);
-    }
-
-    while (ne == 0) {
-        buffer = getpacket();
-
-        switch (buffer[0]) {
+        /*
+         * From the GDB manual:
+	 * "At a minimum, a stub is required to support the ‘g’ and ‘G’
+	 * commands for register access, and the ‘m’ and ‘M’ commands
+	 * for memory access. Stubs that only control single-threaded
+	 * targets can implement run control with the ‘c’ (continue),
+	 * and ‘s’ (step) commands."
+         */
+        command = packet[0];
+        switch (command) {
         case 's': {
-            stepping = 1;
-            return;
-        }
-        case 'c': {
-            /* Disable stepping for the next instruction */
-            stepping = 0;
+            /* Step */
+            if (sscanf((char *)packet, "s%"PRIx64, &addr) == 1) {
+		/* not supported, but that's OK as GDB will retry with the
+                 * slower version of this: update all registers. */
+                send_packet("");
+                break; /* Wait for another command. */
+            }
+	    if (ukvm_gdb_enable_ss(hv) < 0) {
+                    send_packet(GDB_ERROR_MSG);
+                    break; /* Wait for another command. */
+            }
             return; /* Continue with program */
         }
-        case 'M': {
-            putpacket("OK");
-            break;
+
+        case 'c': {
+            /* Continue (and disable stepping for the next instruction) */
+            if (sscanf((char *)packet, "c%"PRIx64, &addr) == 1) {
+		/* not supported, but that's OK as GDB will retry with the
+                 * slower version of this: update all registers. */
+                send_packet("");
+                break; /* Wait for another command. */
+            }
+	    if (ukvm_gdb_disable_ss(hv) < 0) {
+                    send_packet(GDB_ERROR_MSG);
+                    break; /* Wait for another command. */
+            }
+            return; /* Continue with program */
         }
+
         case 'm': {
-            uint64_t addr;
-            int len;
-            char *ebuf;
+            /* Read memory content */
+            if (sscanf((char *)packet, "m%"PRIx64",%"PRIx32,
+                       &addr, &len) != 2) {
+                send_packet(GDB_ERROR_MSG);
+                break;
+            }
 
-            addr = strtoull((char *)&buffer[1], &ebuf, 16);
-            len = strtoul(ebuf + 1, NULL, 16);
+            if ((addr > hv->mem_size) ||
+                add_overflow(addr, len, result) ||
+                (result > hv->mem_size)) {
+                send_packet(GDB_ERROR_MSG);
+            } else {
+                mem2hex((char *)hv->mem + addr, obuf, len);
+                send_packet(obuf);
+            }
+            break; /* Wait for another command. */
+        }
 
-            if ((addr + len) >= mem_size)
-                memset(obuf, '0', len);
-            else
-                mem2hex((char *)mem + addr, obuf, len);
-            putpacket(obuf);
-            break;
+        case 'M': {
+            /* Write memory content */
+            assert(strlen((char *)packet) <= sizeof(obuf));
+            if (sscanf((char *)packet, "M%"PRIx64",%"PRIx32":%s",
+                       &addr, &len, obuf) != 3) {
+                send_packet(GDB_ERROR_MSG);
+                break;
+            }
+
+            if ((addr > hv->mem_size) ||
+                add_overflow(addr, len, result) ||
+                (result > hv->mem_size)) {
+                send_packet(GDB_ERROR_MSG);
+            } else {
+                hex2mem(obuf, (char *)hv->mem + addr, len);
+                send_packet("");
+            }
+            break; /* Wait for another command. */
         }
-        case 'P': {
-            putpacket("OK");
-            break;
-        }
+
         case 'g': {
-            struct kvm_regs regs;
-            int ret;
-
-            ret = ioctl(vcpufd, KVM_GET_REGS, &regs);
-            if (ret == -1)
-                err(1, "KVM_GET_REGS");
-
-            registers[RAX] = regs.rax;
-            registers[RBX] = regs.rbx;
-            registers[RCX] = regs.rcx;
-            registers[RDX] = regs.rdx;
-
-            registers[RSI] = regs.rsi;
-            registers[RDI] = regs.rdi;
-            registers[RBP] = regs.rbp;
-            registers[RSP] = regs.rsp;
-
-            registers[R8] = regs.r8;
-            registers[R9] = regs.r9;
-            registers[R10] = regs.r10;
-            registers[R11] = regs.r11;
-            registers[R12] = regs.r12;
-            registers[R13] = regs.r13;
-            registers[R14] = regs.r14;
-            registers[R15] = regs.r15;
-
-            registers[RIP] = regs.rip;
-            registers[EFLAGS] = regs.rflags;
-
-            /* TODO what about others like cs and ss? */
-
-            mem2hex((char *) registers, obuf, NUMREGBYTES);
-
-            putpacket(obuf);
-            break;
+            /* Read general registers */
+            len = BUFMAX;
+            if (ukvm_gdb_read_registers(hv, registers, (uint64_t *)&len) < 0) {
+                send_packet(GDB_ERROR_MSG);
+            } else {
+                mem2hex((char *)registers, obuf, len);
+                send_packet(obuf);
+            }
+            break; /* Wait for another command. */
         }
+
+        case 'G': {
+            /* Write general registers */
+            len = BUFMAX;
+            /* Call read_registers just to get len (not very efficient). */
+            if (ukvm_gdb_read_registers(hv, registers, (uint64_t *)&len) < 0) {
+                send_packet(GDB_ERROR_MSG);
+                break;
+            }
+            /* Packet looks like 'Gxxxxx', so we have to skip the first char */
+            hex2mem((char *)packet + 1, (char *)registers, len);
+            if (ukvm_gdb_write_registers(hv, registers, len) < 0) {
+                send_packet(GDB_ERROR_MSG);
+                break;
+            }
+            send_packet("OK");
+            break; /* Wait for another command. */
+        }
+
         case '?': {
-            sprintf(obuf, "S%02x", SIGTRAP);
-            putpacket(obuf);
-            break;
+            /* Return last signal */
+            sprintf(obuf, "S%02x", sigval);
+            send_packet(obuf);
+            break; /* Wait for another command. */
         }
-        case 'H': {
-            putpacket("OK");
-            break;
-        }
-        case 'q': {
-            /* not supported */
-            putpacket("");
-            break;
-        }
-        case 'Z': {
-            /* insert a breakpoint */
-            char *ebuf;
-            uint64_t addr;
-            uint64_t type __attribute__((__unused__));
-            uint64_t len __attribute__((__unused__));
 
-            type = strtoull((char *)buffer + 1, &ebuf, 16);
-            addr = strtoull(ebuf + 1, &ebuf, 16);
-            len = strtoull(ebuf + 1, &ebuf, 16);
-
-            gdb_insert_breakpoint(addr);
-            putpacket("OK");
-            break;
-        }
+        case 'Z':
+            /* Insert a breakpoint */
         case 'z': {
-            /* remove a breakpoint */
-            char *ebuf;
-            uint64_t addr;
-            uint64_t type __attribute__((__unused__));
-            uint64_t len __attribute__((__unused__));
+            /* Remove a breakpoint */
+            packet++;
+            if (sscanf((char *)packet, "%"PRIx32",%"PRIx64",%"PRIx32,
+                       &type, &addr, &len) != 3) {
+                send_packet(GDB_ERROR_MSG);
+                break;
+            }
 
-            type = strtoull((char *)buffer + 1, &ebuf, 16);
-            addr = strtoull(ebuf + 1, &ebuf, 16);
-            len = strtoull(ebuf + 1, &ebuf, 16);
+            if ((addr > hv->mem_size) ||
+                add_overflow(addr, len, result) ||
+                (result > hv->mem_size)) {
+                send_packet(GDB_ERROR_MSG);
+                break;
+            }
 
-            gdb_remove_breakpoint(addr);
-            putpacket("OK");
+            if (command == 'Z')
+                ret = ukvm_gdb_add_breakpoint(hv, type, addr, len);
+            else
+                ret = ukvm_gdb_remove_breakpoint(hv, type, addr, len);
+
+            if (ret < 0)
+                send_packet(GDB_ERROR_MSG);
+            else
+                send_packet("OK");
             break;
         }
+
         case 'k': {
             printf("Debugger asked us to quit\n");
-            exit(1);
+            send_packet("OK");
+            break;
         }
+
         case 'D': {
             printf("Debugger detached\n");
-            putpacket("OK");
+            send_packet("OK");
             return;
         }
+
         default:
-            putpacket("");
+            /* An empty packet means unsupported. */
+            send_packet("");
             break;
         }
     }
@@ -642,29 +449,38 @@ void gdb_handle_exception(uint8_t *mem, size_t mem_size, int vcpufd, int sig)
 
 static void gdb_stub_start(struct ukvm_hv *hv)
 {
-    int i;
-
-    for (i = 0; i < MAX_BREAKPOINTS; i++)
-        breakpoints[i] = 0;
-
-    wait_for_connect(1234);
-    gdb_handle_exception(hv->mem, hv->mem_size, hv->b->vcpufd, 0);
+    wait_for_connect();
+    gdb_handle_exception(hv, GDB_SIGNAL_FIRST);
 }
 
-
-
+/* Returns 0 if we want to handle the exit here and not in the vcpu loop. */
 static int handle_exit(struct ukvm_hv *hv)
 {
-    struct kvm_debug_exit_arch *arch_info;
+    int sigval = 0;
 
-    if (hv->b->vcpurun->exit_reason != KVM_EXIT_DEBUG)
+    if (ukvm_gdb_read_last_signal(hv, &sigval) < 0)
+        /* Handle this exit in the vcpu loop */
         return -1;
 
-    arch_info = &hv->b->vcpurun->debug.arch;
-    if (gdb_is_pc_breakpointing(arch_info->pc))
-        gdb_handle_exception(hv->mem, hv->mem_size, hv->b->vcpufd, 1);
+    switch(sigval) {
+    case GDB_SIGNAL_TRAP:
+        gdb_handle_exception(hv, sigval);
+        return 0;
 
-    return 0;
+    case GDB_SIGNAL_TERM:
+        send_packet("W00"); /* We exited normally */
+        return -1;
+
+    case GDB_SIGNAL_QUIT:
+    case GDB_SIGNAL_KILL:
+    case GDB_SIGNAL_SEGV:
+        gdb_handle_exception(hv, sigval);
+        return 0;
+
+    default:
+        /* Handle this exit in the vcpu loop */
+        return -1;
+    }
 }
 
 static int setup(struct ukvm_hv *hv)
@@ -672,15 +488,9 @@ static int setup(struct ukvm_hv *hv)
     if (!use_gdb)
         return 0;
 
-    /* TODO check if we have the KVM_CAP_SET_GUEST_DEBUG capbility */
-    struct kvm_guest_debug debug = {
-        .control = KVM_GUESTDBG_ENABLE | KVM_GUESTDBG_SINGLESTEP,
-    };
+    if (ukvm_core_register_vmexit(handle_exit) < 0)
+        return -1;
 
-    if (ioctl(hv->b->vcpufd, KVM_SET_GUEST_DEBUG, &debug) == -1)
-        err(1, "KVM_SET_GUEST_DEBUG failed");
-
-    assert(ukvm_core_register_vmexit(handle_exit) == 0);
     gdb_stub_start(hv);
 
     return 0;
@@ -688,37 +498,21 @@ static int setup(struct ukvm_hv *hv)
 
 static int handle_cmdarg(char *cmdarg)
 {
-    if (strncmp("--gdb", cmdarg, 5))
-        return -1;
-
-    use_gdb = 1;
-
-    return 0;
-}
-
-static char *usage(void)
-{
-    return "--gdb (optional flag for running in a gdb debug session)";
-}
-
-#else /* !x86_64 */
-#include "ukvm.h"
-
-static int setup(struct ukvm_hv *hv)
-{
-    return 0;
-}
-
-static int handle_cmdarg(char *cmdarg)
-{
+    if (!strncmp("--gdb", cmdarg, 5)) {
+        use_gdb = 1;
+        return 0;
+    } else if (!strncmp("--port=", cmdarg, 7)) {
+        portno = strtol(cmdarg + 7, NULL, 10);
+        return 0;
+    }
     return -1;
 }
 
 static char *usage(void)
 {
-    return "--gdb (unsupported on your architecture)";
+    return "--gdb (optional flag for running in a gdb debug session)\n"
+        "    [ --port=1234 ] (port to use) ";
 }
-#endif
 
 struct ukvm_module ukvm_module_gdb = {
     .name = "gdb",
