@@ -59,59 +59,6 @@ char *solo5_net_mac_str(void)
     return mac_str;
 }
 
-/* ukvm block interface */
-int solo5_blk_write_sync(uint64_t sec, uint8_t *data, int n)
+void net_init(void)
 {
-    volatile struct ukvm_blkwrite wr;
-
-    wr.sector = sec;
-    wr.data = data;
-    wr.len = n;
-    wr.ret = 0;
-
-    ukvm_do_hypercall(UKVM_HYPERCALL_BLKWRITE, &wr);
-
-    return wr.ret;
-}
-
-int solo5_blk_read_sync(uint64_t sec, uint8_t *data, int *n)
-{
-    volatile struct ukvm_blkread rd;
-
-    rd.sector = sec;
-    rd.data = data;
-    rd.len = *n;
-    rd.ret = 0;
-
-    ukvm_do_hypercall(UKVM_HYPERCALL_BLKREAD, &rd);
-
-    *n = rd.len;
-    return rd.ret;
-}
-
-int solo5_blk_sector_size(void)
-{
-    volatile struct ukvm_blkinfo info;
-
-    ukvm_do_hypercall(UKVM_HYPERCALL_BLKINFO, &info);
-
-    return info.sector_size;
-}
-
-uint64_t solo5_blk_sectors(void)
-{
-    volatile struct ukvm_blkinfo info;
-
-    ukvm_do_hypercall(UKVM_HYPERCALL_BLKINFO, &info);
-
-    return info.num_sectors;
-}
-
-int solo5_blk_rw(void)
-{
-    volatile struct ukvm_blkinfo info;
-
-    ukvm_do_hypercall(UKVM_HYPERCALL_BLKINFO, &info);
-
-    return info.rw;
 }

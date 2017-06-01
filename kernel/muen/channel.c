@@ -1,5 +1,5 @@
-/* 
- * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
+/*
+ * Copyright (c) 2017 Contributors as noted in the AUTHORS file
  *
  * This file is part of Solo5, a unikernel base layer.
  *
@@ -18,20 +18,9 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef __UKVM_KERNEL_H__
-#define __UKVM_KERNEL_H__
+#include "channel.h"
 
-#include "../kernel.h"
-#include "ukvm_guest.h"
-
-void time_init(struct ukvm_boot_info *bi);
-void console_init(void);
-void net_init(void);
-
-/* tscclock.c: TSC-based clock */
-uint64_t tscclock_monotonic(void);
-int tscclock_init(uint64_t tsc_freq);
-uint64_t tscclock_epochoffset(void);
-
-void process_bootinfo(void *arg);
-#endif
+inline bool muen_channel_is_active(const struct muchannel * const channel)
+{
+    return channel->hdr.epoch != MUCHANNEL_NULL_EPOCH;
+}

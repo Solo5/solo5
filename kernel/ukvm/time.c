@@ -35,17 +35,3 @@ uint64_t solo5_clock_wall(void)
 {
     return tscclock_monotonic() + tscclock_epochoffset();
 }
-
-int solo5_poll(uint64_t until_nsecs)
-{
-    struct ukvm_poll t;
-    uint64_t now;
-
-    now = solo5_clock_monotonic();
-    if (until_nsecs <= now)
-        t.timeout_nsecs = 0;
-    else
-        t.timeout_nsecs = until_nsecs - now;
-    ukvm_do_hypercall(UKVM_HYPERCALL_POLL, &t);
-    return t.ret;
-}

@@ -23,7 +23,7 @@
 static const char *cmdline;
 static uint64_t mem_size;
 
-void platform_init(void *arg)
+void process_bootinfo(void *arg)
 {
     struct ukvm_boot_info *bi = arg;
 
@@ -48,18 +48,3 @@ void platform_exit(void)
      */
     cpu_halt();
 }
-
-int platform_puts(const char *buf, int n)
-{
-    struct ukvm_puts str;
-
-    str.data = (char *)buf;
-    str.len = n;
-
-    ukvm_do_hypercall(UKVM_HYPERCALL_PUTS, &str);
-
-    return str.len;
-}
-
-int solo5_console_write(const char *, size_t)
-    __attribute__ ((alias("platform_puts")));

@@ -1,0 +1,10 @@
+prefix=${pcfiledir}/../..
+exec_prefix=${prefix}
+includedir=${prefix}/include/solo5-kernel-muen/include
+libdir=${exec_prefix}/lib/solo5-kernel-muen
+ldflags=!LDFLAGS! -T ${libdir}/solo5.lds ${libdir}/solo5.o
+
+Name: solo5-kernel-muen
+Version: 0.1
+Description: Solo5 unikernel base (Muen target)
+Cflags: !CFLAGS! -isystem ${includedir}/host -I${includedir}

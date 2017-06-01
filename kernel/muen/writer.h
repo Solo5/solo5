@@ -1,5 +1,5 @@
-/* 
- * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
+/*
+ * Copyright (c) 2017 Contributors as noted in the AUTHORS file
  *
  * This file is part of Solo5, a unikernel base layer.
  *
@@ -18,20 +18,26 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef __UKVM_KERNEL_H__
-#define __UKVM_KERNEL_H__
+#ifndef MUEN_CHANNEL_WRITER_H
+#define MUEN_CHANNEL_WRITER_H
 
-#include "../kernel.h"
-#include "ukvm_guest.h"
+#include "channel.h"
 
-void time_init(struct ukvm_boot_info *bi);
-void console_init(void);
-void net_init(void);
+/**
+ * Initialize channel with given parameters.
+ */
+void muen_channel_init_writer(struct muchannel *channel, const uint64_t protocol,
+                  const uint64_t element_size, const uint64_t channel_size,
+                  const uint64_t epoch);
 
-/* tscclock.c: TSC-based clock */
-uint64_t tscclock_monotonic(void);
-int tscclock_init(uint64_t tsc_freq);
-uint64_t tscclock_epochoffset(void);
+/**
+ * Deactivate channel.
+ */
+void muen_channel_deactivate(struct muchannel *channel);
 
-void process_bootinfo(void *arg);
+/**
+ * Write element to given channel.
+ */
+void muen_channel_write(struct muchannel *channel, const void * const element);
+
 #endif

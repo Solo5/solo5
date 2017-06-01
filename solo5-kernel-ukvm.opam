@@ -20,7 +20,10 @@ depexts: [
   [["rhel"] ["kernel-headers"]]
   [["ubuntu"] ["linux-libc-dev"]]
 ]
-conflicts: "solo5-kernel-virtio"
+conflicts: [
+  "solo5-kernel-virtio"
+  "solo5-kernel-muen"
+]
 available: [
   ocaml-version >= "4.02.3" & (arch = "x86_64" | arch = "amd64") &
   (os = "linux" | os = "freebsd")

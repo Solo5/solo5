@@ -31,13 +31,20 @@ exit.o \
 log.o \
 cmdline.o
 
-UKVM_COBJS=\
+COMMON_UKVM_COBJS=\
 ukvm/kernel.o \
-ukvm/io.o \
 ukvm/platform.o \
 ukvm/platform_intr.o \
-ukvm/time.o \
+ukvm/time.o
+
+UKVM_COBJS=\
+$(COMMON_UKVM_COBJS) \
+ukvm/platform_init.o \
+ukvm/poll.o \
 ukvm/tscclock.o \
+ukvm/console.o \
+ukvm/net.o \
+ukvm/block.o \
 $(COMMON_COBJS)
 
 VIRTIO_COBJS=\
@@ -56,14 +63,29 @@ virtio/clock_subr.o \
 virtio/pvclock.o \
 $(COMMON_COBJS)
 
+MUEN_COBJS=\
+$(COMMON_UKVM_COBJS) \
+muen/channel.o \
+muen/reader.o \
+muen/writer.o \
+muen/muen-block.o \
+muen/muen-clock.o \
+muen/muen-console.o \
+muen/muen-net.o \
+muen/muen-platform_init.o \
+muen/muen-poll.o \
+muen/muen-sinfo.o \
+$(COMMON_COBJS)
+
 HEADERS=\
 kernel.h
 
 all: virtio ukvm
 
-.PHONY: virtio ukvm
-virtio: virtio/solo5.o 
-ukvm: ukvm/solo5.o 
+.PHONY: virtio ukvm muen
+virtio: virtio/solo5.o
+ukvm: ukvm/solo5.o
+muen: muen/solo5.o
 
 CFLAGS+=-D__SOLO5_KERNEL__
 
@@ -87,6 +109,10 @@ ukvm/solo5.o: $(UKVM_COBJS) ukvm/solo5.lds
 	$(LD) -r $(LDFLAGS) -o $@ $(UKVM_COBJS)
 	$(OBJCOPY) -w -G solo5_\* -G _start\* $@ $@
 
+muen/solo5.o: $(MUEN_COBJS) ukvm/solo5.lds
+	$(LD) -r $(LDFLAGS) -o $@ $(MUEN_COBJS)
+	$(OBJCOPY) -w -G solo5_\* -G _start\* $@ $@
+
 .PHONY: clean
 clean:
-	$(RM) *.o virtio/*.o ukvm/*.o kernel 
+	$(RM) *.o virtio/*.o ukvm/*.o muen/*.o kernel

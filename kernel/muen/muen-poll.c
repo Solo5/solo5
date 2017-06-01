@@ -1,5 +1,5 @@
-/* 
- * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
+/*
+ * Copyright (c) 2017 Contributors as noted in the AUTHORS file
  *
  * This file is part of Solo5, a unikernel base layer.
  *
@@ -18,20 +18,23 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef __UKVM_KERNEL_H__
-#define __UKVM_KERNEL_H__
-
 #include "../kernel.h"
-#include "ukvm_guest.h"
+#include "muen-net.h"
 
-void time_init(struct ukvm_boot_info *bi);
-void console_init(void);
-void net_init(void);
+int solo5_poll(uint64_t until_nsecs)
+{
+    int rc = 0;
+    do {
+        if (muen_net_pending_data()) {
+            rc = 1;
+            break;
+        }
+        __asm__ __volatile__("pause");
+    } while (solo5_clock_monotonic() < until_nsecs);
 
-/* tscclock.c: TSC-based clock */
-uint64_t tscclock_monotonic(void);
-int tscclock_init(uint64_t tsc_freq);
-uint64_t tscclock_epochoffset(void);
+    if (muen_net_pending_data()) {
+        rc = 1;
+    }
 
-void process_bootinfo(void *arg);
-#endif
+    return rc;
+}

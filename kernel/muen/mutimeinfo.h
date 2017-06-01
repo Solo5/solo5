@@ -1,5 +1,5 @@
-/* 
- * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
+/*
+ * Copyright (c) 2017 Contributors as noted in the AUTHORS file
  *
  * This file is part of Solo5, a unikernel base layer.
  *
@@ -18,20 +18,13 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef __UKVM_KERNEL_H__
-#define __UKVM_KERNEL_H__
+#ifndef MUTIMEINFO_H
+#define MUTIMEINFO_H
 
-#include "../kernel.h"
-#include "ukvm_guest.h"
+struct time_info_type {
+    uint64_t tsc_time_base;
+    uint64_t tsc_tick_rate_hz;
+    int64_t  timezone_microsecs;
+} __attribute__((packed));
 
-void time_init(struct ukvm_boot_info *bi);
-void console_init(void);
-void net_init(void);
-
-/* tscclock.c: TSC-based clock */
-uint64_t tscclock_monotonic(void);
-int tscclock_init(uint64_t tsc_freq);
-uint64_t tscclock_epochoffset(void);
-
-void process_bootinfo(void *arg);
 #endif

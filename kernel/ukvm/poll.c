@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
  *
  * This file is part of Solo5, a unikernel base layer.
@@ -18,20 +18,18 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef __UKVM_KERNEL_H__
-#define __UKVM_KERNEL_H__
+#include "kernel.h"
 
-#include "../kernel.h"
-#include "ukvm_guest.h"
+int solo5_poll(uint64_t until_nsecs)
+{
+    struct ukvm_poll t;
+    uint64_t now;
 
-void time_init(struct ukvm_boot_info *bi);
-void console_init(void);
-void net_init(void);
-
-/* tscclock.c: TSC-based clock */
-uint64_t tscclock_monotonic(void);
-int tscclock_init(uint64_t tsc_freq);
-uint64_t tscclock_epochoffset(void);
-
-void process_bootinfo(void *arg);
-#endif
+    now = solo5_clock_monotonic();
+    if (until_nsecs <= now)
+        t.timeout_nsecs = 0;
+    else
+        t.timeout_nsecs = until_nsecs - now;
+    ukvm_do_hypercall(UKVM_HYPERCALL_POLL, &t);
+    return t.ret;
+}

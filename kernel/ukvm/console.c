@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
  *
  * This file is part of Solo5, a unikernel base layer.
@@ -18,20 +18,23 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef __UKVM_KERNEL_H__
-#define __UKVM_KERNEL_H__
+#include "kernel.h"
 
-#include "../kernel.h"
-#include "ukvm_guest.h"
+int platform_puts(const char *buf, int n)
+{
+    struct ukvm_puts str;
 
-void time_init(struct ukvm_boot_info *bi);
-void console_init(void);
-void net_init(void);
+    str.data = (char *)buf;
+    str.len = n;
 
-/* tscclock.c: TSC-based clock */
-uint64_t tscclock_monotonic(void);
-int tscclock_init(uint64_t tsc_freq);
-uint64_t tscclock_epochoffset(void);
+    ukvm_do_hypercall(UKVM_HYPERCALL_PUTS, &str);
 
-void process_bootinfo(void *arg);
-#endif
+    return str.len;
+}
+
+int solo5_console_write(const char *, size_t)
+    __attribute__ ((alias("platform_puts")));
+
+void console_init(void)
+{
+}
