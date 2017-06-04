@@ -101,6 +101,7 @@ static void hypercall_puts(struct ukvm_hv *hv, ukvm_gpa_t gpa)
         UKVM_CHECKED_GPA_P(hv, gpa, sizeof (struct ukvm_puts));
     int rc = write(1, UKVM_CHECKED_GPA_P(hv, p->data, p->len), p->len);
     assert(rc >= 0);
+    p->ret = rc;
 }
 
 static struct pollfd pollfds[NUM_MODULES];
