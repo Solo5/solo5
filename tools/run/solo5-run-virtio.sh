@@ -124,7 +124,7 @@ if [ "${HV}" = "best" ]; then
         HV=bhyve
         [ $(id -u) -eq 0 ] || die "Root privileges required for bhyve"
         type grub-bhyve >/dev/null 2>&1 \
-            || die "Please install grub-bhyve from ports"
+            || die "Please install sysutils/grub2-bhyve from ports"
         ;;
     *)
         die "unsupported os: ${SYS}"
