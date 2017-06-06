@@ -160,6 +160,7 @@ void ukvm_elf_load(const char *file, uint8_t *mem, size_t mem_size,
         uint64_t paddr = phdr[ph_i].p_paddr;
         uint64_t align = phdr[ph_i].p_align;
         uint64_t result;
+        int prot;
 
         if (phdr[ph_i].p_type != PT_LOAD)
             continue;
@@ -192,11 +193,18 @@ void ukvm_elf_load(const char *file, uint8_t *mem, size_t mem_size,
             goto out_invalid;
         memset(daddr + filesz, 0, memsz - filesz);
 
-        /* Write-protect the executable segment */
-        if (phdr[ph_i].p_flags & PF_X) {
-            if (mprotect(daddr, _end - paddr, PROT_EXEC | PROT_READ) == -1)
-                goto out_error;
-        }
+        prot = PROT_NONE;
+        if (phdr[ph_i].p_flags & PF_R)
+            prot |= PROT_READ;
+        if (phdr[ph_i].p_flags & PF_W)
+            prot |= PROT_WRITE;
+        if (phdr[ph_i].p_flags & PF_X)
+            prot |= PROT_EXEC;
+        if (prot & PROT_WRITE && prot & PROT_EXEC)
+            warnx("%s: Warning: phdr[%u] requests WRITE and EXEC permissions",
+                  file, ph_i);
+        if (mprotect(daddr, _end - paddr, prot) == -1)
+            goto out_error;
     }
 
     free (phdr);
