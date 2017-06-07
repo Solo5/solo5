@@ -29,7 +29,7 @@ int platform_puts(const char *buf, int n)
 
     ukvm_do_hypercall(UKVM_HYPERCALL_PUTS, &str);
 
-    return str.len;
+    return str.ret;
 }
 
 int solo5_console_write(const char *, size_t)

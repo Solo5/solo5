@@ -140,6 +140,9 @@ struct ukvm_puts {
     /* IN */
     UKVM_GUEST_PTR(const char *) data;
     size_t len;
+
+    /* OUT */
+    int ret;
 };
 
 /* UKVM_HYPERCALL_BLKINFO */
