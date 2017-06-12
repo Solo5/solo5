@@ -98,11 +98,11 @@ TARGET=$(${UKVM_CC} -dumpmachine)
     die "Error running '${UKVM_CC} -dumpmachine', is your compiler working?"
 case ${TARGET} in
     x86_64-*linux*)
-        add_obj ukvm_hv_kvm.o ukvm_hv_kvm_x86_64.o ukvm_cpu_x86_64.o ukvm_gdb_kvm_x86_64.o
+        add_obj ukvm_hv_kvm.o ukvm_hv_kvm_x86_64.o ukvm_cpu_x86_64.o
         add_header ukvm_hv_kvm.h ukvm_cpu_x86_64.h
         ;;
     x86_64-*freebsd1[12]*)
-        add_obj ukvm_hv_freebsd.o ukvm_hv_freebsd_x86_64.o ukvm_cpu_x86_64.o ukvm_gdb_freebsd_x86_64.o
+        add_obj ukvm_hv_freebsd.o ukvm_hv_freebsd_x86_64.o ukvm_cpu_x86_64.o
         add_header ukvm_hv_freebsd.h ukvm_cpu_x86_64.h
 	;;
     *)

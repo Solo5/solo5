@@ -196,11 +196,7 @@ void ukvm_elf_load(const char *file, uint8_t *mem, size_t mem_size,
         prot = PROT_NONE;
         if (phdr[ph_i].p_flags & PF_R)
             prot |= PROT_READ;
-/* GDB clients can change memory, and software breakpoints work by replacing
- * instructions with int3's. */
-#ifndef UKVM_MODULE_GDB
         if (phdr[ph_i].p_flags & PF_W)
-#endif
             prot |= PROT_WRITE;
         if (phdr[ph_i].p_flags & PF_X)
             prot |= PROT_EXEC;

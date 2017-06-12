@@ -21,7 +21,6 @@
 /*
  * ukvm_gdb_freebsd_x86_64.c: glue between the GDB server (at ukvm_modules_gdb.c)
  * and FreeBSD's vmm.
- * XXX: this file is linked in even if we don't use the GDB module.
  */
 
 #include <sys/ioctl.h>
@@ -40,14 +39,14 @@
 
 int ukvm_gdb_read_registers(struct ukvm_hv *hv,
                             uint8_t *registers,
-                            uint64_t *len)
+                            size_t *len)
 {
     return -1;
 }
 
 int ukvm_gdb_write_registers(struct ukvm_hv *hv,
                              uint8_t *registers,
-                             uint64_t len)
+                             size_t len)
 {
     return -1;
 }
@@ -68,13 +67,13 @@ int ukvm_gdb_read_last_signal(struct ukvm_hv *hv, int *signal)
 }
 
 int ukvm_gdb_add_breakpoint(struct ukvm_hv *hv, uint32_t type,
-                            uint64_t addr, uint32_t len)
+                            ukvm_gpa_t addr, size_t len)
 {
     return -1;
 }
 
 int ukvm_gdb_remove_breakpoint(struct ukvm_hv *hv, uint32_t type,
-                               uint64_t addr, uint32_t len)
+                               ukvm_gpa_t addr, size_t len)
 {
     return -1;
 }
