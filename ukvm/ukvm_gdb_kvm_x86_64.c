@@ -2,12 +2,6 @@
  * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
  *
  * This file is part of ukvm, a unikernel monitor.
- * 
- * ukvm_gdb_update_guest_debug is based on update_guest_debug from the QEMU
- * source code, target/i386/kvm.c, which is:
- *
- * Copyright (C) 2006-2008 Qumranet Technologies
- * Copyright IBM, Corp. 2008
  *
  * Permission to use, copy, modify, and/or distribute this software
  * for any purpose with or without fee is hereby granted, provided
@@ -25,9 +19,16 @@
  */
 
 /*
+ * ukvm_gdb_update_guest_debug is based on update_guest_debug from the QEMU
+ * source code, target/i386/kvm.c, which is:
+ *
+ * Copyright (C) 2006-2008 Qumranet Technologies
+ * Copyright IBM, Corp. 2008
+ */
+
+/*
  * ukvm_gdb_kvm_x86_64.c: glue between the GDB server (at ukvm_modules_gdb.c)
  * and KVM.
- * XXX: this file is linked in even if we don't use the GDB module.
  */
 
 #define _GNU_SOURCE
@@ -39,6 +40,7 @@
 #include <sys/mman.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdbool.h>
 
 #include <linux/kvm.h>
 #include <linux/kvm_para.h>
@@ -51,8 +53,8 @@
 
 struct breakpoint_t {
     uint32_t type;
-    uint64_t addr;
-    uint32_t len;
+    ukvm_gpa_t addr;
+    size_t len;
     uint32_t refcount;
     uint8_t saved_insn; /* for software breakpoints */
 
@@ -63,28 +65,36 @@ SLIST_HEAD(breakpoints_head, breakpoint_t);
 static struct breakpoints_head sw_breakpoints;
 static struct breakpoints_head hw_breakpoints;
 
-/* Not really documented. But, QEMU uses a hardcoded max of 4. */
+/* The Intel SDM specifies that the DR7 has space for 4 breakpoints. */
 #define MAX_HW_BREAKPOINTS             4
 static uint32_t nr_hw_breakpoints = 0;
 
 /* Stepping is disabled by default. */
-static uint32_t stepping = 0;
+static bool stepping = false;
 /* This is the trap instruction used for software breakpoints. */
 static const uint8_t int3 = 0xcc;
 
 static int kvm_arch_insert_sw_breakpoint(struct ukvm_hv *hv, struct breakpoint_t *bp)
 {
-    bp->saved_insn = *((uint8_t *)hv->mem + bp->addr);
-    /* It was already checked that addr is good. */
-    *((uint8_t *)hv->mem + bp->addr) = int3;
+    /* The address check at the GDB server just returned an error if addr was
+     * bad. UKVM_CHECKED_GPA_P will panic if that's the case. */
+    uint8_t *insn = UKVM_CHECKED_GPA_P(hv, bp->addr, bp->len);
+    bp->saved_insn = *insn;
+    /*
+     * We just modify the first byte even if the instruction is multi-byte.
+     * The debugger keeps track of the length of the instruction. The
+     * consequence of this is that we don't have to set all other bytes as
+     * NOP's.
+     */
+    *insn = int3;
     return 0;
 }
 
 static int kvm_arch_remove_sw_breakpoint(struct ukvm_hv *hv, struct breakpoint_t *bp)
 {
-    assert((uint8_t) *((uint8_t *)hv->mem + bp->addr) == int3);
-    /* It was already checked that addr is good. */
-    *((uint8_t *)hv->mem + bp->addr) = bp->saved_insn;
+    uint8_t *insn = UKVM_CHECKED_GPA_P(hv, bp->addr, bp->len);
+    assert(*insn == int3);
+    *insn = bp->saved_insn;
     return 0;
 }
 
@@ -92,13 +102,21 @@ static int ukvm_gdb_update_guest_debug(struct ukvm_hv *hv)
 {
     struct kvm_guest_debug dbg = {0};
     struct breakpoint_t *bp;
-
     const uint8_t type_code[] = {
+        /* Break on instruction execution only. */
         [GDB_BREAKPOINT_HW] = 0x0,
+        /* Break on data writes only. */
         [GDB_WATCHPOINT_WRITE] = 0x1,
+        /* Break on data reads or writes but not instruction fetches. */
         [GDB_WATCHPOINT_ACCESS] = 0x3
     };
     const uint8_t len_code[] = {
+        /*
+         * 00 — 1-byte length.
+         * 01 — 2-byte length.
+         * 10 — 8-byte length.
+         * 11 — 4-byte length.
+         */
         [1] = 0x0, [2] = 0x1, [4] = 0x3, [8] = 0x2
     };
     int n = 0;
@@ -106,17 +124,24 @@ static int ukvm_gdb_update_guest_debug(struct ukvm_hv *hv)
     if (stepping)
         dbg.control = KVM_GUESTDBG_ENABLE | KVM_GUESTDBG_SINGLESTEP;
 
-    if (!SLIST_EMPTY(&sw_breakpoints)) {
+    if (!SLIST_EMPTY(&sw_breakpoints))
         dbg.control |= KVM_GUESTDBG_ENABLE | KVM_GUESTDBG_USE_SW_BP;
-    } else {
+
+    if (!SLIST_EMPTY(&hw_breakpoints)) {
         dbg.control |= KVM_GUESTDBG_ENABLE | KVM_GUESTDBG_USE_HW_BP;
-        /* Not documented magic numbers from QEMU */
-        dbg.arch.debugreg[7] = 0x0600;
+
+	/* Enable global breakpointing (across all threads) on the control
+         * debug register. */
+        dbg.arch.debugreg[7] = 1 << 9;
+        dbg.arch.debugreg[7] |= 1 << 10;
         SLIST_FOREACH(bp, &hw_breakpoints, entries) {
             dbg.arch.debugreg[n] = bp->addr;
-            dbg.arch.debugreg[7] |= (2 << (n * 2)) |
-                (type_code[bp->type] << (16 + n*4)) |
-                ((uint32_t)len_code[bp->len] << (18 + n*4));
+            /* global breakpointing */
+            dbg.arch.debugreg[7] |= (2 << (n * 2));
+            /* read/write fields */
+            dbg.arch.debugreg[7] |= (type_code[bp->type] << (16 + n*4));
+            /* Length fields */
+            dbg.arch.debugreg[7] |= ((uint32_t)len_code[bp->len] << (18 + n*4));
             n++;
         }
     }
@@ -130,7 +155,7 @@ static int ukvm_gdb_update_guest_debug(struct ukvm_hv *hv)
     return 0;
 }
 
-static struct breakpoint_t *bp_list_find(uint32_t type, uint64_t addr, uint32_t len)
+static struct breakpoint_t *bp_list_find(uint32_t type, ukvm_gpa_t addr, size_t len)
 {
     struct breakpoint_t *bp;
 
@@ -153,8 +178,8 @@ static struct breakpoint_t *bp_list_find(uint32_t type, uint64_t addr, uint32_t 
  * Adds a new breakpoint to the list of breakpoints 
  * Returns the found or created breakpoint, NULL if otherwise.
  */
-static struct breakpoint_t *bp_list_insert(uint32_t type, uint64_t addr,
-                                           uint32_t len)
+static struct breakpoint_t *bp_list_insert(uint32_t type, ukvm_gpa_t addr,
+                                           size_t len)
 {
     struct breakpoint_t *bp;
 
@@ -189,7 +214,7 @@ static struct breakpoint_t *bp_list_insert(uint32_t type, uint64_t addr,
  * Removes a breakpoint from the list of breakpoints.
  * Returns -1 if the breakpoint is not in the list.
  */
-static int bp_list_remove(uint32_t type, uint64_t addr, uint32_t len)
+static int bp_list_remove(uint32_t type, ukvm_gpa_t addr, size_t len)
 {
     struct breakpoint_t *bp = NULL;
 
@@ -219,7 +244,7 @@ static int bp_list_remove(uint32_t type, uint64_t addr, uint32_t len)
  */
 int ukvm_gdb_read_registers(struct ukvm_hv *hv,
                             uint8_t *registers,
-                            uint64_t *len)
+                            size_t *len)
 {
     struct kvm_regs kregs;
     struct kvm_sregs sregs;
@@ -277,7 +302,7 @@ int ukvm_gdb_read_registers(struct ukvm_hv *hv,
  */
 int ukvm_gdb_write_registers(struct ukvm_hv *hv,
                              uint8_t *registers,
-                             uint64_t len)
+                             size_t len)
 {
     struct kvm_regs kregs;
     struct kvm_sregs sregs;
@@ -342,7 +367,7 @@ int ukvm_gdb_write_registers(struct ukvm_hv *hv,
 }
 
 int ukvm_gdb_add_breakpoint(struct ukvm_hv *hv, uint32_t type,
-                            uint64_t addr, uint32_t len)
+                            ukvm_gpa_t addr, size_t len)
 {
     struct breakpoint_t *bp;
 
@@ -363,7 +388,7 @@ int ukvm_gdb_add_breakpoint(struct ukvm_hv *hv, uint32_t type,
 }
 
 int ukvm_gdb_remove_breakpoint(struct ukvm_hv *hv, uint32_t type,
-                               uint64_t addr, uint32_t len)
+                               ukvm_gpa_t addr, size_t len)
 {
     struct breakpoint_t *bp;
 
@@ -384,7 +409,7 @@ int ukvm_gdb_remove_breakpoint(struct ukvm_hv *hv, uint32_t type,
 
 int ukvm_gdb_enable_ss(struct ukvm_hv *hv)
 {
-    stepping = 1;
+    stepping = true;
 
     if (ukvm_gdb_update_guest_debug(hv) < 0)
         return -1;
@@ -394,7 +419,7 @@ int ukvm_gdb_enable_ss(struct ukvm_hv *hv)
 
 int ukvm_gdb_disable_ss(struct ukvm_hv *hv)
 {
-    stepping = 0;
+    stepping = false;
 
     if (ukvm_gdb_update_guest_debug(hv) < 0)
         return -1;

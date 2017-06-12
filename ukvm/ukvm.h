@@ -146,14 +146,51 @@ extern struct ukvm_module ukvm_module_gdb;
  * GDB specific functions to be implemented on all backends for all
  * architectures.
  */
-int ukvm_gdb_read_registers(struct ukvm_hv *hv, uint8_t *reg, uint64_t *len);
-int ukvm_gdb_write_registers(struct ukvm_hv *hv, uint8_t *reg, uint64_t len);
+
+/*
+ * Fills *registers with a stream of hexadecimal digits for each register in
+ * GDB register order, where each register is in target endian order.
+ * Returns 0 if success, -1 otherwise.
+ */
+int ukvm_gdb_read_registers(struct ukvm_hv *hv, uint8_t *reg, size_t *len);
+
+/*
+ * Writes the shadow registers from a stream of hexadecimal digits for each register in
+ * GDB register order, where each register is in target endian order.
+ * Returns 0 if success, -1 otherwise.
+ */
+int ukvm_gdb_write_registers(struct ukvm_hv *hv, uint8_t *reg, size_t len);
+
+/*
+ * Enagle single stepping. Returns 0 if success, -1 otherwise.
+ */
 int ukvm_gdb_enable_ss(struct ukvm_hv *hv);
+
+/*
+ * Disable single stepping. Returns 0 if success, -1 otherwise.
+ */
 int ukvm_gdb_disable_ss(struct ukvm_hv *hv);
+
+/*
+ * Reads the current KVM exit code and maps it to a GDB signal value.
+ * Returns 0 if success, -1 otherwise.
+ */
 int ukvm_gdb_read_last_signal(struct ukvm_hv *hv, int *signal);
+
+/*
+ * Add a breakpoint of type software or hardware, at address addr.  len is
+ * typically the size of the breakpoint in bytes that should be inserted
+ * Returns 0 if success, -1 otherwise.
+ */
 int ukvm_gdb_add_breakpoint(struct ukvm_hv *hv, uint32_t type,
-                            uint64_t addr, uint32_t len);
+                            ukvm_gpa_t addr, size_t len);
+
+/*
+ * Remove a breakpoint of type software or hardware, at address addr.  len is
+ * typically the size of the breakpoint in bytes that should be inserted.
+ * Returns 0 if success, -1 otherwise.
+ */
 int ukvm_gdb_remove_breakpoint(struct ukvm_hv *hv, uint32_t type,
-                               uint64_t addr, uint32_t len);
+                               ukvm_gpa_t addr, size_t len);
 
 #endif /* UKVM_H */

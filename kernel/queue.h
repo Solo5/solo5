@@ -82,7 +82,7 @@
 
 /* XXX: Consider moving this to some common libraries directory for solo5 and
  *      ukvm. */
-#ifndef UKVM_HOST
+#ifdef __SOLO5_KERNEL__
 #    include "kernel.h"
 #endif
 
