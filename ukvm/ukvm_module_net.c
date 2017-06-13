@@ -61,6 +61,8 @@ static int netfd;
 static struct ukvm_netinfo netinfo;
 static int cmdline_mac = 0;
 
+#define SOLO5_NET_BUF_SIZE 1514
+
 /*
  * Attach to an existing TAP interface named 'ifname'.
  *
@@ -185,28 +187,44 @@ static void hypercall_netwrite(struct ukvm_hv *hv, ukvm_gpa_t gpa)
 {
     struct ukvm_netwrite *wr =
         UKVM_CHECKED_GPA_P(hv, gpa, sizeof (struct ukvm_netwrite));
-    int ret;
+    ssize_t nbytes;
 
-    ret = write(netfd, UKVM_CHECKED_GPA_P(hv, wr->data, wr->len), wr->len);
-    assert(wr->len == ret);
-    wr->ret = 0;
+    if (wr->len > SOLO5_NET_BUF_SIZE) {
+        wr->ret = -1;
+        return;
+    }
+
+    nbytes = write(netfd, UKVM_CHECKED_GPA_P(hv, wr->data, wr->len), wr->len);
+    if (nbytes != wr->len)
+        wr->ret = -1;
+    else
+        wr->ret = 0;
 }
 
 static void hypercall_netread(struct ukvm_hv *hv, ukvm_gpa_t gpa)
 {
     struct ukvm_netread *rd =
         UKVM_CHECKED_GPA_P(hv, gpa, sizeof (struct ukvm_netread));
-    int ret;
+    ssize_t nbytes;
 
-    ret = read(netfd, UKVM_CHECKED_GPA_P(hv, rd->data, rd->len), rd->len);
-    if ((ret == 0) ||
-        (ret == -1 && errno == EAGAIN)) {
+    if (rd->len < SOLO5_NET_BUF_SIZE) {
         rd->ret = -1;
         return;
     }
-    assert(ret > 0);
-    rd->len = ret;
-    rd->ret = 0;
+
+    nbytes = read(netfd, UKVM_CHECKED_GPA_P(hv, rd->data, rd->len), rd->len);
+    if ((nbytes == 0) ||
+        (nbytes == -1 && errno == EAGAIN)) {
+        rd->ret = 0;
+        rd->len = 0;
+        return;
+    }
+    if (nbytes == -1)
+        rd->ret = -1;
+    else {
+        rd->ret = 0;
+        rd->len = nbytes;
+    }
 }
 
 static int handle_cmdarg(char *cmdarg)

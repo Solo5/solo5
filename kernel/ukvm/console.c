@@ -20,19 +20,17 @@
 
 #include "kernel.h"
 
-int platform_puts(const char *buf, int n)
+void platform_puts(const char *buf, size_t size)
 {
     struct ukvm_puts str;
 
     str.data = (char *)buf;
-    str.len = n;
+    str.len = size;
 
     ukvm_do_hypercall(UKVM_HYPERCALL_PUTS, &str);
-
-    return str.len;
 }
 
-int solo5_console_write(const char *, size_t)
+void solo5_console_write(const char *, size_t)
     __attribute__ ((alias("platform_puts")));
 
 void console_init(void)

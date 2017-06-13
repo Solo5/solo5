@@ -31,9 +31,11 @@ static void puts(const char *s)
             puts("assertion failed: ");             \
             puts(#e);                               \
             puts("\n");                             \
-            solo5_exit();                           \
+            solo5_exit(255);                        \
         }                                           \
     } while (0)
+
+#define SOLO5_NET_BUF_SIZE 1514
 
 #define ETHERTYPE_IP  0x0800
 #define ETHERTYPE_ARP 0x0806
@@ -44,7 +46,7 @@ struct ether {
     uint8_t target[HLEN_ETHER];
     uint8_t source[HLEN_ETHER];
     uint16_t type;
-};
+} __attribute__((packed));
 
 struct arp {
     uint16_t htype;
@@ -56,7 +58,7 @@ struct arp {
     uint8_t spa[PLEN_IPV4];
     uint8_t tha[HLEN_ETHER];
     uint8_t tpa[PLEN_IPV4];
-};
+} __attribute__((packed));
 
 struct ip {
     uint8_t version_ihl;
@@ -69,7 +71,7 @@ struct ip {
     uint16_t checksum;
     uint8_t src_ip[PLEN_IPV4];
     uint8_t dst_ip[PLEN_IPV4];
-};
+} __attribute__((packed));
 
 struct ping {
     uint8_t type;
@@ -78,18 +80,18 @@ struct ping {
     uint16_t id;
     uint16_t seqnum;
     uint8_t data[0];
-};
+} __attribute__((packed));
 
 struct arppkt {
     struct ether ether;
     struct arp arp;
-};
+} __attribute__((packed));
 
 struct pingpkt {
     struct ether ether;
     struct ip ip;
     struct ping ping;
-};
+} __attribute__((packed));
 
 /* Copied from https://tools.ietf.org/html/rfc1071 */
 static uint16_t checksum(uint16_t *addr, size_t count)
@@ -132,7 +134,6 @@ static uint8_t dehex(char c)
         return 0;
 }
 
-static uint8_t buf[1526];
 uint8_t ipaddr[4] = { 0x0a, 0x00, 0x00, 0x02 }; /* 10.0.0.2 */
 uint8_t ipaddr_brdnet[4] = { 0x0a, 0x00, 0x00, 0xff }; /* 10.0.0.255 */
 uint8_t ipaddr_brdall[4] = { 0xff, 0xff, 0xff, 0xff }; /* 255.255.255.255 */
@@ -252,9 +253,13 @@ static void send_garp(void)
 static void ping_serve(int verbose, int limit)
 {
     unsigned long received = 0;
+    uint8_t *buf;
+
+    buf = solo5_malloc(SOLO5_NET_BUF_SIZE);
+    assert(buf);
 
     /* XXX this interface should really not return a string */
-    char *smac = solo5_net_mac_str();
+    const char *smac = solo5_net_mac_str();
     for (int i = 0; i < HLEN_ETHER; i++) {
         macaddr[i] = dehex(*smac++) << 4;
         macaddr[i] |= dehex(*smac++);
@@ -268,13 +273,20 @@ static void ping_serve(int verbose, int limit)
     send_garp();
 
     for (;;) {
-        struct ether *p = (struct ether *)&buf;
-        int len = sizeof(buf);
+        size_t len;
+        int ret;
 
-        /* wait for packet */
-        while (solo5_net_read_sync(buf, &len) != 0) {
-            solo5_poll(solo5_clock_monotonic() + 1000000000ULL);
+        /* Try and get a packet */
+        ret = solo5_net_read_sync(buf, SOLO5_NET_BUF_SIZE, &len);
+        if (ret == 0 && len == 0) {
+            /* No packets available; block until some are available */
+            while (solo5_poll(solo5_clock_monotonic() + 1000000000ULL) == 0)
+                ;
+            continue;
         }
+        assert(ret == 0);
+
+        struct ether *p = (struct ether *)buf;
 
         if (memcmp(p->target, macaddr, HLEN_ETHER) &&
             memcmp(p->target, macaddr_brd, HLEN_ETHER))
@@ -311,9 +323,11 @@ static void ping_serve(int verbose, int limit)
 out:
         puts("Received non-ping or unsupported packet, dropped\n");
     }
+
+    solo5_free(buf);
 }
 
-int solo5_app_main(char *cmdline)
+int solo5_app_main(const char *cmdline)
 {
     int verbose = 0;
     int limit = 0;

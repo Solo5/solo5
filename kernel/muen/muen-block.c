@@ -20,27 +20,26 @@
 
 #include "../kernel.h"
 
-/* ukvm block interface */
-int solo5_blk_write_sync(uint64_t sec __attribute__((unused)),
-                         uint8_t *data __attribute__((unused)),
-                         int n __attribute__((unused)))
+int solo5_blk_write_sync(uint64_t offset __attribute__((unused)),
+                         const uint8_t *buf __attribute__((unused)),
+                         size_t size __attribute__((unused)))
 {
     return -1;
 }
 
-int solo5_blk_read_sync(uint64_t sec __attribute__((unused)),
-                        uint8_t *data __attribute__((unused)),
-                        int *n __attribute__((unused)))
+int solo5_blk_read_sync(uint64_t offset __attribute__((unused)),
+                        uint8_t *buf __attribute__((unused)),
+                        size_t size __attribute__((unused)))
 {
     return -1;
 }
 
 int solo5_blk_sector_size(void)
 {
-    return -1;
+    return 0;
 }
 
-uint64_t solo5_blk_sectors(void)
+uint64_t solo5_blk_capacity(void)
 {
     return 0;
 }

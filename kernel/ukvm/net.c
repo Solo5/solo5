@@ -20,13 +20,12 @@
 
 #include "kernel.h"
 
-/* ukvm net interface */
-int solo5_net_write_sync(uint8_t *data, int n)
+int solo5_net_write_sync(const uint8_t *buf, size_t size)
 {
     volatile struct ukvm_netwrite wr;
 
-    wr.data = data;
-    wr.len = n;
+    wr.data = buf;
+    wr.len = size;
     wr.ret = 0;
 
     ukvm_do_hypercall(UKVM_HYPERCALL_NETWRITE, &wr);
@@ -34,28 +33,29 @@ int solo5_net_write_sync(uint8_t *data, int n)
     return wr.ret;
 }
 
-int solo5_net_read_sync(uint8_t *data, int *n)
+int solo5_net_read_sync(uint8_t *buf, size_t buf_size, size_t *read_size)
 {
     volatile struct ukvm_netread rd;
 
-    rd.data = data;
-    rd.len = *n;
+    rd.data = buf;
+    rd.len = buf_size;
     rd.ret = 0;
 
     ukvm_do_hypercall(UKVM_HYPERCALL_NETREAD, &rd);
 
-    *n = rd.len;
+    *read_size = rd.len;
     return rd.ret;
 }
 
 static char mac_str[18];
-char *solo5_net_mac_str(void)
+
+const char *solo5_net_mac_str(void)
 {
     volatile struct ukvm_netinfo info;
 
     ukvm_do_hypercall(UKVM_HYPERCALL_NETINFO, &info);
 
-    memcpy(mac_str, (void *)&info, 18);
+    memcpy(mac_str, (void *)info.mac_str, 18);
     return mac_str;
 }
 

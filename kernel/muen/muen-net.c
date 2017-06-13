@@ -37,38 +37,39 @@ static struct muchannel_reader net_rdr;
 
 static char mac_str[18];
 
-/* ukvm net interface */
-int solo5_net_write_sync(uint8_t *data, int n)
+int solo5_net_write_sync(const uint8_t *buf, size_t size)
 {
     struct net_msg pkt;
 
-    if (n > PACKET_SIZE)
+    if (size > PACKET_SIZE)
         return -1;
 
     memset(&pkt, 0, sizeof(struct net_msg));
     cc_barrier();
-    pkt.length = n;
-    memcpy(&pkt.data, data, n);
+    pkt.length = size;
+    memcpy(&pkt.data, buf, size);
     muen_channel_write(net_out, &pkt);
 
     return 0;
 }
 
-int solo5_net_read_sync(uint8_t *data, int *n)
+int solo5_net_read_sync(uint8_t *buf, size_t buf_size, size_t *read_size)
 {
     enum muchannel_reader_result result;
     struct net_msg pkt;
-    int ret = -1;
+
+    if (buf_size < PACKET_SIZE)
+        return -1;
 
     result = muen_channel_read(net_in, &net_rdr, &pkt);
     if (result == MUCHANNEL_SUCCESS) {
-        memcpy(data, &pkt.data, sizeof(struct net_msg));
-        *n = pkt.length;
-        if (*n <= PACKET_SIZE)
-            ret = 0;
+        assert(pkt.length <= buf_size);
+        memcpy(buf, &pkt.data, pkt.length);
+        *read_size = pkt.length;
+        return 0;
     }
-
-    return ret;
+    else
+        return -1;
 }
 
 bool muen_net_pending_data()
@@ -77,7 +78,7 @@ bool muen_net_pending_data()
 }
 
 /* TODO: Support configured MAC address */
-char *solo5_net_mac_str(void)
+const char *solo5_net_mac_str(void)
 {
     return mac_str;
 }

@@ -114,15 +114,13 @@ void platform_exit(void)
     cpu_halt();
 }
 
-int platform_puts(const char *buf, int n)
+void platform_puts(const char *buf, size_t n)
 {
-    int i;
+    size_t i;
 
     for (i = 0; i < n; i++)
         serial_putc(buf[i]);
-
-    return n;
 }
 
-int solo5_console_write(const char *, size_t)
+void solo5_console_write(const char *, size_t)
     __attribute__ ((alias("platform_puts")));

@@ -108,7 +108,7 @@ void platform_init(void *arg);
 const char *platform_cmdline(void);
 uint64_t platform_mem_size(void);
 void platform_exit(void) __attribute__((noreturn));
-int platform_puts(const char *buf, int n);
+void platform_puts(const char *buf, size_t size);
 
 /* platform_intr.c: platform-specific interrupt handling */
 void platform_intr_init(void);

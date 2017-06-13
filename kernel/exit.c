@@ -20,8 +20,8 @@
 
 #include "kernel.h"
 
-void solo5_exit(void)
+void solo5_exit(int status)
 {
-    log(INFO, "Solo5: solo5_exit() called\n");
+    log(INFO, "Solo5: solo5_exit(%d) called\n", status);
     platform_exit();
 }

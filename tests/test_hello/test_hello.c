@@ -26,13 +26,13 @@ static void puts(const char *s)
     solo5_console_write(s, strlen(s));
 }
 
-int solo5_app_main(char *cmdline)
+int solo5_app_main(const char *cmdline)
 {
     puts("\n**** Solo5 standalone test_hello ****\n\n");
     puts("Hello, World\nCommand line is: '");
 
     size_t len = 0;
-    char *p = cmdline;
+    const char *p = cmdline;
 
     while (*p++)
         len++;
