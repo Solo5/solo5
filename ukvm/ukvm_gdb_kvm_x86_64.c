@@ -52,7 +52,7 @@
 #include "queue.h"
 
 struct breakpoint_t {
-    uint32_t type;
+    gdb_breakpoint_type type;
     ukvm_gpa_t addr;
     size_t len;
     uint32_t refcount;
@@ -107,6 +107,8 @@ static int ukvm_gdb_update_guest_debug(struct ukvm_hv *hv)
         [GDB_BREAKPOINT_HW] = 0x0,
         /* Break on data writes only. */
         [GDB_WATCHPOINT_WRITE] = 0x1,
+        /* Break on data reads only. */
+        [GDB_WATCHPOINT_READ] = 0x2,
         /* Break on data reads or writes but not instruction fetches. */
         [GDB_WATCHPOINT_ACCESS] = 0x3
     };
@@ -135,6 +137,7 @@ static int ukvm_gdb_update_guest_debug(struct ukvm_hv *hv)
         dbg.arch.debugreg[7] = 1 << 9;
         dbg.arch.debugreg[7] |= 1 << 10;
         SLIST_FOREACH(bp, &hw_breakpoints, entries) {
+            assert(bp->type != GDB_BREAKPOINT_SW);
             dbg.arch.debugreg[n] = bp->addr;
             /* global breakpointing */
             dbg.arch.debugreg[7] |= (2 << (n * 2));
@@ -155,30 +158,43 @@ static int ukvm_gdb_update_guest_debug(struct ukvm_hv *hv)
     return 0;
 }
 
-static struct breakpoint_t *bp_list_find(uint32_t type, ukvm_gpa_t addr, size_t len)
+static struct breakpoint_t *bp_list_find(gdb_breakpoint_type type, ukvm_gpa_t addr, size_t len)
 {
     struct breakpoint_t *bp;
 
-    if (type == GDB_BREAKPOINT_SW) {
+    switch (type) {
+    case GDB_BREAKPOINT_SW:
         SLIST_FOREACH(bp, &sw_breakpoints, entries) {
             if (bp->addr == addr && bp->len == len)
                 return bp;
         }
-    } else {
+        break;
+
+    case GDB_BREAKPOINT_HW:
+    case GDB_WATCHPOINT_WRITE:
+    case GDB_WATCHPOINT_READ:
+    case GDB_WATCHPOINT_ACCESS:
+        /* We only support hardware watchpoints. */
         SLIST_FOREACH(bp, &hw_breakpoints, entries) {
             if (bp->addr == addr && bp->len == len)
                 return bp;
         }
+        break;
+
+    default:
+        assert(0);
     }
 
     return NULL;
 }
 
 /*
- * Adds a new breakpoint to the list of breakpoints 
- * Returns the found or created breakpoint, NULL if otherwise.
+ * Adds a new breakpoint to the list of breakpoints.  Returns the found or
+ * created breakpoint. Returns NULL in case of failure or if we reached the max
+ * number of allowed hardware breakpoints (4).
  */
-static struct breakpoint_t *bp_list_insert(uint32_t type, ukvm_gpa_t addr,
+static struct breakpoint_t *bp_list_insert(gdb_breakpoint_type type,
+                                           ukvm_gpa_t addr,
                                            size_t len)
 {
     struct breakpoint_t *bp;
@@ -198,13 +214,24 @@ static struct breakpoint_t *bp_list_insert(uint32_t type, ukvm_gpa_t addr,
     bp->len = len;
     bp->refcount = 1;
 
-    if (type == GDB_BREAKPOINT_SW) {
+    switch (type) {
+    case GDB_BREAKPOINT_SW:
         SLIST_INSERT_HEAD(&sw_breakpoints, bp, entries);
-    } else {
+        break;
+
+    case GDB_BREAKPOINT_HW:
+    case GDB_WATCHPOINT_WRITE:
+    case GDB_WATCHPOINT_READ:
+    case GDB_WATCHPOINT_ACCESS:
+        /* We only support hardware watchpoints. */
         if (nr_hw_breakpoints == MAX_HW_BREAKPOINTS)
             return NULL;
         nr_hw_breakpoints++;
         SLIST_INSERT_HEAD(&hw_breakpoints, bp, entries);
+        break;
+
+    default:
+        assert(0);
     }
 
     return bp;
@@ -214,7 +241,8 @@ static struct breakpoint_t *bp_list_insert(uint32_t type, ukvm_gpa_t addr,
  * Removes a breakpoint from the list of breakpoints.
  * Returns -1 if the breakpoint is not in the list.
  */
-static int bp_list_remove(uint32_t type, ukvm_gpa_t addr, size_t len)
+static int bp_list_remove(gdb_breakpoint_type type,
+                          ukvm_gpa_t addr, size_t len)
 {
     struct breakpoint_t *bp = NULL;
 
@@ -226,11 +254,22 @@ static int bp_list_remove(uint32_t type, ukvm_gpa_t addr, size_t len)
     if (bp->refcount > 0)
         return 0;
 
-    if (type == GDB_BREAKPOINT_SW) {
+    switch (type) {
+    case GDB_BREAKPOINT_SW:
         SLIST_REMOVE(&sw_breakpoints, bp, breakpoint_t, entries);
-    } else {
+        break;
+
+    case GDB_BREAKPOINT_HW:
+    case GDB_WATCHPOINT_WRITE:
+    case GDB_WATCHPOINT_READ:
+    case GDB_WATCHPOINT_ACCESS:
+        /* We only support hardware watchpoints. */
         SLIST_REMOVE(&hw_breakpoints, bp, breakpoint_t, entries);
         nr_hw_breakpoints--;
+        break;
+
+    default:
+        assert(0);
     }
 
     free(bp);
@@ -238,10 +277,6 @@ static int bp_list_remove(uint32_t type, ukvm_gpa_t addr, size_t len)
     return 0;
 }
 
-/*
- * Fills *registers with a stream of hexadecimal digits for each register in
- * GDB register order, where each register is in target endian order.
- */
 int ukvm_gdb_read_registers(struct ukvm_hv *hv,
                             uint8_t *registers,
                             size_t *len)
@@ -296,10 +331,6 @@ int ukvm_gdb_read_registers(struct ukvm_hv *hv,
     return 0;
 }
 
-/*
- * Writes the shadow registers from a stream of hexadecimal digits for each register in
- * GDB register order, where each register is in target endian order.
- */
 int ukvm_gdb_write_registers(struct ukvm_hv *hv,
                              uint8_t *registers,
                              size_t len)
@@ -366,10 +397,13 @@ int ukvm_gdb_write_registers(struct ukvm_hv *hv,
     return 0;
 }
 
-int ukvm_gdb_add_breakpoint(struct ukvm_hv *hv, uint32_t type,
+int ukvm_gdb_add_breakpoint(struct ukvm_hv *hv,
+                            gdb_breakpoint_type type,
                             ukvm_gpa_t addr, size_t len)
 {
     struct breakpoint_t *bp;
+
+    assert(type < GDB_BREAKPOINT_MAX);
 
     if (bp_list_find(type, addr, len))
         return 0;
@@ -381,16 +415,19 @@ int ukvm_gdb_add_breakpoint(struct ukvm_hv *hv, uint32_t type,
     if (type == GDB_BREAKPOINT_SW)
         kvm_arch_insert_sw_breakpoint(hv, bp);
 
-    if (ukvm_gdb_update_guest_debug(hv) < 0)
+    if (ukvm_gdb_update_guest_debug(hv) == -1)
         return -1;
 
     return 0;
 }
 
-int ukvm_gdb_remove_breakpoint(struct ukvm_hv *hv, uint32_t type,
+int ukvm_gdb_remove_breakpoint(struct ukvm_hv *hv,
+                               gdb_breakpoint_type type,
                                ukvm_gpa_t addr, size_t len)
 {
     struct breakpoint_t *bp;
+
+    assert(type < GDB_BREAKPOINT_MAX);
 
     if (type == GDB_BREAKPOINT_SW) {
         bp = bp_list_find(type, addr, len);
@@ -398,10 +435,10 @@ int ukvm_gdb_remove_breakpoint(struct ukvm_hv *hv, uint32_t type,
             kvm_arch_remove_sw_breakpoint(hv, bp);
     }
 
-    if (bp_list_remove(type, addr, len) < 0)
+    if (bp_list_remove(type, addr, len) == -1)
         return -1;
 
-    if (ukvm_gdb_update_guest_debug(hv) < 0)
+    if (ukvm_gdb_update_guest_debug(hv) == -1)
         return -1;
 
     return 0;
@@ -411,7 +448,7 @@ int ukvm_gdb_enable_ss(struct ukvm_hv *hv)
 {
     stepping = true;
 
-    if (ukvm_gdb_update_guest_debug(hv) < 0)
+    if (ukvm_gdb_update_guest_debug(hv) == -1)
         return -1;
 
     return 0;
@@ -421,7 +458,7 @@ int ukvm_gdb_disable_ss(struct ukvm_hv *hv)
 {
     stepping = false;
 
-    if (ukvm_gdb_update_guest_debug(hv) < 0)
+    if (ukvm_gdb_update_guest_debug(hv) == -1)
         return -1;
 
     return 0;
