@@ -34,6 +34,7 @@
 #include "ukvm_cc.h"
 #define UKVM_HOST
 #include "ukvm_guest.h"
+#include "ukvm_gdb.h"
 
 /*
  * Hypervisor {arch,backend}-independent data is defined here.
@@ -148,21 +149,22 @@ extern struct ukvm_module ukvm_module_gdb;
  */
 
 /*
- * Fills *registers with a stream of hexadecimal digits for each register in
- * GDB register order, where each register is in target endian order.
+ * Fills *reg with a stream of hexadecimal digits for each guest register
+ * in GDB register order, where each register is in target endian order.
  * Returns 0 if success, -1 otherwise.
  */
 int ukvm_gdb_read_registers(struct ukvm_hv *hv, uint8_t *reg, size_t *len);
 
 /*
- * Writes the shadow registers from a stream of hexadecimal digits for each register in
- * GDB register order, where each register is in target endian order.
+ * Writes all guest registers from a stream of hexadecimal digits for each
+ * register in *reg. Each register in *reg is in GDB register order, and in
+ * target endian order.
  * Returns 0 if success, -1 otherwise.
  */
 int ukvm_gdb_write_registers(struct ukvm_hv *hv, uint8_t *reg, size_t len);
 
 /*
- * Enagle single stepping. Returns 0 if success, -1 otherwise.
+ * Enable single stepping. Returns 0 if success, -1 otherwise.
  */
 int ukvm_gdb_enable_ss(struct ukvm_hv *hv);
 
@@ -182,7 +184,7 @@ int ukvm_gdb_read_last_signal(struct ukvm_hv *hv, int *signal);
  * typically the size of the breakpoint in bytes that should be inserted
  * Returns 0 if success, -1 otherwise.
  */
-int ukvm_gdb_add_breakpoint(struct ukvm_hv *hv, uint32_t type,
+int ukvm_gdb_add_breakpoint(struct ukvm_hv *hv, gdb_breakpoint_type type,
                             ukvm_gpa_t addr, size_t len);
 
 /*
@@ -190,7 +192,7 @@ int ukvm_gdb_add_breakpoint(struct ukvm_hv *hv, uint32_t type,
  * typically the size of the breakpoint in bytes that should be inserted.
  * Returns 0 if success, -1 otherwise.
  */
-int ukvm_gdb_remove_breakpoint(struct ukvm_hv *hv, uint32_t type,
+int ukvm_gdb_remove_breakpoint(struct ukvm_hv *hv, gdb_breakpoint_type type,
                                ukvm_gpa_t addr, size_t len);
 
 #endif /* UKVM_H */

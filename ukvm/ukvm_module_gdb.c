@@ -44,6 +44,7 @@
 #include <netdb.h>
 #include <assert.h>
 #include <stdbool.h>
+#include <ctype.h>
 
 #include "ukvm.h"
 #include "ukvm_gdb.h"
@@ -65,10 +66,10 @@
 static bool use_gdb = false;
 static int socket_fd = 0;
 static int portno = 1234; /* Default port number */
-static const unsigned char hexchars[] = "0123456789abcdef";
+static const char hexchars[] = "0123456789abcdef";
 
 #define BUFMAX                         4096
-static unsigned char in_buffer[BUFMAX];
+static char in_buffer[BUFMAX];
 static unsigned char registers[BUFMAX];
 
 /* The actual error code is ignored by GDB, so any number will do. */
@@ -86,11 +87,10 @@ static int hex(unsigned char ch)
 }
 
 /*
- * Converts the memory pointed to by mem into an hex string in buf.
- * Returns a pointer to the last char put in buf (null).
+ * Converts the (count) bytes of memory pointed to by mem into an hex string in
+ * buf. Returns a pointer to the last char put in buf (null).
  */
-static unsigned char *mem2hex(unsigned char *mem,
-                              unsigned char *buf, size_t count)
+static char *mem2hex(const unsigned char *mem, char *buf, size_t count)
 {
     size_t i;
     unsigned char ch;
@@ -108,11 +108,13 @@ static unsigned char *mem2hex(unsigned char *mem,
  * Converts the hex string in buf into binary in mem.
  * Returns a pointer to the character AFTER the last byte written.
  */
-static unsigned char *hex2mem(unsigned char *buf,
+static unsigned char *hex2mem(const char *buf,
                               unsigned char *mem, size_t count)
 {
     size_t i;
     unsigned char ch;
+
+    assert(strlen(buf) >= (2 * count));
 
     for (i = 0; i < count; i++) {
         ch = hex(*buf++) << 4;
@@ -133,34 +135,37 @@ static int wait_for_connect()
 
     listen_socket_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (listen_socket_fd == -1) {
-        errx(1, "Could not create socket");
+        err(1, "Could not create socket");
         return -1;
     }
     
     opt = 1;
     if (setsockopt(listen_socket_fd, SOL_SOCKET, SO_REUSEADDR, &opt,
-                   sizeof(opt)) < 0)
-        errx(1, "setsockopt(SO_REUSEADDR) failed");
+                   sizeof(opt)) == -1)
+        err(1, "setsockopt(SO_REUSEADDR) failed");
 
     server_addr.sin_family = AF_INET;
     server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
     server_addr.sin_port = htons(portno);
      
     if (bind(listen_socket_fd, (struct sockaddr *)&server_addr,
-             sizeof(server_addr)) < 0) {
-        errx(1, "bind failed");
+             sizeof(server_addr)) == -1) {
+        err(1, "bind failed");
         return -1;
     }
      
-    listen(listen_socket_fd , 0);
+    if (listen(listen_socket_fd , 0) == -1) {
+        err(1, "listen failed");
+        return -1;
+    }
      
     warnx("Waiting for a debugger. Connect to it like this:");
     warnx("\tgdb --ex=\"target remote localhost:%d\" KERNEL", portno);
      
     len = sizeof(client_addr);
     socket_fd = accept(listen_socket_fd, (struct sockaddr *)&client_addr, &len);
-    if (socket_fd < 0) {
-        errx(1, "accept failed");
+    if (socket_fd == -1) {
+        err(1, "accept failed");
         return -1;
     }
 
@@ -168,14 +173,14 @@ static int wait_for_connect()
 
     protoent = getprotobyname("tcp");
     if (!protoent) {
-        errx(1, "getprotobyname (\"tcp\") failed");
+        err(1, "getprotobyname (\"tcp\") failed");
         return -1;
     }
 
     opt = 1;
     if (setsockopt(socket_fd, protoent->p_proto, TCP_NODELAY, &opt,
-                   sizeof(opt)) < 0)
-        errx(1, "setsockopt(TCP_NODELAY) failed");
+                   sizeof(opt)) == -1)
+        err(1, "setsockopt(TCP_NODELAY) failed");
 
     ip_addr.s_addr = client_addr.sin_addr.s_addr;
     warnx("Connection from debugger at %s\n", inet_ntoa(ip_addr));
@@ -183,26 +188,38 @@ static int wait_for_connect()
     return 0;
 }
 
-static void send_char(unsigned char ch)
+static void send_char(char ch)
 {
     /* TCP is already buffering, so no need to buffer here as well. */
-    send(socket_fd, &ch, 1, 0);
+    int ret;
+
+    ret = send(socket_fd, &ch, 1, 0);
+    assert(ret == 1);
 }
 
-static unsigned char recv_char(void)
+static char recv_char(void)
 {
     unsigned char ch;
-    recv(socket_fd, &ch, 1, 0);
-    return ch;
+    int ret;
+
+    ret = recv(socket_fd, &ch, 1, 0);
+    assert(ret == 1);
+    /* All GDB remote packets are encoded in ASCII. */
+    assert(isascii(ch));
+
+    return (char)ch;
 }
 
-/* scan for the sequence $<data>#<checksum> */
-static unsigned char *recv_packet(void)
+/*
+ * Scan for the sequence $<data>#<checksum>
+ * Returns a null terminated string.
+ */
+static char *recv_packet(void)
 {
-    unsigned char *buffer = &in_buffer[0];
+    char *buffer = &in_buffer[0];
     unsigned char checksum;
     unsigned char xmitcsum;
-    unsigned char ch;
+    char ch;
     int count;
 
     while (1) {
@@ -227,7 +244,8 @@ retry:
             buffer[count] = ch;
             count = count + 1;
         }
-        buffer[count] = 0;
+        /* Let's make this a C string. */
+        buffer[count] = '\0';
 
         if (ch == '#') {
             ch = recv_char();
@@ -236,8 +254,9 @@ retry:
             xmitcsum += hex(ch);
 
             if (checksum != xmitcsum) {
-                errx(1, "bad checksum.  My count = 0x%x, sent=0x%x. buf=%s",
-                     checksum, xmitcsum, buffer);
+                warnx("Failed checksum from GDB. "
+                      "My count = 0x%x, sent=0x%x. buf=%s",
+                      checksum, xmitcsum, buffer);
                 send_char('-');        /* failed checksum */
             } else {
                 send_char('+');        /* successful transfer */
@@ -257,11 +276,11 @@ retry:
 }
 
 /* Send packet without waiting for an ACK from the debugger. */
-static void send_packet_no_ack(unsigned char *buffer)
+static void send_packet_no_ack(char *buffer)
 {
     unsigned char checksum;
     int count;
-    unsigned char ch;
+    char ch;
 
     /*  $<packet info>#<checksum>.  */
     send_char('$');
@@ -285,21 +304,18 @@ static void send_packet_no_ack(unsigned char *buffer)
  * Send a packet and wait for a successful ACK of '+' from the debugger.
  * An ACK of '-' means that we have to resend.
  */
-static void send_packet(unsigned char *buffer)
+static void send_packet(char *buffer)
 {
     do {
         send_packet_no_ack(buffer);
     } while (recv_char() != '+');
 }
 
-#define send_error_msg() \
-    do { send_packet((unsigned char *)GDB_ERROR_MSG); } while (0)
+#define send_error_msg()   do { send_packet(GDB_ERROR_MSG); } while (0)
 
-#define send_not_supported_msg() \
-    do { send_packet((unsigned char *)""); } while (0)
+#define send_not_supported_msg()   do { send_packet(""); } while (0)
 
-#define send_okay_msg() \
-    do { send_packet((unsigned char *)"OK"); } while (0)
+#define send_okay_msg()   do { send_packet("OK"); } while (0)
 
 /*
  * This is a response to 'c' and 's'. In other words, the VM was
@@ -313,8 +329,8 @@ static void send_packet(unsigned char *buffer)
  */
 static void send_response(char code, int sigval, bool wait_for_ack)
 {
-    unsigned char obuf[BUFMAX];
-    snprintf((char *)obuf, sizeof(obuf), "%c%02x", code, sigval);
+    char obuf[BUFMAX];
+    snprintf(obuf, sizeof(obuf), "%c%02x", code, sigval);
     if (wait_for_ack)
         send_packet(obuf);
     else
@@ -323,15 +339,15 @@ static void send_response(char code, int sigval, bool wait_for_ack)
 
 static void gdb_handle_exception(struct ukvm_hv *hv, int sigval)
 {
-    unsigned char *packet;
-    unsigned char obuf[BUFMAX];
+    char *packet;
+    char obuf[BUFMAX];
 
     /* Notify the debugger of our last signal */
     send_response('S', sigval, true);
 
     for (;;) {
         ukvm_gpa_t addr = 0, result;
-        uint32_t type;
+        gdb_breakpoint_type type;
         size_t len;
         int command, ret;
 
@@ -349,13 +365,13 @@ static void gdb_handle_exception(struct ukvm_hv *hv, int sigval)
         switch (command) {
         case 's': {
             /* Step */
-            if (sscanf((char *)packet, "s%"PRIx64, &addr) == 1) {
+            if (sscanf(packet, "s%"PRIx64, &addr) == 1) {
 		/* not supported, but that's OK as GDB will retry with the
                  * slower version of this: update all registers. */
                 send_not_supported_msg();
                 break; /* Wait for another command. */
             }
-	    if (ukvm_gdb_enable_ss(hv) < 0) {
+	    if (ukvm_gdb_enable_ss(hv) == -1) {
                     send_error_msg();
                     break; /* Wait for another command. */
             }
@@ -364,13 +380,13 @@ static void gdb_handle_exception(struct ukvm_hv *hv, int sigval)
 
         case 'c': {
             /* Continue (and disable stepping for the next instruction) */
-            if (sscanf((char *)packet, "c%"PRIx64, &addr) == 1) {
+            if (sscanf(packet, "c%"PRIx64, &addr) == 1) {
 		/* not supported, but that's OK as GDB will retry with the
                  * slower version of this: update all registers. */
                 send_not_supported_msg();
                 break; /* Wait for another command. */
             }
-	    if (ukvm_gdb_disable_ss(hv) < 0) {
+	    if (ukvm_gdb_disable_ss(hv) == -1) {
                     send_error_msg();
                     break; /* Wait for another command. */
             }
@@ -379,7 +395,7 @@ static void gdb_handle_exception(struct ukvm_hv *hv, int sigval)
 
         case 'm': {
             /* Read memory content */
-            if (sscanf((char *)packet, "m%"PRIx64",%zu",
+            if (sscanf(packet, "m%"PRIx64",%zu",
                        &addr, &len) != 2) {
                 send_error_msg();
                 break;
@@ -400,9 +416,8 @@ static void gdb_handle_exception(struct ukvm_hv *hv, int sigval)
 
         case 'M': {
             /* Write memory content */
-            assert(strlen((char *)packet) <= sizeof(obuf));
-            if (sscanf((char *)packet, "M%"PRIx64",%zu:%s",
-                       &addr, &len, obuf) != 3) {
+            assert(strlen(packet) <= sizeof(obuf));
+            if (sscanf(packet, "M%"PRIx64",%zu:%s", &addr, &len, obuf) != 3) {
                 send_error_msg();
                 break;
             }
@@ -423,7 +438,7 @@ static void gdb_handle_exception(struct ukvm_hv *hv, int sigval)
         case 'g': {
             /* Read general registers */
             len = BUFMAX;
-            if (ukvm_gdb_read_registers(hv, registers, &len) < 0) {
+            if (ukvm_gdb_read_registers(hv, registers, &len) == -1) {
                 send_error_msg();
             } else {
                 mem2hex(registers, obuf, len);
@@ -436,13 +451,13 @@ static void gdb_handle_exception(struct ukvm_hv *hv, int sigval)
             /* Write general registers */
             len = BUFMAX;
             /* Call read_registers just to get len (not very efficient). */
-            if (ukvm_gdb_read_registers(hv, registers, &len) < 0) {
+            if (ukvm_gdb_read_registers(hv, registers, &len) == -1) {
                 send_error_msg();
                 break;
             }
             /* Packet looks like 'Gxxxxx', so we have to skip the first char */
             hex2mem(packet + 1, registers, len);
-            if (ukvm_gdb_write_registers(hv, registers, len) < 0) {
+            if (ukvm_gdb_write_registers(hv, registers, len) == -1) {
                 send_error_msg();
                 break;
             }
@@ -461,7 +476,7 @@ static void gdb_handle_exception(struct ukvm_hv *hv, int sigval)
         case 'z': {
             /* Remove a breakpoint */
             packet++;
-            if (sscanf((char *)packet, "%"PRIx32",%"PRIx64",%zu",
+            if (sscanf(packet, "%"PRIx32",%"PRIx64",%zu",
                        &type, &addr, &len) != 3) {
                 send_error_msg();
                 break;
@@ -481,7 +496,7 @@ static void gdb_handle_exception(struct ukvm_hv *hv, int sigval)
             else
                 ret = ukvm_gdb_remove_breakpoint(hv, type, addr, len);
 
-            if (ret < 0)
+            if (ret == -1)
                 send_error_msg();
             else
                 send_okay_msg();
@@ -524,7 +539,7 @@ static int handle_exit(struct ukvm_hv *hv)
 {
     int sigval = 0;
 
-    if (ukvm_gdb_read_last_signal(hv, &sigval) < 0)
+    if (ukvm_gdb_read_last_signal(hv, &sigval) == -1)
         /* Handle this exit in the vcpu loop */
         return -1;
 
@@ -562,7 +577,7 @@ static int setup(struct ukvm_hv *hv)
     if (!use_gdb)
         return 0;
 
-    if (ukvm_core_register_vmexit(handle_exit) < 0)
+    if (ukvm_core_register_vmexit(handle_exit) == -1)
         return -1;
 
     /*

@@ -22,11 +22,16 @@
 #define UKVM_GDB_H
 
 /* GDB breakpoint/watchpoint types */
-#define GDB_BREAKPOINT_SW        0
-#define GDB_BREAKPOINT_HW        1
-#define GDB_WATCHPOINT_WRITE     2
-#define GDB_WATCHPOINT_READ      3
-#define GDB_WATCHPOINT_ACCESS    4
+typedef enum _gdb_breakpoint_type {
+    /* Do not change these. The values have to match on the GDB client
+     * side. */
+    GDB_BREAKPOINT_SW = 0,
+    GDB_BREAKPOINT_HW,
+    GDB_WATCHPOINT_WRITE,
+    GDB_WATCHPOINT_READ,
+    GDB_WATCHPOINT_ACCESS,
+    GDB_BREAKPOINT_MAX
+} gdb_breakpoint_type;
 
 #define GDB_SIGNAL_FIRST         0
 #define GDB_SIGNAL_QUIT          3
