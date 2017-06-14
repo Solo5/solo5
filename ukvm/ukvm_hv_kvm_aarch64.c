@@ -325,3 +325,8 @@ void ukvm_hv_vcpu_init(struct ukvm_hv *hv, ukvm_gpa_t gpa_ep,
 
     *cmdline = (char *)(hv->mem + AARCH64_CMDLINE_BASE);
 }
+
+static inline uint32_t mmio_read32(void *data)
+{
+    return *(uint32_t *)data;
+}
