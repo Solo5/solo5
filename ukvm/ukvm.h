@@ -149,6 +149,13 @@ extern struct ukvm_module ukvm_module_gdb;
  */
 
 /*
+ * Check if backend implements GDB support. Returns 0 if supported, -1 if not.
+ * Note backends not implementing GDB support still need to implement the
+ * remaining functions in this section, all of which should return -1.
+ */
+int ukvm_gdb_supported(void);
+
+/*
  * Fills *reg with a stream of hexadecimal digits for each guest register
  * in GDB register order, where each register is in target endian order.
  * Returns 0 if success, -1 otherwise.

@@ -277,6 +277,11 @@ static int bp_list_remove(gdb_breakpoint_type type,
     return 0;
 }
 
+int ukvm_gdb_supported(void)
+{
+    return 0;
+}
+
 int ukvm_gdb_read_registers(struct ukvm_hv *hv,
                             uint8_t *registers,
                             size_t *len)

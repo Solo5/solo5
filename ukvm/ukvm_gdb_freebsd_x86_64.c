@@ -37,6 +37,11 @@
 #include "ukvm_gdb_x86_64.h"
 #include "ukvm_gdb.h"
 
+int ukvm_gdb_supported(void)
+{
+    return -1;
+}
+
 int ukvm_gdb_read_registers(struct ukvm_hv *hv,
                             uint8_t *registers,
                             size_t *len)

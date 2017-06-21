@@ -183,18 +183,15 @@ static int wait_for_connect()
         err(1, "setsockopt(TCP_NODELAY) failed");
 
     ip_addr.s_addr = client_addr.sin_addr.s_addr;
-    warnx("Connection from debugger at %s\n", inet_ntoa(ip_addr));
+    warnx("Connection from debugger at %s", inet_ntoa(ip_addr));
 
     return 0;
 }
 
-static void send_char(char ch)
+static int send_char(char ch)
 {
     /* TCP is already buffering, so no need to buffer here as well. */
-    int ret;
-
-    ret = send(socket_fd, &ch, 1, 0);
-    assert(ret == 1);
+    return send(socket_fd, &ch, 1, 0);
 }
 
 static char recv_char(void)
@@ -203,7 +200,17 @@ static char recv_char(void)
     int ret;
 
     ret = recv(socket_fd, &ch, 1, 0);
-    assert(ret == 1);
+    if (ret < 0) {
+        return -1;
+    } else if (ret == 0) {
+        /* The peer has performed an orderly shutdown (from "man recv"). */
+        close(socket_fd);
+        socket_fd = -1;
+        return -1;
+    } else {
+        assert(ret == 1);
+    }
+
     /* All GDB remote packets are encoded in ASCII. */
     assert(isascii(ch));
 
@@ -226,6 +233,8 @@ static char *recv_packet(void)
         /* wait around for the start character, ignore all other characters */
         do {
             ch = recv_char();
+            if (ch == -1)
+                return NULL;
         } while (ch != '$');
 
 retry:
@@ -236,6 +245,8 @@ retry:
         /* now, read until a # or end of buffer is found */
         while (count < BUFMAX - 1) {
             ch = recv_char();
+            if (ch == -1)
+                return NULL;
             if (ch == '$')
                 goto retry;
             if (ch == '#')
@@ -249,17 +260,25 @@ retry:
 
         if (ch == '#') {
             ch = recv_char();
+            if (ch == -1)
+                return NULL;
             xmitcsum = hex(ch) << 4;
             ch = recv_char();
+            if (ch == -1)
+                return NULL;
             xmitcsum += hex(ch);
 
             if (checksum != xmitcsum) {
                 warnx("Failed checksum from GDB. "
                       "My count = 0x%x, sent=0x%x. buf=%s",
                       checksum, xmitcsum, buffer);
-                send_char('-');        /* failed checksum */
+                if (send_char('-') == -1)
+                    /* Unsuccessful reply to a failed checksum */
+                    err(1, "GDB: Could not send an ACK to the debugger.");
             } else {
-                send_char('+');        /* successful transfer */
+                if (send_char('+') == -1)
+                    /* Unsuccessful reply to a successful transfer */
+                    err(1, "GDB: Could not send an ACK to the debugger.");
 
                 /* if a sequence char is present, reply the sequence ID */
                 if (buffer[2] == ':') {
@@ -275,14 +294,23 @@ retry:
     }
 }
 
-/* Send packet without waiting for an ACK from the debugger. */
+/*
+ * Send packet of the form $<packet info>#<checksum> without waiting for an ACK
+ * from the debugger. Only send_response
+ */
 static void send_packet_no_ack(char *buffer)
 {
     unsigned char checksum;
     int count;
     char ch;
 
-    /*  $<packet info>#<checksum>.  */
+    /*
+     * We ignore all send_char errors as we either: (1) care about sending our
+     * packet and we will keep sending it until we get a good ACK from the
+     * debugger, or (2) not care and just send it as a best-effort notification
+     * when dying (see handle_ukvm_exit).
+     */
+
     send_char('$');
     checksum = 0;
     count = 0;
@@ -306,9 +334,16 @@ static void send_packet_no_ack(char *buffer)
  */
 static void send_packet(char *buffer)
 {
-    do {
+    char ch;
+
+    for (;;) {
         send_packet_no_ack(buffer);
-    } while (recv_char() != '+');
+        ch = recv_char();
+        if (ch == -1)
+            return;
+        if (ch == '+')
+            break;
+    }
 }
 
 #define send_error_msg()   do { send_packet(GDB_ERROR_MSG); } while (0)
@@ -352,6 +387,11 @@ static void gdb_handle_exception(struct ukvm_hv *hv, int sigval)
         int command, ret;
 
         packet = recv_packet();
+        if (packet == NULL)
+	    /* Without a packet with instructions with what to do next there is
+             * really nothing we can do to recover. So, dying. */
+	    errx(1, "GDB: Exiting as we could not receive the next command from "
+                    "the debugger.");
 
         /*
          * From the GDB manual:
@@ -395,7 +435,7 @@ static void gdb_handle_exception(struct ukvm_hv *hv, int sigval)
 
         case 'm': {
             /* Read memory content */
-            if (sscanf(packet, "m%"PRIx64",%zu",
+            if (sscanf(packet, "m%"PRIx64",%zx",
                        &addr, &len) != 2) {
                 send_error_msg();
                 break;
@@ -417,7 +457,7 @@ static void gdb_handle_exception(struct ukvm_hv *hv, int sigval)
         case 'M': {
             /* Write memory content */
             assert(strlen(packet) <= sizeof(obuf));
-            if (sscanf(packet, "M%"PRIx64",%zu:%s", &addr, &len, obuf) != 3) {
+            if (sscanf(packet, "M%"PRIx64",%zx:%s", &addr, &len, obuf) != 3) {
                 send_error_msg();
                 break;
             }
@@ -476,7 +516,7 @@ static void gdb_handle_exception(struct ukvm_hv *hv, int sigval)
         case 'z': {
             /* Remove a breakpoint */
             packet++;
-            if (sscanf(packet, "%"PRIx32",%"PRIx64",%zu",
+            if (sscanf(packet, "%"PRIx32",%"PRIx64",%zx",
                        &type, &addr, &len) != 3) {
                 send_error_msg();
                 break;
@@ -579,6 +619,9 @@ static int setup(struct ukvm_hv *hv)
 
     if (ukvm_core_register_vmexit(handle_exit) == -1)
         return -1;
+
+    if (ukvm_gdb_supported() == -1)
+        errx(1, "GDB support not implemented on this backend/architecture");
 
     /*
      * GDB clients can change memory, and software breakpoints work by
