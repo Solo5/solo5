@@ -34,6 +34,7 @@
 #include "ukvm_cc.h"
 #define UKVM_HOST
 #include "ukvm_guest.h"
+#include "ukvm_gdb.h"
 
 /*
  * Hypervisor {arch,backend}-independent data is defined here.
@@ -141,5 +142,64 @@ extern struct ukvm_module ukvm_module_core;
 extern struct ukvm_module ukvm_module_blk;
 extern struct ukvm_module ukvm_module_net;
 extern struct ukvm_module ukvm_module_gdb;
+
+/*
+ * GDB specific functions to be implemented on all backends for all
+ * architectures.
+ */
+
+/*
+ * Check if backend implements GDB support. Returns 0 if supported, -1 if not.
+ * Note backends not implementing GDB support still need to implement the
+ * remaining functions in this section, all of which should return -1.
+ */
+int ukvm_gdb_supported(void);
+
+/*
+ * Fills *reg with a stream of hexadecimal digits for each guest register
+ * in GDB register order, where each register is in target endian order.
+ * Returns 0 if success, -1 otherwise.
+ */
+int ukvm_gdb_read_registers(struct ukvm_hv *hv, uint8_t *reg, size_t *len);
+
+/*
+ * Writes all guest registers from a stream of hexadecimal digits for each
+ * register in *reg. Each register in *reg is in GDB register order, and in
+ * target endian order.
+ * Returns 0 if success, -1 otherwise.
+ */
+int ukvm_gdb_write_registers(struct ukvm_hv *hv, uint8_t *reg, size_t len);
+
+/*
+ * Enable single stepping. Returns 0 if success, -1 otherwise.
+ */
+int ukvm_gdb_enable_ss(struct ukvm_hv *hv);
+
+/*
+ * Disable single stepping. Returns 0 if success, -1 otherwise.
+ */
+int ukvm_gdb_disable_ss(struct ukvm_hv *hv);
+
+/*
+ * Reads the current KVM exit code and maps it to a GDB signal value.
+ * Returns 0 if success, -1 otherwise.
+ */
+int ukvm_gdb_read_last_signal(struct ukvm_hv *hv, int *signal);
+
+/*
+ * Add a breakpoint of type software or hardware, at address addr.  len is
+ * typically the size of the breakpoint in bytes that should be inserted
+ * Returns 0 if success, -1 otherwise.
+ */
+int ukvm_gdb_add_breakpoint(struct ukvm_hv *hv, gdb_breakpoint_type type,
+                            ukvm_gpa_t addr, size_t len);
+
+/*
+ * Remove a breakpoint of type software or hardware, at address addr.  len is
+ * typically the size of the breakpoint in bytes that should be inserted.
+ * Returns 0 if success, -1 otherwise.
+ */
+int ukvm_gdb_remove_breakpoint(struct ukvm_hv *hv, gdb_breakpoint_type type,
+                               ukvm_gpa_t addr, size_t len);
 
 #endif /* UKVM_H */

@@ -80,7 +80,11 @@
  * For details on the use of these macros, see the queue(3) manual page.
  */
 
-#include "kernel.h"
+/* XXX: Consider moving this to some common libraries directory for solo5 and
+ *      ukvm. */
+#ifdef __SOLO5_KERNEL__
+#    include "kernel.h"
+#endif
 
 /*
  * Singly-linked List definitions.
