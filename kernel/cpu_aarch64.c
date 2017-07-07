@@ -20,6 +20,23 @@
 
 #include "ukvm/kernel.h"
 
+extern void *cpu_exception_vectors;
+
+static const char *exception_modes[]= {
+    "Synchronous Abort",
+    "IRQ",
+    "FIQ",
+    "Error"
+};
+
+void cpu_init(void)
+{
+    __asm__ __volatile__("msr VBAR_EL1, %0"
+            :
+            : "r" ((uint64_t)&cpu_exception_vectors)
+            : "memory");
+}
+
 /* keeps track of cpu_intr_disable() depth */
 int cpu_intr_depth = 1;
 
