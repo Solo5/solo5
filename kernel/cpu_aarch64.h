@@ -22,3 +22,18 @@
 #define PAGE_SIZE               4096
 #define PAGE_SHIFT              12
 #define PAGE_MASK               ~(0xfff)
+
+#ifndef ASM_FILE
+
+/*
+ * The remainder of this file is used only from C.
+ */
+static inline uint64_t cpu_cntvct(void)
+{
+    uint64_t val;
+
+    __asm__ __volatile__("mrs %0, cntvct_el0" : "=r" (val)::);
+    return val;
+}
+
+#endif /* !ASM_FILE */
