@@ -637,6 +637,7 @@ repeat:
 
         case 'A':
             flags |= UPPERCASE;
+            /* FALLTHRU */
 
         case 'a':
             if (qualifier == 'l')
@@ -654,6 +655,7 @@ repeat:
 
         case 'X':
             flags |= UPPERCASE;
+            /* FALLTHRU */
 
         case 'x':
             base = 16;
