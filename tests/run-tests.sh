@@ -262,7 +262,7 @@ eval $(grep -E ^BUILD_.+=.+ ${MAKECONF})
 # Syntax: add_test test_foo.TARGET[/[OPTIONS]/[ARGS]]
 #
 TESTS=
-if [ -n "${BUILD_UKVM}" ]; then
+if [ "${BUILD_UKVM}" = "yes" ]; then
     add_test test_hello.ukvm//Hello_Solo5
     add_test test_quiet.ukvm/-v/--solo5:quiet
     add_test test_globals.ukvm
@@ -272,7 +272,7 @@ if [ -n "${BUILD_UKVM}" ]; then
     add_test test_blk.ukvm/-d
     add_test test_ping_serve.ukvm/-n/limit
 fi
-if [ -n "${BUILD_VIRTIO}" ]; then
+if [ "${BUILD_VIRTIO}" = "yes" ]; then
     add_test test_hello.virtio//Hello_Solo5
     add_test test_quiet.virtio/-v/--solo5:quiet
     add_test test_globals.virtio
@@ -282,6 +282,7 @@ if [ -n "${BUILD_VIRTIO}" ]; then
     add_test test_blk.virtio/-d
     add_test test_ping_serve.virtio/-n/limit
 fi
+# No tests for BUILD_MUEN (yet).
 
 echo "--------------------------------------------------------------------------------"
 echo "Starting tests at $(date)"
