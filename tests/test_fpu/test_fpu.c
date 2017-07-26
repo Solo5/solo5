@@ -30,11 +30,12 @@ int solo5_app_main(char *cmdline __attribute__((unused)))
 {
     puts("\n**** Solo5 standalone test_fpu ****\n\n");
 
-#ifdef __x86_64__
     float a, b, c[2];
 
     c[0] = 2.0;
     c[1] = 5.0;
+
+#if defined(__x86_64__)
      __asm__ (
          "movups %0,%%xmm1;"
          "mulps %%xmm1, %%xmm1;"
@@ -43,6 +44,18 @@ int solo5_app_main(char *cmdline __attribute__((unused)))
          : "m" (c)
          : "xmm1"
     );
+#elif defined(__aarch64__)
+    __asm__(
+        "ldr d0, %0\n"
+        "ldr d1, %0\n"
+        "fmul v0.2s, v1.2s, v0.2s\n"
+        "str d0, %0\n"
+        : "=m" (c)
+        : "m" (c)
+    );
+#else
+#error Unsupported architecture
+#endif
 
     a = 1.5;
     b = 5.0;
@@ -52,9 +65,6 @@ int solo5_app_main(char *cmdline __attribute__((unused)))
         puts("SUCCESS\n");
     else
         return 1;
-#else
-    puts("SUCCESS\n");
-#endif
 
     return 0;
 }

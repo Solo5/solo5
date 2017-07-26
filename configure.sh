@@ -55,6 +55,9 @@ case ${TARGET} in
     x86_64-*)
 	TARGET_ARCH=x86_64
         ;;
+    aarch64-*)
+	TARGET_ARCH=aarch64
+        ;;
     *)
         die "Unsupported compiler target: ${TARGET}"
         ;;

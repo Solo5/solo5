@@ -30,6 +30,15 @@ static uint64_t tsc_base;
 /* Multiplier for converting TSC ticks to nsecs. (0.32) fixed point. */
 static uint32_t tsc_mult;
 
+#if defined(__x86_64__)
+#define READ_CPU_TICKS cpu_rdtsc
+#elif defined(__aarch64__)
+#define READ_CPU_TICKS cpu_cntvct
+#define mul64_32(a, b) ((a) * (b))
+#else
+#error Unsupported architecture
+#endif
+
 /*
  * Beturn monotonic time using TSC clock.
  */
@@ -40,7 +49,7 @@ uint64_t tscclock_monotonic(void)
     /*
      * Update time_base (monotonic time) and tsc_base (TSC time).
      */
-    tsc_now = cpu_rdtsc();
+    tsc_now = READ_CPU_TICKS();
     tsc_delta = tsc_now - tsc_base;
     time_base += mul64_32(tsc_delta, tsc_mult);
     tsc_base = tsc_now;
@@ -68,13 +77,17 @@ int tscclock_init(uint64_t tsc_freq)
      *
      * (0.32) tsc_mult = NSEC_PER_SEC (32.32) / tsc_freq (32.0)
      */
+#if defined(__x86_64__)
     tsc_mult = (NSEC_PER_SEC << 32) / tsc_freq;
+#elif defined(__aarch64__)
+    tsc_mult = NSEC_PER_SEC / tsc_freq;
+#endif
 
     /*
      * Monotonic time begins at tsc_base (first read of TSC before
      * calibration).
      */
-    tsc_base = cpu_rdtsc();
+    tsc_base = READ_CPU_TICKS();
     time_base = mul64_32(tsc_base, tsc_mult);
 
     /*
