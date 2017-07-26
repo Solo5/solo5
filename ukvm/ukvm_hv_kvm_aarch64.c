@@ -95,3 +95,17 @@ static void aarch64_enable_guest_float(int vcpufd)
     if (ret == -1)
          err(1, "KVM: Enable the floating-point and Advanced SIMD for Guest failed");
 }
+
+static void aarch64_setup_preferred_target(int vmfd, int vcpufd)
+{
+    int ret;
+    struct kvm_vcpu_init init;
+
+    ret = ioctl(vmfd, KVM_ARM_PREFERRED_TARGET, &init);
+    if (ret == -1)
+        err(1, "KVM: ioctl (KVM_ARM_PREFERRED_TARGET) failed");
+
+    ret = ioctl(vcpufd, KVM_ARM_VCPU_INIT, &init);
+    if (ret == -1)
+        err(1, "KVM: ioctl (KVM_ARM_VCPU_INIT) failed");
+}
