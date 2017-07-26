@@ -330,3 +330,76 @@ static inline uint32_t mmio_read32(void *data)
 {
     return *(uint32_t *)data;
 }
+
+void ukvm_hv_vcpu_loop(struct ukvm_hv *hv)
+{
+    struct ukvm_hvb *hvb = hv->b;
+    int ret;
+
+    while (1) {
+        ret = ioctl(hvb->vcpufd, KVM_RUN, NULL);
+        if (ret == -1 && errno == EINTR)
+            continue;
+        if (ret == -1) {
+            if (errno == EFAULT) {
+                uint64_t pc;
+                ret = aarch64_get_one_register(hvb->vcpufd, REG_PC, &pc);
+                if (ret == -1)
+                    err(1, "KVM: Dump PC failed after guest fault");
+                errx(1, "KVM: host/guest translation fault: pc=0x%lx", pc);
+            }
+            else
+                err(1, "KVM: ioctl (RUN) failed");
+        }
+
+        int handled = 0;
+        for (ukvm_vmexit_fn_t *fn = ukvm_core_vmexits; *fn && !handled; fn++)
+            handled = ((*fn)(hv) == 0);
+        if (handled)
+            continue;
+
+        struct kvm_run *run = hvb->vcpurun;
+
+        switch (run->exit_reason) {
+        case KVM_EXIT_MMIO: {
+            if (!run->mmio.is_write || run->mmio.len != 4)
+                errx(1, "Invalid guest mmio access: mmio=0x%llx len=%d", run->mmio.phys_addr, run->mmio.len);
+
+            if (run->mmio.phys_addr < UKVM_HYPERCALL_MMIO_BASE ||
+                run->mmio.phys_addr >= UKVM_HYPERCALL_ADDRESS(UKVM_HYPERCALL_MAX))
+                errx(1, "Invalid guest mmio access: mmio=0x%llx", run->mmio.phys_addr);
+
+            int nr = UKVM_HYPERCALL_NR(run->mmio.phys_addr);
+
+            /* Guest has halted the CPU, this is considered as a normal exit. */
+            if (nr == UKVM_HYPERCALL_HALT)
+                return;
+
+            ukvm_hypercall_fn_t fn = ukvm_core_hypercalls[nr];
+            if (fn == NULL)
+                errx(1, "Invalid guest hypercall: num=%d", nr);
+
+            ukvm_gpa_t gpa = mmio_read32(run->mmio.data);
+            fn(hv, gpa);
+            break;
+        }
+
+        case KVM_EXIT_FAIL_ENTRY:
+            errx(1, "KVM: entry failure: hw_entry_failure_reason=0x%llx",
+                 run->fail_entry.hardware_entry_failure_reason);
+
+        case KVM_EXIT_INTERNAL_ERROR:
+            errx(1, "KVM: internal error exit: suberror=0x%x",
+                 run->internal.suberror);
+
+        default: {
+            uint64_t pc;
+            ret = aarch64_get_one_register(hvb->vcpufd, REG_PC, &pc);
+            if (ret == -1)
+                err(1, "KVM: Dump PC failed after unhandled exit");
+            errx(1, "KVM: unhandled exit: exit_reason=0x%x, pc=0x%lx",
+                    run->exit_reason, pc);
+        }
+        } /* switch(run->exit_reason) */
+    }
+}
