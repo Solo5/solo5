@@ -298,3 +298,30 @@ static void aarch64_setup_core_registers(struct ukvm_hv *hv,
     if (ret == -1)
          err(1, "Set guest reset entry to PC failed!\n");
 }
+
+void ukvm_hv_vcpu_init(struct ukvm_hv *hv, ukvm_gpa_t gpa_ep,
+        ukvm_gpa_t gpa_kend, char **cmdline)
+{
+    struct ukvm_hvb *hvb = hv->b;
+    uint64_t phys_space_sz;
+
+    /*
+     * Setup aarch64 phys to virt mapping. Currently we only map 4GB for
+     * RAM space and 1GB for MMIO space. Although the guest can use up
+     * to 1TB address space which we configured in TCR_EL1.
+     */
+    phys_space_sz = AARCH64_MMIO_BASE + AARCH64_MMIO_SZ;
+    aarch64_setup_memory_mapping(hv->mem, hv->mem_size, phys_space_sz);
+
+    /* Select preferred target for guest */
+    aarch64_setup_preferred_target(hvb->vmfd, hvb->vcpufd);
+    /* Enable float for guest */
+    aarch64_enable_guest_float(hvb->vcpufd);
+    /* Enable MMU for guest*/
+    aarch64_enable_guest_mmu(hvb->vcpufd);
+
+    /* Initialize core registers for guest */
+    aarch64_setup_core_registers(hv, gpa_ep, gpa_kend);
+
+    *cmdline = (char *)(hv->mem + AARCH64_CMDLINE_BASE);
+}
