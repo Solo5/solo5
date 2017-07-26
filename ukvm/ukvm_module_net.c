@@ -214,7 +214,7 @@ static int handle_cmdarg(char *cmdarg)
     if (!strncmp("--net=", cmdarg, 6)) {
         netiface = cmdarg + 6;
         return 0;
-    } else if (!strncmp("--net-mac=", cmdarg, 6)) {
+    } else if (!strncmp("--net-mac=", cmdarg, 10)) {
         const char *macptr = cmdarg + 10;
         uint8_t mac[6];
         if (sscanf(macptr,
