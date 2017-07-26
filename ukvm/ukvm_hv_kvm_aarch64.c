@@ -52,6 +52,13 @@
 #define ARM64_CORE_REG(x)   \
             (KVM_REG_ARM64 | KVM_REG_SIZE_U64 | \
             KVM_REG_ARM_CORE | KVM_REG_ARM_CORE_REG(x))
+
+/* Architectural Feature Access Control Register EL1 */
+#define CPACR_EL1           ARM64_SYS_REG(3, 0, 1, 0, 2)
+#define _FPEN_NOTRAP        0x3
+#define _FPEN_SHIFT         20
+#define _FPEN_MASK          GENMASK32(21, 20)
+
 static int aarch64_set_one_register(int vcpufd, uint64_t id, uint64_t data)
 {
     struct kvm_one_reg one_reg = {
@@ -70,4 +77,21 @@ static int aarch64_get_one_register(int vcpufd, uint64_t id, uint64_t *pdata)
     };
 
     return ioctl(vcpufd, KVM_GET_ONE_REG, &one_reg);
+}
+
+static void aarch64_enable_guest_float(int vcpufd)
+{
+    int ret;
+    uint64_t data;
+
+    /* Enable the floating-point and Advanced SIMD registers for Guest */
+    ret = aarch64_get_one_register(vcpufd, CPACR_EL1, &data);
+    if (ret == -1)
+         err(1, "KVM: Get Architectural Feature Access Control Register failed");
+
+    data &= ~(_FPEN_MASK);
+    data |= (_FPEN_NOTRAP << _FPEN_SHIFT);
+    ret = aarch64_set_one_register(vcpufd, CPACR_EL1, data);
+    if (ret == -1)
+         err(1, "KVM: Enable the floating-point and Advanced SIMD for Guest failed");
 }
