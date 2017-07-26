@@ -72,4 +72,8 @@
 #define AARCH64_BOOT_INFO       _AC(0x1000, UL)
 #define AARCH64_BOOT_INFO_SZ    (AARCH64_CMDLINE_BASE - AARCH64_BOOT_INFO)
 
+#define GENMASK32(h, l) \
+    (((~0U) << (l)) & (~0U >> (31 - (h))))
+#define GENMASK64(h, l) \
+    (((~0UL) << (l)) & (~0UL >> (63 - (h))))
 #endif /* UKVM_CPU_AARCH64_H */
