@@ -22,6 +22,14 @@
 
 extern void *cpu_exception_vectors;
 
+struct regs {
+    uint64_t xreg[30];
+    uint64_t lr;
+    uint64_t elr_el1;
+    uint64_t spsr_el1;
+    uint64_t esr_el1;
+};
+
 static const char *exception_modes[]= {
     "Synchronous Abort",
     "IRQ",
@@ -35,6 +43,34 @@ void cpu_init(void)
             :
             : "r" ((uint64_t)&cpu_exception_vectors)
             : "memory");
+}
+
+static void dump_registers(struct regs *regs)
+{
+    uint32_t idx;
+
+    log(INFO, "Solo5: Dump registers:\n");
+    log(INFO, "\t ESR    : 0x%016lx\n", regs->esr_el1);
+    log(INFO, "\t PC     : 0x%016lx\n", regs->elr_el1);
+    log(INFO, "\t LR     : 0x%016lx\n", regs->lr);
+    log(INFO, "\t PSTATE : 0x%016lx\n", regs->spsr_el1);
+
+    for (idx = 0; idx < 28; idx+=4)
+        log(INFO, "\t x%02d ~ x%02d: 0x%016lx 0x%016lx 0x%016lx 0x%016lx\n",
+            idx, idx + 3, regs->xreg[idx], regs->xreg[idx + 1],
+            regs->xreg[idx + 2], regs->xreg[idx + 3]);
+
+    log(INFO, "\t x28 ~ x29: 0x%016lx 0x%016lx\n", regs->xreg[28], regs->xreg[29]);
+}
+
+void cpu_trap_handler(struct regs *regs, int el, int mode, int is_valid)
+{
+    log(INFO, "Solo5: Trap: EL%d %s%s caught\n",
+        el, is_valid ? "" : "Invalid ", exception_modes[mode], el);
+
+    dump_registers(regs);
+
+    PANIC("PANIC");
 }
 
 /* keeps track of cpu_intr_disable() depth */
