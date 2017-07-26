@@ -57,6 +57,10 @@
 
 #include "ukvm_gdb_freebsd_x86_64.c"
 
+#elif defined(__linux__) && defined(__aarch64__)
+
+#include "ukvm_gdb_kvm_aarch64.c"
+
 #else
 
 #error Unsupported target
