@@ -53,6 +53,26 @@
             (KVM_REG_ARM64 | KVM_REG_SIZE_U64 | \
             KVM_REG_ARM_CORE | KVM_REG_ARM_CORE_REG(x))
 
+/* Saved Program Status Register EL1 */
+#define SPSR_EL1            ARM64_CORE_REG(regs.pstate)
+
+/*
+ * Default PSTATE flags:
+ * Mask Debug, Abort, IRQ and FIQ. Switch to EL1h mode
+ */
+#define AARCH64_PSTATE_INIT \
+                            (PSR_D_BIT | PSR_A_BIT | PSR_I_BIT | \
+                             PSR_F_BIT | PSR_MODE_EL1h)
+
+/* PC Register */
+#define REG_PC              ARM64_CORE_REG(regs.pc)
+
+/* Stack Pointer EL1 */
+#define SP_EL1              ARM64_CORE_REG(sp_el1)
+
+/* Generic Purpose register x0 */
+#define REG_X0              ARM64_CORE_REG(regs.regs[0])
+
 /* Architectural Feature Access Control Register EL1 */
 #define CPACR_EL1           ARM64_SYS_REG(3, 0, 1, 0, 2)
 #define _FPEN_NOTRAP        0x3
@@ -226,4 +246,55 @@ static void aarch64_enable_guest_mmu(int vcpufd)
     ret = aarch64_set_one_register(vcpufd, SCTLR_EL1, data);
     if (ret == -1)
          err(1, "KVM: Setup System Control Register EL1 failed");
+}
+
+/*
+ * Initialize registers: instruction pointer for our code, addends,
+ * and PSTATE flags required by ARM64 architecture.
+ * Arguments to the kernel main are passed using the ARM64 calling
+ * convention: x0 ~ x7
+ */
+static void aarch64_setup_core_registers(struct ukvm_hv *hv,
+                             ukvm_gpa_t gpa_ep, ukvm_gpa_t gpa_kend)
+{
+    int ret;
+    struct ukvm_hvb *hvb = hv->b;
+    struct ukvm_boot_info *bi;
+
+    /* Set default PSTATE flags to SPSR_EL1 */
+    ret = aarch64_set_one_register(hvb->vcpufd, SPSR_EL1,
+                                   AARCH64_PSTATE_INIT);
+    if (ret == -1)
+         err(1, "Initialize spsr[EL1] failed!\n");
+
+    /*
+     * Set Stack Poniter for Guest. ARM64 require stack be 16-bytes
+     * alignment by default.
+     */
+    ret = aarch64_set_one_register(hvb->vcpufd, SP_EL1,
+                                   hv->mem_size - 16);
+    if (ret == -1)
+         err(1, "Initialize sp[EL1] failed!\n");
+
+    bi = (struct ukvm_boot_info *)(hv->mem + AARCH64_BOOT_INFO);
+    bi->mem_size = hv->mem_size;
+    bi->kernel_end = gpa_kend;
+    bi->cmdline = AARCH64_CMDLINE_BASE;
+
+    /*
+     * KVM on aarch64 doesn't support KVM_CAP_GET_TSC_KHZ. But we can use
+     * the cntvct_el0 as RDTSC of x86. So we can read counter frequency
+     * from cntfrq_el0 directly.
+     */
+    bi->cpu.tsc_freq = aarch64_get_counter_frequency();
+
+    /* Passing ukvm_boot_info through x0 */
+    ret = aarch64_set_one_register(hvb->vcpufd, REG_X0, AARCH64_BOOT_INFO);
+    if (ret == -1)
+         err(1, "Set boot info to x0 failed!\n");
+
+    /* Set guest reset PC entry here */
+    ret = aarch64_set_one_register(hvb->vcpufd, REG_PC, gpa_ep);
+    if (ret == -1)
+         err(1, "Set guest reset entry to PC failed!\n");
 }
