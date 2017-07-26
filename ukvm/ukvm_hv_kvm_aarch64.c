@@ -109,3 +109,12 @@ static void aarch64_setup_preferred_target(int vmfd, int vcpufd)
     if (ret == -1)
         err(1, "KVM: ioctl (KVM_ARM_VCPU_INIT) failed");
 }
+
+static uint64_t aarch64_get_counter_frequency(void)
+{
+    uint64_t frq;
+
+    __asm__ __volatile__("mrs %0, cntfrq_el0" : "=r" (frq):: "memory");
+
+    return frq;
+}
