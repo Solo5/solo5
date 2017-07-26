@@ -77,6 +77,36 @@
 #define GENMASK64(h, l) \
     (((~0UL) << (l)) & (~0UL >> (63 - (h))))
 
+/* Definitions of Page tables */
+#define PAGE_SHIFT  12
+#define PAGE_SIZE   (1 << (PAGE_SHIFT))
+
+/*
+ * Hardware page table definitions.
+ *
+ * Descriptor type for (PGD, PUD and PMD).
+ */
+#define PGT_DESC_TYPE_TABLE (_AC(3, UL) << 0)
+#define PGT_DESC_TYPE_SECT  (_AC(1, UL) << 0)
+
+/*
+ * Bit definition for section type descriptor
+ */
+#define SECT_VALID      (_AC(1, UL) << 0)
+#define SECT_USER       (_AC(1, UL) << 6)     /* AP[1] */
+#define SECT_RDONLY     (_AC(1, UL) << 7)     /* AP[2] */
+#define SECT_S          (_AC(3, UL) << 8)
+#define SECT_AF         (_AC(1, UL) << 10)
+#define SECT_NG         (_AC(1, UL) << 11)
+#define SECT_CONT       (_AC(1, UL) << 52)
+#define SECT_PXN        (_AC(1, UL) << 53)
+#define SECT_UXN        (_AC(1, UL) << 54)
+
+/*
+ * AttrIndx[2:0] encoding (mapping attributes defined in the MAIR* registers).
+ */
+#define ATTRINDX(t)     (_AC(t, UL) << 2)
+
 /* Memory types available. */
 #define MT_DEVICE_nGnRnE    0
 #define MT_DEVICE_nGnRE     1
@@ -84,4 +114,40 @@
 #define MT_NORMAL_NC        3
 #define MT_NORMAL           4
 #define MT_NORMAL_WT        5
+
+#define PROT_SECT_DEFAULT       (PGT_DESC_TYPE_SECT | SECT_AF | SECT_S)
+#define PROT_SECT_NORMAL        (PROT_SECT_DEFAULT | SECT_PXN | SECT_UXN | ATTRINDX(MT_NORMAL))
+#define PROT_SECT_NORMAL_EXEC   (PROT_SECT_DEFAULT | SECT_UXN | ATTRINDX(MT_NORMAL))
+#define PROT_SECT_DEVICE_nGnRE  (PROT_SECT_DEFAULT | SECT_PXN | SECT_UXN | ATTRINDX(MT_DEVICE_nGnRE))
+
+/*
+ * Define the MMU transfer block size:
+ * PGD entry size: 512GB -- Translation Level 0
+ * PUD entry size: 1GB   -- Translation Level 1
+ * PMD entry size: 2MB   -- Translation Level 2
+ * PTE entry size: 64KB  -- Translation Level 3
+ */
+#define PGD_SIZE    (_AC(1, UL) << 39)
+#define PGD_MASK	(~(PGD_SIZE-1))
+#define PUD_SIZE    (_AC(1, UL) << 30)
+#define PUD_MASK	(~(PUD_SIZE-1))
+#define PMD_SIZE    (_AC(1, UL) << 21)
+#define PMD_MASK	(~(PMD_SIZE-1))
+
+#define DIV_ROUND_UP(n, d) (((n) + (d) - 1) / (d))
+
+struct pmd {
+    uint64_t entry[1];
+};
+
+struct pud {
+    uint64_t entry[1];
+};
+
+struct pgd {
+    uint64_t entry[1];
+};
+
+void aarch64_setup_memory_mapping(uint8_t *va_addr, uint64_t mem_size, uint64_t space_size);
+
 #endif /* UKVM_CPU_AARCH64_H */
