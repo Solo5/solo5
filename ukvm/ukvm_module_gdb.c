@@ -644,8 +644,11 @@ static int handle_cmdarg(char *cmdarg)
     if (!strncmp("--gdb", cmdarg, 5)) {
         use_gdb = true;
         return 0;
-    } else if (!strncmp("--port=", cmdarg, 7)) {
-        portno = strtol(cmdarg + 7, NULL, 10);
+    } else if (!strncmp("--gdb-port=", cmdarg, 11)) {
+        portno = strtol(cmdarg + 11, NULL, 10);
+        if (portno < 0 || portno > 65535) {
+          errx(1, "Malformed port: %d", portno);
+        }
         return 0;
     }
     return -1;
@@ -654,7 +657,7 @@ static int handle_cmdarg(char *cmdarg)
 static char *usage(void)
 {
     return "--gdb (optional flag for running in a gdb debug session)\n"
-        "    [ --port=1234 ] (port to use) ";
+        "    [ --gdb-port=1234 ] (port to use) ";
 }
 
 struct ukvm_module ukvm_module_gdb = {
