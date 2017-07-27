@@ -641,13 +641,13 @@ static int setup(struct ukvm_hv *hv)
 
 static int handle_cmdarg(char *cmdarg)
 {
-    if (!strncmp("--gdb", cmdarg, 5)) {
+    if (!strcmp("--gdb", cmdarg)) {
         use_gdb = true;
         return 0;
     } else if (!strncmp("--gdb-port=", cmdarg, 11)) {
-        portno = strtol(cmdarg + 11, NULL, 10);
-        if (portno < 0 || portno > 65535) {
-          errx(1, "Malformed port: %d", portno);
+        int rc = sscanf(cmdarg, "--gdb-port=%d", &portno);
+        if (rc != 1 || portno < 0 || portno > 65535) {
+            errx(1, "Malformed argument to --gdb-port");
         }
         return 0;
     }
