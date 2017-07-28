@@ -35,9 +35,15 @@ int solo5_app_main(char *cmdline __attribute__((unused)))
     /*
      * Verify that monotonic time is passing
      */
-    uint64_t ta, tb;
+    uint64_t ta = 0, tb = 0, iters = 5;
     ta = solo5_clock_monotonic();
     tb = solo5_clock_monotonic();
+    /*
+     * Adjacent calls to solo5_clock_monotonic() may return the same time count
+     * on aarch64 systems, so give it a few extra iterations to change.
+     */
+    while (ta == tb && iters--)
+        tb = solo5_clock_monotonic();
     if (!(tb > ta)) {
         puts("ERROR: time is not passing\n");
         return 1;

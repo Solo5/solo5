@@ -3,6 +3,7 @@ Corporate Contributors
 
 Copyright (c) 2015-2017 IBM
 Copyright (c) 2016-2017 Docker, Inc.
+Copyright (C) 2017 ARM Ltd.
 
 Individual Contributors
 =======================
@@ -17,3 +18,4 @@ Martin Lucina (Docker, Inc.)
 Michael LeMay
 Ricardo Koller (IBM)
 Waldir Pimenta
+Wei Chen (ARM)
