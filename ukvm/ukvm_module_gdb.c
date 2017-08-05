@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
  *
  * This file is part of ukvm, a unikernel monitor.
@@ -65,7 +65,7 @@
 
 #error Unsupported target
 
-#endif 
+#endif
 
 static bool use_gdb = false;
 static int socket_fd = 0;
@@ -142,7 +142,7 @@ static int wait_for_connect()
         err(1, "Could not create socket");
         return -1;
     }
-    
+
     opt = 1;
     if (setsockopt(listen_socket_fd, SOL_SOCKET, SO_REUSEADDR, &opt,
                    sizeof(opt)) == -1)
@@ -151,21 +151,21 @@ static int wait_for_connect()
     server_addr.sin_family = AF_INET;
     server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
     server_addr.sin_port = htons(portno);
-     
+
     if (bind(listen_socket_fd, (struct sockaddr *)&server_addr,
              sizeof(server_addr)) == -1) {
         err(1, "bind failed");
         return -1;
     }
-     
+
     if (listen(listen_socket_fd , 0) == -1) {
         err(1, "listen failed");
         return -1;
     }
-     
+
     warnx("Waiting for a debugger. Connect to it like this:");
     warnx("\tgdb --ex=\"target remote localhost:%d\" KERNEL", portno);
-     
+
     len = sizeof(client_addr);
     socket_fd = accept(listen_socket_fd, (struct sockaddr *)&client_addr, &len);
     if (socket_fd == -1) {
@@ -576,7 +576,7 @@ static void gdb_stub_start(struct ukvm_hv *hv)
 
 /*
  * Maps a VM exit to a GDB signal, and if it is of type trap (breakpoint or step),
- * we handle it here (and not in the vcpu loop). We force the handling here, by 
+ * we handle it here (and not in the vcpu loop). We force the handling here, by
  * returning 0; and return -1 otherwise.
  */
 static int handle_exit(struct ukvm_hv *hv)
