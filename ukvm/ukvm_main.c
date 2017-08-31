@@ -185,6 +185,7 @@ int main(int argc, char **argv)
     if (sigaction(SIGTERM, &sa, NULL) == -1)
         err(1, "Could not install signal handler");
 
+    ukvm_hv_mem_size(&mem_size);
     struct ukvm_hv *hv = ukvm_hv_init(mem_size);
 
     ukvm_elf_load(elffile, hv->mem, hv->mem_size, &gpa_ep, &gpa_kend);

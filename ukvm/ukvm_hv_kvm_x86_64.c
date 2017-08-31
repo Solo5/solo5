@@ -38,6 +38,10 @@
 #include "ukvm_hv_kvm.h"
 #include "ukvm_cpu_x86_64.h"
 
+void ukvm_hv_mem_size(size_t *mem_size) {
+  ukvm_x86_mem_size(mem_size);
+}
+
 static void setup_cpuid(struct ukvm_hvb *hvb)
 {
     struct kvm_cpuid2 *kvm_cpuid;

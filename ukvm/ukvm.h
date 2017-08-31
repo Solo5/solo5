@@ -82,6 +82,12 @@ inline void *ukvm_checked_gpa_p(struct ukvm_hv *hv, ukvm_gpa_t gpa, size_t sz,
 struct ukvm_hv *ukvm_hv_init(size_t mem_size);
 
 /*
+ * Computes the memory size to use for this monitor, based on the user-provided
+ * value (rounding up if necessary).
+ */
+void ukvm_hv_mem_size(size_t *mem_size);
+
+/*
  * Initialise VCPU state with (gpa_ep) as the entry point and (gpa_kend) as the
  * last byte of memory used by the guest binary. In (*cmdline), returns a
  * buffer with UKVM_CMDLINE_SIZE bytes of space for the guest command line.

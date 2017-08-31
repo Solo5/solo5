@@ -211,6 +211,7 @@ static const struct x86_sreg ukvm_x86_sreg_unusable = {
  */
 #define X86_RFLAGS_INIT         0x2
 
+void ukvm_x86_mem_size(size_t *mem_size);
 void ukvm_x86_setup_pagetables(uint8_t *mem, size_t mem_size);
 void ukvm_x86_setup_gdt(uint8_t *mem);
 
