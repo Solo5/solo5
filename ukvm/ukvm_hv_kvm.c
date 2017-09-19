@@ -29,7 +29,7 @@
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 #include <string.h>
-
+#include <stdlib.h>
 #include <linux/kvm.h>
 
 #include "ukvm.h"
