@@ -138,12 +138,15 @@ void ukvm_hv_vcpu_init(struct ukvm_hv *hv, ukvm_gpa_t gpa_ep,
     vmm_set_reg(hvb->vmfd, VM_REG_GUEST_RSP, hv->mem_size - 8);
     vmm_set_reg(hvb->vmfd, VM_REG_GUEST_RDI, X86_BOOT_INFO_BASE);
 
-    struct vm_activate_cpu ac = {
-        .vcpuid = 0
-    };
-    ret = ioctl(hvb->vmfd, VM_ACTIVATE_CPU, &ac);
-    if (ret == -1)
-        err(1, "VM_ACTIVATE_CPU");
+    if (!hvb->activated) {
+        struct vm_activate_cpu ac = {
+            .vcpuid = 0
+        };
+        ret = ioctl(hvb->vmfd, VM_ACTIVATE_CPU, &ac);
+        if (ret == -1)
+            err(1, "VM_ACTIVATE_CPU");
+	hvb->activated = true;
+    }
 
     *cmdline = (char *)(hv->mem + X86_CMDLINE_BASE);
 }

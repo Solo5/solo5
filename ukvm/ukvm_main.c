@@ -169,7 +169,7 @@ int main(int argc, char **argv)
 
     struct ukvm_hv *hv = ukvm_hv_init(mem_size);
 
-    ukvm_elf_load(elffile, hv->mem, hv->mem_size, &gpa_ep, &gpa_kend);
+    ukvm_elf_load_file(elffile, hv->mem, hv->mem_size, &gpa_ep, &gpa_kend);
 
     char *cmdline;
     ukvm_hv_vcpu_init(hv, gpa_ep, gpa_kend, &cmdline);

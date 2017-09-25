@@ -38,6 +38,9 @@
 #include <sys/mman.h>
 #include <time.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 #include "ukvm.h"
 
@@ -103,6 +106,38 @@ static void hypercall_puts(struct ukvm_hv *hv, ukvm_gpa_t gpa)
     assert(rc >= 0);
 }
 
+static void hypercall_exec(struct ukvm_hv *hv, ukvm_gpa_t gpa)
+{
+    char *cmdline;
+    struct ukvm_exec *p =
+        UKVM_CHECKED_GPA_P(hv, gpa, sizeof (struct ukvm_exec));
+    ukvm_gpa_t gpa_ep, gpa_kend;
+
+    /* Need to remove the protection, so we can load it with a new elf */
+    if (mprotect(hv->mem, hv->mem_size,
+                 PROT_READ | PROT_WRITE | PROT_EXEC) == -1)
+        err(1, "GDB: Cannot remove guest memory protection");
+
+    /*
+     * XXX: This is where we (ukvm) should be checking that this new ELF is to
+     * be trusted. For now, we will assume it is.
+     */
+
+    /*
+     * ukvm_elf_load panics if something fails during the load, like if one of
+     * the addresses in the ELF header points to memory not in the guest.
+     */
+    ukvm_elf_load_mem(UKVM_CHECKED_GPA_P(hv, p->elf_mem, p->elf_mem_len),
+              p->elf_mem_len, hv->mem, hv->mem_size, &gpa_ep, &gpa_kend);
+
+    ukvm_hv_vcpu_init(hv, gpa_ep, gpa_kend, (char **)&cmdline);
+
+    /* cmdline is pointing to (hv->mem + X86_CMDLINE_BASE). */
+    cmdline[0] = '\0';
+
+    /* The guest will continue with the new memory and registers. */
+}
+
 static struct pollfd pollfds[NUM_MODULES];
 static int npollfds = 0;
 static sigset_t pollsigmask;
@@ -141,6 +176,8 @@ static int setup(struct ukvm_hv *hv)
                 hypercall_puts) == 0);
     assert(ukvm_core_register_hypercall(UKVM_HYPERCALL_POLL,
                 hypercall_poll) == 0);
+    assert(ukvm_core_register_hypercall(UKVM_HYPERCALL_EXEC,
+                hypercall_exec) == 0);
 
     /*
      * XXX: This needs documenting / coordination with the top-level caller.

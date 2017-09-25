@@ -72,13 +72,12 @@ static ssize_t pread_in_full(int fd, void *buf, size_t count, off_t offset)
 }
 
 /*
- * Load code from elf file into *mem and return the elf entry point
- * and the last byte of the program when loaded into memory. This
- * accounts not only for the last loaded piece of code from the elf,
- * but also for the zeroed out pieces that are not loaded and sould be
- * reserved.
+ * Load code from an ELF file or elf_mem (if not NULL) into *mem and return the ELF
+ * entry point and the last byte of the program when loaded into memory. This
+ * accounts not only for the last loaded piece of code from the ELF, but also
+ * for the zeroed out pieces that are not loaded and sould be reserved.
  *
- * Memory will look like this after the elf is loaded:
+ * Memory will look like this after the ELF is loaded:
  *
  * *mem                    *p_entry                   *p_end
  *   |             |                    |                |
@@ -87,10 +86,11 @@ static ssize_t pread_in_full(int fd, void *buf, size_t count, off_t offset)
  *   |             |  [PROT_EXEC|READ]  |                |
  *
  */
-void ukvm_elf_load(const char *file, uint8_t *mem, size_t mem_size,
-       ukvm_gpa_t *p_entry, ukvm_gpa_t *p_end)
+void _ukvm_elf_load(const char *file, uint8_t *mem, size_t mem_size,
+                    ukvm_gpa_t *p_entry, ukvm_gpa_t *p_end,
+                    uint8_t *elf_mem, size_t elf_mem_len)
 {
-    int fd_kernel;
+    int fd_kernel = 0;
     ssize_t numb;
     size_t buflen;
     Elf64_Off ph_off;
@@ -99,19 +99,28 @@ void ukvm_elf_load(const char *file, uint8_t *mem, size_t mem_size,
     Elf64_Half ph_i;
     Elf64_Phdr *phdr = NULL;
     Elf64_Ehdr hdr;
+    uint64_t result;
 
     /* elf entry point (on physical memory) */
     *p_entry = 0;
     /* highest byte of the program (on physical memory) */
     *p_end = 0;
 
-    fd_kernel = open(file, O_RDONLY);
-    if (fd_kernel == -1)
-        goto out_error;
+    if (!elf_mem) {
+        fd_kernel = open(file, O_RDONLY);
+        if (fd_kernel == -1)
+            err(1, "Failed open");
+    }
 
-    numb = pread_in_full(fd_kernel, &hdr, sizeof(Elf64_Ehdr), 0);
+    if (elf_mem) {
+        if (sizeof(Elf64_Ehdr) >= elf_mem_len)
+            goto out_invalid;
+        memmove(&hdr, elf_mem, sizeof(Elf64_Ehdr));
+        numb = sizeof(Elf64_Ehdr);
+    } else
+        numb = pread_in_full(fd_kernel, &hdr, sizeof(Elf64_Ehdr), 0);
     if (numb < 0)
-        goto out_error;
+        err(1, "Failed header read");
     if (numb != sizeof(Elf64_Ehdr))
         goto out_invalid;
 
@@ -145,10 +154,22 @@ void ukvm_elf_load(const char *file, uint8_t *mem, size_t mem_size,
 
     phdr = malloc(buflen);
     if (!phdr)
-        goto out_error;
-    numb = pread_in_full(fd_kernel, phdr, buflen, ph_off);
+        err(1, "Failed malloc");
+    if (elf_mem) {
+        if ((ph_off >= elf_mem_len)
+                || add_overflow(ph_off, buflen, result)
+                || (result >= elf_mem_len))
+            goto out_invalid;
+        /*
+         * It was checked at hypercall_exec that (without overflows):
+         *     (elf_mem + elf_mem_len) < mem_len
+         */
+        memmove(phdr, elf_mem + ph_off, buflen);
+        numb = buflen;
+    } else
+        numb = pread_in_full(fd_kernel, phdr, buflen, ph_off);
     if (numb < 0)
-        goto out_error;
+        err(1, "Failed section header read");
     if (numb != buflen)
         goto out_invalid;
 
@@ -166,7 +187,6 @@ void ukvm_elf_load(const char *file, uint8_t *mem, size_t mem_size,
         size_t memsz = phdr[ph_i].p_memsz;
         uint64_t paddr = phdr[ph_i].p_paddr;
         uint64_t align = phdr[ph_i].p_align;
-        uint64_t result;
         int prot;
 
         if (phdr[ph_i].p_type != PT_LOAD)
@@ -193,9 +213,17 @@ void ukvm_elf_load(const char *file, uint8_t *mem, size_t mem_size,
             *p_end = _end;
 
         daddr = mem + paddr;
-        numb = pread_in_full(fd_kernel, daddr, filesz, offset);
+        if (elf_mem) {
+            if ((offset >= elf_mem_len)
+                    || add_overflow(offset, filesz, result)
+                    || (result >= elf_mem_len))
+                goto out_invalid;
+            memmove(daddr, elf_mem + offset, filesz);
+            numb = filesz;
+        } else
+            numb = pread_in_full(fd_kernel, daddr, filesz, offset);
         if (numb < 0)
-            goto out_error;
+            err(1, "Failed section read");
         if (numb != filesz)
             goto out_invalid;
         memset(daddr + filesz, 0, memsz - filesz);
@@ -224,4 +252,16 @@ out_error:
 
 out_invalid:
     errx(1, "%s: Exec format error", file);
+}
+
+void ukvm_elf_load_file(const char *file, uint8_t *mem, size_t mem_size,
+                        ukvm_gpa_t *p_entry, ukvm_gpa_t *p_end)
+{
+    _ukvm_elf_load(file, mem, mem_size, p_entry, p_end, NULL, 0);
+}
+
+void ukvm_elf_load_mem(uint8_t *elf_mem, size_t elf_mem_len, uint8_t *mem,
+                       size_t mem_size, ukvm_gpa_t *p_entry, ukvm_gpa_t *p_end)
+{
+    _ukvm_elf_load(NULL, mem, mem_size, p_entry, p_end, elf_mem, elf_mem_len);
 }
