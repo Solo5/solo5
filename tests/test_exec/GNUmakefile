@@ -19,6 +19,6 @@
 UKVM_TARGETS=test_exec.ukvm ukvm-bin
 VIRTIO_TARGETS=
 MUEN_TARGETS=
-UKVM_MODULES=
+UKVM_MODULES=exec
 
 include ../Makefile.tests
