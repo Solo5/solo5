@@ -32,7 +32,7 @@ Support for Solo5 as a target is integrated since the release of MirageOS 3.0,
 which adds two new targets to the `mirage configure` command:
 
 1. `ukvm`: A specialized "unikernel monitor" which runs on Linux
-   (`x86_64`) and uses KVM directly via `/dev/kvm`.
+   (`x86_64` and `arm64`) and uses KVM directly via `/dev/kvm`.
 2. `virtio`: An `x86_64` system with `virtio` network and disk
    interfaces. Use this target for QEMU/KVM, plain QEMU, bhyve or other
    hypervisors (see below).
