@@ -33,15 +33,14 @@
 
 void ukvm_x86_mem_size(size_t *mem_size) {
   size_t mem;
-  if (*mem_size < X86_GUEST_PAGE_SIZE * 4)
-    warnx("adjusting memory to minimum of %ul", X86_GUEST_PAGE_SIZE * 4);
-  mem = X86_GUEST_PAGE_SIZE * 4;
-  mem = (mem + (X86_GUEST_PAGE_SIZE - 1)) / X86_GUEST_PAGE_SIZE;
-  mem *= X86_GUEST_PAGE_SIZE;
+  mem = (*mem_size / X86_GUEST_PAGE_SIZE) * X86_GUEST_PAGE_SIZE;
   if (mem > *mem_size)
-    warnx("adjusting memory to %zu", mem);
+    err(1, "won't increase your memory from %zu byes to %zu bytes",
+        *mem_size, mem);
+  if (mem < *mem_size)
+    warnx("adjusting memory to %zu bytes", mem);
   if (mem > X86_GUEST_PAGE_SIZE * 512)
-    err(1, "guest memory size %zu exceeds the max size %ul\n",
+    err(1, "guest memory size %zu bytes exceeds the max size %ul bytes",
         mem, X86_GUEST_PAGE_SIZE * 512);
   *mem_size = mem;
 }
