@@ -109,9 +109,7 @@ void aarch64_setup_memory_mapping(uint8_t *va_addr, uint64_t ram_size,
 void aarch64_mem_size(size_t *mem_size) {
   size_t mem;
   mem = (*mem_size / PMD_SIZE) * PMD_SIZE;
-  if (mem > *mem_size)
-    err(1, "won't increase your memory from %zu bytes to %zu bytes",
-        *mem_size, mem);
+  assert (mem <= *mem_size);
   if (mem < *mem_size)
     warnx("adjusting memory to %zu bytes", mem);
   if (mem > AARCH64_MMIO_BASE)

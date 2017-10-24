@@ -34,9 +34,7 @@
 void ukvm_x86_mem_size(size_t *mem_size) {
   size_t mem;
   mem = (*mem_size / X86_GUEST_PAGE_SIZE) * X86_GUEST_PAGE_SIZE;
-  if (mem > *mem_size)
-    err(1, "won't increase your memory from %zu byes to %zu bytes",
-        *mem_size, mem);
+  assert (mem <= *mem_size);
   if (mem < *mem_size)
     warnx("adjusting memory to %zu bytes", mem);
   if (mem > X86_GUEST_PAGE_SIZE * 512)

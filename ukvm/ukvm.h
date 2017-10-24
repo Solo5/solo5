@@ -83,7 +83,7 @@ struct ukvm_hv *ukvm_hv_init(size_t mem_size);
 
 /*
  * Computes the memory size to use for this monitor, based on the user-provided
- * value (rounding up if necessary).
+ * value (rounding down if necessary).
  */
 void ukvm_hv_mem_size(size_t *mem_size);
 
