@@ -88,13 +88,13 @@ static void sig_handler(int signo)
 
 static void handle_mem(char *cmdarg, size_t *mem_size)
 {
-  size_t mem;
-  int rc = sscanf(cmdarg, "--mem=%zd", &mem);
-  mem = mem << 20;
-  if (rc != 1 || mem <= 0) {
-    errx(1, "Malformed argument to --mem");
-  }
-  *mem_size = mem;
+    size_t mem;
+    int rc = sscanf(cmdarg, "--mem=%zd", &mem);
+    mem = mem << 20;
+    if (rc != 1 || mem <= 0) {
+        errx(1, "Malformed argument to --mem");
+    }
+    *mem_size = mem;
 }
 
 static void usage(const char *prog)
