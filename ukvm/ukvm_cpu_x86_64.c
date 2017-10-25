@@ -38,7 +38,7 @@ void ukvm_x86_mem_size(size_t *mem_size) {
     if (mem < *mem_size)
         warnx("adjusting memory to %zu bytes", mem);
     if (mem > X86_GUEST_PAGE_SIZE * 512)
-        err(1, "guest memory size %zu bytes exceeds the max size %ul bytes",
+        err(1, "guest memory size %zu bytes exceeds the max size %u bytes",
             mem, X86_GUEST_PAGE_SIZE * 512);
     *mem_size = mem;
 }
