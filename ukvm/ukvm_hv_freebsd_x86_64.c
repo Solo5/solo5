@@ -45,6 +45,10 @@
 #include "ukvm_hv_freebsd.h"
 #include "ukvm_cpu_x86_64.h"
 
+void ukvm_hv_mem_size(size_t *mem_size) {
+    ukvm_x86_mem_size(mem_size);
+}
+
 static void vmm_set_desc(int vmfd, int reg, uint64_t base, uint32_t limit,
         uint32_t access)
 {

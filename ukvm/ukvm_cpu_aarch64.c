@@ -105,3 +105,15 @@ void aarch64_setup_memory_mapping(uint8_t *va_addr, uint64_t ram_size,
         phy_space_size -= map_size;
     }
 }
+
+void aarch64_mem_size(size_t *mem_size) {
+    size_t mem;
+    mem = (*mem_size / PMD_SIZE) * PMD_SIZE;
+    assert (mem <= *mem_size);
+    if (mem < *mem_size)
+        warnx("adjusting memory to %zu bytes", mem);
+    if (mem > AARCH64_MMIO_BASE)
+        err(1, "guest memory size %zu bytes exceeds the max size %lu bytes",
+            mem, AARCH64_MMIO_BASE);
+    *mem_size = mem;
+}

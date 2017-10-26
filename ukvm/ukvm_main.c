@@ -86,6 +86,17 @@ static void sig_handler(int signo)
     errx(1, "Exiting on signal %d", signo);
 }
 
+static void handle_mem(char *cmdarg, size_t *mem_size)
+{
+    size_t mem;
+    int rc = sscanf(cmdarg, "--mem=%zd", &mem);
+    mem = mem << 20;
+    if (rc != 1 || mem <= 0) {
+        errx(1, "Malformed argument to --mem");
+    }
+    *mem_size = mem;
+}
+
 static void usage(const char *prog)
 {
     fprintf(stderr, "usage: %s [ CORE OPTIONS ] [ MODULE OPTIONS ] [ -- ] "
@@ -93,6 +104,7 @@ static void usage(const char *prog)
     fprintf(stderr, "KERNEL is the filename of the unikernel to run.\n");
     fprintf(stderr, "ARGS are optional arguments passed to the unikernel.\n");
     fprintf(stderr, "Core options:\n");
+    fprintf(stderr, "  [ --mem=512 ] (guest memory in MB)\n");
     fprintf(stderr, "    --help (display this help)\n");
     fprintf(stderr, "Compiled-in modules: ");
     for (struct ukvm_module **m = ukvm_core_modules; *m; m++) {
@@ -137,6 +149,12 @@ int main(int argc, char **argv)
         }
 
         matched = 0;
+        if (strncmp("--mem=", *argv, 6) == 0) {
+            handle_mem(*argv, &mem_size);
+            matched = 1;
+            argc--;
+            argv++;
+        }
         if (handle_cmdarg(*argv) == 0) {
             /* Handled by module, consume and go on to next arg */
             matched = 1;
@@ -167,6 +185,7 @@ int main(int argc, char **argv)
     if (sigaction(SIGTERM, &sa, NULL) == -1)
         err(1, "Could not install signal handler");
 
+    ukvm_hv_mem_size(&mem_size);
     struct ukvm_hv *hv = ukvm_hv_init(mem_size);
 
     ukvm_elf_load(elffile, hv->mem, hv->mem_size, &gpa_ep, &gpa_kend);

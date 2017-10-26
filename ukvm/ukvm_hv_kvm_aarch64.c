@@ -403,3 +403,7 @@ void ukvm_hv_vcpu_loop(struct ukvm_hv *hv)
         } /* switch(run->exit_reason) */
     }
 }
+
+void ukvm_hv_mem_size(size_t *mem_size) {
+    aarch64_mem_size(mem_size);
+}
