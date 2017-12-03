@@ -39,6 +39,16 @@
  */
 int solo5_app_main(char *cmdline);
 
+/* 
+ * Platform information.  Currently only memory info.
+ */
+struct solo5_info {
+    char *cmdline;
+    uint64_t heap_start;
+    uint64_t heap_end;
+};
+void solo5_get_info(struct solo5_info *info);
+
 /*
  * Network I/O.
  */
@@ -118,14 +128,6 @@ int solo5_console_write(const char *buf, size_t n);
 #define SOLO5_EXIT_FAILURE	1
 #define SOLO5_EXIT_ABORT	255
 void solo5_exit(int status) __attribute__((noreturn));
-
-/*
- * Memory allocation. These APIs correspond to their standard C equivalents.
- */
-void *solo5_malloc(size_t);
-void solo5_free(void *);
-void *solo5_calloc(size_t, size_t);
-void *solo5_realloc(void *, size_t);
 
 /*
  * Time.

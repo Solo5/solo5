@@ -55,23 +55,28 @@ void mem_init(void)
         mem_size);
 }
 
-/*
- * Called by dlmalloc to allocate or free memory.
+/* 
+ * Allocate a 4K aligned chunk on the brk.  Should only be called
+ * before solo5_app_main. 
  */
-void *sbrk(intptr_t increment)
+void *alloc_chunk_4K(size_t size)
 {
     uint64_t prev, brk;
     uint64_t heap_max = (uint64_t)&prev - stack_guard_size;
     prev = brk = heap_top;
 
-    /*
-     * dlmalloc guarantees increment values less than half of size_t, so this
-     * is safe from overflow.
-     */
-    brk += increment;
+    /* for 4K alignment */
+    prev = brk = brk + (0x1000 - (brk & 0xfff));
+
+    brk += size;
     if (brk >= heap_max || brk < heap_start)
-        return (void *)-1;
+        return NULL;
 
     heap_top = brk;
     return (void *)prev;
+}
+
+void solo5_get_info(struct solo5_info *info) {
+    info->heap_start = heap_top;
+    info->heap_end = platform_mem_size() - stack_guard_size;
 }

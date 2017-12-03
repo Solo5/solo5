@@ -78,6 +78,7 @@ void intr_irq_handler(uint64_t irq);
 
 /* mem.c: low-level page alloc routines */
 void mem_init(void);
+void *alloc_chunk_4K(size_t size);
 void *sbrk(intptr_t increment);
 
 /* malloc.c: memory allocation */
