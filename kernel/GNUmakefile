@@ -26,7 +26,6 @@ ee_printf.o \
 intr.o \
 lib.o \
 mem.o \
-malloc.o \
 exit.o \
 log.o \
 cmdline.o

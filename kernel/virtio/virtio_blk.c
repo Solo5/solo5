@@ -164,8 +164,9 @@ void virtio_config_block(struct pci_config_info *pci)
 
     virtq_init_rings(pci->base, &blkq, 0);
 
-    blkq.bufs = calloc(blkq.num, sizeof (struct io_buffer));
+    blkq.bufs = alloc_chunk_4K(blkq.num * sizeof (struct io_buffer));
     assert(blkq.bufs);
+    memset(blkq.bufs, 0, blkq.num * sizeof (struct io_buffer));
 
     virtio_blk_pci_base = pci->base;
     blk_configured = 1;

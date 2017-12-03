@@ -92,7 +92,7 @@ void virtq_init_rings(uint16_t pci_base, struct virtq *vq, int selector)
     vq->last_used = vq->next_avail = 0;
     vq->num = vq->num_avail = inw(pci_base + VIRTIO_PCI_QUEUE_SIZE);
 
-    data = memalign(4096, VIRTQ_SIZE(vq->num));
+    data = alloc_chunk_4K(VIRTQ_SIZE(vq->num));
     assert(data);
     memset(data, 0, VIRTQ_SIZE(vq->num));
 

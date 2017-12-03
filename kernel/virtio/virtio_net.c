@@ -182,10 +182,12 @@ void virtio_config_network(struct pci_config_info *pci)
     virtq_init_rings(pci->base, &recvq, VIRTQ_RECV);
     virtq_init_rings(pci->base, &xmitq, VIRTQ_XMIT);
 
-    recvq.bufs = calloc(recvq.num, sizeof (struct io_buffer));
+    recvq.bufs = alloc_chunk_4K(recvq.num * sizeof (struct io_buffer));
     assert(recvq.bufs);
-    xmitq.bufs = calloc(xmitq.num, sizeof (struct io_buffer));
+    memset(recvq.bufs, 0, recvq.num * sizeof (struct io_buffer));
+    xmitq.bufs = alloc_chunk_4K(xmitq.num * sizeof (struct io_buffer));
     assert(xmitq.bufs);
+    memset(xmitq.bufs, 0, xmitq.num * sizeof (struct io_buffer));
 
     virtio_net_pci_base = pci->base;
     net_configured = 1;
