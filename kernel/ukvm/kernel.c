@@ -39,6 +39,7 @@ void _start(void *arg)
     time_init(arg);
     net_init();
 
+    mem_lock_heap();
     ret = solo5_app_main(cmdline);
     log(DEBUG, "Solo5: solo5_app_main() returned with %d\n", ret);
 

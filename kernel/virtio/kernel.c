@@ -60,6 +60,7 @@ static void _start2(void *arg __attribute__((unused)))
     pci_enumerate();
     cpu_intr_enable();
 
+    mem_lock_heap();
     ret = solo5_app_main(cmdline);
     log(DEBUG, "Solo5: solo5_app_main() returned with %d\n", ret);
 
