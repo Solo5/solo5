@@ -24,6 +24,14 @@ static uint64_t heap_start;
 static uint64_t heap_top;
 static uint64_t stack_guard_size;
 
+/* 
+ * We lock the memory layout (disabling mem_ialloc_pages) after Solo5
+ * initialization but before passing control to the application via
+ * solo5_app_main().
+ */
+static int mem_locked = 0;
+void mem_lock_heap(void) { mem_locked = 1; }
+
 void mem_init(void)
 {
     extern char _stext[], _etext[], _erodata[], _end[];
@@ -32,6 +40,10 @@ void mem_init(void)
     mem_size = platform_mem_size();
     heap_start = ((uint64_t)&_end + PAGE_SIZE - 1) & PAGE_MASK;
     heap_top = heap_start;
+
+    /* assert heap is page-aligned (4K boundaries) */
+    assert(!(heap_top & 0xfff));
+    
     /*
      * Cowardly refuse to run with less than 512KB of free memory.
      */
@@ -56,27 +68,29 @@ void mem_init(void)
 }
 
 /* 
- * Allocate a 4K aligned chunk on the brk.  Should only be called
- * before solo5_app_main. 
+ * Allocate pages on the heap.  Should only be called on
+ * initialization (before solo5_app_main).
  */
-void *alloc_chunk_4K(size_t size)
+void *mem_ialloc_pages(size_t num)
 {
     uint64_t prev, brk;
     uint64_t heap_max = (uint64_t)&prev - stack_guard_size;
     prev = brk = heap_top;
 
-    /* for 4K alignment */
-    prev = brk = brk + (0x1000 - (brk & 0xfff));
-
-    brk += size;
-    if (brk >= heap_max || brk < heap_start)
-        return NULL;
-
+    assert(!mem_locked);
+    assert(PAGE_SIZE == 4096);
+    assert(num < (heap_max - heap_top / PAGE_SIZE));
+    
+    brk += num * PAGE_SIZE;
     heap_top = brk;
+
+    assert(!(prev & 0xfff));
     return (void *)prev;
 }
 
 void solo5_get_info(struct solo5_info *info) {
+    assert(mem_locked);
+    
     info->heap_start = heap_top;
     info->heap_end = platform_mem_size() - stack_guard_size;
 }

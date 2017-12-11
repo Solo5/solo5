@@ -42,7 +42,6 @@ int solo5_app_main(char *cmdline);
  * Platform information.  Currently only memory info.
  */
 struct solo5_info {
-    char *cmdline;
     uint64_t heap_start;
     uint64_t heap_end;
 };
