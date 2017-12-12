@@ -21,7 +21,6 @@
 #include "kernel.h"
 
 static uint64_t heap_start;
-static uint64_t heap_top;
 static uint64_t stack_guard_size;
 
 /* 
@@ -30,7 +29,10 @@ static uint64_t stack_guard_size;
  * solo5_app_main().
  */
 static int mem_locked = 0;
-void mem_lock_heap(void) { mem_locked = 1; }
+void mem_lock_heap(void)
+{
+    mem_locked = 1;
+}
 
 void mem_init(void)
 {
@@ -39,10 +41,6 @@ void mem_init(void)
 
     mem_size = platform_mem_size();
     heap_start = ((uint64_t)&_end + PAGE_SIZE - 1) & PAGE_MASK;
-    heap_top = heap_start;
-
-    /* assert heap is page-aligned (4K boundaries) */
-    assert(!(heap_top & 0xfff));
     
     /*
      * Cowardly refuse to run with less than 512KB of free memory.
@@ -73,24 +71,18 @@ void mem_init(void)
  */
 void *mem_ialloc_pages(size_t num)
 {
-    uint64_t prev, brk;
-    uint64_t heap_max = (uint64_t)&prev - stack_guard_size;
-    prev = brk = heap_top;
-
     assert(!mem_locked);
-    assert(PAGE_SIZE == 4096);
-    assert(num < (heap_max - heap_top / PAGE_SIZE));
-    
-    brk += num * PAGE_SIZE;
-    heap_top = brk;
 
-    assert(!(prev & 0xfff));
+    uint64_t prev = heap_start;
+    heap_start += num << PAGE_SHIFT;
+    assert(heap_start < (uint64_t)&prev);
+
     return (void *)prev;
 }
 
 void solo5_get_info(struct solo5_info *info) {
     assert(mem_locked);
     
-    info->heap_start = heap_top;
+    info->heap_start = heap_start;
     info->heap_end = platform_mem_size() - stack_guard_size;
 }
