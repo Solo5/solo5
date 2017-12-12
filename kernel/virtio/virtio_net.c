@@ -183,15 +183,15 @@ void virtio_config_network(struct pci_config_info *pci)
     virtq_init_rings(pci->base, &recvq, VIRTQ_RECV);
     virtq_init_rings(pci->base, &xmitq, VIRTQ_XMIT);
 
-    pgs = (recvq.num * sizeof (struct io_buffer) + PAGE_SIZE - 1) / PAGE_SIZE;
+    pgs = (((recvq.num * sizeof (struct io_buffer)) - 1) >> PAGE_SHIFT) + 1;
     recvq.bufs = mem_ialloc_pages(pgs);
     assert(recvq.bufs);
-    memset(recvq.bufs, 0, pgs * PAGE_SIZE);
+    memset(recvq.bufs, 0, pgs << PAGE_SHIFT);
 
-    pgs = (recvq.num * sizeof (struct io_buffer) + PAGE_SIZE - 1) / PAGE_SIZE;
+    pgs = (((recvq.num * sizeof (struct io_buffer)) - 1) >> PAGE_SHIFT) + 1;
     xmitq.bufs = mem_ialloc_pages(pgs);
     assert(xmitq.bufs);
-    memset(xmitq.bufs, 0, pgs * PAGE_SIZE);
+    memset(xmitq.bufs, 0, pgs << PAGE_SHIFT);
 
     virtio_net_pci_base = pci->base;
     net_configured = 1;

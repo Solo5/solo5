@@ -93,10 +93,10 @@ void virtq_init_rings(uint16_t pci_base, struct virtq *vq, int selector)
     vq->last_used = vq->next_avail = 0;
     vq->num = vq->num_avail = inw(pci_base + VIRTIO_PCI_QUEUE_SIZE);
 
-    pgs = (VIRTQ_SIZE(vq->num) + PAGE_SIZE - 1) / PAGE_SIZE;
+    pgs = ((VIRTQ_SIZE(vq->num) - 1) >> PAGE_SHIFT) + 1;
     data = mem_ialloc_pages(pgs);
     assert(data);
-    memset(data, 0, pgs * PAGE_SIZE);
+    memset(data, 0, pgs << PAGE_SHIFT);
 
     assert(vq->num <= VIRTQ_MAX_QUEUE_SIZE);
 
