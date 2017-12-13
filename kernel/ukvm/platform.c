@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
  *
  * This file is part of Solo5, a unikernel base layer.
@@ -41,10 +41,18 @@ uint64_t platform_mem_size(void)
     return mem_size;
 }
 
+void platform_dump_core()
+{
+    volatile struct ukvm_dump_core info;
+    ukvm_do_hypercall(UKVM_HYPERCALL_DUMP_CORE, &info);
+}
+
 void platform_exit(void)
 {
     /*
      * Halt will cause an exit (as in "shutdown") on ukvm.
      */
+    platform_dump_core();
     cpu_halt();
 }
+

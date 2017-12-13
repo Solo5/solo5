@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
  *
  * This file is part of ukvm, a unikernel monitor.
@@ -133,6 +133,17 @@ static void hypercall_poll(struct ukvm_hv *hv, ukvm_gpa_t gpa)
     t->ret = rc;
 }
 
+static void hypercall_dump_core()
+{
+#if 0
+    struct ukvm_dump_core *t =
+        UKVM_CHECKED_GPA_P(hv, gpa, sizeof (struct ukvm_dump_core));
+#endif
+
+    int rc = write(1, "dumping core\n", 20);
+    assert(rc >= 0);
+}
+
 static int setup(struct ukvm_hv *hv)
 {
     assert(ukvm_core_register_hypercall(UKVM_HYPERCALL_WALLTIME,
@@ -141,6 +152,8 @@ static int setup(struct ukvm_hv *hv)
                 hypercall_puts) == 0);
     assert(ukvm_core_register_hypercall(UKVM_HYPERCALL_POLL,
                 hypercall_poll) == 0);
+    assert(ukvm_core_register_hypercall(UKVM_HYPERCALL_DUMP_CORE,
+                hypercall_dump_core) == 0);
 
     /*
      * XXX: This needs documenting / coordination with the top-level caller.

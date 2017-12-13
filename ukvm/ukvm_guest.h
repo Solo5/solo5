@@ -170,6 +170,7 @@ enum ukvm_hypercall {
     UKVM_HYPERCALL_NETWRITE,
     UKVM_HYPERCALL_NETREAD,
     UKVM_HYPERCALL_HALT,
+    UKVM_HYPERCALL_DUMP_CORE,
     UKVM_HYPERCALL_MAX
 };
 
@@ -259,6 +260,16 @@ struct ukvm_netread {
 struct ukvm_poll {
     /* IN */
     uint64_t timeout_nsecs;
+
+    /* OUT */
+    int ret;
+};
+
+/* UKVM_HYPERCALL_DUMP_CORE */
+struct ukvm_dump_core {
+    /* IN */
+    UKVM_GUEST_PTR(const void *) data;
+    size_t len;
 
     /* OUT */
     int ret;

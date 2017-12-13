@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
  *
  * This file is part of ukvm, a unikernel monitor.
@@ -197,6 +197,11 @@ int main(int argc, char **argv)
     setup_modules(hv);
 
     ukvm_hv_vcpu_loop(hv);
+    /* When error is seen above */
+    //ukvm_elf_dump_core(elffile, hv->mem, hv->mem_size, &gpa_ep, &gpa_kend);
+    // Checkout elfcore.c in google core dumper library
+    // Specially the function CreateElfCore()
+    puts("Solo5: Exiting loop");
 
     return 0;
 }
