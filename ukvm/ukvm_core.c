@@ -35,6 +35,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <fcntl.h>
 #include <sys/mman.h>
 #include <time.h>
 #include <unistd.h>
@@ -133,14 +134,16 @@ static void hypercall_poll(struct ukvm_hv *hv, ukvm_gpa_t gpa)
     t->ret = rc;
 }
 
-static void hypercall_dump_core()
+static void hypercall_dump_core(struct ukvm_hv *hv, ukvm_gpa_t gpa)
 {
 #if 0
     struct ukvm_dump_core *t =
         UKVM_CHECKED_GPA_P(hv, gpa, sizeof (struct ukvm_dump_core));
 #endif
 
-    int rc = write(1, "dumping core\n", 20);
+    int core_fd = open("unikernel.core", O_RDWR|O_CREAT|O_TRUNC, S_IRUSR|S_IWUSR);
+    assert(core_fd >= 0);
+    int rc = write(core_fd, "dumping core\n", 13);
     assert(rc >= 0);
 }
 
