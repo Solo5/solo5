@@ -80,9 +80,9 @@ void *mem_ialloc_pages(size_t num)
     return (void *)prev;
 }
 
-void solo5_get_info(struct solo5_info *info) {
+void solo5_mem_info(struct solo5_mem_info *info) {
     assert(mem_locked);
     
     info->heap_start = heap_start;
-    info->heap_end = platform_mem_size() - stack_guard_size;
+    info->mem_size = platform_mem_size();
 }

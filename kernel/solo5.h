@@ -39,13 +39,13 @@
 int solo5_app_main(char *cmdline);
 
 /* 
- * Platform information.  Currently only memory info.
+ * Platform memory information.
  */
-struct solo5_info {
+struct solo5_mem_info {
     uint64_t heap_start;
-    uint64_t heap_end;
+    size_t mem_size;
 };
-void solo5_get_info(struct solo5_info *info);
+void solo5_mem_info(struct solo5_mem_info *info);
 
 /*
  * Network I/O.
