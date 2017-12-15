@@ -186,7 +186,7 @@ int main(int argc, char **argv)
         err(1, "Could not install signal handler");
 
     ukvm_hv_mem_size(&mem_size);
-    struct ukvm_hv *hv = ukvm_hv_init(mem_size);
+    struct ukvm_hv *hv = ukvm_hv_init(mem_size, elffile);
 
     ukvm_elf_load(elffile, hv->mem, hv->mem_size, &gpa_ep, &gpa_kend);
 
@@ -196,6 +196,7 @@ int main(int argc, char **argv)
 
     setup_modules(hv);
 
+    warnx("Guest mem=%p, size=%zu", hv->mem, hv->mem_size);
     ukvm_hv_vcpu_loop(hv);
     /* When error is seen above */
     //ukvm_elf_dump_core(elffile, hv->mem, hv->mem_size, &gpa_ep, &gpa_kend);

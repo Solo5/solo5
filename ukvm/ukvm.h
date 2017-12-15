@@ -44,6 +44,7 @@ struct ukvm_hv {
     uint8_t *mem;
     size_t mem_size;
     struct ukvm_hvb *b;
+    const char *elffile;
 };
 
 /*
@@ -52,6 +53,9 @@ struct ukvm_hv {
  */
 void ukvm_elf_load(const char *file, uint8_t *mem, size_t mem_size,
         ukvm_gpa_t *p_entry, ukvm_gpa_t *p_end);                
+
+/* Dump the core into the core file */
+void ukvm_dump_core(struct ukvm_hv *hv, struct ukvm_dump_core *info);
 
 /*
  * Check that (gpa) and (gpa + sz) are within guest memory. Returns a host-side
@@ -79,7 +83,7 @@ inline void *ukvm_checked_gpa_p(struct ukvm_hv *hv, ukvm_gpa_t gpa, size_t sz,
  * Initialise hypervisor, with (mem_size) bytes of guest memory.
  * (hv->mem) and (hv->mem_size) are valid after this function has been called.
  */
-struct ukvm_hv *ukvm_hv_init(size_t mem_size);
+struct ukvm_hv *ukvm_hv_init(size_t mem_size, const char *elffile);
 
 /*
  * Computes the memory size to use for this monitor, based on the user-provided

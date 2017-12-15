@@ -136,15 +136,9 @@ static void hypercall_poll(struct ukvm_hv *hv, ukvm_gpa_t gpa)
 
 static void hypercall_dump_core(struct ukvm_hv *hv, ukvm_gpa_t gpa)
 {
-#if 0
     struct ukvm_dump_core *t =
         UKVM_CHECKED_GPA_P(hv, gpa, sizeof (struct ukvm_dump_core));
-#endif
-
-    int core_fd = open("unikernel.core", O_RDWR|O_CREAT|O_TRUNC, S_IRUSR|S_IWUSR);
-    assert(core_fd >= 0);
-    int rc = write(core_fd, "dumping core\n", 13);
-    assert(rc >= 0);
+    ukvm_dump_core(hv, t);
 }
 
 static int setup(struct ukvm_hv *hv)

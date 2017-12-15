@@ -68,7 +68,7 @@ static void cleanup_vmfd(void)
         close(cleanup_hv->b->vmfd);
 }
 
-struct ukvm_hv *ukvm_hv_init(size_t mem_size)
+struct ukvm_hv *ukvm_hv_init(size_t mem_size, const char *elffile)
 {
     int ret;
 
@@ -128,5 +128,6 @@ struct ukvm_hv *ukvm_hv_init(size_t mem_size)
     if (hv->mem == MAP_FAILED)
 	err(1, "mmap");
     hv->mem_size = mem_size;
+    hv->elffile = elffile;
     return hv;
 }

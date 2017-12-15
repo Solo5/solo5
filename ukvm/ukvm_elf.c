@@ -26,6 +26,8 @@
  */
 
 #define _GNU_SOURCE
+#include <assert.h>
+#include <stdio.h>
 #include <err.h>
 #include <elf.h>
 #include <errno.h>
@@ -90,7 +92,7 @@ static ssize_t pread_in_full(int fd, void *buf, size_t count, off_t offset)
 void ukvm_elf_load(const char *file, uint8_t *mem, size_t mem_size,
        ukvm_gpa_t *p_entry, ukvm_gpa_t *p_end)
 {
-    int fd_kernel;
+    int elf_fd;
     ssize_t numb;
     size_t buflen;
     Elf64_Off ph_off;
@@ -105,11 +107,11 @@ void ukvm_elf_load(const char *file, uint8_t *mem, size_t mem_size,
     /* highest byte of the program (on physical memory) */
     *p_end = 0;
 
-    fd_kernel = open(file, O_RDONLY);
-    if (fd_kernel == -1)
+    elf_fd = open(file, O_RDONLY);
+    if (elf_fd == -1)
         goto out_error;
 
-    numb = pread_in_full(fd_kernel, &hdr, sizeof(Elf64_Ehdr), 0);
+    numb = pread_in_full(elf_fd, &hdr, sizeof(Elf64_Ehdr), 0);
     if (numb < 0)
         goto out_error;
     if (numb != sizeof(Elf64_Ehdr))
@@ -146,7 +148,7 @@ void ukvm_elf_load(const char *file, uint8_t *mem, size_t mem_size,
     phdr = malloc(buflen);
     if (!phdr)
         goto out_error;
-    numb = pread_in_full(fd_kernel, phdr, buflen, ph_off);
+    numb = pread_in_full(elf_fd, phdr, buflen, ph_off);
     if (numb < 0)
         goto out_error;
     if (numb != buflen)
@@ -193,7 +195,7 @@ void ukvm_elf_load(const char *file, uint8_t *mem, size_t mem_size,
             *p_end = _end;
 
         daddr = mem + paddr;
-        numb = pread_in_full(fd_kernel, daddr, filesz, offset);
+        numb = pread_in_full(elf_fd, daddr, filesz, offset);
         if (numb < 0)
             goto out_error;
         if (numb != filesz)
@@ -215,7 +217,7 @@ void ukvm_elf_load(const char *file, uint8_t *mem, size_t mem_size,
     }
 
     free (phdr);
-    close (fd_kernel);
+    close (elf_fd);
     *p_entry = hdr.e_entry;
     return;
 
@@ -224,4 +226,91 @@ out_error:
 
 out_invalid:
     errx(1, "%s: Exec format error", file);
+}
+
+struct io {
+  unsigned char *data, *end;
+};
+
+/* Reads one character from the "io" file. This function has the same
+ * semantics as fgetc(), but we cannot call any library functions at this
+ * time.
+ */
+static int GetChar(struct io *io) {
+    unsigned char *ptr = io->data;
+    if (ptr == io->end) {
+        return -1;
+    }
+    io->data = ptr + 1;
+    return *ptr;
+}
+
+/* Place the hex number read from "io" into "*hex".  The first non-hex
+ * character is returned (or -1 in the case of end-of-file).
+ */
+#if 0
+static int GetHex(struct io *io, size_t *hex) {
+  int ch;
+  *hex = 0;
+  while (((ch = GetChar(io)) >= '0' && ch <= '9') ||
+         (ch >= 'A' && ch <= 'F') || (ch >= 'a' && ch <= 'f'))
+    *hex = (*hex << 4) | (ch < 'A' ? ch - '0' : (ch & 0xF) + 9);
+  return ch;
+}
+#endif
+
+void ukvm_dump_core(struct ukvm_hv *hv, struct ukvm_dump_core *info)
+{
+    int core_fd, rc, elf_fd;
+    ssize_t numb;
+    Elf64_Ehdr hdr;
+
+    /* Test code. Open core file and dump it with contents now. 
+     * We will optimize and clean it up later */
+    core_fd = open("unikernel.core", O_RDWR|O_CREAT|O_TRUNC|O_APPEND, S_IRUSR|S_IWUSR);
+    assert(core_fd >= 0);
+
+    /* Read the elf file and write the ellf header to the core */
+    elf_fd = open(hv->elffile, O_RDONLY);
+    assert(elf_fd >= 0);
+    numb = pread_in_full(elf_fd, &hdr, sizeof(Elf64_Ehdr), 0);
+    assert (numb == sizeof(Elf64_Ehdr));
+
+    /* Update the elf header to indicate this is a core file */
+    hdr.e_type = ET_CORE; 
+
+    /* No section header in core file */
+    hdr.e_shoff = 0;
+    hdr.e_shentsize = 0;
+    hdr.e_shnum = 0;
+    hdr.e_shstrndx = 0;
+
+    rc = write(core_fd, &hdr, sizeof(Elf64_Ehdr));
+    
+    /* Dump Some core */
+    struct io io = { 0 };
+    io.data = (unsigned char *)hv->mem;
+    io.end = (unsigned char *)(hv->mem + hv->mem_size);
+    int num_mappings = 0, ch;
+    while ((ch = GetChar(&io)) >= 0) {
+      num_mappings += (ch == '\n');
+    }
+#if 0
+    static const int PF_ANONYMOUS = 0x80000000;
+    static const int PF_MASK      = 0x00000007;
+    struct {
+        size_t start_address, end_address, offset, write_size;
+        int   flags;
+    } mappings[num_mappings];
+    printf("%d\n", num_mappings);
+
+    /* Reset */
+    io.data = (unsigned char *)hv->mem;
+    io.end = (unsigned char *)(hv->mem + hv->mem_size);
+#endif
+
+    //rc = write(core_fd, hv->mem, hv->mem_size); 
+    assert(rc >= 0);
+    close(core_fd);
+    close(elf_fd);
 }
