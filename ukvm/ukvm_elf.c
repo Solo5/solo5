@@ -232,6 +232,7 @@ struct io {
   unsigned char *data, *end;
 };
 
+#if 0
 /* Reads one character from the "io" file. This function has the same
  * semantics as fgetc(), but we cannot call any library functions at this
  * time.
@@ -248,7 +249,6 @@ static int GetChar(struct io *io) {
 /* Place the hex number read from "io" into "*hex".  The first non-hex
  * character is returned (or -1 in the case of end-of-file).
  */
-#if 0
 static int GetHex(struct io *io, size_t *hex) {
   int ch;
   *hex = 0;
@@ -264,6 +264,29 @@ void ukvm_dump_core(struct ukvm_hv *hv, struct ukvm_dump_core *info)
     int core_fd, rc, elf_fd;
     ssize_t numb;
     Elf64_Ehdr hdr;
+    /*
+     * the vmcore's format is:
+     *   --------------
+     *   |  elf header |
+     *   --------------
+     *   |  PT_NOTE    |
+     *   --------------
+     *   |  PT_LOAD    |
+     *   --------------
+     *   |  ......     |
+     *   --------------
+     *   |  PT_LOAD    |
+     *   --------------
+     *   |  sec_hdr    |
+     *   --------------
+     *   |  elf note   |
+     *   --------------
+     *   |  memory     |
+     *   --------------
+     *
+     * we only know where the memory is saved after we write elf note into
+     * vmcore.
+     */
 
     /* Test code. Open core file and dump it with contents now. 
      * We will optimize and clean it up later */
@@ -284,9 +307,12 @@ void ukvm_dump_core(struct ukvm_hv *hv, struct ukvm_dump_core *info)
     hdr.e_shentsize = 0;
     hdr.e_shnum = 0;
     hdr.e_shstrndx = 0;
+    /* Hardcode for now */
+    hdr.e_phnum = 1;
 
     rc = write(core_fd, &hdr, sizeof(Elf64_Ehdr));
     
+#if 0
     /* Dump Some core */
     struct io io = { 0 };
     io.data = (unsigned char *)hv->mem;
@@ -295,7 +321,6 @@ void ukvm_dump_core(struct ukvm_hv *hv, struct ukvm_dump_core *info)
     while ((ch = GetChar(&io)) >= 0) {
       num_mappings += (ch == '\n');
     }
-#if 0
     static const int PF_ANONYMOUS = 0x80000000;
     static const int PF_MASK      = 0x00000007;
     struct {
@@ -308,8 +333,48 @@ void ukvm_dump_core(struct ukvm_hv *hv, struct ukvm_dump_core *info)
     io.data = (unsigned char *)hv->mem;
     io.end = (unsigned char *)(hv->mem + hv->mem_size);
 #endif
+    Elf64_Phdr phdr = { 0 };
+    size_t offset = sizeof(hdr) + (hdr.e_phnum * sizeof(Elf64_Phdr));
+    /* Write a fake PT_NOTE, data for more useful notes is not available for now */
+#if 0
+    phdr.p_type = PT_NOTE;
+    phdr.p_offset = offset;
+    phdr.p_filesz = sizeof(phdr);
+    phdr.p_memsz = sizeof(phdr);
+    rc = write(core_fd, &phdr, sizeof(phdr)); 
+    offset += sizeof(phdr);
+#endif
 
-    //rc = write(core_fd, hv->mem, hv->mem_size); 
+    /* Write program headers for memory segments. We have only one? */
+    memset(&phdr, 0, sizeof(phdr)); 
+    phdr.p_type     = PT_LOAD;
+    phdr.p_align    = 0;//pagesize;
+    phdr.p_paddr    = (size_t)hv->mem;
+#if 0
+    note_align      = phdr.p_align - ((offset+filesz) % phdr.p_align);
+    if (note_align == phdr.p_align)
+        note_align    = 0;
+    offset         += note_align;
+#endif
+    phdr.p_offset = offset;
+    phdr.p_vaddr  = 0;//(size_t)hv->mem;
+    phdr.p_memsz  = hv->mem_size;
+    phdr.p_filesz = hv->mem_size;
+    phdr.p_flags  = 0;//mappings[i].flags & PF_MASK;
+
+    rc = write(core_fd, &phdr, sizeof(phdr)); 
+
+#if 0
+    /* Write note section */
+    Elf64_Nhdr nhdr = { 0 }; 
+    nhdr.n_namesz = 5; // strlen("none") + 1; 
+    nhdr.n_descsz = 5; //strlen("empty");
+    nhdr.n_type = 0;
+    rc = write(core_fd, &nhdr, sizeof(nhdr)); 
+#endif
+
+    /* Write memory */
+    rc = write(core_fd, hv->mem, hv->mem_size);
     assert(rc >= 0);
     close(core_fd);
     close(elf_fd);
