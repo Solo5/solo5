@@ -53,3 +53,15 @@ void _abort(const char *file, const char *line, const char *s)
     puts("\n");
     platform_exit();
 }
+
+void _abort_and_dump(const char *file, const char *line, const char *s, void *regs)
+{
+    puts("Solo5: ABORT & DUMPING CORE: ");
+    puts(file);
+    puts(":");
+    puts(line);
+    puts(": ");
+    puts(s);
+    puts("\n");
+    platform_dump_core(regs);
+}

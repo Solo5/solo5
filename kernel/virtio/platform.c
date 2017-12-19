@@ -97,6 +97,14 @@ uint64_t platform_mem_size(void)
     return mem_size;
 }
 
+/* NO-op for now */
+void platform_dump_core(void *regs)
+{
+    log(WARN, "Solo5: %s: Unimplemented error: %p\n",
+            __FUNCTION__, regs);
+    cpu_halt();
+}
+
 void platform_exit(void)
 {
     /*

@@ -41,10 +41,12 @@ uint64_t platform_mem_size(void)
     return mem_size;
 }
 
-void platform_dump_core()
+void platform_dump_core(void *regs)
 {
     volatile struct ukvm_dump_core info;
+    info.data = regs;
     ukvm_do_hypercall(UKVM_HYPERCALL_DUMP_CORE, &info);
+    cpu_halt();
 }
 
 void platform_exit(void)
@@ -52,7 +54,6 @@ void platform_exit(void)
     /*
      * Halt will cause an exit (as in "shutdown") on ukvm.
      */
-    platform_dump_core();
     cpu_halt();
 }
 
