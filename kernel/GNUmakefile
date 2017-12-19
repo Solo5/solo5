@@ -45,6 +45,7 @@ ukvm/tscclock.o \
 ukvm/console.o \
 ukvm/net.o \
 ukvm/block.o \
+ukvm/exec.o \
 $(COMMON_COBJS)
 
 VIRTIO_COBJS=\
@@ -61,6 +62,7 @@ virtio/virtio_blk.o \
 virtio/tscclock.o \
 virtio/clock_subr.o \
 virtio/pvclock.o \
+virtio/exec.o \
 $(COMMON_COBJS)
 
 MUEN_COBJS=\
@@ -75,6 +77,7 @@ muen/muen-net.o \
 muen/muen-platform_init.o \
 muen/muen-poll.o \
 muen/muen-sinfo.o \
+muen/muen-exec.o \
 $(COMMON_COBJS)
 
 HEADERS=\

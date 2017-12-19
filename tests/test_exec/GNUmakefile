@@ -16,16 +16,9 @@
 # NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
 # CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-# The purpose of this Makefile is to ensure that a ukvm-bin with ALL modules
-# configured compiles correctly.
+UKVM_TARGETS=test_exec.ukvm ukvm-bin
+VIRTIO_TARGETS=
+MUEN_TARGETS=
+UKVM_MODULES=exec
 
-.PHONY: all clean
-all: ukvm-bin
-
-Makefile.ukvm: ukvm-configure
-	./ukvm-configure . blk net gdb exec
-
--include Makefile.ukvm
-
-clean: ukvm-clean
-	$(RM) Makefile.ukvm
+include ../Makefile.tests

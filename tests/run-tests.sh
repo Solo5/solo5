@@ -200,6 +200,10 @@ run_test ()
             fi
         fi
         ;;
+    *)
+        # The execution failed as expected
+        [ -n "${WANT_ABORT}" ] && STATUS=0
+        ;;
     esac
 
     wait
@@ -271,6 +275,8 @@ if [ "${BUILD_UKVM}" = "yes" ]; then
     add_test test_time.ukvm
     add_test test_blk.ukvm/-d
     add_test test_ping_serve.ukvm/-n/limit
+    add_test test_exec.ukvm
+    add_test test_exec_failure.ukvm/-a
 fi
 if [ "${BUILD_VIRTIO}" = "yes" ]; then
     add_test test_hello.virtio//Hello_Solo5

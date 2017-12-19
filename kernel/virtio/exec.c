@@ -1,7 +1,7 @@
-/*
+/* 
  * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
  *
- * This file is part of ukvm, a unikernel monitor.
+ * This file is part of Solo5, a unikernel base layer.
  *
  * Permission to use, copy, modify, and/or distribute this software
  * for any purpose with or without fee is hereby granted, provided
@@ -18,20 +18,9 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/*
- * ukvm_hv_freebsd.h: FreeBSD vmm(4) backend definitions.
- */
+#include "kernel.h"
 
-#ifndef UKVM_HV_FREEBSD_H
-#define UKVM_HV_FREEBSD_H
-
-#include <stdbool.h>
-
-struct ukvm_hvb {
-    char *vmname;
-    int vmfd;
-    struct vm_run vmrun;
-    bool activated; /* Used for solo5_exec */
-};
-
-#endif /* UKVM_HV_FREEBSD_H */
+void solo5_exec(unsigned char *elf __attribute__((unused)), size_t len __attribute__((unused)))
+{
+    PANIC("Solo5: exec not supported\n");
+}

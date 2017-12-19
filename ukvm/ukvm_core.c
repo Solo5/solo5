@@ -38,6 +38,9 @@
 #include <sys/mman.h>
 #include <time.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 #include "ukvm.h"
 
@@ -53,6 +56,9 @@ struct ukvm_module *ukvm_core_modules[] = {
 #endif
 #ifdef UKVM_MODULE_GDB
     &ukvm_module_gdb,
+#endif
+#ifdef UKVM_MODULE_EXEC
+    &ukvm_module_exec,
 #endif
     NULL,
 };
@@ -102,6 +108,7 @@ static void hypercall_puts(struct ukvm_hv *hv, ukvm_gpa_t gpa)
     int rc = write(1, UKVM_CHECKED_GPA_P(hv, p->data, p->len), p->len);
     assert(rc >= 0);
 }
+
 
 static struct pollfd pollfds[NUM_MODULES];
 static int npollfds = 0;

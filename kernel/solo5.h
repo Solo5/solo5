@@ -143,4 +143,16 @@ uint64_t solo5_clock_wall(void);
  */
 int solo5_poll(uint64_t until_nsecs);
 
+/*
+ * Starts a new unikernel with an ELF pointed at elf_mem. elf_mem is an ELF
+ * binary of size elf_mem_len Bytes. The unikernel will be called with no
+ * arguments.
+ *
+ * This call either succeeds or panics (and kills the unikernel). The call
+ * fails if elf_mem does not point to a valid ELF: the magic field is not
+ * right, the architecture does not match the running unikernel, or any of the
+ * addresses point outside the guest memory or elf_mem_len. 
+ */
+void solo5_exec(unsigned char *elf_mem, size_t elf_mem_len);
+
 #endif

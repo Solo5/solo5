@@ -50,8 +50,16 @@ struct ukvm_hv {
  * Load an ELF binary from (file) into (mem_size) bytes of (mem), returning
  * the entry point (gpa_ep) and last byte used by the binary (gpa_kend).
  */
-void ukvm_elf_load(const char *file, uint8_t *mem, size_t mem_size,
-        ukvm_gpa_t *p_entry, ukvm_gpa_t *p_end);                
+void ukvm_elf_load_file(const char *file, uint8_t *mem, size_t mem_size,
+                        ukvm_gpa_t *p_entry, ukvm_gpa_t *p_end);
+
+/*
+ * Load an ELF binary from memory (elf_mem) into (mem_size) bytes of (mem),
+ * returning the entry point (gpa_ep) and last byte used by the binary
+ * (gpa_kend).
+ */
+void ukvm_elf_load_mem(uint8_t *elf_mem, size_t elf_mem_len, uint8_t *mem,
+                       size_t mem_size, ukvm_gpa_t *p_entry, ukvm_gpa_t *p_end);
 
 /*
  * Check that (gpa) and (gpa + sz) are within guest memory. Returns a host-side
@@ -148,6 +156,7 @@ extern struct ukvm_module ukvm_module_core;
 extern struct ukvm_module ukvm_module_blk;
 extern struct ukvm_module ukvm_module_net;
 extern struct ukvm_module ukvm_module_gdb;
+extern struct ukvm_module ukvm_module_exec;
 
 /*
  * GDB specific functions to be implemented on all backends for all
