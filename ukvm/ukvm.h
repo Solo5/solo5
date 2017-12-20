@@ -138,6 +138,17 @@ extern ukvm_vmexit_fn_t ukvm_core_vmexits[];
 int ukvm_hv_get_regs(struct ukvm_hv *hv);
 
 /*
+ * Dump the notes to the core file
+ */
+int ukvm_hv_dump_notes(int core_fd, struct ukvm_hv *hv,
+        struct ukvm_dump_core *info);
+
+/*
+ * Return note size
+ */
+size_t ukvm_hv_get_notes_size(int *num_notes);
+
+/*
  * Module definition. (name) and (setup) are required, all other functions are
  * optional.
  */

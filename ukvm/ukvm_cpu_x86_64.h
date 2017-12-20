@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
  *
  * This file is part of ukvm, a unikernel monitor.
@@ -79,7 +79,7 @@
 #define X86_CR4_INIT            (X86_CR4_PAE | X86_CR4_OSFXSR | \
                                 X86_CR4_OSXMMEXCPT)
 
-/* 
+/*
  * Intel CPU features in EFER
  */
 #define X86_EFER_LME_BIT        8 /* Long mode enable (R/W) */
@@ -181,6 +181,33 @@ static const struct x86_sreg ukvm_x86_sreg_unusable = {
     .selector = X86_GDT_NULL,
     .unusable = 1
 };
+
+struct trap_regs {
+    uint64_t cr2;
+    uint64_t ec;
+    uint64_t rip;
+    uint64_t cs;
+    uint64_t rflags;
+    uint64_t rsp;
+    uint64_t ss;
+};
+
+typedef struct {
+    uint64_t r15, r14, r13, r12, rbp, rbx, r11, r10;
+    uint64_t r9, r8, rax, rcx, rdx, rsi, rdi, orig_rax;
+    uint64_t rip, cs, eflags;
+    uint64_t rsp, ss;
+    uint64_t fs_base, gs_base;
+    uint64_t ds, es, fs, gs;
+} x86_64_user_regs_struct;
+
+typedef struct {
+    char pad1[32];
+    uint32_t pid;
+    char pad2[76];
+    x86_64_user_regs_struct regs;
+    char pad3[8];
+} x86_elf_prstatus;
 
 /*
  * Monitor memory map for x86 CPUs:

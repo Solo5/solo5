@@ -231,143 +231,49 @@ out_invalid:
     errx(1, "%s: Exec format error", file);
 }
 
-struct io {
-  unsigned char *data, *end;
-};
-
-//#include "cpu_x86_64.h"
-struct trap_regs {
-    uint64_t cr2;
-    uint64_t ec;
-    uint64_t rip;
-    uint64_t cs;
-    uint64_t rflags;
-    uint64_t rsp;
-    uint64_t ss;
-};
-
-typedef struct {
-    uint64_t r15, r14, r13, r12, rbp, rbx, r11, r10;
-    uint64_t r9, r8, rax, rcx, rdx, rsi, rdi, orig_rax;
-    uint64_t rip, cs, eflags;
-    uint64_t rsp, ss;
-    uint64_t fs_base, gs_base;
-    uint64_t ds, es, fs, gs;
-} x86_64_user_regs_struct;
-
-typedef struct {
-    char pad1[32];
-    uint32_t pid;
-    char pad2[76];
-    x86_64_user_regs_struct regs;
-    char pad3[8];
-} x86_elf_prstatus;
-
-
-static void x86_fill_elf_prstatus(x86_elf_prstatus *prstatus,
-	 struct ukvm_hv *hv, struct ukvm_dump_core *info)
-{
-    memset(prstatus, 0, sizeof(x86_elf_prstatus));
-    prstatus->regs.r8 = hv->b->kregs.r8;
-    prstatus->regs.r9 = hv->b->kregs.r9;
-    prstatus->regs.r10 = hv->b->kregs.r10;
-    prstatus->regs.r11 = hv->b->kregs.r11;
-    prstatus->regs.r12 = hv->b->kregs.r12;
-    prstatus->regs.r13 = hv->b->kregs.r13;
-    prstatus->regs.r14 = hv->b->kregs.r14;
-    prstatus->regs.r15 = hv->b->kregs.r15;
-    prstatus->regs.rbp = hv->b->kregs.rbp;
-    prstatus->regs.rsp = hv->b->kregs.rsp;
-    prstatus->regs.rdi = hv->b->kregs.rdi;
-    prstatus->regs.rsi = hv->b->kregs.rsi;
-    prstatus->regs.rdx = hv->b->kregs.rdx;
-    prstatus->regs.rcx = hv->b->kregs.rcx;
-    prstatus->regs.rbx = hv->b->kregs.rbx;
-    prstatus->regs.rax = hv->b->kregs.rax;
-    prstatus->regs.rip = hv->b->kregs.rip;
-    prstatus->regs.eflags = hv->b->kregs.rflags;
-
-    prstatus->regs.cs = hv->b->sregs.cs.selector;
-    prstatus->regs.ss = hv->b->sregs.ss.selector;
-    prstatus->regs.ds = hv->b->sregs.ds.selector;
-    prstatus->regs.es = hv->b->sregs.es.selector;
-    prstatus->regs.fs = hv->b->sregs.fs.selector;
-    prstatus->regs.gs = hv->b->sregs.gs.selector;
-    prstatus->regs.fs_base = hv->b->sregs.fs.base;
-    prstatus->regs.gs_base = hv->b->sregs.gs.base;
-    prstatus->pid = getpid();
-
-    /* Overwrite some register information based on
-     * the input given by the Guest */
-    struct trap_regs *regs = (struct trap_regs *)info->data;
-    prstatus->regs.rip = regs->rip;
-    prstatus->regs.cs = regs->cs;
-    prstatus->regs.eflags = regs->rflags;
-    prstatus->regs.rsp = regs->rsp;
-    prstatus->regs.ss = regs->ss;
-    //errx(1, "Nik match: ec=0x%lx rip=0x%lx rsp=0x%lx rflags=0x%lx\n",
-    //    regs->ec, regs->rip, regs->rsp, regs->rflags);
-}
-
+/*
+ * the vmcore's format is:
+ *   --------------
+ *   |  elf header |
+ *   --------------
+ *   |  PT_NOTE    |
+ *   --------------
+ *   |  PT_LOAD    |
+ *   --------------
+ *   |  ......     |
+ *   --------------
+ *   |  PT_LOAD    |
+ *   --------------
+ *   |  elf note   |
+ *   --------------
+ *   |  memory     |
+ *   --------------
+ *
+ * we only know where the memory is saved after we write elf note into
+ * vmcore.
+ */
 void ukvm_dump_core(struct ukvm_hv *hv, struct ukvm_dump_core *info)
 {
-    int core_fd, rc, elf_fd;
-    ssize_t numb;
+    int core_fd, rc, elf_fd = 0, num_notes = 0;
+    size_t offset, note_size;
     Elf64_Ehdr hdr;
-    /*
-     * the vmcore's format is:
-     *   --------------
-     *   |  elf header |
-     *   --------------
-     *   |  PT_NOTE    |
-     *   --------------
-     *   |  PT_LOAD    |
-     *   --------------
-     *   |  ......     |
-     *   --------------
-     *   |  PT_LOAD    |
-     *   --------------
-     *   |  elf note   |
-     *   --------------
-     *   |  memory     |
-     *   --------------
-     *
-     * we only know where the memory is saved after we write elf note into
-     * vmcore.
-     */
+    Elf64_Phdr phdr = { 0 };
 
-#if 0
-    /* Dump Some core */
-    struct io io = { 0 };
-    io.data = (unsigned char *)hv->mem;
-    io.end = (unsigned char *)(hv->mem + hv->mem_size);
-    int num_mappings = 0, ch;
-    while ((ch = GetChar(&io)) >= 0) {
-      num_mappings += (ch == '\n');
+    core_fd = open("core", O_RDWR|O_CREAT|O_TRUNC|O_APPEND, S_IRUSR|S_IWUSR);
+    if (core_fd < 0) {
+        goto failure;
     }
-    static const int PF_ANONYMOUS = 0x80000000;
-    static const int PF_MASK      = 0x00000007;
-    struct {
-        size_t start_address, end_address, offset, write_size;
-        int   flags;
-    } mappings[num_mappings];
-    printf("%d\n", num_mappings);
 
-    /* Reset */
-    io.data = (unsigned char *)hv->mem;
-    io.end = (unsigned char *)(hv->mem + hv->mem_size);
-#endif
-
-    /* Test code. Open core file and dump it with contents now.
-     * We will optimize and clean it up later */
-    core_fd = open("unikernel.core", O_RDWR|O_CREAT|O_TRUNC|O_APPEND, S_IRUSR|S_IWUSR);
-    assert(core_fd >= 0);
-
-    /* Read the elf file and write the ellf header to the core */
+    /* Read the elf file and re-write the elf header to the core */
     elf_fd = open(hv->elffile, O_RDONLY);
-    assert(elf_fd >= 0);
-    numb = pread_in_full(elf_fd, &hdr, sizeof(Elf64_Ehdr), 0);
-    assert (numb == sizeof(Elf64_Ehdr));
+    if (elf_fd < 0) {
+        goto failure;
+    }
+
+    if (pread_in_full(elf_fd, &hdr, sizeof(Elf64_Ehdr), 0) !=
+            sizeof(Elf64_Ehdr)) {
+        goto failure;
+    }
 
     /* Update the elf header to indicate this is a core file */
     hdr.e_type = ET_CORE;
@@ -377,21 +283,25 @@ void ukvm_dump_core(struct ukvm_hv *hv, struct ukvm_dump_core *info)
     hdr.e_shentsize = 0;
     hdr.e_shnum = 0;
     hdr.e_shstrndx = 0;
-    /* Hardcode for now */
-    hdr.e_phnum = 2;
 
-    rc = write(core_fd, &hdr, sizeof(Elf64_Ehdr));
+    note_size = ukvm_hv_get_notes_size(&num_notes);
+    hdr.e_phnum = 1 + num_notes;
 
-    Elf64_Phdr phdr = { 0 };
-    size_t offset = sizeof(hdr) + (hdr.e_phnum * sizeof(Elf64_Phdr));
-    size_t note_size = sizeof(Elf64_Nhdr) + 8 + sizeof(x86_elf_prstatus);
-    /* Write a core PT_NOTE, data for more useful notes is not available for now */
-    phdr.p_type = PT_NOTE;
-    phdr.p_offset = offset;
-    phdr.p_filesz = note_size;
-    phdr.p_memsz = note_size;
-    rc = write(core_fd, &phdr, sizeof(phdr));
-    offset += note_size;
+    if (write(core_fd, &hdr, sizeof(Elf64_Ehdr)) < 0) {
+        goto failure;
+    }
+
+    offset = sizeof(hdr) + (hdr.e_phnum * sizeof(Elf64_Phdr));
+
+    if (num_notes) {
+        /* Write a core PT_NOTE, data for more useful notes is not available for now */
+        phdr.p_type = PT_NOTE;
+        phdr.p_offset = offset;
+        phdr.p_filesz = note_size;
+        phdr.p_memsz = note_size;
+        rc = write(core_fd, &phdr, sizeof(phdr));
+        offset += note_size;
+    }
 
     /* Write program headers for memory segments. We have only one? */
     memset(&phdr, 0, sizeof(phdr));
@@ -413,21 +323,19 @@ void ukvm_dump_core(struct ukvm_hv *hv, struct ukvm_dump_core *info)
     rc = write(core_fd, &phdr, sizeof(phdr));
 
     /* Write note section */
-    Elf64_Nhdr nhdr = { 0 };
-    x86_elf_prstatus prstatus = { 0 };
-    x86_fill_elf_prstatus(&prstatus, hv, info);
-    nhdr.n_namesz = 8; // strlen("core123") + 1;
-    nhdr.n_descsz = sizeof(x86_elf_prstatus);
-    nhdr.n_type = NT_PRSTATUS;
-
-    /* Write note */
-    rc = write(core_fd, &nhdr, sizeof(nhdr));
-    rc = write(core_fd, "core123", nhdr.n_namesz);
-    rc = write(core_fd, &prstatus, sizeof(x86_elf_prstatus));
+    if (num_notes) {
+        ukvm_hv_dump_notes(core_fd, hv, info);
+    }
 
     /* Write memory */
     rc = write(core_fd, hv->mem, hv->mem_size);
     assert(rc >= 0);
+    goto cleanup;
+
+failure:
+    warnx("%s: Failed to generate the core file", __FUNCTION__);
+
+cleanup:
     close(core_fd);
     close(elf_fd);
 }
