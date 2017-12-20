@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
  *
  * This file is part of ukvm, a unikernel monitor.
@@ -232,32 +232,57 @@ struct io {
   unsigned char *data, *end;
 };
 
-#if 0
-/* Reads one character from the "io" file. This function has the same
- * semantics as fgetc(), but we cannot call any library functions at this
- * time.
- */
-static int GetChar(struct io *io) {
-    unsigned char *ptr = io->data;
-    if (ptr == io->end) {
-        return -1;
-    }
-    io->data = ptr + 1;
-    return *ptr;
-}
+typedef struct {
+    uint64_t r15, r14, r13, r12, rbp, rbx, r11, r10;
+    uint64_t r9, r8, rax, rcx, rdx, rsi, rdi, orig_rax;
+    uint64_t rip, cs, eflags;
+    uint64_t rsp, ss;
+    uint64_t fs_base, gs_base;
+    uint64_t ds, es, fs, gs;
+} x86_64_user_regs_struct;
 
-/* Place the hex number read from "io" into "*hex".  The first non-hex
- * character is returned (or -1 in the case of end-of-file).
- */
-static int GetHex(struct io *io, size_t *hex) {
-  int ch;
-  *hex = 0;
-  while (((ch = GetChar(io)) >= '0' && ch <= '9') ||
-         (ch >= 'A' && ch <= 'F') || (ch >= 'a' && ch <= 'f'))
-    *hex = (*hex << 4) | (ch < 'A' ? ch - '0' : (ch & 0xF) + 9);
-  return ch;
+typedef struct {
+    char pad1[32];
+    uint32_t pid;
+    char pad2[76];
+    x86_64_user_regs_struct regs;
+    char pad3[8];
+} x86_elf_prstatus;
+
+
+static void x86_fill_elf_prstatus(x86_elf_prstatus *prstatus,
+	 struct ukvm_dump_core *info)
+{
+    memset(prstatus, 0, sizeof(x86_elf_prstatus));
+    prstatus->regs.r8 = info->kregs.r8;
+    prstatus->regs.r9 = info->kregs.r9;
+    prstatus->regs.r10 = info->kregs.r10;
+    prstatus->regs.r11 = info->kregs.r11;
+    prstatus->regs.r12 = info->kregs.r12;
+    prstatus->regs.r13 = info->kregs.r13;
+    prstatus->regs.r14 = info->kregs.r14;
+    prstatus->regs.r15 = info->kregs.r15;
+    prstatus->regs.rbp = info->kregs.rbp;
+    prstatus->regs.rsp = info->kregs.rsp;
+    prstatus->regs.rdi = info->kregs.rdi;
+    prstatus->regs.rsi = info->kregs.rsi;
+    prstatus->regs.rdx = info->kregs.rdx;
+    prstatus->regs.rcx = info->kregs.rcx;
+    prstatus->regs.rbx = info->kregs.rbx;
+    prstatus->regs.rax = info->kregs.rax;
+    prstatus->regs.rip = info->kregs.rip;
+    prstatus->regs.eflags = info->kregs.rflags;
+
+    prstatus->regs.cs = info->sregs.cs.selector;
+    prstatus->regs.ss = info->sregs.ss.selector;
+    prstatus->regs.ds = info->sregs.ds.selector;
+    prstatus->regs.es = info->sregs.es.selector;
+    prstatus->regs.fs = info->sregs.fs.selector;
+    prstatus->regs.gs = info->sregs.gs.selector;
+    prstatus->regs.fs_base = info->sregs.fs.base;
+    prstatus->regs.gs_base = info->sregs.gs.base;
+    prstatus->pid = getpid();
 }
-#endif
 
 void ukvm_dump_core(struct ukvm_hv *hv, struct ukvm_dump_core *info)
 {
@@ -277,8 +302,6 @@ void ukvm_dump_core(struct ukvm_hv *hv, struct ukvm_dump_core *info)
      *   --------------
      *   |  PT_LOAD    |
      *   --------------
-     *   |  sec_hdr    |
-     *   --------------
      *   |  elf note   |
      *   --------------
      *   |  memory     |
@@ -288,30 +311,6 @@ void ukvm_dump_core(struct ukvm_hv *hv, struct ukvm_dump_core *info)
      * vmcore.
      */
 
-    /* Test code. Open core file and dump it with contents now. 
-     * We will optimize and clean it up later */
-    core_fd = open("unikernel.core", O_RDWR|O_CREAT|O_TRUNC|O_APPEND, S_IRUSR|S_IWUSR);
-    assert(core_fd >= 0);
-
-    /* Read the elf file and write the ellf header to the core */
-    elf_fd = open(hv->elffile, O_RDONLY);
-    assert(elf_fd >= 0);
-    numb = pread_in_full(elf_fd, &hdr, sizeof(Elf64_Ehdr), 0);
-    assert (numb == sizeof(Elf64_Ehdr));
-
-    /* Update the elf header to indicate this is a core file */
-    hdr.e_type = ET_CORE; 
-
-    /* No section header in core file */
-    hdr.e_shoff = 0;
-    hdr.e_shentsize = 0;
-    hdr.e_shnum = 0;
-    hdr.e_shstrndx = 0;
-    /* Hardcode for now */
-    hdr.e_phnum = 1;
-
-    rc = write(core_fd, &hdr, sizeof(Elf64_Ehdr));
-    
 #if 0
     /* Dump Some core */
     struct io io = { 0 };
@@ -333,20 +332,44 @@ void ukvm_dump_core(struct ukvm_hv *hv, struct ukvm_dump_core *info)
     io.data = (unsigned char *)hv->mem;
     io.end = (unsigned char *)(hv->mem + hv->mem_size);
 #endif
+
+    /* Test code. Open core file and dump it with contents now.
+     * We will optimize and clean it up later */
+    core_fd = open("unikernel.core", O_RDWR|O_CREAT|O_TRUNC|O_APPEND, S_IRUSR|S_IWUSR);
+    assert(core_fd >= 0);
+
+    /* Read the elf file and write the ellf header to the core */
+    elf_fd = open(hv->elffile, O_RDONLY);
+    assert(elf_fd >= 0);
+    numb = pread_in_full(elf_fd, &hdr, sizeof(Elf64_Ehdr), 0);
+    assert (numb == sizeof(Elf64_Ehdr));
+
+    /* Update the elf header to indicate this is a core file */
+    hdr.e_type = ET_CORE;
+
+    /* No section header in core file */
+    hdr.e_shoff = 0;
+    hdr.e_shentsize = 0;
+    hdr.e_shnum = 0;
+    hdr.e_shstrndx = 0;
+    /* Hardcode for now */
+    hdr.e_phnum = 2;
+
+    rc = write(core_fd, &hdr, sizeof(Elf64_Ehdr));
+
     Elf64_Phdr phdr = { 0 };
     size_t offset = sizeof(hdr) + (hdr.e_phnum * sizeof(Elf64_Phdr));
-    /* Write a fake PT_NOTE, data for more useful notes is not available for now */
-#if 0
+    size_t note_size = sizeof(Elf64_Nhdr) + 8 + sizeof(x86_elf_prstatus);
+    /* Write a core PT_NOTE, data for more useful notes is not available for now */
     phdr.p_type = PT_NOTE;
     phdr.p_offset = offset;
-    phdr.p_filesz = sizeof(phdr);
-    phdr.p_memsz = sizeof(phdr);
-    rc = write(core_fd, &phdr, sizeof(phdr)); 
-    offset += sizeof(phdr);
-#endif
+    phdr.p_filesz = note_size;
+    phdr.p_memsz = note_size;
+    rc = write(core_fd, &phdr, sizeof(phdr));
+    offset += note_size;
 
     /* Write program headers for memory segments. We have only one? */
-    memset(&phdr, 0, sizeof(phdr)); 
+    memset(&phdr, 0, sizeof(phdr));
     phdr.p_type     = PT_LOAD;
     phdr.p_align    = 0;//pagesize;
     phdr.p_paddr    = (size_t)hv->mem;
@@ -362,16 +385,20 @@ void ukvm_dump_core(struct ukvm_hv *hv, struct ukvm_dump_core *info)
     phdr.p_filesz = hv->mem_size;
     phdr.p_flags  = 0;//mappings[i].flags & PF_MASK;
 
-    rc = write(core_fd, &phdr, sizeof(phdr)); 
+    rc = write(core_fd, &phdr, sizeof(phdr));
 
-#if 0
     /* Write note section */
-    Elf64_Nhdr nhdr = { 0 }; 
-    nhdr.n_namesz = 5; // strlen("none") + 1; 
-    nhdr.n_descsz = 5; //strlen("empty");
-    nhdr.n_type = 0;
-    rc = write(core_fd, &nhdr, sizeof(nhdr)); 
-#endif
+    Elf64_Nhdr nhdr = { 0 };
+    x86_elf_prstatus prstatus = { 0 };
+    x86_fill_elf_prstatus(&prstatus, info);
+    nhdr.n_namesz = 8; // strlen("core123") + 1;
+    nhdr.n_descsz = sizeof(x86_elf_prstatus);
+    nhdr.n_type = NT_PRSTATUS;
+
+    /* Write note */
+    rc = write(core_fd, &nhdr, sizeof(nhdr));
+    rc = write(core_fd, "core123", nhdr.n_namesz);
+    rc = write(core_fd, &prstatus, sizeof(x86_elf_prstatus));
 
     /* Write memory */
     rc = write(core_fd, hv->mem, hv->mem_size);

@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
  *
  * This file is part of ukvm, a unikernel monitor.
@@ -52,7 +52,7 @@ struct ukvm_hv {
  * the entry point (gpa_ep) and last byte used by the binary (gpa_kend).
  */
 void ukvm_elf_load(const char *file, uint8_t *mem, size_t mem_size,
-        ukvm_gpa_t *p_entry, ukvm_gpa_t *p_end);                
+        ukvm_gpa_t *p_entry, ukvm_gpa_t *p_end);
 
 /* Dump the core into the core file */
 void ukvm_dump_core(struct ukvm_hv *hv, struct ukvm_dump_core *info);
@@ -66,7 +66,7 @@ void ukvm_dump_core(struct ukvm_hv *hv, struct ukvm_dump_core *info);
 
 inline void *ukvm_checked_gpa_p(struct ukvm_hv *hv, ukvm_gpa_t gpa, size_t sz,
         const char *file, int line)
-{    
+{
     ukvm_gpa_t r;
 
     if ((gpa >= hv->mem_size) || add_overflow(gpa, sz, r) ||
@@ -131,6 +131,11 @@ int ukvm_core_register_vmexit(ukvm_vmexit_fn_t fn);
  * Dispatch array of module-registered vmexit handlers. NULL terminated.
  */
 extern ukvm_vmexit_fn_t ukvm_core_vmexits[];
+
+/*
+ * Get guest registers for core dump.
+ */
+int ukvm_hv_get_regs(struct ukvm_hv *hv, struct ukvm_dump_core *info);
 
 /*
  * Module definition. (name) and (setup) are required, all other functions are

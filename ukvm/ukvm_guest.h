@@ -33,6 +33,8 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include <linux/kvm.h>
+#include <linux/kvm_para.h>
 
 /*
  * Arch-dependent part of struct ukvm_boot_info.
@@ -269,6 +271,8 @@ struct ukvm_poll {
 struct ukvm_dump_core {
     /* IN */
     UKVM_GUEST_PTR(const void *) data;
+    struct kvm_regs kregs;
+    struct kvm_sregs sregs;
     size_t len;
 
     /* OUT */
