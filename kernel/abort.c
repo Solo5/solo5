@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
  *
  * This file is part of Solo5, a unikernel base layer.
@@ -54,7 +54,8 @@ void _abort(const char *file, const char *line, const char *s)
     platform_exit();
 }
 
-void _abort_and_dump(const char *file, const char *line, const char *s, void *regs)
+void _abort_and_dump(const char *file, const char *line, const char *s,
+        void *regs, size_t len)
 {
     puts("Solo5: ABORT & DUMPING CORE: ");
     puts(file);
@@ -63,5 +64,5 @@ void _abort_and_dump(const char *file, const char *line, const char *s, void *re
     puts(": ");
     puts(s);
     puts("\n");
-    platform_dump_core(regs);
+    platform_dump_core(regs, len);
 }

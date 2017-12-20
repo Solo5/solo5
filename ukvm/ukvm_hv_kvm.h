@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
  *
  * This file is part of ukvm, a unikernel monitor.
@@ -30,6 +30,8 @@ struct ukvm_hvb {
     int vmfd;
     int vcpufd;
     struct kvm_run *vcpurun;
+    struct kvm_regs kregs;
+    struct kvm_sregs sregs;
 };
 
 #endif /* UKVM_HV_KVM_H */

@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
  *
  * This file is part of Solo5, a unikernel base layer.
@@ -98,10 +98,10 @@ uint64_t platform_mem_size(void)
 }
 
 /* NO-op for now */
-void platform_dump_core(void *regs)
+void platform_dump_core(void *regs, size_t len)
 {
-    log(WARN, "Solo5: %s: Unimplemented error: %p\n",
-            __FUNCTION__, regs);
+    log(WARN, "Solo5: %s: Unimplemented error: %p %zu\n",
+            __FUNCTION__, regs, len);
     cpu_halt();
 }
 

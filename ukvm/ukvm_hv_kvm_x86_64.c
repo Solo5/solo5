@@ -150,17 +150,17 @@ void ukvm_hv_vcpu_init(struct ukvm_hv *hv, ukvm_gpa_t gpa_ep,
     *cmdline = (char *)(hv->mem + X86_CMDLINE_BASE);
 }
 
-int ukvm_hv_get_regs(struct ukvm_hv *hv, struct ukvm_dump_core *info)
+int ukvm_hv_get_regs(struct ukvm_hv *hv)
 {
     int ret;
 
-    ret = ioctl(hv->b->vcpufd, KVM_GET_REGS, &info->kregs);
+    ret = ioctl(hv->b->vcpufd, KVM_GET_REGS, &hv->b->kregs);
     if (ret == -1) {
         err(1, "KVM_GET_REGS");
         return -1;
     }
 
-    ret = ioctl(hv->b->vcpufd, KVM_GET_SREGS, &info->sregs);
+    ret = ioctl(hv->b->vcpufd, KVM_GET_SREGS, &hv->b->sregs);
     if (ret == -1) {
         err(1, "KVM_GET_REGS");
         return -1;
@@ -188,6 +188,7 @@ void ukvm_hv_vcpu_loop(struct ukvm_hv *hv)
             }
             else
                 err(1, "KVM: ioctl (RUN) failed");
+        } else {
         }
 
         int handled = 0;

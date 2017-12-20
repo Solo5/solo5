@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
  *
  * This file is part of Solo5, a unikernel base layer.
@@ -51,12 +51,12 @@ void _assert_fail(const char *, const char *, const char *)
     __attribute__((noreturn));
 void _abort(const char *, const char *, const char *)
     __attribute__((noreturn));
-void _abort_and_dump(const char *, const char *, const char *, void *)
+void _abort_and_dump(const char *, const char *, const char *, void *, size_t)
     __attribute__((noreturn));
 
-#define PANIC_AND_DUMP(s, r)                            \
+#define PANIC_AND_DUMP(s, r, l)                            \
     do {                                    \
-        _abort_and_dump(__FILE__, STR(__LINE__), s, r); \
+        _abort_and_dump(__FILE__, STR(__LINE__), s, r, l); \
     } while (0)
 
 #define PANIC(s)                            \
@@ -117,7 +117,7 @@ void platform_init(void *arg);
 const char *platform_cmdline(void);
 uint64_t platform_mem_size(void);
 void platform_exit(void) __attribute__((noreturn));
-void platform_dump_core(void *regs) __attribute__((noreturn));
+void platform_dump_core(void *regs, size_t) __attribute__((noreturn));
 int platform_puts(const char *buf, int n);
 
 /* platform_intr.c: platform-specific interrupt handling */
@@ -132,8 +132,8 @@ char *cmdline_parse(const char *cmdline);
 /* log.c: */
 typedef enum {
     ERROR=0,
-    WARN, 
-    INFO, 
+    WARN,
+    INFO,
     DEBUG,
 } log_level_t;
 int log(log_level_t level, const char *fmt, ...);

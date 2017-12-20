@@ -42,6 +42,9 @@
 #include <unistd.h>
 
 #include "ukvm.h"
+#include <linux/kvm.h>
+#include <linux/kvm_para.h>
+#include "ukvm_hv_kvm.h"
 
 static ssize_t pread_in_full(int fd, void *buf, size_t count, off_t offset)
 {
@@ -232,6 +235,17 @@ struct io {
   unsigned char *data, *end;
 };
 
+//#include "cpu_x86_64.h"
+struct trap_regs {
+    uint64_t cr2;
+    uint64_t ec;
+    uint64_t rip;
+    uint64_t cs;
+    uint64_t rflags;
+    uint64_t rsp;
+    uint64_t ss;
+};
+
 typedef struct {
     uint64_t r15, r14, r13, r12, rbp, rbx, r11, r10;
     uint64_t r9, r8, rax, rcx, rdx, rsi, rdi, orig_rax;
@@ -251,37 +265,48 @@ typedef struct {
 
 
 static void x86_fill_elf_prstatus(x86_elf_prstatus *prstatus,
-	 struct ukvm_dump_core *info)
+	 struct ukvm_hv *hv, struct ukvm_dump_core *info)
 {
     memset(prstatus, 0, sizeof(x86_elf_prstatus));
-    prstatus->regs.r8 = info->kregs.r8;
-    prstatus->regs.r9 = info->kregs.r9;
-    prstatus->regs.r10 = info->kregs.r10;
-    prstatus->regs.r11 = info->kregs.r11;
-    prstatus->regs.r12 = info->kregs.r12;
-    prstatus->regs.r13 = info->kregs.r13;
-    prstatus->regs.r14 = info->kregs.r14;
-    prstatus->regs.r15 = info->kregs.r15;
-    prstatus->regs.rbp = info->kregs.rbp;
-    prstatus->regs.rsp = info->kregs.rsp;
-    prstatus->regs.rdi = info->kregs.rdi;
-    prstatus->regs.rsi = info->kregs.rsi;
-    prstatus->regs.rdx = info->kregs.rdx;
-    prstatus->regs.rcx = info->kregs.rcx;
-    prstatus->regs.rbx = info->kregs.rbx;
-    prstatus->regs.rax = info->kregs.rax;
-    prstatus->regs.rip = info->kregs.rip;
-    prstatus->regs.eflags = info->kregs.rflags;
+    prstatus->regs.r8 = hv->b->kregs.r8;
+    prstatus->regs.r9 = hv->b->kregs.r9;
+    prstatus->regs.r10 = hv->b->kregs.r10;
+    prstatus->regs.r11 = hv->b->kregs.r11;
+    prstatus->regs.r12 = hv->b->kregs.r12;
+    prstatus->regs.r13 = hv->b->kregs.r13;
+    prstatus->regs.r14 = hv->b->kregs.r14;
+    prstatus->regs.r15 = hv->b->kregs.r15;
+    prstatus->regs.rbp = hv->b->kregs.rbp;
+    prstatus->regs.rsp = hv->b->kregs.rsp;
+    prstatus->regs.rdi = hv->b->kregs.rdi;
+    prstatus->regs.rsi = hv->b->kregs.rsi;
+    prstatus->regs.rdx = hv->b->kregs.rdx;
+    prstatus->regs.rcx = hv->b->kregs.rcx;
+    prstatus->regs.rbx = hv->b->kregs.rbx;
+    prstatus->regs.rax = hv->b->kregs.rax;
+    prstatus->regs.rip = hv->b->kregs.rip;
+    prstatus->regs.eflags = hv->b->kregs.rflags;
 
-    prstatus->regs.cs = info->sregs.cs.selector;
-    prstatus->regs.ss = info->sregs.ss.selector;
-    prstatus->regs.ds = info->sregs.ds.selector;
-    prstatus->regs.es = info->sregs.es.selector;
-    prstatus->regs.fs = info->sregs.fs.selector;
-    prstatus->regs.gs = info->sregs.gs.selector;
-    prstatus->regs.fs_base = info->sregs.fs.base;
-    prstatus->regs.gs_base = info->sregs.gs.base;
+    prstatus->regs.cs = hv->b->sregs.cs.selector;
+    prstatus->regs.ss = hv->b->sregs.ss.selector;
+    prstatus->regs.ds = hv->b->sregs.ds.selector;
+    prstatus->regs.es = hv->b->sregs.es.selector;
+    prstatus->regs.fs = hv->b->sregs.fs.selector;
+    prstatus->regs.gs = hv->b->sregs.gs.selector;
+    prstatus->regs.fs_base = hv->b->sregs.fs.base;
+    prstatus->regs.gs_base = hv->b->sregs.gs.base;
     prstatus->pid = getpid();
+
+    /* Overwrite some register information based on
+     * the input given by the Guest */
+    struct trap_regs *regs = (struct trap_regs *)info->data;
+    prstatus->regs.rip = regs->rip;
+    prstatus->regs.cs = regs->cs;
+    prstatus->regs.eflags = regs->rflags;
+    prstatus->regs.rsp = regs->rsp;
+    prstatus->regs.ss = regs->ss;
+    //errx(1, "Nik match: ec=0x%lx rip=0x%lx rsp=0x%lx rflags=0x%lx\n",
+    //    regs->ec, regs->rip, regs->rsp, regs->rflags);
 }
 
 void ukvm_dump_core(struct ukvm_hv *hv, struct ukvm_dump_core *info)
@@ -390,7 +415,7 @@ void ukvm_dump_core(struct ukvm_hv *hv, struct ukvm_dump_core *info)
     /* Write note section */
     Elf64_Nhdr nhdr = { 0 };
     x86_elf_prstatus prstatus = { 0 };
-    x86_fill_elf_prstatus(&prstatus, info);
+    x86_fill_elf_prstatus(&prstatus, hv, info);
     nhdr.n_namesz = 8; // strlen("core123") + 1;
     nhdr.n_descsz = sizeof(x86_elf_prstatus);
     nhdr.n_type = NT_PRSTATUS;

@@ -138,9 +138,12 @@ static void hypercall_dump_core(struct ukvm_hv *hv, ukvm_gpa_t gpa)
 {
     struct ukvm_dump_core *t =
         UKVM_CHECKED_GPA_P(hv, gpa, sizeof (struct ukvm_dump_core));
-    if (ukvm_hv_get_regs(hv, t) == 0) {
-        ukvm_dump_core(hv, t);
+#if 0
+    if (ukvm_hv_get_regs(hv) == 0) {
     }
+#endif
+    ukvm_hv_get_regs(hv);
+    ukvm_dump_core(hv, t);
 }
 
 static int setup(struct ukvm_hv *hv)

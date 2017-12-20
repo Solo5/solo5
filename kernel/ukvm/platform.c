@@ -41,10 +41,11 @@ uint64_t platform_mem_size(void)
     return mem_size;
 }
 
-void platform_dump_core(void *regs)
+void platform_dump_core(void *regs, size_t len)
 {
     volatile struct ukvm_dump_core info;
-    info.data = regs;
+    memcpy((void *)&info.data, regs, len);
+    info.len = len;
     ukvm_do_hypercall(UKVM_HYPERCALL_DUMP_CORE, &info);
     cpu_halt();
 }

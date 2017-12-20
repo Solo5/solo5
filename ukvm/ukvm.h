@@ -135,7 +135,7 @@ extern ukvm_vmexit_fn_t ukvm_core_vmexits[];
 /*
  * Get guest registers for core dump.
  */
-int ukvm_hv_get_regs(struct ukvm_hv *hv, struct ukvm_dump_core *info);
+int ukvm_hv_get_regs(struct ukvm_hv *hv);
 
 /*
  * Module definition. (name) and (setup) are required, all other functions are
