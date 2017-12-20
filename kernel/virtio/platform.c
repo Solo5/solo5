@@ -100,9 +100,11 @@ uint64_t platform_mem_size(void)
 /* NO-op for now */
 void platform_dump_core(void *regs, size_t len)
 {
-    log(WARN, "Solo5: %s: Unimplemented error: %p %zu\n",
-            __FUNCTION__, regs, len);
-    cpu_halt();
+    log(WARN, "Solo5: Cannot dump core for virtio target\n");
+    if (regs && len) {
+        /* NO-OP to suppress compiler error */
+    }
+    platform_exit();
 }
 
 void platform_exit(void)
