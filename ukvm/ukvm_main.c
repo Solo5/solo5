@@ -195,14 +195,7 @@ int main(int argc, char **argv)
     setup_cmdline(cmdline, argc, argv);
 
     setup_modules(hv);
-
-    warnx("Guest mem=%p, size=%zu", hv->mem, hv->mem_size);
     ukvm_hv_vcpu_loop(hv);
-    /* When error is seen above */
-    //ukvm_elf_dump_core(elffile, hv->mem, hv->mem_size, &gpa_ep, &gpa_kend);
-    // Checkout elfcore.c in google core dumper library
-    // Specially the function CreateElfCore()
-    puts("Solo5: Exiting loop");
 
     return 0;
 }
