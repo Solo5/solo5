@@ -1,4 +1,4 @@
-/*
+/* 
  * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
  *
  * This file is part of ukvm, a unikernel monitor.
@@ -66,7 +66,7 @@ void ukvm_dump_core(struct ukvm_hv *hv, struct ukvm_dump_core *info);
 
 inline void *ukvm_checked_gpa_p(struct ukvm_hv *hv, ukvm_gpa_t gpa, size_t sz,
         const char *file, int line)
-{
+{    
     ukvm_gpa_t r;
 
     if ((gpa >= hv->mem_size) || add_overflow(gpa, sz, r) ||

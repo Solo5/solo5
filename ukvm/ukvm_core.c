@@ -1,4 +1,4 @@
-/*
+/* 
  * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
  *
  * This file is part of ukvm, a unikernel monitor.
@@ -35,7 +35,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <fcntl.h>
 #include <sys/mman.h>
 #include <time.h>
 #include <unistd.h>
@@ -138,12 +137,11 @@ static void hypercall_dump_core(struct ukvm_hv *hv, ukvm_gpa_t gpa)
 {
     struct ukvm_dump_core *t =
         UKVM_CHECKED_GPA_P(hv, gpa, sizeof (struct ukvm_dump_core));
-#if 0
+
     if (ukvm_hv_get_regs(hv) == 0) {
+	ukvm_dump_core(hv, t);
     }
-#endif
-    ukvm_hv_get_regs(hv);
-    ukvm_dump_core(hv, t);
+
 }
 
 static int setup(struct ukvm_hv *hv)

@@ -1,4 +1,4 @@
-/*
+/* 
  * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
  *
  * This file is part of Solo5, a unikernel base layer.
@@ -97,7 +97,6 @@ uint64_t platform_mem_size(void)
     return mem_size;
 }
 
-/* NO-op for now */
 void platform_dump_core(void *regs, size_t len)
 {
     log(WARN, "Solo5: Cannot dump core for virtio target\n");

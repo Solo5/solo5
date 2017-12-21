@@ -1,4 +1,4 @@
-/*
+/* 
  * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
  *
  * This file is part of ukvm, a unikernel monitor.
@@ -79,7 +79,7 @@
 #define X86_CR4_INIT            (X86_CR4_PAE | X86_CR4_OSFXSR | \
                                 X86_CR4_OSXMMEXCPT)
 
-/*
+/* 
  * Intel CPU features in EFER
  */
 #define X86_EFER_LME_BIT        8 /* Long mode enable (R/W) */

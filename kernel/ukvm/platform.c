@@ -1,4 +1,4 @@
-/*
+/* 
  * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
  *
  * This file is part of Solo5, a unikernel base layer.
@@ -57,4 +57,3 @@ void platform_exit(void)
      */
     cpu_halt();
 }
-

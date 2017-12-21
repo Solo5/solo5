@@ -1,4 +1,4 @@
-/*
+/* 
  * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
  *
  * This file is part of ukvm, a unikernel monitor.
@@ -110,7 +110,7 @@ void ukvm_hv_vcpu_init(struct ukvm_hv *hv, ukvm_gpa_t gpa_ep,
     ret = ioctl(hvb->vcpufd, KVM_SET_SREGS, &sregs);
     if (ret == -1)
         err(1, "KVM: ioctl (SET_SREGS) failed");
-
+   
     struct ukvm_boot_info *bi =
         (struct ukvm_boot_info *)(hv->mem + X86_BOOT_INFO_BASE);
     bi->mem_size = hv->mem_size;
@@ -190,7 +190,6 @@ void ukvm_hv_vcpu_loop(struct ukvm_hv *hv)
             }
             else
                 err(1, "KVM: ioctl (RUN) failed");
-        } else {
         }
 
         int handled = 0;
@@ -238,7 +237,7 @@ void ukvm_hv_vcpu_loop(struct ukvm_hv *hv)
             ret = ioctl(hvb->vcpufd, KVM_GET_REGS, &regs);
             if (ret == -1)
                 err(1, "KVM: ioctl (GET_REGS) failed after unhandled exit");
-            errx(1, "KVM: unhandled exit: exit_reason=0x%x, rip=0x%llx",
+            errx(1, "KVM: unhandled exit: exit_reason=0x%x, rip=0x%llx", 
                     run->exit_reason, regs.rip);
         }
         } /* switch(run->exit_reason) */
@@ -280,12 +279,14 @@ void ukvm_hv_fill_elf_prstatus(x86_elf_prstatus *prstatus,
 
     /* Overwrite some register information based on
      * the input given by the Guest */
-    struct trap_regs *regs = (struct trap_regs *)info->data;
-    prstatus->regs.rip = regs->rip;
-    prstatus->regs.cs = regs->cs;
-    prstatus->regs.eflags = regs->rflags;
-    prstatus->regs.rsp = regs->rsp;
-    prstatus->regs.ss = regs->ss;
+    if (info->len) {
+        struct trap_regs *regs = (struct trap_regs *)info->data;
+        prstatus->regs.rip = regs->rip;
+        prstatus->regs.cs = regs->cs;
+        prstatus->regs.eflags = regs->rflags;
+        prstatus->regs.rsp = regs->rsp;
+        prstatus->regs.ss = regs->ss;
+    }
 }
 
 

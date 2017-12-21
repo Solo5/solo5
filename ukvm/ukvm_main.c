@@ -1,4 +1,4 @@
-/*
+/* 
  * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
  *
  * This file is part of ukvm, a unikernel monitor.
@@ -195,6 +195,7 @@ int main(int argc, char **argv)
     setup_cmdline(cmdline, argc, argv);
 
     setup_modules(hv);
+
     ukvm_hv_vcpu_loop(hv);
 
     return 0;

@@ -234,6 +234,7 @@ void ukvm_hv_vcpu_loop(struct ukvm_hv *hv)
 
 size_t ukvm_hv_get_notes_size(int *num_notes)
 {
+    /* Not supported yet */
     return 0;
 }
 

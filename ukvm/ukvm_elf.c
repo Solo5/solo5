@@ -1,4 +1,4 @@
-/*
+/* 
  * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
  *
  * This file is part of ukvm, a unikernel monitor.
@@ -27,7 +27,6 @@
 
 #define _GNU_SOURCE
 #include <assert.h>
-#include <stdio.h>
 #include <err.h>
 #include <elf.h>
 #include <errno.h>
@@ -42,9 +41,6 @@
 #include <unistd.h>
 
 #include "ukvm.h"
-#include <linux/kvm.h>
-#include <linux/kvm_para.h>
-#include "ukvm_hv_kvm.h"
 
 static ssize_t pread_in_full(int fd, void *buf, size_t count, off_t offset)
 {
@@ -95,7 +91,7 @@ static ssize_t pread_in_full(int fd, void *buf, size_t count, off_t offset)
 void ukvm_elf_load(const char *file, uint8_t *mem, size_t mem_size,
        ukvm_gpa_t *p_entry, ukvm_gpa_t *p_end)
 {
-    int elf_fd;
+    int fd_kernel;
     ssize_t numb;
     size_t buflen;
     Elf64_Off ph_off;
@@ -110,11 +106,11 @@ void ukvm_elf_load(const char *file, uint8_t *mem, size_t mem_size,
     /* highest byte of the program (on physical memory) */
     *p_end = 0;
 
-    elf_fd = open(file, O_RDONLY);
-    if (elf_fd == -1)
+    fd_kernel = open(file, O_RDONLY);
+    if (fd_kernel == -1)
         goto out_error;
 
-    numb = pread_in_full(elf_fd, &hdr, sizeof(Elf64_Ehdr), 0);
+    numb = pread_in_full(fd_kernel, &hdr, sizeof(Elf64_Ehdr), 0);
     if (numb < 0)
         goto out_error;
     if (numb != sizeof(Elf64_Ehdr))
@@ -151,7 +147,7 @@ void ukvm_elf_load(const char *file, uint8_t *mem, size_t mem_size,
     phdr = malloc(buflen);
     if (!phdr)
         goto out_error;
-    numb = pread_in_full(elf_fd, phdr, buflen, ph_off);
+    numb = pread_in_full(fd_kernel, phdr, buflen, ph_off);
     if (numb < 0)
         goto out_error;
     if (numb != buflen)
@@ -198,7 +194,7 @@ void ukvm_elf_load(const char *file, uint8_t *mem, size_t mem_size,
             *p_end = _end;
 
         daddr = mem + paddr;
-        numb = pread_in_full(elf_fd, daddr, filesz, offset);
+        numb = pread_in_full(fd_kernel, daddr, filesz, offset);
         if (numb < 0)
             goto out_error;
         if (numb != filesz)
@@ -220,7 +216,7 @@ void ukvm_elf_load(const char *file, uint8_t *mem, size_t mem_size,
     }
 
     free (phdr);
-    close (elf_fd);
+    close (fd_kernel);
     *p_entry = hdr.e_entry;
     return;
 

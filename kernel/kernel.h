@@ -1,4 +1,4 @@
-/*
+/* 
  * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
  *
  * This file is part of Solo5, a unikernel base layer.
@@ -132,8 +132,8 @@ char *cmdline_parse(const char *cmdline);
 /* log.c: */
 typedef enum {
     ERROR=0,
-    WARN,
-    INFO,
+    WARN, 
+    INFO, 
     DEBUG,
 } log_level_t;
 int log(log_level_t level, const char *fmt, ...);
