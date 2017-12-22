@@ -255,7 +255,7 @@ void ukvm_dump_core(struct ukvm_hv *hv, struct ukvm_dump_core *info)
     Elf64_Ehdr hdr;
     Elf64_Phdr phdr = { 0 };
 
-    core_fd = open("core", O_RDWR|O_CREAT|O_TRUNC|O_APPEND, S_IRUSR|S_IWUSR);
+    core_fd = open("unikernel.core", O_RDWR|O_CREAT|O_TRUNC|O_APPEND, S_IRUSR|S_IWUSR);
     if (core_fd < 0) {
         goto failure;
     }

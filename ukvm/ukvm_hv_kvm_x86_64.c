@@ -154,18 +154,16 @@ void ukvm_hv_vcpu_init(struct ukvm_hv *hv, ukvm_gpa_t gpa_ep,
 
 int ukvm_hv_get_regs(struct ukvm_hv *hv)
 {
-    int ret;
+    int ret = 0;
 
     ret = ioctl(hv->b->vcpufd, KVM_GET_REGS, &hv->b->kregs);
     if (ret == -1) {
-        err(1, "KVM_GET_REGS");
-        return -1;
+        err(1, "KVM: Failed to get register info");
     }
 
     ret = ioctl(hv->b->vcpufd, KVM_GET_SREGS, &hv->b->sregs);
     if (ret == -1) {
-        err(1, "KVM_GET_REGS");
-        return -1;
+        err(1, "KVM: Failed to get sregister info");
     }
     return 0;
 }
