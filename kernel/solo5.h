@@ -148,4 +148,17 @@ uint64_t solo5_clock_wall(void);
  */
 int solo5_poll(uint64_t until_nsecs);
 
+/*
+ * Helper macro for assertion
+ */
+#define solo5_assert(e) do {                          \
+        if (!(e)) {                                   \
+            solo5_console_write("assertion failed: ", \
+                    strlen("assertion failed: "));    \
+            solo5_console_write(#e, strlen(#e));      \
+            solo5_console_write("\n", strlen("\n"));  \
+            solo5_dump_core();                        \
+        }                                             \
+    } while (0)
+
 #endif
