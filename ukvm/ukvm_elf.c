@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
  *
  * This file is part of ukvm, a unikernel monitor.
@@ -302,19 +302,13 @@ void ukvm_dump_core(struct ukvm_hv *hv, struct ukvm_dump_core *info)
     /* Write program headers for memory segments. We have only one? */
     memset(&phdr, 0, sizeof(phdr));
     phdr.p_type     = PT_LOAD;
-    phdr.p_align    = 0;//pagesize;
+    phdr.p_align    = 0;
     phdr.p_paddr    = (size_t)hv->mem;
-#if 0
-    note_align      = phdr.p_align - ((offset+filesz) % phdr.p_align);
-    if (note_align == phdr.p_align)
-        note_align    = 0;
-    offset         += note_align;
-#endif
     phdr.p_offset = offset;
-    phdr.p_vaddr  = 0;//(size_t)hv->mem;
+    phdr.p_vaddr  = 0;
     phdr.p_memsz  = hv->mem_size;
     phdr.p_filesz = hv->mem_size;
-    phdr.p_flags  = 0;//mappings[i].flags & PF_MASK;
+    phdr.p_flags  = 0;
 
     rc = write(core_fd, &phdr, sizeof(phdr));
 
