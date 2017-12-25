@@ -39,7 +39,7 @@ void _assert_fail(const char *file, const char *line, const char *e)
     puts(": Assertion `");
     puts(e);
     puts("' failed\n");
-    platform_exit();
+    platform_dump_core(NULL, 0);
 }
 
 void _abort(const char *file, const char *line, const char *s)

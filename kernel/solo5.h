@@ -113,6 +113,11 @@ int solo5_console_write(const char *buf, size_t n);
 void solo5_exit(void) __attribute__((noreturn));
 
 /*
+ * Creates a core dump and exits the application
+ */
+void solo5_dump_core(void) __attribute__((noreturn));
+
+/*
  * Memory allocation. These APIs correspond to their standard C equivalents.
  */
 void *solo5_malloc(size_t);

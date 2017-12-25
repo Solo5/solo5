@@ -43,7 +43,7 @@ uint64_t platform_mem_size(void)
 
 void platform_dump_core(void *regs, size_t len)
 {
-    volatile struct ukvm_dump_core info;
+    volatile struct ukvm_dump_core info = { 0 };
     if (len) {
         memcpy((void *)&info.data, regs, len);
         info.len = len;

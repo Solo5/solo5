@@ -25,3 +25,9 @@ void solo5_exit(void)
     log(INFO, "Solo5: solo5_exit() called\n");
     platform_exit();
 }
+
+void solo5_dump_core(void)
+{
+    log(INFO, "Solo5: solo5_dump_core() called\n");
+    platform_dump_core(NULL, 0);
+}
