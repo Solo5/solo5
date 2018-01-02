@@ -297,17 +297,23 @@ size_t ukvm_hv_get_notes_size(int *num_notes)
 int ukvm_hv_dump_notes(int core_fd,
         struct ukvm_hv *hv, struct ukvm_dump_core *info)
 {
-    int rc;
     Elf64_Nhdr nhdr = { 0 };
     x86_elf_prstatus prstatus = { 0 };
+    const char *name = "UNICORE";
     ukvm_hv_fill_elf_prstatus(&prstatus, hv, info);
-    nhdr.n_namesz = 8; // strlen("core123") + 1;
+    nhdr.n_namesz = strlen(name) + 1;
     nhdr.n_descsz = sizeof(x86_elf_prstatus);
     nhdr.n_type = NT_PRSTATUS;
 
     /* Write note */
-    rc = write(core_fd, &nhdr, sizeof(nhdr));
-    rc = write(core_fd, "core123", nhdr.n_namesz);
-    rc = write(core_fd, &prstatus, sizeof(x86_elf_prstatus));
-    return rc;
+    if (write(core_fd, &nhdr, sizeof(nhdr)) < 0) {
+        return -1;
+    }
+    if (write(core_fd, name, nhdr.n_namesz) < 0) {
+        return -1;
+    }
+    if (write(core_fd, &prstatus, sizeof(x86_elf_prstatus)) < 0) {
+        return -1;
+    }
+    return 0;
 }

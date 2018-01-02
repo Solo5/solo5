@@ -49,7 +49,7 @@ void platform_dump_core(void *regs, size_t len)
         info.len = len;
     }
     ukvm_do_hypercall(UKVM_HYPERCALL_DUMP_CORE, &info);
-    cpu_halt();
+    platform_exit();
 }
 
 void platform_exit(void)

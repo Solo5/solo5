@@ -26,7 +26,6 @@
  */
 
 #define _GNU_SOURCE
-#include <assert.h>
 #include <err.h>
 #include <elf.h>
 #include <errno.h>
@@ -228,7 +227,7 @@ out_invalid:
 }
 
 /*
- * the vmcore's format is:
+ * the Unikernel's core format is:
  *   --------------
  *   |  elf header |
  *   --------------
@@ -250,12 +249,12 @@ out_invalid:
  */
 void ukvm_dump_core(struct ukvm_hv *hv, struct ukvm_dump_core *info)
 {
-    int core_fd, rc, elf_fd = 0, num_notes = 0;
+    int core_fd, elf_fd = 0, num_notes = 0;
     size_t offset, note_size;
     Elf64_Ehdr hdr;
     Elf64_Phdr phdr = { 0 };
 
-    core_fd = open("unikernel.core", O_RDWR|O_CREAT|O_TRUNC|O_APPEND, S_IRUSR|S_IWUSR);
+    core_fd = open("core.unikernel", O_RDWR|O_CREAT|O_TRUNC|O_APPEND, S_IRUSR|S_IWUSR);
     if (core_fd < 0) {
         goto failure;
     }
@@ -295,7 +294,9 @@ void ukvm_dump_core(struct ukvm_hv *hv, struct ukvm_dump_core *info)
         phdr.p_offset = offset;
         phdr.p_filesz = note_size;
         phdr.p_memsz = note_size;
-        rc = write(core_fd, &phdr, sizeof(phdr));
+        if (write(core_fd, &phdr, sizeof(phdr)) < 0 ) {
+            goto failure;
+        }
         offset += note_size;
     }
 
@@ -310,16 +311,20 @@ void ukvm_dump_core(struct ukvm_hv *hv, struct ukvm_dump_core *info)
     phdr.p_filesz = hv->mem_size;
     phdr.p_flags  = 0;
 
-    rc = write(core_fd, &phdr, sizeof(phdr));
+    if (write(core_fd, &phdr, sizeof(phdr)) < 0) {
+        goto failure;
+    }
 
     /* Write note section */
-    if (num_notes) {
-        ukvm_hv_dump_notes(core_fd, hv, info);
+    if (num_notes && 
+        ukvm_hv_dump_notes(core_fd, hv, info) < 0) {
+        goto failure;
     }
 
     /* Write memory */
-    rc = write(core_fd, hv->mem, hv->mem_size);
-    assert(rc >= 0);
+    if (write(core_fd, hv->mem, hv->mem_size) < 0) {
+        goto failure;
+    }
     goto cleanup;
 
 failure:
