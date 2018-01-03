@@ -252,7 +252,10 @@ void ukvm_dump_core(struct ukvm_hv *hv, struct ukvm_dump_core *info)
     int core_fd, elf_fd = 0, num_notes = 0;
     size_t offset, note_size;
     Elf64_Ehdr hdr;
-    Elf64_Phdr phdr = { 0 };
+    Elf64_Phdr phdr;
+
+    memset((void *)hdr, 0, sizeof(Elf64_Ehdr));
+    memset((void *)phdr, 0, sizeof(Elf64_Phdr));
 
     core_fd = open("core.unikernel", O_RDWR|O_CREAT|O_TRUNC|O_APPEND, S_IRUSR|S_IWUSR);
     if (core_fd < 0) {
