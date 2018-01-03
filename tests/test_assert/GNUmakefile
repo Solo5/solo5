@@ -16,35 +16,9 @@
 # NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
 # CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-TESTDIRS=test_hello test_globals test_ping_serve test_blk \
-         test_exception test_assert test_fpu test_time test_quiet
+UKVM_TARGETS=test_assert.ukvm ukvm-bin
+VIRTIO_TARGETS=test_assert.virtio
+MUEN_TARGETS=test_assert.muen
+UKVM_MODULES=
 
-UKVM_TESTS=$(subst test, _test_ukvm, $(TESTDIRS))
-VIRTIO_TESTS=$(subst test, _test_virtio, $(TESTDIRS))
-MUEN_TESTS=$(subst test, _test_muen, $(TESTDIRS))
-CLEANS=$(subst test, _clean, $(TESTDIRS))
-
-all: $(UKVM_TESTS) $(VIRTIO_TESTS) $(MUEN_TESTS)
-
-ukvm: $(UKVM_TESTS)
-
-virtio: $(VIRTIO_TESTS)
-
-muen: $(MUEN_TESTS)
-
-clean: $(CLEANS)
-
-.PHONY: force_it
-
-_test_ukvm%: force_it
-	$(MAKE) -C $(subst _test_ukvm, test, $@) ukvm
-
-_test_virtio%: force_it
-	$(MAKE) -C $(subst _test_virtio, test, $@) virtio
-
-_test_muen%: force_it
-	$(MAKE) -C $(subst _test_muen, test, $@) muen
-
-_clean_%: force_it
-	$(RM) core*
-	$(MAKE) -C $(subst _clean, test, $@) clean
+include ../Makefile.tests

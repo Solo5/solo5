@@ -68,17 +68,19 @@ run_test ()
     local DISK
     local NET
     local WANT_ABORT
+    local WANT_ASSERT
     local NAME
     local UNIKERNEL
     local TEST_DIR
     local STATUS
 
-    ARGS=$(getopt dnav $*)
+    ARGS=$(getopt dnavb $*)
     [ $? -ne 0 ] && die "Invalid test options"
     set -- ${ARGS}
     DISK=
     NET=
     WANT_ABORT=
+    WANT_ASSERT=
     WANT_QUIET=
     while true; do
         case "$1" in
@@ -94,6 +96,11 @@ run_test ()
         -a)
             # This test must ABORT
             WANT_ABORT=true
+            shift
+            ;;
+        -b)
+            # This test must ASSERT
+            WANT_ASSERT=true
             shift
             ;;
         -v)
@@ -183,10 +190,12 @@ run_test ()
         LOGS=$(find ${TMPDIR} -type f -name ${NAME}.log.\*)
 
         STATUS=99
-        if [ -z "${WANT_ABORT}" ]; then
-            [ -n "${LOGS}" ] && grep -q SUCCESS ${LOGS} && STATUS=0
-        else
+        if [ "${WANT_ABORT}" ]; then
             [ -n "${LOGS}" ] && grep -q ABORT ${LOGS} && STATUS=0
+        elif [ "${WANT_ASSERT}" ]; then
+            [ -n "${LOGS}" ] && grep -q dump_core ${LOGS} && STATUS=0
+        else
+            [ -n "${LOGS}" ] && grep -q SUCCESS ${LOGS} && STATUS=0
         fi
         if [ ${STATUS} -eq "0" ]; then
             if [ -n "${WANT_QUIET}" -a -n "${LOGS}" ]; then
@@ -267,6 +276,7 @@ if [ "${BUILD_UKVM}" = "yes" ]; then
     add_test test_quiet.ukvm/-v/--solo5:quiet
     add_test test_globals.ukvm
     add_test test_exception.ukvm/-a
+    add_test test_assert.ukvm/-b
     add_test test_fpu.ukvm
     add_test test_time.ukvm
     add_test test_blk.ukvm/-d
@@ -277,6 +287,7 @@ if [ "${BUILD_VIRTIO}" = "yes" ]; then
     add_test test_quiet.virtio/-v/--solo5:quiet
     add_test test_globals.virtio
     add_test test_exception.virtio/-a
+    add_test test_assert.virtio/-b
     add_test test_fpu.virtio
     add_test test_time.virtio
     add_test test_blk.virtio/-d
