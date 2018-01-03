@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
  *
  * This file is part of Solo5, a unikernel base layer.
@@ -19,6 +19,7 @@
  */
 
 #include "kernel.h"
+#include "ukvm_guest.h"
 
 static const char *cmdline;
 static uint64_t mem_size;
