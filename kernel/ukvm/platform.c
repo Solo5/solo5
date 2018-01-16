@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
  *
  * This file is part of Solo5, a unikernel base layer.
@@ -19,6 +19,7 @@
  */
 
 #include "kernel.h"
+#include "ukvm_guest.h"
 
 static const char *cmdline;
 static uint64_t mem_size;
@@ -43,7 +44,9 @@ uint64_t platform_mem_size(void)
 
 void platform_dump_core(void *regs, size_t len)
 {
-    volatile struct ukvm_dump_core info = { 0 };
+    volatile struct ukvm_dump_core info;
+    memset((void *)&info, 0, sizeof(struct ukvm_dump_core));
+
     if (len && len <= UKVM_HYPERCALL_MAX_DUMP_INFO_SIZE) {
         memcpy((void *)&info.data, regs, len);
         info.len = len;

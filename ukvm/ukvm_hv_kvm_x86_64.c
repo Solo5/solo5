@@ -296,9 +296,13 @@ size_t ukvm_hv_get_notes_size(int *num_notes)
 int ukvm_hv_dump_notes(int core_fd,
         struct ukvm_hv *hv, struct ukvm_dump_core *info)
 {
-    Elf64_Nhdr nhdr = { 0 };
-    x86_elf_prstatus prstatus = { 0 };
+    Elf64_Nhdr nhdr;
+    x86_elf_prstatus prstatus;
     const char *name = "UNICORE";
+
+    memset((void *)&nhdr, 0, sizeof(Elf64_Nhdr));
+    memset((void *)&prstatus, 0, sizeof(x86_elf_prstatus));
+
     ukvm_hv_fill_elf_prstatus(&prstatus, hv, info);
     nhdr.n_namesz = strlen(name) + 1;
     nhdr.n_descsz = sizeof(x86_elf_prstatus);
