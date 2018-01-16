@@ -266,10 +266,11 @@ struct ukvm_poll {
 };
 
 /* UKVM_HYPERCALL_DUMP_CORE */
+#define UKVM_HYPERCALL_MAX_DUMP_INFO_SIZE 100
+
 struct ukvm_dump_core {
     /* IN */
-    //UKVM_GUEST_PTR(const void *) data;
-    char data[200];
+    char data[UKVM_HYPERCALL_MAX_DUMP_INFO_SIZE];
     size_t len;
 
     /* OUT */
