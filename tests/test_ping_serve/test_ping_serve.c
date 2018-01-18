@@ -26,15 +26,6 @@ static void puts(const char *s)
     solo5_console_write(s, strlen(s));
 }
 
-#define assert(e) do {                              \
-        if (!(e)) {                                 \
-            puts("assertion failed: ");             \
-            puts(#e);                               \
-            puts("\n");                             \
-            solo5_exit();                           \
-        }                                           \
-    } while (0)
-
 #define ETHERTYPE_IP  0x0800
 #define ETHERTYPE_ARP 0x0806
 #define HLEN_ETHER  6
@@ -331,7 +322,7 @@ int solo5_app_main(char *cmdline)
         default:
             puts("Error in command line.\n");
             puts("Usage: test_ping_serve [ verbose | limit ]\n");
-            return 1;
+            return SOLO5_EXIT_FAILURE;
         }
     }
 
@@ -339,5 +330,5 @@ int solo5_app_main(char *cmdline)
 
     puts("SUCCESS\n");
 
-    return 0;
+    return SOLO5_EXIT_SUCCESS;
 }

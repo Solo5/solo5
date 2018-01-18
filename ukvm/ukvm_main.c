@@ -196,7 +196,5 @@ int main(int argc, char **argv)
 
     setup_modules(hv);
 
-    ukvm_hv_vcpu_loop(hv);
-
-    return 0;
+    return ukvm_hv_vcpu_loop(hv);
 }

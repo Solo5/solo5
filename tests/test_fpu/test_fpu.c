@@ -64,7 +64,7 @@ int solo5_app_main(char *cmdline __attribute__((unused)))
     if (a == 7.5 && c[0] == 4.0 && c[1] == 25.0)
         puts("SUCCESS\n");
     else
-        return 1;
+        return SOLO5_EXIT_FAILURE;
 
-    return 0;
+    return SOLO5_EXIT_SUCCESS;
 }

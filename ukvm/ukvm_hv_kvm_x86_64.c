@@ -150,7 +150,7 @@ void ukvm_hv_vcpu_init(struct ukvm_hv *hv, ukvm_gpa_t gpa_ep,
     *cmdline = (char *)(hv->mem + X86_CMDLINE_BASE);
 }
 
-void ukvm_hv_vcpu_loop(struct ukvm_hv *hv)
+int ukvm_hv_vcpu_loop(struct ukvm_hv *hv)
 {
     struct ukvm_hvb *hvb = hv->b;
     int ret;
@@ -181,10 +181,6 @@ void ukvm_hv_vcpu_loop(struct ukvm_hv *hv)
         struct kvm_run *run = hvb->vcpurun;
 
         switch (run->exit_reason) {
-        case KVM_EXIT_HLT:
-            /* Guest has halted the CPU, this is considered as a normal exit. */
-            return;
-
         case KVM_EXIT_IO: {
             if (run->io.direction != KVM_EXIT_IO_OUT
                     || run->io.size != 4)
@@ -194,6 +190,16 @@ void ukvm_hv_vcpu_loop(struct ukvm_hv *hv)
                 errx(1, "Invalid guest port access: port=0x%x", run->io.port);
 
             int nr = run->io.port - UKVM_HYPERCALL_PIO_BASE;
+
+            /* Guest has halted the CPU. */
+            if (nr == UKVM_HYPERCALL_HALT) {
+                ukvm_gpa_t gpa =
+                    *(uint32_t *)((uint8_t *)run + run->io.data_offset);
+                struct ukvm_halt *p =
+                    UKVM_CHECKED_GPA_P(hv, gpa, sizeof (struct ukvm_halt));
+                return p->exit_status;
+            }
+
             ukvm_hypercall_fn_t fn = ukvm_core_hypercalls[nr];
             if (fn == NULL)
                 errx(1, "Invalid guest hypercall: num=%d", nr);

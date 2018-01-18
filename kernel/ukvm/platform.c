@@ -41,10 +41,11 @@ uint64_t platform_mem_size(void)
     return mem_size;
 }
 
-void platform_exit(void)
+void platform_exit(int status)
 {
-    /*
-     * Halt will cause an exit (as in "shutdown") on ukvm.
-     */
-    cpu_halt();
+    struct ukvm_halt h;
+    h.exit_status = status;
+
+    ukvm_do_hypercall(UKVM_HYPERCALL_HALT, &h);
+    for(;;);
 }

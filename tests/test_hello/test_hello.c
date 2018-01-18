@@ -44,5 +44,5 @@ int solo5_app_main(char *cmdline)
     if (strcmp(cmdline, "Hello_Solo5") == 0)
         puts("SUCCESS\n");
 
-    return 0;
+    return SOLO5_EXIT_SUCCESS;
 }

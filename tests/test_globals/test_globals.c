@@ -44,5 +44,5 @@ int solo5_app_main(char *cmdline __attribute__((unused)))
 
     do_test();
 
-    return 0;
+    return SOLO5_EXIT_SUCCESS;
 }

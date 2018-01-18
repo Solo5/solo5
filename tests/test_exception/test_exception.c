@@ -33,5 +33,5 @@ int solo5_app_main(char *cmdline __attribute__((unused)))
     uint64_t addr_invalid = 2ULL << 33;
     *(uint8_t *)addr_invalid = 1;
 
-    return 0;
+    return SOLO5_EXIT_SUCCESS;
 }
