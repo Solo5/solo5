@@ -32,3 +32,11 @@ void platform_init(void *arg)
     process_bootinfo(arg);
     fpu_init();
 }
+
+void platform_exit(int status __attribute__((unused)))
+{
+    const char msg[] = "Solo5: Halted\n";
+    platform_puts(msg, strlen(msg));
+    __asm__ __volatile__("cli; hlt");
+    for (;;);
+}
