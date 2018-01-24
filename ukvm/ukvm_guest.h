@@ -268,7 +268,7 @@ struct ukvm_poll {
 /* UKVM_HYPERCALL_ABORT */
 #define UKVM_HYPERCALL_MAX_DUMP_INFO_SIZE 100
 
-struct ukvm_dumpcore {
+struct ukvm_abort {
     /* IN */
     char data[UKVM_HYPERCALL_MAX_DUMP_INFO_SIZE];
     size_t len;

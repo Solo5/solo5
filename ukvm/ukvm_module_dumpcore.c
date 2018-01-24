@@ -79,7 +79,7 @@ static bool use_dumpcore = false;
  * we only know where the memory is saved after we write elf note into
  * vmcore.
  */
-static void ukvm_dumpcore(struct ukvm_hv *hv, struct ukvm_dumpcore *info)
+static void ukvm_dumpcore(struct ukvm_hv *hv, struct ukvm_abort *info)
 {
     int core_fd, elf_fd = 0, num_notes = 0;
     size_t offset, note_size;
@@ -172,8 +172,8 @@ cleanup:
 
 static void hypercall_dumpcore(struct ukvm_hv *hv, ukvm_gpa_t gpa)
 {
-    struct ukvm_dumpcore *t =
-        UKVM_CHECKED_GPA_P(hv, gpa, sizeof (struct ukvm_dumpcore));
+    struct ukvm_abort *t =
+        UKVM_CHECKED_GPA_P(hv, gpa, sizeof (struct ukvm_abort));
 
     if (ukvm_dumpcore_get_regs(hv) == 0) {
         ukvm_dumpcore(hv, t);

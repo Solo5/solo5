@@ -44,8 +44,8 @@ uint64_t platform_mem_size(void)
 
 void platform_abort(void *regs, size_t len)
 {
-    volatile struct ukvm_dumpcore info;
-    memset((void *)&info, 0, sizeof(struct ukvm_dumpcore));
+    volatile struct ukvm_abort info;
+    memset((void *)&info, 0, sizeof(struct ukvm_abort));
 
     if (len && len <= UKVM_HYPERCALL_MAX_DUMP_INFO_SIZE) {
         memcpy((void *)&info.data, regs, len);
