@@ -231,16 +231,3 @@ void ukvm_hv_vcpu_loop(struct ukvm_hv *hv)
         } /* switch(vme->exitcode) */
     }
 }
-
-size_t ukvm_hv_get_notes_size(int *num_notes)
-{
-    /* Not supported yet */
-    return 0;
-}
-
-int ukvm_hv_dump_notes(int core_fd, struct ukvm_hv *hv,
-        struct ukvm_dump_core *info)
-{
-    /* Not supported yet */
-    return -1;
-}

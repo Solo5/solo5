@@ -41,7 +41,7 @@
 
 #include "ukvm.h"
 
-static ssize_t pread_in_full(int fd, void *buf, size_t count, off_t offset)
+ssize_t pread_in_full(int fd, void *buf, size_t count, off_t offset)
 {
     ssize_t total = 0;
     char *p = buf;
@@ -224,116 +224,4 @@ out_error:
 
 out_invalid:
     errx(1, "%s: Exec format error", file);
-}
-
-/*
- * the Unikernel's core format is:
- *   --------------
- *   |  elf header |
- *   --------------
- *   |  PT_NOTE    |
- *   --------------
- *   |  PT_LOAD    |
- *   --------------
- *   |  ......     |
- *   --------------
- *   |  PT_LOAD    |
- *   --------------
- *   |  elf note   |
- *   --------------
- *   |  memory     |
- *   --------------
- *
- * we only know where the memory is saved after we write elf note into
- * vmcore.
- */
-void ukvm_dump_core(struct ukvm_hv *hv, struct ukvm_dump_core *info)
-{
-    int core_fd, elf_fd = 0, num_notes = 0;
-    size_t offset, note_size;
-    Elf64_Ehdr hdr;
-    Elf64_Phdr phdr;
-
-    memset((void *)&hdr, 0, sizeof(Elf64_Ehdr));
-    memset((void *)&phdr, 0, sizeof(Elf64_Phdr));
-
-    core_fd = open("core.unikernel", O_RDWR|O_CREAT|O_TRUNC|O_APPEND, S_IRUSR|S_IWUSR);
-    if (core_fd < 0) {
-        goto failure;
-    }
-
-    /* Read the elf file and re-write the elf header to the core */
-    elf_fd = open(hv->elffile, O_RDONLY);
-    if (elf_fd < 0) {
-        goto failure;
-    }
-
-    if (pread_in_full(elf_fd, &hdr, sizeof(Elf64_Ehdr), 0) !=
-            sizeof(Elf64_Ehdr)) {
-        goto failure;
-    }
-
-    /* Update the elf header to indicate this is a core file */
-    hdr.e_type = ET_CORE;
-
-    /* No section header in core file */
-    hdr.e_shoff = 0;
-    hdr.e_shentsize = 0;
-    hdr.e_shnum = 0;
-    hdr.e_shstrndx = 0;
-
-    note_size = ukvm_hv_get_notes_size(&num_notes);
-    hdr.e_phnum = 1 + num_notes;
-
-    if (write(core_fd, &hdr, sizeof(Elf64_Ehdr)) < 0) {
-        goto failure;
-    }
-
-    offset = sizeof(hdr) + (hdr.e_phnum * sizeof(Elf64_Phdr));
-
-    if (num_notes) {
-        /* Write a core PT_NOTE, data for more useful notes is not available for now */
-        phdr.p_type = PT_NOTE;
-        phdr.p_offset = offset;
-        phdr.p_filesz = note_size;
-        phdr.p_memsz = note_size;
-        if (write(core_fd, &phdr, sizeof(phdr)) < 0 ) {
-            goto failure;
-        }
-        offset += note_size;
-    }
-
-    /* Write program headers for memory segments. We have only one? */
-    memset(&phdr, 0, sizeof(phdr));
-    phdr.p_type     = PT_LOAD;
-    phdr.p_align    = 0;
-    phdr.p_paddr    = (size_t)hv->mem;
-    phdr.p_offset = offset;
-    phdr.p_vaddr  = 0;
-    phdr.p_memsz  = hv->mem_size;
-    phdr.p_filesz = hv->mem_size;
-    phdr.p_flags  = 0;
-
-    if (write(core_fd, &phdr, sizeof(phdr)) < 0) {
-        goto failure;
-    }
-
-    /* Write note section */
-    if (num_notes &&
-        ukvm_hv_dump_notes(core_fd, hv, info) < 0) {
-        goto failure;
-    }
-
-    /* Write memory */
-    if (write(core_fd, hv->mem, hv->mem_size) < 0) {
-        goto failure;
-    }
-    goto cleanup;
-
-failure:
-    warnx("%s: Failed to generate the core file", __FUNCTION__);
-
-cleanup:
-    close(core_fd);
-    close(elf_fd);
 }

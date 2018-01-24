@@ -54,6 +54,9 @@ struct ukvm_module *ukvm_core_modules[] = {
 #ifdef UKVM_MODULE_GDB
     &ukvm_module_gdb,
 #endif
+#ifdef UKVM_MODULE_DUMPCORE
+    &ukvm_module_dumpcore,
+#endif
     NULL,
 };
 #define NUM_MODULES ((sizeof ukvm_core_modules / sizeof (struct ukvm_module *)) - 1)
@@ -133,16 +136,6 @@ static void hypercall_poll(struct ukvm_hv *hv, ukvm_gpa_t gpa)
     t->ret = rc;
 }
 
-static void hypercall_dump_core(struct ukvm_hv *hv, ukvm_gpa_t gpa)
-{
-    struct ukvm_dump_core *t =
-        UKVM_CHECKED_GPA_P(hv, gpa, sizeof (struct ukvm_dump_core));
-
-    if (ukvm_hv_get_regs(hv) == 0) {
-        ukvm_dump_core(hv, t);
-    }
-}
-
 static int setup(struct ukvm_hv *hv)
 {
     assert(ukvm_core_register_hypercall(UKVM_HYPERCALL_WALLTIME,
@@ -151,8 +144,6 @@ static int setup(struct ukvm_hv *hv)
                 hypercall_puts) == 0);
     assert(ukvm_core_register_hypercall(UKVM_HYPERCALL_POLL,
                 hypercall_poll) == 0);
-    assert(ukvm_core_register_hypercall(UKVM_HYPERCALL_DUMP_CORE,
-                hypercall_dump_core) == 0);
 
     /*
      * XXX: This needs documenting / coordination with the top-level caller.
