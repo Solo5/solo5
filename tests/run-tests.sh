@@ -193,7 +193,7 @@ run_test ()
         if [ "${WANT_ABORT}" ]; then
             [ -n "${LOGS}" ] && grep -q ABORT ${LOGS} && STATUS=0
         elif [ "${WANT_ASSERT}" ]; then
-            [ -n "${LOGS}" ] && grep -q dump_core ${LOGS} && STATUS=0
+            [ -n "${LOGS}" ] && grep -q abort ${LOGS} && STATUS=0
         else
             [ -n "${LOGS}" ] && grep -q SUCCESS ${LOGS} && STATUS=0
         fi
