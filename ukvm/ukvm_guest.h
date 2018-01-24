@@ -170,7 +170,7 @@ enum ukvm_hypercall {
     UKVM_HYPERCALL_NETWRITE,
     UKVM_HYPERCALL_NETREAD,
     UKVM_HYPERCALL_HALT,
-    UKVM_HYPERCALL_DUMP_CORE,
+    UKVM_HYPERCALL_ABORT,
     UKVM_HYPERCALL_MAX
 };
 
@@ -265,7 +265,7 @@ struct ukvm_poll {
     int ret;
 };
 
-/* UKVM_HYPERCALL_DUMP_CORE */
+/* UKVM_HYPERCALL_ABORT */
 #define UKVM_HYPERCALL_MAX_DUMP_INFO_SIZE 100
 
 struct ukvm_dumpcore {

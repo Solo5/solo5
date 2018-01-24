@@ -97,7 +97,7 @@ uint64_t platform_mem_size(void)
     return mem_size;
 }
 
-void platform_dump_core(void *regs, size_t len)
+void platform_abort(void *regs, size_t len)
 {
     log(WARN, "Solo5: Cannot dump core for virtio target\n");
     if (regs && len) {

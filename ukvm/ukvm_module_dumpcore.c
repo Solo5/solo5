@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
  *
  * This file is part of ukvm, a unikernel monitor.
@@ -24,7 +24,7 @@
  */
 
 /*
- * ukvm_module_dumpcore.c: Dumps the unikernel memory as a core file 
+ * ukvm_module_dumpcore.c: Dumps the unikernel memory as a core file
  */
 #define _GNU_SOURCE
 #include <err.h>
@@ -59,7 +59,7 @@
 
 #error Unsupported target
 
-#endif 
+#endif
 
 static bool use_dumpcore = false;
 /*
@@ -185,7 +185,7 @@ static int setup(struct ukvm_hv *hv)
     if (!use_dumpcore) {
         return 0;
     }
-    assert(ukvm_core_register_hypercall(UKVM_HYPERCALL_DUMP_CORE,
+    assert(ukvm_core_register_hypercall(UKVM_HYPERCALL_ABORT,
         hypercall_dumpcore) == 0);
 
     return 0;
@@ -196,13 +196,13 @@ static int handle_cmdarg(char *cmdarg)
     if (!strcmp("--dumpcore", cmdarg)) {
         use_dumpcore = true;
         return 0;
-    } 
+    }
     return -1;
 }
 
 static char *usage(void)
 {
-    return "--dumpcore (Optional core file name)";
+    return "--dumpcore";
 }
 
 struct ukvm_module ukvm_module_dumpcore = {

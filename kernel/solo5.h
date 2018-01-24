@@ -115,7 +115,7 @@ void solo5_exit(void) __attribute__((noreturn));
 /*
  * Creates a core dump and exits the application
  */
-void solo5_dump_core(void) __attribute__((noreturn));
+void solo5_abort(void) __attribute__((noreturn));
 
 /*
  * Memory allocation. These APIs correspond to their standard C equivalents.
@@ -157,7 +157,7 @@ int solo5_poll(uint64_t until_nsecs);
                     strlen("assertion failed: "));    \
             solo5_console_write(#e, strlen(#e));      \
             solo5_console_write("\n", strlen("\n"));  \
-            solo5_dump_core();                        \
+            solo5_abort();                        \
         }                                             \
     } while (0)
 
