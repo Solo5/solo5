@@ -15,4 +15,8 @@ set -xe
 uname -a
 cc --version
 ${MAKE}
-# Don't run any tests yet
+# Some CIs can now run tests, so do that.
+if [ -n "${SURF_RUN_TESTS}" ]; then
+    sudo tests/setup-tests.sh
+    sudo tests/run-tests.sh
+fi
