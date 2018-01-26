@@ -17,6 +17,10 @@ cc --version
 ${MAKE}
 # Some CIs can now run tests, so do that.
 if [ -n "${SURF_RUN_TESTS}" ]; then
+    # XXX grub-bhyve hangs under nested virt, ignore
+    if [ "$(uname -s)" = "FreeBSD" ]; then
+        echo "BUILD_VIRTIO=no" >>Makeconf
+    fi
     sudo tests/setup-tests.sh
     sudo tests/run-tests.sh
 fi
