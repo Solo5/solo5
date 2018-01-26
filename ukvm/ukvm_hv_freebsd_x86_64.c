@@ -66,6 +66,18 @@ static void vmm_set_desc(int vmfd, int reg, uint64_t base, uint32_t limit,
         err(1, "VM_SET_SEGMENT_DESCRIPTOR (%d)", reg);
 }
 
+static void vmm_get_reg(int vmfd, int reg, uint64_t *val)
+{
+    struct vm_register vmreg = {
+        .cpuid = 0, .regnum = reg
+    };
+
+    if (ioctl(vmfd, VM_SET_REGISTER, &vmreg) == -1)
+        err(1, "VM_SET_REGISTER (%d)", reg);
+
+    *val = vmreg.regval;
+}
+
 static void vmm_set_reg(int vmfd, int reg, uint64_t val)
 {
     struct vm_register vmreg = {
@@ -93,6 +105,10 @@ static void vmm_set_sreg(int vmfd, int reg, const struct x86_sreg *sreg)
     vmm_set_reg(vmfd, reg, sreg->selector * 8);
 }
 
+
+#define KVM_GUESTDBG_ENABLE		0x00000001
+#define KVM_GUESTDBG_SINGLESTEP		0x00000002
+
 void ukvm_hv_vcpu_init(struct ukvm_hv *hv, ukvm_gpa_t gpa_ep,
         ukvm_gpa_t gpa_kend, char **cmdline)
 {
@@ -105,6 +121,8 @@ void ukvm_hv_vcpu_init(struct ukvm_hv *hv, ukvm_gpa_t gpa_ep,
     vmm_set_reg(hvb->vmfd, VM_REG_GUEST_CR3, X86_CR3_INIT);
     vmm_set_reg(hvb->vmfd, VM_REG_GUEST_CR4, X86_CR4_INIT);
     vmm_set_reg(hvb->vmfd, VM_REG_GUEST_EFER, X86_EFER_INIT);
+
+    //vmm_set_reg(hvb->vmfd, VM_REG_GUEST_DR7, KVM_GUESTDBG_ENABLE | KVM_GUESTDBG_SINGLESTEP);
 
     vmm_set_sreg(hvb->vmfd, VM_REG_GUEST_CS, &ukvm_x86_sreg_code);
     vmm_set_sreg(hvb->vmfd, VM_REG_GUEST_SS, &ukvm_x86_sreg_data);
@@ -152,7 +170,7 @@ void ukvm_hv_vcpu_init(struct ukvm_hv *hv, ukvm_gpa_t gpa_ep,
     *cmdline = (char *)(hv->mem + X86_CMDLINE_BASE);
 }
 
-static void dump_vmx(struct vm_exit *vme)
+void dump_vmx(struct vm_exit *vme)
 {
     warnx("unhandled VMX exit:");
     warnx("\trip\t\t0x%016lx", vme->rip);
@@ -164,18 +182,31 @@ static void dump_vmx(struct vm_exit *vme)
     warnx("\tinst_error\t%d", vme->u.vmx.inst_error);
 }
 
+void enable_eflag(struct ukvm_hv *hv, int flag)
+{
+    struct ukvm_hvb *hvb = hv->b;
+    uint64_t flags;
+
+    vmm_get_reg(hvb->vmfd, VM_REG_GUEST_RFLAGS, &flags);
+    flags |= _BITUL(flag);
+    vmm_set_reg(hvb->vmfd, VM_REG_GUEST_RFLAGS, flags);
+}
+
 void ukvm_hv_vcpu_loop(struct ukvm_hv *hv)
 {
     struct ukvm_hvb *hvb = hv->b;
     int ret;
 
     while (1) {
+        enable_eflag(hv, 8); // ss
+
         ret = ioctl(hv->b->vmfd, VM_RUN, &hvb->vmrun);
         if (ret == -1 && errno == EINTR)
             continue;
         if (ret == -1) {
             err(1, "VM_RUN");
         }
+
 
         int handled = 0;
         for (ukvm_vmexit_fn_t *fn = ukvm_core_vmexits; *fn && !handled; fn++)
@@ -184,6 +215,9 @@ void ukvm_hv_vcpu_loop(struct ukvm_hv *hv)
             continue;
 
         struct vm_exit *vme = &hvb->vmrun.vm_exit;
+
+            vmm_set_reg(hvb->vmfd, VM_REG_GUEST_RIP, vme->rip + vme->inst_length);
+            enable_eflag(hv, 16); // resume
 
         switch (vme->exitcode) {
         case VM_EXITCODE_SUSPENDED:
@@ -220,8 +254,12 @@ void ukvm_hv_vcpu_loop(struct ukvm_hv *hv)
         }
 
         case VM_EXITCODE_VMX: {
-            dump_vmx(vme);
-            exit(1);
+	    if (vme->u.vmx.status != 0) {
+  	      dump_vmx(vme);
+              exit(1);
+	    }
+            printf("\trip\t\t0x%016lx\n", vme->rip);
+	    break;
         }
 
         default: {

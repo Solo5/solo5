@@ -37,6 +37,71 @@
 #include "ukvm_gdb_x86_64.h"
 #include "ukvm_gdb.h"
 
+#if 0
+#define KVM_GUESTDBG_ENABLE		0x00000001
+#define KVM_GUESTDBG_SINGLESTEP		0x00000002
+
+static int ukvm_gdb_update_guest_debug(struct ukvm_hv *hv)
+{
+    struct kvm_guest_debug dbg = {0};
+    struct breakpoint_t *bp;
+    const uint8_t type_code[] = {
+        /* Break on instruction execution only. */
+        [GDB_BREAKPOINT_HW] = 0x0,
+        /* Break on data writes only. */
+        [GDB_WATCHPOINT_WRITE] = 0x1,
+        /* Break on data reads only. */
+        [GDB_WATCHPOINT_READ] = 0x2,
+        /* Break on data reads or writes but not instruction fetches. */
+        [GDB_WATCHPOINT_ACCESS] = 0x3
+    };
+    const uint8_t len_code[] = {
+        /*
+         * 00 \xe2\x80\x94 1-byte length.
+         * 01 \xe2\x80\x94 2-byte length.
+         * 10 \xe2\x80\x94 8-byte length.
+         * 11 \xe2\x80\x94 4-byte length.
+         */
+        [1] = 0x0, [2] = 0x1, [4] = 0x3, [8] = 0x2
+    };
+    int n = 0;
+
+    if (stepping)
+        dbg.control = KVM_GUESTDBG_ENABLE | KVM_GUESTDBG_SINGLESTEP;
+
+    if (!SLIST_EMPTY(&sw_breakpoints))
+        dbg.control |= KVM_GUESTDBG_ENABLE | KVM_GUESTDBG_USE_SW_BP;
+
+    if (!SLIST_EMPTY(&hw_breakpoints)) {
+        dbg.control |= KVM_GUESTDBG_ENABLE | KVM_GUESTDBG_USE_HW_BP;
+
+        /* Enable global breakpointing (across all threads) on the control
+         * debug register. */
+        dbg.arch.debugreg[7] = 1 << 9;
+        dbg.arch.debugreg[7] |= 1 << 10;
+        SLIST_FOREACH(bp, &hw_breakpoints, entries) {
+            assert(bp->type != GDB_BREAKPOINT_SW);
+            dbg.arch.debugreg[n] = bp->addr;
+            /* global breakpointing */
+            dbg.arch.debugreg[7] |= (2 << (n * 2));
+            /* read/write fields */
+            dbg.arch.debugreg[7] |= (type_code[bp->type] << (16 + n*4));
+            /* Length fields */
+            dbg.arch.debugreg[7] |= ((uint32_t)len_code[bp->len] << (18 + n*4));
+            n++;
+        }
+    }
+
+    if (ioctl(hv->b->vcpufd, KVM_SET_GUEST_DEBUG, &dbg) == -1) {
+        /* The KVM_CAP_SET_GUEST_DEBUG capbility is not available. */
+        err(1, "KVM_SET_GUEST_DEBUG failed");
+        return -1;
+    }
+
+    return 0;
+}
+#endif
+
 int ukvm_gdb_supported(void)
 {
     return -1;
@@ -58,6 +123,7 @@ int ukvm_gdb_write_registers(struct ukvm_hv *hv,
 
 int ukvm_gdb_enable_ss(struct ukvm_hv *hv)
 {
+VM_REG_GUEST_DR7
     return -1;
 }
 
