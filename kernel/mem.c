@@ -21,8 +21,18 @@
 #include "kernel.h"
 
 static uint64_t heap_start;
-static uint64_t heap_top;
 static uint64_t stack_guard_size;
+
+/* 
+ * We lock the memory layout (disabling mem_ialloc_pages) after Solo5
+ * initialization but before passing control to the application via
+ * solo5_app_main().
+ */
+static int mem_locked = 0;
+void mem_lock_heap(void)
+{
+    mem_locked = 1;
+}
 
 void mem_init(void)
 {
@@ -31,7 +41,7 @@ void mem_init(void)
 
     mem_size = platform_mem_size();
     heap_start = ((uint64_t)&_end + PAGE_SIZE - 1) & PAGE_MASK;
-    heap_top = heap_start;
+    
     /*
      * Cowardly refuse to run with less than 512KB of free memory.
      */
@@ -55,23 +65,24 @@ void mem_init(void)
         mem_size);
 }
 
-/*
- * Called by dlmalloc to allocate or free memory.
+/* 
+ * Allocate pages on the heap.  Should only be called on
+ * initialization (before solo5_app_main).
  */
-void *sbrk(intptr_t increment)
+void *mem_ialloc_pages(size_t num)
 {
-    uint64_t prev, brk;
-    uint64_t heap_max = (uint64_t)&prev - stack_guard_size;
-    prev = brk = heap_top;
+    assert(!mem_locked);
 
-    /*
-     * dlmalloc guarantees increment values less than half of size_t, so this
-     * is safe from overflow.
-     */
-    brk += increment;
-    if (brk >= heap_max || brk < heap_start)
-        return (void *)-1;
+    uint64_t prev = heap_start;
+    heap_start += num << PAGE_SHIFT;
+    assert(heap_start < (uint64_t)&prev);
 
-    heap_top = brk;
     return (void *)prev;
+}
+
+void solo5_mem_info(struct solo5_mem_info *info) {
+    assert(mem_locked);
+    
+    info->heap_start = heap_start;
+    info->mem_size = platform_mem_size();
 }

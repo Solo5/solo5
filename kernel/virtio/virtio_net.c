@@ -135,6 +135,7 @@ int virtio_net_xmit_packet(void *data, int len)
 void virtio_config_network(struct pci_config_info *pci)
 {
     uint32_t host_features, guest_features;
+    size_t pgs;
 
     /*
      * 2. Set the ACKNOWLEDGE status bit: the guest OS has notice the device.
@@ -182,10 +183,15 @@ void virtio_config_network(struct pci_config_info *pci)
     virtq_init_rings(pci->base, &recvq, VIRTQ_RECV);
     virtq_init_rings(pci->base, &xmitq, VIRTQ_XMIT);
 
-    recvq.bufs = calloc(recvq.num, sizeof (struct io_buffer));
+    pgs = (((recvq.num * sizeof (struct io_buffer)) - 1) >> PAGE_SHIFT) + 1;
+    recvq.bufs = mem_ialloc_pages(pgs);
     assert(recvq.bufs);
-    xmitq.bufs = calloc(xmitq.num, sizeof (struct io_buffer));
+    memset(recvq.bufs, 0, pgs << PAGE_SHIFT);
+
+    pgs = (((recvq.num * sizeof (struct io_buffer)) - 1) >> PAGE_SHIFT) + 1;
+    xmitq.bufs = mem_ialloc_pages(pgs);
     assert(xmitq.bufs);
+    memset(xmitq.bufs, 0, pgs << PAGE_SHIFT);
 
     virtio_net_pci_base = pci->base;
     net_configured = 1;

@@ -78,14 +78,8 @@ void intr_irq_handler(uint64_t irq);
 
 /* mem.c: low-level page alloc routines */
 void mem_init(void);
-void *sbrk(intptr_t increment);
-
-/* malloc.c: memory allocation */
-void *malloc(size_t bytes);
-void  free(void *ptr);
-void *calloc(size_t nmemb, size_t size);
-void *realloc(void *ptr, size_t size);
-void *memalign(size_t alignment, size_t bytes);
+void *mem_ialloc_pages(size_t num);
+void mem_lock_heap(void);
 
 /* ee_printf.c: a third-party printf slightly modified and with
  *              snprintf added

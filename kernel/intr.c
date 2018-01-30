@@ -19,38 +19,46 @@
  */
 
 #include "kernel.h"
-#include "queue.h"
+
+#define MAX_IRQ_HANDLER_ENTRIES 8
 
 struct irq_handler {
     int (*handler)(void *);
     void *arg;
-
-    SLIST_ENTRY(irq_handler) entries;
 };
 
-SLIST_HEAD(irq_handler_head, irq_handler);
-static struct irq_handler_head irq_handlers[16];
+struct irq_handler_list {
+    int num_entries;
+    struct irq_handler entries[MAX_IRQ_HANDLER_ENTRIES];
+};
+
+static struct irq_handler_list irq_handlers[16];
 
 void intr_register_irq(unsigned irq, int (*handler)(void *), void *arg)
 {
-    assert (irq < 16);
-    struct irq_handler *h = malloc(sizeof (struct irq_handler));
-    assert(h != NULL);
-    h->handler = handler;
-    h->arg = arg;
+    assert(irq < 16);
+    assert(irq_handlers[irq].num_entries < MAX_IRQ_HANDLER_ENTRIES);
 
     cpu_intr_disable();
-    SLIST_INSERT_HEAD(&irq_handlers[irq], h, entries);
+
+    int idx = irq_handlers[irq].num_entries;
+    struct irq_handler *h = &irq_handlers[irq].entries[idx];
+
+    h->handler = handler;
+    h->arg = arg;
+    irq_handlers[irq].num_entries++;
+
     cpu_intr_enable();
     platform_intr_clear_irq(irq);
 }
 
 void intr_irq_handler(uint64_t irq)
 {
-    struct irq_handler *h;
     int handled = 0;
+    int i;
 
-    SLIST_FOREACH(h, &irq_handlers[irq], entries) {
+    for (i = 0; i < irq_handlers[irq].num_entries; i++) {
+        struct irq_handler *h = &irq_handlers[irq].entries[i];
         if (h->handler(h->arg) == 1) {
             handled = 1;
             break;
