@@ -107,7 +107,7 @@ static uint16_t virtio_blk_op(uint32_t type,
  */
 static int virtio_blk_op_sync(uint32_t type,
                               uint64_t sector,
-                              void *data, int *len)
+                              void *data, size_t *len)
 {
     uint16_t mask = blkq.num - 1;
     uint16_t head;
@@ -180,28 +180,61 @@ void virtio_config_block(struct pci_config_info *pci)
     outb(pci->base + VIRTIO_PCI_STATUS, VIRTIO_PCI_STATUS_DRIVER_OK);
 }
 
-int solo5_blk_write_sync(uint64_t sector, uint8_t *data, int n)
+int solo5_blk_write_sync(uint64_t offset, const uint8_t *buf, size_t size)
 {
     assert(blk_configured);
     /*
      * XXX: virtio_blk_op_sync does not support >1 sectors per operation.
      */
-    if (n > VIRTIO_BLK_SECTOR_SIZE)
+    if (size != VIRTIO_BLK_SECTOR_SIZE)
+        return -1;
+    /*
+     * Some virtio_blk implementations (Bhyve) allow writing beyond the end of
+     * the device if the underlying device is a file. Check and explicitly
+     * disallow this behaviour.
+     */
+    if (offset >= virtio_blk_sectors)
         return -1;
 
-    return virtio_blk_op_sync(VIRTIO_BLK_T_OUT, sector, data, &n);
+    size_t write_size = size;
+    int ret;
+    /*
+     * XXX: virtio_blk_op_sync has no const write interface.
+     */
+    ret = virtio_blk_op_sync(VIRTIO_BLK_T_OUT, offset, (uint8_t *)buf,
+            &write_size);
+    if (ret == 0 && write_size != size) {
+        log(ERROR, "Solo5: virtio_blk write expected %u bytes, got %u bytes\n",
+                size, write_size);
+        return -1;
+    }
+    return ret;
 }
 
-int solo5_blk_read_sync(uint64_t sector, uint8_t *data, int *n)
+int solo5_blk_read_sync(uint64_t offset, uint8_t *buf, size_t size)
 {
     assert(blk_configured);
     /*
      * XXX: virtio_blk_op_sync does not support >1 sectors per operation.
      */
-    if (*n > VIRTIO_BLK_SECTOR_SIZE)
+    if (size != VIRTIO_BLK_SECTOR_SIZE)
+        return -1;
+    /*
+     * As for write, reject from reading beyond the end of the advertised
+     * device capacity.
+     */
+    if (offset >= virtio_blk_sectors)
         return -1;
 
-    return virtio_blk_op_sync(VIRTIO_BLK_T_IN, sector, data, n);
+    size_t read_size = size;
+    int ret;
+    ret = virtio_blk_op_sync(VIRTIO_BLK_T_IN, offset, buf, &read_size);
+    if (ret == 0 && read_size != size) {
+        log(ERROR, "Solo5: virtio blk_read expected %u bytes, got %u bytes\n",
+                size, read_size);
+        return -1;
+    }
+    return ret;
 }
 
 int solo5_blk_sector_size(void)
@@ -211,7 +244,7 @@ int solo5_blk_sector_size(void)
     return VIRTIO_BLK_SECTOR_SIZE;
 }
 
-uint64_t solo5_blk_sectors(void)
+uint64_t solo5_blk_capacity(void)
 {
     assert(blk_configured);
 

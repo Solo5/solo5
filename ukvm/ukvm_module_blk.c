@@ -54,7 +54,17 @@ static void hypercall_blkwrite(struct ukvm_hv *hv, ukvm_gpa_t gpa)
     ssize_t ret;
     off_t pos, end;
 
+#if 0
     assert(wr->len <= SSIZE_MAX);
+#else
+    /*
+     * XXX: Artificially limit to single sector writes for now.
+     */
+    if (wr->len != blkinfo.sector_size) {
+        wr->ret = -1;
+        return;
+    }
+#endif
     if (wr->sector >= blkinfo.num_sectors) {
         wr->ret = -1;
         return;
@@ -68,8 +78,15 @@ static void hypercall_blkwrite(struct ukvm_hv *hv, ukvm_gpa_t gpa)
 
     ret = pwrite(diskfd, UKVM_CHECKED_GPA_P(hv, wr->data, wr->len), wr->len,
             pos);
+#if 0
     assert(ret == wr->len);
     wr->ret = 0;
+#else
+    if (ret == wr->len)
+        wr->ret = 0;
+    else
+        wr->ret = -1;
+#endif
 }
 
 static void hypercall_blkread(struct ukvm_hv *hv, ukvm_gpa_t gpa)
@@ -79,7 +96,17 @@ static void hypercall_blkread(struct ukvm_hv *hv, ukvm_gpa_t gpa)
     ssize_t ret;
     off_t pos, end;
 
+#if 0
     assert(rd->len <= SSIZE_MAX);
+#else
+    /*
+     * XXX: Artificially limit to single sector writes for now.
+     */
+    if (rd->len != blkinfo.sector_size) {
+        rd->ret = -1;
+        return;
+    }
+#endif
     if (rd->sector >= blkinfo.num_sectors) {
         rd->ret = -1;
         return;
@@ -93,8 +120,15 @@ static void hypercall_blkread(struct ukvm_hv *hv, ukvm_gpa_t gpa)
 
     ret = pread(diskfd, UKVM_CHECKED_GPA_P(hv, rd->data, rd->len), rd->len,
             pos);
+#if 0
     assert(ret == rd->len);
     rd->ret = 0;
+#else
+    if (ret == rd->len)
+        rd->ret = 0;
+    else
+        rd->ret = -1;
+#endif
 }
 
 static int handle_cmdarg(char *cmdarg)

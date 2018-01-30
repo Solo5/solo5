@@ -31,69 +31,96 @@
 /*
  * Application entry point.
  *
- * FIXME: These APIs are to be considered unstable and have multiple known
- * issues (type confusion, missing const-ness, in/out parameters, inconsistent
- * return values). The comments in this file document the current
- * implementation.
+ * The value returned from this function is the application's exit status.
+ *
+ * FIXME: These APIs are to be considered unstable.  The comments in this file
+ * document the current implementation.
  */
-int solo5_app_main(char *cmdline);
+int solo5_app_main(const char *cmdline);
 
 /*
  * Network I/O.
+ *
+ * Currently only a single network device is supported. This device mimics an
+ * Ethernet v2 network interface with an MTU of 1500 bytes. Therefore, buffers
+ * passed to solo5_net_read_sync() must be at least 1514 bytes in length
+ * (including space for the Ethernet data link layer).
  */
 
 /*
- * Send a single network packet (*data) of size (n). Returns -1 on failure, 0
- * on success.
+ * Transmit a single network packet of (size) bytes from (*buf). (size) must be
+ * less than or equal to 1514 bytes.
+ *
+ * On failure:
+ *     Returns -1. This includes transient error conditions (e.g. short write)
+ *     and invalid arguments (e.g. size too big).
+ * On success:
+ *     Returns 0.
  */
-int solo5_net_write_sync(uint8_t *data, int n);
+int solo5_net_write_sync(const uint8_t *buf, size_t size);
 
 /*
- * Receive a single network packet into (*data) up to a maximum size of (*n).
- * Returns 0 on success and size of received packet (*n), -1 on failure or if
- * no packets are available.
+ * Receive a single network packet into (*buf), up to a maximum of (buf_size)
+ * bytes. (buf_size) must be at least 1514 bytes.
+ *
+ * On failure:
+ *     Returns -1. This includes invalid argument errors (e.g. buf_size too
+ *     small).
+ * If no packets are available:
+ *     Returns 0 and a (*read_size) of 0.
+ * On success:
+ *     Returns 0 and the length of the received packet in bytes in (*read_size).
  */
-int solo5_net_read_sync(uint8_t *data, int *n);
+int solo5_net_read_sync(uint8_t *restrict buf, size_t buf_size, size_t
+        *restrict read_size);
 
 /*
  * Returns a pointer to the network MAC address, formatted as a C string
  * XX:XX:XX:XX:XX:XX.
  */
-char *solo5_net_mac_str(void);
+const char *solo5_net_mac_str(void);
 
 /*
  * Block I/O.
- */
-
-/*
- * Writes (n) bytes from (*data) starting at the sector (sec) to the block
- * device. (n) does not need to be a multiple of the sector size. Returns 0 on
- * success, -1 on error.
- */
-int solo5_blk_write_sync(uint64_t sec, uint8_t *data, int n);
-
-/*
- * Reads (*n) bytes starting at the sector (sec) from the block device into
- * (*data). (n) does not need to be a multiple of the sector size. Returns 0 on
- * success, -1 on error.
  *
- * XXX: (*n) is not set as an output parameter. ukvm assert()s that exactly
- * (*n) bytes were written to the device.
+ * Currently only a single sector-addressable block device is supported, and
+ * only single-sector reads and writes are supported.
  */
-int solo5_blk_read_sync(uint64_t sec, uint8_t *data, int *n);
 
 /*
- * Returns the block device sector size.
+ * Writes (size) bytes from (*buf) at the sector (offset) to the block device.
+ * (size) must be equal to the sector size.
+ *
+ * On failure:
+ *     Returns -1. This includes invalid argument errors and incomplete writes.
+ * On success:
+ *     Returns 0.
+ */
+int solo5_blk_write_sync(uint64_t offset, const uint8_t *buf, size_t size);
+
+/*
+ * Reads (size) bytes at the sector (offset) from the block device into (*buf).
+ * (size) must be equal to the sector size.
+ *
+ * On failure:
+ *     Returns -1. This includes invalid argument errors and incomplete reads.
+ * On success:
+ *     Returns 0.
+ */
+int solo5_blk_read_sync(uint64_t offset, uint8_t *buf, size_t size);
+
+/*
+ * Returns the block device sector size in bytes.
  */
 int solo5_blk_sector_size(void);
 
 /*
- * Returns the size of the block device in sectors.
+ * Returns the capacity of the block device in sectors.
  */
-uint64_t solo5_blk_sectors(void);
+uint64_t solo5_blk_capacity(void);
 
 /*
- * Returns true if the block device is writable.
+ * Returns 1 if the block device is writable, otherwise 0.
  */
 int solo5_blk_rw(void);
 
@@ -102,15 +129,17 @@ int solo5_blk_rw(void);
  */
 
 /*
- * Writes (n) bytes from (*buf) to the console. Returns number of bytes
- * actually written.
+ * Writes (size) characters from (*buf) to the console.
+ *
+ * Always succeeds, however the implementation may truncate messages (e.g. due
+ * to resource exhaustion on the host).
  */
-int solo5_console_write(const char *buf, size_t n);
+void solo5_console_write(const char *buf, size_t size);
 
 /*
- * Exits the application.
+ * Immediately exits the application, with an exit code of (status).
  */
-void solo5_exit(void) __attribute__((noreturn));
+void solo5_exit(int status) __attribute__((noreturn));
 
 /*
  * Memory allocation. These APIs correspond to their standard C equivalents.
@@ -136,8 +165,13 @@ uint64_t solo5_clock_monotonic(void);
 uint64_t solo5_clock_wall(void);
 
 /*
- * Blocks until monotonic time reaches until_nsecs or I/O is possible,
- * whichever is sooner. Returns 1 if I/O is possible, otherwise 0.
+ * Blocks until monotonic time reaches until_nsecs or network I/O is possible,
+ * whichever is sooner.
+ *
+ * If network I/O is possible:
+ *     Returns 1.
+ * If monotonic time has reached until_nsecs and network I/O is not possible:
+ *     Returns 0.
  *
  * TODO: Extend this interface to select which I/O events are of interest.
  */

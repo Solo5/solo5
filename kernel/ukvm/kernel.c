@@ -40,7 +40,7 @@ void _start(void *arg)
     net_init();
 
     ret = solo5_app_main(cmdline);
-    log(DEBUG, "Solo5: solo5_app_main() returned with %d\n", ret);
+    log(INFO, "Solo5: solo5_app_main() returned with %d\n", ret);
 
     platform_exit();
 }

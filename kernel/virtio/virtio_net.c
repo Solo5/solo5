@@ -27,7 +27,10 @@
 #define VIRTIO_NET_F_GUEST_CSUM	1 /* Guest handles pkts w/ partial csum */
 #define VIRTIO_NET_F_MAC (1 << 5) /* Host has given MAC address. */
 
+/* Virtio specification, section 5.1.6.3.1. */
 #define PKT_BUFFER_LEN 1526
+/* User-visible network buffer size */
+#define SOLO5_NET_BUF_SIZE 1514
 
 static struct virtq recvq;
 static struct virtq xmitq;
@@ -40,21 +43,21 @@ static struct virtq xmitq;
  * be the first element of the scatter-gather list.  If you don't
  * specify GSO or CSUM features, you can simply ignore the header.
  */
-struct __attribute__((__packed__)) virtio_net_hdr {
+struct virtio_net_hdr {
 #define VIRTIO_NET_HDR_F_NEEDS_CSUM     1   /* Use csum_start, csum_offset */
-#define VIRTIO_NET_HDR_F_DATA_VALID     2        /* Csum is valid */
+#define VIRTIO_NET_HDR_F_DATA_VALID     2   /* Csum is valid */
     uint8_t flags;
-#define VIRTIO_NET_HDR_GSO_NONE         0        /* Not a GSO frame */
-#define VIRTIO_NET_HDR_GSO_TCPV4        1        /* GSO frame, IPv4 TCP (TSO) */
-#define VIRTIO_NET_HDR_GSO_UDP          3        /* GSO frame, IPv4 UDP (UFO) */
-#define VIRTIO_NET_HDR_GSO_TCPV6        4        /* GSO frame, IPv6 TCP */
-#define VIRTIO_NET_HDR_GSO_ECN       0x80        /* TCP has ECN set */
+#define VIRTIO_NET_HDR_GSO_NONE         0   /* Not a GSO frame */
+#define VIRTIO_NET_HDR_GSO_TCPV4        1   /* GSO frame, IPv4 TCP (TSO) */
+#define VIRTIO_NET_HDR_GSO_UDP          3   /* GSO frame, IPv4 UDP (UFO) */
+#define VIRTIO_NET_HDR_GSO_TCPV6        4   /* GSO frame, IPv6 TCP */
+#define VIRTIO_NET_HDR_GSO_ECN       0x80   /* TCP has ECN set */
     uint8_t gso_type;
-    uint16_t hdr_len;                /* Ethernet + IP + tcp/udp hdrs */
+    uint16_t hdr_len;                         /* Ethernet + IP + tcp/udp hdrs */
     uint16_t gso_size;                /* Bytes to append to hdr_len per frame */
-    uint16_t csum_start;        /* Position to start checksumming from */
-    uint16_t csum_offset;        /* Offset after that to place checksum */
-};
+    uint16_t csum_start;               /* Position to start checksumming from */
+    uint16_t csum_offset;              /* Offset after that to place checksum */
+} __attribute__((packed));
 
 static uint16_t virtio_net_pci_base; /* base in PCI config space */
 
@@ -98,7 +101,7 @@ static void recv_setup(void)
 }
 
 /* performance note: we perform a copy into the xmit buffer */
-int virtio_net_xmit_packet(void *data, int len)
+int virtio_net_xmit_packet(const void *data, size_t len)
 {
     uint16_t mask = xmitq.num - 1;
     uint16_t head;
@@ -225,7 +228,7 @@ int virtio_net_pkt_poll(void)
 
 /* Get the data from the next_avail (top-most) receive buffer/descriptpr in
  * the available ring. */
-uint8_t *virtio_net_recv_pkt_get(int *size)
+uint8_t *virtio_net_recv_pkt_get(size_t *size)
 {
     uint16_t mask = recvq.num - 1;
     struct virtq_used_elem *e;
@@ -263,37 +266,43 @@ void virtio_net_recv_pkt_put(void)
     outw(virtio_net_pci_base + VIRTIO_PCI_QUEUE_NOTIFY, VIRTQ_RECV);
 }
 
-int solo5_net_write_sync(uint8_t *data, int n)
+int solo5_net_write_sync(const uint8_t *buf, size_t size)
 {
     assert(net_configured);
 
-    return virtio_net_xmit_packet(data, n);
+    if (size > SOLO5_NET_BUF_SIZE)
+        return -1;
+    return virtio_net_xmit_packet(buf, size);
 }
 
-int solo5_net_read_sync(uint8_t *data, int *n)
+int solo5_net_read_sync(uint8_t *buf, size_t buf_size, size_t *read_size)
 {
     uint8_t *pkt;
-    int len = *n;
+    size_t pkt_len;
 
     assert(net_configured);
+
+    if (buf_size < SOLO5_NET_BUF_SIZE)
+        return -1;
 
     /* We only need interrupts to wake up the application when it's sleeping
      * and waiting for incoming packets. The app is definitely not doing that
      * now (as we are here), so disable them. */
     recvq.avail->flags |= VIRTQ_AVAIL_F_NO_INTERRUPT;
 
-    pkt = virtio_net_recv_pkt_get(&len);
+    pkt = virtio_net_recv_pkt_get(&pkt_len);
     if (!pkt) {
         recvq.avail->flags &= ~VIRTQ_AVAIL_F_NO_INTERRUPT;
-        return -1;
+        *read_size = 0;
+        return 0;
     }
 
-    assert(len <= *n);
-    assert(len <= PKT_BUFFER_LEN);
-    *n = len;
+    assert(pkt_len <= buf_size);
+    assert(pkt_len <= PKT_BUFFER_LEN);
+    *read_size = pkt_len;
 
     /* also, it's clearly not zero copy */
-    memcpy(data, pkt, len);
+    memcpy(buf, pkt, pkt_len);
 
     /* Consume the recently used descriptor. */
     recvq.last_used++;
@@ -306,7 +315,7 @@ int solo5_net_read_sync(uint8_t *data, int *n)
     return 0;
 }
 
-char *solo5_net_mac_str(void)
+const char *solo5_net_mac_str(void)
 {
     assert(net_configured);
 

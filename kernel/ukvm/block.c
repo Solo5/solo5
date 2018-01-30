@@ -20,14 +20,13 @@
 
 #include "kernel.h"
 
-/* ukvm block interface */
-int solo5_blk_write_sync(uint64_t sec, uint8_t *data, int n)
+int solo5_blk_write_sync(uint64_t offset, const uint8_t *buf, size_t size)
 {
     volatile struct ukvm_blkwrite wr;
 
-    wr.sector = sec;
-    wr.data = data;
-    wr.len = n;
+    wr.sector = offset;
+    wr.data = buf;
+    wr.len = size;
     wr.ret = 0;
 
     ukvm_do_hypercall(UKVM_HYPERCALL_BLKWRITE, &wr);
@@ -35,18 +34,17 @@ int solo5_blk_write_sync(uint64_t sec, uint8_t *data, int n)
     return wr.ret;
 }
 
-int solo5_blk_read_sync(uint64_t sec, uint8_t *data, int *n)
+int solo5_blk_read_sync(uint64_t offset, uint8_t *buf, size_t size)
 {
     volatile struct ukvm_blkread rd;
 
-    rd.sector = sec;
-    rd.data = data;
-    rd.len = *n;
+    rd.sector = offset;
+    rd.data = buf;
+    rd.len = size;
     rd.ret = 0;
 
     ukvm_do_hypercall(UKVM_HYPERCALL_BLKREAD, &rd);
 
-    *n = rd.len;
     return rd.ret;
 }
 
@@ -59,7 +57,7 @@ int solo5_blk_sector_size(void)
     return info.sector_size;
 }
 
-uint64_t solo5_blk_sectors(void)
+uint64_t solo5_blk_capacity(void)
 {
     volatile struct ukvm_blkinfo info;
 

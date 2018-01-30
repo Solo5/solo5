@@ -61,7 +61,7 @@ static void _start2(void *arg __attribute__((unused)))
     cpu_intr_enable();
 
     ret = solo5_app_main(cmdline);
-    log(DEBUG, "Solo5: solo5_app_main() returned with %d\n", ret);
+    log(INFO, "Solo5: solo5_app_main() returned with %d\n", ret);
 
     platform_exit();
 }
