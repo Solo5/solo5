@@ -18,6 +18,7 @@
 
 export TOP=$(abspath .)
 $(TOP)/Makeconf:
+	TARGET=${TARGET:-"x86_64-linux-gnu"}
 	./configure.sh
 include Makefile.common
 
