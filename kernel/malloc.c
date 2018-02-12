@@ -69,6 +69,12 @@ void solo5_free(void *) __attribute__ ((alias ("free")));
 void *solo5_calloc(size_t, size_t) __attribute__ ((alias ("calloc")));
 void *solo5_realloc(void *, size_t) __attribute__ ((alias ("realloc")));
 
+/* disable null-pointer-arithmetic warning on clang */
+#if defined(__clang__)
+#pragma clang diagnostic ignored "-Wunknown-pragmas"
+#pragma clang diagnostic ignored "-Wnull-pointer-arithmetic"
+#endif
+
 /*
   This is a version (aka dlmalloc) of malloc/free/realloc written by
   Doug Lea and released to the public domain, as explained at
