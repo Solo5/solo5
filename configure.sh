@@ -107,7 +107,7 @@ case $(uname -s) in
         SRCS_MACH="machine/_stdint.h machine/_types.h machine/endian.h \
             machine/_limits.h"
         SRCS_SYS="sys/_null.h sys/_stdint.h sys/_types.h sys/cdefs.h \
-            sys/endian.h"
+            sys/endian.h sys/_stdarg.h"
         SRCS_X86="x86/float.h x86/_stdint.h x86/stdarg.h x86/endian.h \
             x86/_types.h x86/_limits.h"
         SRCS="float.h osreldate.h stddef.h stdint.h stdbool.h stdarg.h"
