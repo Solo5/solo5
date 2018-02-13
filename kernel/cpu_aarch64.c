@@ -92,6 +92,9 @@ void cpu_intr_enable(void)
 
 void cpu_halt(void)
 {
-    ukvm_do_hypercall(UKVM_HYPERCALL_HALT, NULL);
-    for(;;);
+    /* Copied from FreeBSD:sys/arm64/arm64/machdep.c */
+    cpu_intr_disable();
+    while (1) {
+        __asm __volatile("wfi");
+    }
 }

@@ -40,11 +40,3 @@ uint64_t platform_mem_size(void)
 {
     return mem_size;
 }
-
-void platform_exit(void)
-{
-    /*
-     * Halt will cause an exit (as in "shutdown") on ukvm.
-     */
-    cpu_halt();
-}

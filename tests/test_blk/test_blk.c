@@ -102,5 +102,5 @@ int solo5_app_main(char *cmdline __attribute__((unused)))
 
     puts("SUCCESS\n");
 
-    return 0;
+    return SOLO5_EXIT_SUCCESS;
 }

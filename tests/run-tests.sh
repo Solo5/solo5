@@ -177,28 +177,52 @@ run_test ()
     )
 
     STATUS=$?
-    case ${STATUS} in
-    # XXX Should this be abstracted out in solo5-run-virtio.sh?
-    0|2|83) 
-        LOGS=$(find ${TMPDIR} -type f -name ${NAME}.log.\*)
+    LOGS=$(find ${TMPDIR} -type f -name ${NAME}.log.\*)
 
-        STATUS=99
-        if [ -z "${WANT_ABORT}" ]; then
-            [ -n "${LOGS}" ] && grep -q SUCCESS ${LOGS} && STATUS=0
-        else
-            [ -n "${LOGS}" ] && grep -q ABORT ${LOGS} && STATUS=0
-        fi
-        if [ ${STATUS} -eq "0" ]; then
-            if [ -n "${WANT_QUIET}" -a -n "${LOGS}" ]; then
-                # XXX This is all just horribly fragile.
-                # If "quiet mode" was requested, there should not be any output
-                # on the console with "Solo5:" in it unless there was an error,
-                # with the exception of "Solo5: Halted" on non-QEMU hypervisors.
-                if sed -e '/^Solo5: Halted$/d' ${LOGS} | grep -q 'Solo5:'; then
-                    STATUS=99
+    if [ -z "${LOGS}" ]; then
+
+        wait
+        return 99
+    fi
+
+    case ${NAME} in
+    *.ukvm)
+        case ${STATUS} in
+        0|255) 
+            if   [ -z "${WANT_ABORT}" ] && [ "${STATUS}" -eq "0" ]; then
+                STATUS=0
+            elif [ -n "${WANT_ABORT}" ] && [ "${STATUS}" -eq "255" ]; then
+                STATUS=0
+            else
+                STATUS=99
+            fi
+            ;;
+        esac
+        ;;
+
+    *.virtio)
+        case ${STATUS} in
+        # XXX Should this be abstracted out in solo5-run-virtio.sh?
+        0|2|83) 
+            STATUS=99
+            if [ -z "${WANT_ABORT}" ]; then
+                grep -q SUCCESS ${LOGS} && STATUS=0
+            else
+                grep -q ABORT ${LOGS} && STATUS=0
+            fi
+            if [ ${STATUS} -eq "0" ]; then
+                if [ -n "${WANT_QUIET}" ]; then
+                    # XXX This is all just horribly fragile.
+                    # If "quiet mode" was requested, there should not be any output
+                    # on the console with "Solo5:" in it unless there was an error,
+                    # with the exception of "Solo5: Halted" on non-QEMU hypervisors.
+                    if sed -e '/^Solo5: Halted$/d' ${LOGS} | grep -q 'Solo5:'; then
+                        STATUS=99
+                    fi
                 fi
             fi
-        fi
+            ;;
+        esac
         ;;
     esac
 
@@ -309,7 +333,7 @@ for T in ${TESTS}; do
         echo "${TGREEN}PASSED${TOFF}"
         [ -n "${VERBOSE}" ] && dumplogs ${NAME} ${TGREEN} ${TOFF}
         ;;
-    99)
+    1|99)
         STATUS=1
         echo "${TRED}FAILED${TOFF}"
         ;;

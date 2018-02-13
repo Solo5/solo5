@@ -29,7 +29,8 @@
  */
 
 /*
- * Application entry point.
+ * Application entry point. Return values of 255 and above are reserved for
+ * solo5.
  *
  * FIXME: These APIs are to be considered unstable and have multiple known
  * issues (type confusion, missing const-ness, in/out parameters, inconsistent
@@ -108,9 +109,15 @@ int solo5_blk_rw(void);
 int solo5_console_write(const char *buf, size_t n);
 
 /*
- * Exits the application.
+ * Exits the application. The value status is used as the exit status of
+ * ukvm-bin.
+ *
+ * Status values of 255 and above are reserved for solo5.
  */
-void solo5_exit(void) __attribute__((noreturn));
+#define SOLO5_EXIT_SUCCESS	0
+#define SOLO5_EXIT_FAILURE	1
+#define SOLO5_EXIT_ABORT	255
+void solo5_exit(int status) __attribute__((noreturn));
 
 /*
  * Memory allocation. These APIs correspond to their standard C equivalents.

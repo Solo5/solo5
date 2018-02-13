@@ -18,9 +18,25 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include "kernel.h"
+#include "../ukvm/kernel.h"
+#include "../../ukvm/ukvm_guest.h"
+
+void fpu_init(void)
+{
+    const unsigned default_mxcsr = 0x1f80;
+    __asm__ __volatile__("ldmxcsr %0" : : "m"(default_mxcsr));
+}
 
 void platform_init(void *arg)
 {
     process_bootinfo(arg);
+    fpu_init();
+}
+
+void platform_exit(int status __attribute__((unused)))
+{
+    const char msg[] = "Solo5: Halted\n";
+    platform_puts(msg, strlen(msg));
+    __asm__ __volatile__("cli; hlt");
+    for (;;);
 }
