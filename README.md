@@ -3,6 +3,22 @@
     \__ \ (   | | (   |  ) | 
     ____/\___/ _|\___/____/  
 
+# Status update, February 2018
+
+Solo5 is currently undergoing major refactoring including breaking API/ABI
+changes. This document reflects the state of the project as of the last formal
+release (version 0.2.2), and will be updated once this refactoring has
+concluded.
+
+If you are a Mirage/Solo5 user and would like to keep using Mirage 3.0 based on
+Solo5 version 0.2.x, the instructions here are still applicable and you do not
+need to do anything special.
+
+If you want to follow the development version you should use the OPAM remote in
+the [Solo5/opam-solo5](https://github.com/Solo5/opam-solo5) repository and
+update your packages regularly. For more details, refer to this mirageos-devel
+[thread](https://lists.xenproject.org/archives/html/mirageos-devel/2018-02/msg00011.html).
+
 # About Solo5
 
 Solo5 is most useful as a "base layer" to run
