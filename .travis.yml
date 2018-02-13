@@ -1,7 +1,8 @@
 language: c
-sudo: required
+sudo: false
 dist: trusty
-before_install:
-    - sudo apt-get update -qq
-    - sudo apt-get install -qq qemu-system-x86
-script: make && sudo tests/setup-tests.sh && sudo tests/run-tests.sh
+addons:
+    apt:
+        packages:
+            - qemu-system-x86
+script: make && tests/run-tests.sh
