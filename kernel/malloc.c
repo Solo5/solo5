@@ -70,8 +70,7 @@ void *solo5_calloc(size_t, size_t) __attribute__ ((alias ("calloc")));
 void *solo5_realloc(void *, size_t) __attribute__ ((alias ("realloc")));
 
 /* disable null-pointer-arithmetic warning on clang */
-#if defined(__clang__)
-#pragma clang diagnostic ignored "-Wunknown-pragmas"
+#if defined(__clang__) && __clang_major__ >= 6
 #pragma clang diagnostic ignored "-Wnull-pointer-arithmetic"
 #endif
 
