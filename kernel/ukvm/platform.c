@@ -52,5 +52,5 @@ void platform_abort(void *regs, size_t len)
         info.len = len;
     }
     ukvm_do_hypercall(UKVM_HYPERCALL_ABORT, &info);
-    platform_exit();
+    platform_exit(SOLO5_EXIT_ABORT);
 }

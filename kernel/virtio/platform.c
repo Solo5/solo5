@@ -103,7 +103,7 @@ void platform_abort(void *regs, size_t len)
     if (regs && len) {
         /* NO-OP to suppress compiler error */
     }
-    platform_exit();
+    platform_exit(SOLO5_EXIT_ABORT);
 }
 
 void platform_exit(int status __attribute__((unused)))
