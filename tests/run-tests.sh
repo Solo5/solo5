@@ -200,6 +200,8 @@ run_test ()
                 STATUS=0
             elif [ -n "${WANT_ABORT}" ] && [ "${STATUS}" -eq "255" ]; then
                 STATUS=0
+            elif [ -n "${WANT_ASSERT}" ] && [ "${STATUS}" -eq "255" ]; then
+                grep -q "unikernel core file" ${LOGS} && STATUS=0
             else
                 STATUS=99
             fi
@@ -212,10 +214,12 @@ run_test ()
         # XXX Should this be abstracted out in solo5-run-virtio.sh?
         0|2|83) 
             STATUS=99
-            if [ -z "${WANT_ABORT}" ]; then
-                grep -q SUCCESS ${LOGS} && STATUS=0
-            else
+            if [ "${WANT_ABORT}" ]; then
                 grep -q ABORT ${LOGS} && STATUS=0
+            elif [ "${WANT_ASSERT}" ]; then
+                grep -q "Cannot dump core" ${LOGS} && STATUS=0
+            else
+                grep -q SUCCESS ${LOGS} && STATUS=0
             fi
             if [ ${STATUS} -eq "0" ]; then
                 if [ -n "${WANT_QUIET}" ]; then
