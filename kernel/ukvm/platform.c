@@ -44,6 +44,7 @@ uint64_t platform_mem_size(void)
 
 void platform_abort(void *regs, size_t len)
 {
+#ifdef UKVM_MODULE_DUMPCORE
     volatile struct ukvm_abort info;
     memset((void *)&info, 0, sizeof(struct ukvm_abort));
 
@@ -52,5 +53,10 @@ void platform_abort(void *regs, size_t len)
         info.len = len;
     }
     ukvm_do_hypercall(UKVM_HYPERCALL_ABORT, &info);
+#else
+    if (regs && len) {
+        /* NO-OP to suppress compiler error */
+    }
+#endif
     platform_exit(SOLO5_EXIT_ABORT);
 }

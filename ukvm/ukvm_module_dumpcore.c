@@ -41,6 +41,7 @@
 #include <stdbool.h>
 #include <unistd.h>
 #include <assert.h>
+#include <stdio.h>
 #include "ukvm.h"
 
 #if defined(__linux__) && defined(__x86_64__)
@@ -61,7 +62,6 @@
 
 #endif
 
-static bool use_dumpcore = false;
 /*
  * the Unikernel's core format is:
  *   --------------
@@ -79,17 +79,19 @@ static bool use_dumpcore = false;
  * we only know where the memory is saved after we write elf note into
  * vmcore.
  */
-static void ukvm_dumpcore(struct ukvm_hv *hv, struct ukvm_abort *info)
+void ukvm_dumpcore(struct ukvm_hv *hv, struct ukvm_abort *info)
 {
     int core_fd, elf_fd = 0, num_notes = 0;
     size_t offset, note_size;
     Elf64_Ehdr hdr;
     Elf64_Phdr phdr;
+    char filename[20] = {0};
+    snprintf(filename, 20, "core.ukvm.%d", getpid());
 
     memset((void *)&hdr, 0, sizeof(Elf64_Ehdr));
     memset((void *)&phdr, 0, sizeof(Elf64_Phdr));
 
-    core_fd = open("core.unikernel", O_RDWR|O_CREAT|O_TRUNC|O_APPEND, S_IRUSR|S_IWUSR);
+    core_fd = open(filename, O_RDWR|O_CREAT|O_TRUNC|O_APPEND, S_IRUSR|S_IWUSR);
     if (core_fd < 0) {
         goto failure;
     }
@@ -160,6 +162,7 @@ static void ukvm_dumpcore(struct ukvm_hv *hv, struct ukvm_abort *info)
     if (write(core_fd, hv->mem, hv->mem_size) < 0) {
         goto failure;
     }
+    warnx("Dumped an unikernel core file: %s", filename);
     goto cleanup;
 
 failure:
@@ -182,9 +185,6 @@ static void hypercall_dumpcore(struct ukvm_hv *hv, ukvm_gpa_t gpa)
 
 static int setup(struct ukvm_hv *hv)
 {
-    if (!use_dumpcore) {
-        return 0;
-    }
     assert(ukvm_core_register_hypercall(UKVM_HYPERCALL_ABORT,
         hypercall_dumpcore) == 0);
 
@@ -193,11 +193,7 @@ static int setup(struct ukvm_hv *hv)
 
 static int handle_cmdarg(char *cmdarg)
 {
-    if (!strcmp("--dumpcore", cmdarg)) {
-        use_dumpcore = true;
-        return 0;
-    }
-    return -1;
+    return 0;
 }
 
 static char *usage(void)

@@ -131,7 +131,7 @@ int main(int argc, char **argv)
     ukvm_gpa_t gpa_ep, gpa_kend;
     const char *prog;
     const char *elffile;
-    int matched;
+    int matched, ret;
 
     prog = basename(*argv);
     argc--;
@@ -196,5 +196,13 @@ int main(int argc, char **argv)
 
     setup_modules(hv);
 
-    return ukvm_hv_vcpu_loop(hv);
+    ret = ukvm_hv_vcpu_loop(hv);
+
+#if UKVM_MODULE_DUMPCORE
+    if (ret == 255) {
+        ukvm_dumpcore(hv, NULL);
+    }
+#endif
+
+    return ret;
 }
