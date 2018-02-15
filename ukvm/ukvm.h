@@ -98,9 +98,10 @@ void ukvm_hv_vcpu_init(struct ukvm_hv *hv, ukvm_gpa_t gpa_ep,
         ukvm_gpa_t gpa_kend, char **cmdline);
 
 /*
- * Run the VCPU. Returns on normal guest exit.
+ * Run the VCPU. Returns on normal guest exit. Returns the exit status passed
+ * from the unikernel on the final exit.
  */
-void ukvm_hv_vcpu_loop(struct ukvm_hv *hv);
+int ukvm_hv_vcpu_loop(struct ukvm_hv *hv);
 
 /*
  * Register the file descriptor (fd) for use with UKVM_HYPERCALL_POLL.

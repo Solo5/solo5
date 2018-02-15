@@ -46,7 +46,7 @@ int solo5_app_main(char *cmdline __attribute__((unused)))
         tb = solo5_clock_monotonic();
     if (!(tb > ta)) {
         puts("ERROR: time is not passing\n");
-        return 1;
+        return SOLO5_EXIT_FAILURE;
     }
 
     /* 
@@ -61,7 +61,7 @@ int solo5_app_main(char *cmdline __attribute__((unused)))
      */
     if ((tb - ta) < NSEC_PER_SEC) {
         puts("ERROR: slept too little\n");
-        return 1;
+        return SOLO5_EXIT_FAILURE;
     }
     /*
      * Verify that we did not sleep more than requested, within reason
@@ -69,7 +69,7 @@ int solo5_app_main(char *cmdline __attribute__((unused)))
      */
     if ((tb - ta) > (NSEC_PER_SEC + 100000000ULL)) {
         puts("ERROR: slept too much\n");
-        return 1;
+        return SOLO5_EXIT_FAILURE;
     }
 
     /*
@@ -78,9 +78,9 @@ int solo5_app_main(char *cmdline __attribute__((unused)))
     ta = solo5_clock_wall();
     if (ta < (1483228800ULL * NSEC_PER_SEC)) {
         puts("ERROR: wall time is not 2017 or later\n");
-        return 1;
+        return SOLO5_EXIT_FAILURE;
     }
 
     puts("SUCCESS\n");
-    return 0;
+    return SOLO5_EXIT_SUCCESS;
 }

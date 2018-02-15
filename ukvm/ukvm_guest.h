@@ -277,4 +277,10 @@ struct ukvm_abort {
     int ret;
 };
 
+/* UKVM_HYPERCALL_HALT */
+struct ukvm_halt {
+    /* IN */
+    int exit_status;
+};
+
 #endif /* UKVM_GUEST_H */

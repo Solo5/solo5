@@ -40,5 +40,5 @@ int solo5_app_main(char *cmdline __attribute__((unused)))
     puts("SUCCESS\n");
     /* The run-tests.sh script will run this with --quiet and checks that
      * there is no "Solo5:". */
-    return 0;
+    return SOLO5_EXIT_SUCCESS;
 }

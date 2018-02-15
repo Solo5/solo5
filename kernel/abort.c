@@ -39,7 +39,7 @@ void _assert_fail(const char *file, const char *line, const char *e)
     puts(": Assertion `");
     puts(e);
     puts("' failed\n");
-    platform_abort(NULL, 0);
+    platform_exit(SOLO5_EXIT_ABORT);
 }
 
 void _abort(const char *file, const char *line, const char *s)
@@ -51,7 +51,7 @@ void _abort(const char *file, const char *line, const char *s)
     puts(": ");
     puts(s);
     puts("\n");
-    platform_exit();
+    platform_exit(SOLO5_EXIT_ABORT);
 }
 
 void _abort_and_dump(const char *file, const char *line, const char *s,

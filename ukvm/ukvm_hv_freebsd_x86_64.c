@@ -164,7 +164,7 @@ static void dump_vmx(struct vm_exit *vme)
     warnx("\tinst_error\t%d", vme->u.vmx.inst_error);
 }
 
-void ukvm_hv_vcpu_loop(struct ukvm_hv *hv)
+int ukvm_hv_vcpu_loop(struct ukvm_hv *hv)
 {
     struct ukvm_hvb *hvb = hv->b;
     int ret;
@@ -186,11 +186,6 @@ void ukvm_hv_vcpu_loop(struct ukvm_hv *hv)
         struct vm_exit *vme = &hvb->vmrun.vm_exit;
 
         switch (vme->exitcode) {
-        case VM_EXITCODE_SUSPENDED:
-            /* Guest has halted the CPU, this is considered as a normal exit. */
-            /* XXX really check that is what happened */
-            return;
-
         case VM_EXITCODE_INOUT: {
             if (vme->u.inout.in || vme->u.inout.bytes != 4)
                 errx(1, "Invalid guest port access: port=0x%x",
@@ -201,6 +196,15 @@ void ukvm_hv_vcpu_loop(struct ukvm_hv *hv)
                         vme->u.inout.port);
 
             int nr = vme->u.inout.port - UKVM_HYPERCALL_PIO_BASE;
+
+            /* Guest has halted the CPU. */
+            if (nr == UKVM_HYPERCALL_HALT) {
+                ukvm_gpa_t gpa = vme->u.inout.eax;
+                struct ukvm_halt *p =
+                    UKVM_CHECKED_GPA_P(hv, gpa, sizeof (struct ukvm_halt));
+                return p->exit_status;
+            }
+
             ukvm_hypercall_fn_t fn = ukvm_core_hypercalls[nr];
             if (fn == NULL)
                 errx(1, "Invalid guest hypercall: num=%d", nr);

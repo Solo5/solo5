@@ -331,7 +331,7 @@ static inline uint32_t mmio_read32(void *data)
     return *(uint32_t *)data;
 }
 
-void ukvm_hv_vcpu_loop(struct ukvm_hv *hv)
+int ukvm_hv_vcpu_loop(struct ukvm_hv *hv)
 {
     struct ukvm_hvb *hvb = hv->b;
     int ret;
@@ -371,9 +371,13 @@ void ukvm_hv_vcpu_loop(struct ukvm_hv *hv)
 
             int nr = UKVM_HYPERCALL_NR(run->mmio.phys_addr);
 
-            /* Guest has halted the CPU, this is considered as a normal exit. */
-            if (nr == UKVM_HYPERCALL_HALT)
-                return;
+            /* Guest has halted the CPU. */
+            if (nr == UKVM_HYPERCALL_HALT) {
+                ukvm_gpa_t gpa = mmio_read32(run->mmio.data);
+                struct ukvm_halt *p =
+                    UKVM_CHECKED_GPA_P(hv, gpa, sizeof (struct ukvm_halt));
+                return p->exit_status;
+            }
 
             ukvm_hypercall_fn_t fn = ukvm_core_hypercalls[nr];
             if (fn == NULL)

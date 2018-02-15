@@ -18,17 +18,18 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include "../ukvm/kernel.h"
-#include "../../ukvm/ukvm_guest.h"
-
-void fpu_init(void)
-{
-    const unsigned default_mxcsr = 0x1f80;
-    __asm__ __volatile__("ldmxcsr %0" : : "m"(default_mxcsr));
-}
+#include "kernel.h"
 
 void platform_init(void *arg)
 {
     process_bootinfo(arg);
-    fpu_init();
+}
+
+void platform_exit(int status)
+{
+    struct ukvm_halt h;
+    h.exit_status = status;
+
+    ukvm_do_hypercall(UKVM_HYPERCALL_HALT, &h);
+    for(;;);
 }

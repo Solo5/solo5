@@ -19,6 +19,6 @@
 UKVM_TARGETS=test_hello.ukvm ukvm-bin
 VIRTIO_TARGETS=test_hello.virtio
 MUEN_TARGETS=test_hello.muen
-UKVM_MODULES=
+UKVM_MODULES=gdb
 
 include ../Makefile.tests
