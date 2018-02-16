@@ -81,7 +81,7 @@
  */
 void ukvm_dumpcore(struct ukvm_hv *hv, struct ukvm_abort *info)
 {
-    int core_fd, elf_fd = 0, num_notes = 0;
+    int core_fd, num_notes = 0;
     size_t offset, note_size;
     Elf64_Ehdr hdr;
     Elf64_Phdr phdr;
@@ -96,19 +96,19 @@ void ukvm_dumpcore(struct ukvm_hv *hv, struct ukvm_abort *info)
         goto failure;
     }
 
-    /* Read the elf file and re-write the elf header to the core */
-    elf_fd = open(hv->elffile, O_RDONLY);
-    if (elf_fd < 0) {
-        goto failure;
-    }
+    memset(&hdr, 0, sizeof(Elf64_Ehdr));
+    memcpy(&hdr, ELFMAG, SELFMAG);
 
-    if (pread_in_full(elf_fd, &hdr, sizeof(Elf64_Ehdr), 0) !=
-            sizeof(Elf64_Ehdr)) {
-        goto failure;
-    }
-
-    /* Update the elf header to indicate this is a core file */
+    hdr.e_ident[EI_VERSION] = EV_CURRENT;
     hdr.e_type = ET_CORE;
+    hdr.e_version = EV_CURRENT;
+    hdr.e_machine = EM_X86_64;
+    hdr.e_ehsize = sizeof(hdr);
+    hdr.e_phoff = sizeof(hdr); 
+    hdr.e_phentsize = sizeof(Elf64_Phdr);
+
+    /* Fill in architecture specific contents for elf header */
+    ukvm_dumpcore_fill_arch_header(&hdr);
 
     /* No section header in core file */
     hdr.e_shoff = 0;
@@ -170,7 +170,6 @@ failure:
 
 cleanup:
     close(core_fd);
-    close(elf_fd);
 }
 
 static void hypercall_dumpcore(struct ukvm_hv *hv, ukvm_gpa_t gpa)

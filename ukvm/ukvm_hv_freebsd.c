@@ -128,6 +128,5 @@ struct ukvm_hv *ukvm_hv_init(size_t mem_size, const char *elffile)
     if (hv->mem == MAP_FAILED)
 	err(1, "mmap");
     hv->mem_size = mem_size;
-    hv->elffile = elffile;
     return hv;
 }

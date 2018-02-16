@@ -44,7 +44,6 @@ struct ukvm_hv {
     uint8_t *mem;
     size_t mem_size;
     struct ukvm_hvb *b;
-    const char *elffile;
 };
 
 /*

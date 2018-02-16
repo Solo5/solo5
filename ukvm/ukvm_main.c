@@ -34,6 +34,7 @@
 #include <sys/mman.h>
 
 #include "ukvm.h"
+#include "../kernel/solo5.h"
 
 static void setup_cmdline(char *cmdline, int argc, char **argv)
 {
@@ -199,7 +200,7 @@ int main(int argc, char **argv)
     ret = ukvm_hv_vcpu_loop(hv);
 
 #if UKVM_MODULE_DUMPCORE
-    if (ret == 255) {
+    if (ret == SOLO5_EXIT_ABORT) {
         ukvm_dumpcore(hv, NULL);
     }
 #endif

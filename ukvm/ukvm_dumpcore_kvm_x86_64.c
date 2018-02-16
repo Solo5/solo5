@@ -134,3 +134,8 @@ int ukvm_dumpcore_get_regs(struct ukvm_hv *hv)
     return 0;
 }
 
+void ukvm_dumpcore_fill_arch_header(Elf64_Ehdr *hdr)
+{
+    hdr->e_ident[EI_CLASS] = ELFCLASS64;
+    hdr->e_ident[EI_DATA] = ELFDATA2LSB; 
+}

@@ -91,6 +91,5 @@ struct ukvm_hv *ukvm_hv_init(size_t mem_size, const char *elffile)
         err(1, "KVM: ioctl (SET_USER_MEMORY_REGION) failed");
 
     hv->b = hvb;
-    hv->elffile = elffile;
     return hv;
 }
