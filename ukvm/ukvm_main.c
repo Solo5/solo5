@@ -201,7 +201,7 @@ int main(int argc, char **argv)
 
 #if UKVM_MODULE_DUMPCORE
     if (ret == SOLO5_EXIT_ABORT) {
-        ukvm_dumpcore(hv, NULL);
+        //ukvm_dumpcore(hv, NULL);
     }
 #endif
 
