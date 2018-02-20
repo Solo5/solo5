@@ -87,14 +87,16 @@ int virtq_add_descriptor_chain(struct virtq *vq,
 void virtq_init_rings(uint16_t pci_base, struct virtq *vq, int selector)
 {
     uint8_t *data;
-
+    size_t pgs;
+    
     outw(pci_base + VIRTIO_PCI_QUEUE_SEL, selector);
     vq->last_used = vq->next_avail = 0;
     vq->num = vq->num_avail = inw(pci_base + VIRTIO_PCI_QUEUE_SIZE);
 
-    data = memalign(4096, VIRTQ_SIZE(vq->num));
+    pgs = ((VIRTQ_SIZE(vq->num) - 1) >> PAGE_SHIFT) + 1;
+    data = mem_ialloc_pages(pgs);
     assert(data);
-    memset(data, 0, VIRTQ_SIZE(vq->num));
+    memset(data, 0, pgs << PAGE_SHIFT);
 
     assert(vq->num <= VIRTQ_MAX_QUEUE_SIZE);
 

@@ -26,22 +26,22 @@ static void puts(const char *s)
     solo5_console_write(s, strlen(s));
 }
 
-int solo5_app_main(char *cmdline)
+int solo5_app_main(const struct solo5_boot_info *bi)
 {
     puts("\n**** Solo5 standalone test_hello ****\n\n");
     puts("Hello, World\nCommand line is: '");
 
     size_t len = 0;
-    char *p = cmdline;
+    const char *p = bi->cmdline;
 
     while (*p++)
         len++;
-    solo5_console_write(cmdline, len);
+    solo5_console_write(bi->cmdline, len);
 
     puts("'\n");
 
     /* "Hello_Solo5" will be passed in via the command line */
-    if (strcmp(cmdline, "Hello_Solo5") == 0)
+    if (strcmp(bi->cmdline, "Hello_Solo5") == 0)
         puts("SUCCESS\n");
 
     return SOLO5_EXIT_SUCCESS;

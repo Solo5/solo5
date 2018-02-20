@@ -148,7 +148,8 @@ void virtio_config_block(struct pci_config_info *pci)
 {
     uint8_t ready_for_init = VIRTIO_PCI_STATUS_ACK | VIRTIO_PCI_STATUS_DRIVER;
     uint32_t host_features, guest_features;
-
+    size_t pgs;
+    
     outb(pci->base + VIRTIO_PCI_STATUS, ready_for_init);
 
     host_features = inl(pci->base + VIRTIO_PCI_HOST_FEATURES);
@@ -164,8 +165,10 @@ void virtio_config_block(struct pci_config_info *pci)
 
     virtq_init_rings(pci->base, &blkq, 0);
 
-    blkq.bufs = calloc(blkq.num, sizeof (struct io_buffer));
+    pgs = (((blkq.num * sizeof (struct io_buffer)) - 1) >> PAGE_SHIFT) + 1;
+    blkq.bufs = mem_ialloc_pages(pgs);
     assert(blkq.bufs);
+    memset(blkq.bufs, 0, pgs << PAGE_SHIFT);
 
     virtio_blk_pci_base = pci->base;
     blk_configured = 1;
