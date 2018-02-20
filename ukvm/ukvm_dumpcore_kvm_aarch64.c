@@ -19,8 +19,8 @@
  */
 
 /*
- * ukvm_dumpcore_kvm_x86_64.c: glue between the dumpcore ukvm_module
- * and freebsd's vmm.
+ * ukvm_dumpcore_kvm_aarch64.c: Platform specific glue between the dumpcore ukvm_module
+ * and vmm.
  */
 size_t ukvm_dumpcore_get_note_size(int *num_notes)
 {
@@ -32,5 +32,16 @@ int ukvm_dumpcore_dump_notes(int core_fd, struct ukvm_hv *hv,
         struct ukvm_dumpcore *info)
 {
     /* Not supported yet */
-    return -1;
+    return 0;
+}
+
+int ukvm_dumpcore_get_regs(struct ukvm_hv *hv)
+{
+    /* Not supported yet */
+    return 0;
+}
+
+void ukvm_dumpcore_fill_arch_header(Elf64_Ehdr *hdr)
+{
+    /* Not supported yet */
 }

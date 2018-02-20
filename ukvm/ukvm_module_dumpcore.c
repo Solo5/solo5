@@ -184,7 +184,7 @@ static void hypercall_dumpcore(struct ukvm_hv *hv, ukvm_gpa_t gpa)
             ukvm_dumpcore(hv, t);
         }
     } else {
-        warnx("Not dumping core since --dumpcore option is not passed");
+        warnx("Not dumping core since --dumpcore option is not set");
     }
 }
 

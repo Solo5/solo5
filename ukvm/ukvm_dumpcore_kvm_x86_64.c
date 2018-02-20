@@ -40,7 +40,7 @@
 #include "ukvm_hv_kvm.h"
 #include "ukvm_cpu_x86_64.h"
 
-void ukvm_hv_fill_elf_prstatus(x86_elf_prstatus *prstatus,
+static void ukvm_hv_fill_elf_prstatus(x86_elf_prstatus *prstatus,
 	 struct ukvm_hv *hv, struct ukvm_abort *info)
 {
     memset(prstatus, 0, sizeof(x86_elf_prstatus));
