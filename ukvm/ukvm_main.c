@@ -34,7 +34,6 @@
 #include <sys/mman.h>
 
 #include "ukvm.h"
-#include "../kernel/solo5.h"
 
 static void setup_cmdline(char *cmdline, int argc, char **argv)
 {
@@ -132,7 +131,7 @@ int main(int argc, char **argv)
     ukvm_gpa_t gpa_ep, gpa_kend;
     const char *prog;
     const char *elffile;
-    int matched, ret;
+    int matched;
 
     prog = basename(*argv);
     argc--;
@@ -197,7 +196,5 @@ int main(int argc, char **argv)
 
     setup_modules(hv);
 
-    ret = ukvm_hv_vcpu_loop(hv);
-
-    return ret;
+    return ukvm_hv_vcpu_loop(hv);
 }
