@@ -21,17 +21,22 @@
 #include "kernel.h"
 
 static uint64_t heap_start;
-static uint64_t stack_guard_size;
 
 /* 
- * We lock the memory layout (disabling mem_ialloc_pages) after Solo5
- * initialization but before passing control to the application via
- * solo5_app_main().
+ * Locks the memory layout (by disabling mem_ialloc_pages()). Must be called
+ * before passing control to the application via solo5_app_main().
+ *
+ * Returns the first usable memory address for application heap in (*start)
+ * and the size of the heap in (*size).
  */
 static int mem_locked = 0;
-void mem_lock_heap(void)
+void mem_lock_heap(uintptr_t *start, size_t *size)
 {
+    assert(!mem_locked);
+
     mem_locked = 1;
+    *start = heap_start;
+    *size = platform_mem_size() - heap_start;
 }
 
 void mem_init(void)
@@ -47,14 +52,6 @@ void mem_init(void)
      */
     if (heap_start + 0x80000 > mem_size)
 	PANIC("Not enough memory");
-    /*
-     * If we have <1MB of free memory then don't let the heap grow to more than
-     * roughly half of free memory, otherwise don't let it grow to within 1MB
-     * of the stack.
-     * TODO: Use guard pages here instead?
-     */
-    stack_guard_size = (mem_size - heap_start >= 0x100000) ?
-	0x100000 : ((mem_size - heap_start) / 2);
 
     log(INFO, "Solo5: Memory map: %lu MB addressable:\n", mem_size >> 20);
     log(INFO, "Solo5:     unused @ (0x0 - 0x%lx)\n", &_stext[-1]);
@@ -78,11 +75,4 @@ void *mem_ialloc_pages(size_t num)
     assert(heap_start < (uint64_t)&prev);
 
     return (void *)prev;
-}
-
-void solo5_get_info(struct solo5_info *info) {
-    assert(mem_locked);
-    
-    info->heap_start = heap_start;
-    info->heap_end = platform_mem_size() - stack_guard_size;
 }

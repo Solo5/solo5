@@ -79,7 +79,7 @@ void intr_irq_handler(uint64_t irq);
 /* mem.c: low-level page alloc routines */
 void mem_init(void);
 void *mem_ialloc_pages(size_t num);
-void mem_lock_heap(void);
+void mem_lock_heap(uintptr_t *start, size_t *size);
 
 /* ee_printf.c: a third-party printf slightly modified and with
  *              snprintf added

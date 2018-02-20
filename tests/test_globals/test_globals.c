@@ -38,7 +38,7 @@ void do_test(void)
     puts(s);
 }
 
-int solo5_app_main(char *cmdline __attribute__((unused)))
+int solo5_app_main(const struct solo5_boot_info *bi __attribute__((unused)))
 {
     puts("\n**** Solo5 standalone test_globals ****\n\n");
 

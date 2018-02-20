@@ -59,7 +59,7 @@ int check_sector_write(uint64_t sector)
     return 0;
 }
 
-int solo5_app_main(char *cmdline __attribute__((unused)))
+int solo5_app_main(const struct solo5_boot_info *bi __attribute__((unused)))
 {
     size_t i, nsectors;
     int rlen;
