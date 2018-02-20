@@ -68,7 +68,7 @@ static void cleanup_vmfd(void)
         close(cleanup_hv->b->vmfd);
 }
 
-struct ukvm_hv *ukvm_hv_init(size_t mem_size, const char *elffile)
+struct ukvm_hv *ukvm_hv_init(size_t mem_size)
 {
     int ret;
 

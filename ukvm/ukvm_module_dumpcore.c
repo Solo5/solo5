@@ -190,20 +190,10 @@ static int setup(struct ukvm_hv *hv)
     return 0;
 }
 
-static int handle_cmdarg(char *cmdarg)
-{
-    return 0;
-}
-
-static char *usage(void)
-{
-    return "--dumpcore";
-}
-
 struct ukvm_module ukvm_module_dumpcore = {
     .name = "dumpcore",
     .setup = setup,
-    .handle_cmdarg = handle_cmdarg,
-    .usage = usage
+    .handle_cmdarg = NULL,
+    .usage = NULL 
 };
 

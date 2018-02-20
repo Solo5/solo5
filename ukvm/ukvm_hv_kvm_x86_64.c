@@ -29,11 +29,9 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
-#include <elf.h>
 #include <sys/mman.h>
 #include <string.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <linux/kvm.h>
 
 #include "ukvm.h"

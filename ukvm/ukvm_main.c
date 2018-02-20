@@ -187,7 +187,7 @@ int main(int argc, char **argv)
         err(1, "Could not install signal handler");
 
     ukvm_hv_mem_size(&mem_size);
-    struct ukvm_hv *hv = ukvm_hv_init(mem_size, elffile);
+    struct ukvm_hv *hv = ukvm_hv_init(mem_size);
 
     ukvm_elf_load(elffile, hv->mem, hv->mem_size, &gpa_ep, &gpa_kend);
 
@@ -198,12 +198,6 @@ int main(int argc, char **argv)
     setup_modules(hv);
 
     ret = ukvm_hv_vcpu_loop(hv);
-
-#if UKVM_MODULE_DUMPCORE
-    if (ret == SOLO5_EXIT_ABORT) {
-        //ukvm_dumpcore(hv, NULL);
-    }
-#endif
 
     return ret;
 }

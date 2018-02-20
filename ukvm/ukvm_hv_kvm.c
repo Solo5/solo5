@@ -35,7 +35,7 @@
 #include "ukvm.h"
 #include "ukvm_hv_kvm.h"
 
-struct ukvm_hv *ukvm_hv_init(size_t mem_size, const char *elffile)
+struct ukvm_hv *ukvm_hv_init(size_t mem_size)
 {
     int ret;
 
