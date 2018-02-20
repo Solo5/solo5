@@ -304,15 +304,15 @@ out:
     }
 }
 
-int solo5_app_main(char *cmdline)
+int solo5_app_main(const struct solo5_boot_info *bi)
 {
     int verbose = 0;
     int limit = 0;
 
     puts("\n**** Solo5 standalone test_ping_serve ****\n\n");
 
-    if (strlen(cmdline) >= 1) {
-        switch (cmdline[0]) {
+    if (strlen(bi->cmdline) >= 1) {
+        switch (bi->cmdline[0]) {
         case 'v':
             verbose = 1;
             break;

@@ -29,15 +29,27 @@
  */
 
 /*
- * Application entry point. Return values of 255 and above are reserved for
- * solo5.
- *
  * FIXME: These APIs are to be considered unstable and have multiple known
  * issues (type confusion, missing const-ness, in/out parameters, inconsistent
  * return values). The comments in this file document the current
  * implementation.
  */
-int solo5_app_main(char *cmdline);
+
+/*
+ * Boot-time information passed to application at entry.
+ */
+struct solo5_boot_info {
+    const char *cmdline;
+    uintptr_t heap_start;
+    size_t heap_size;
+};
+
+/*
+ * Application entry point.
+ *
+ * Returning from this function is equivalent to calling solo5_exit(ret).
+ */
+int solo5_app_main(const struct solo5_boot_info *bi);
 
 /*
  * Network I/O.
@@ -124,14 +136,6 @@ void solo5_exit(int status) __attribute__((noreturn));
  * Note: dumpcore needs to be added as a module
  */
 void solo5_abort(void) __attribute__((noreturn));
-
-/*
- * Memory allocation. These APIs correspond to their standard C equivalents.
- */
-void *solo5_malloc(size_t);
-void solo5_free(void *);
-void *solo5_calloc(size_t, size_t);
-void *solo5_realloc(void *, size_t);
 
 /*
  * Time.
