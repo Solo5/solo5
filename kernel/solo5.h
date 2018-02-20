@@ -138,14 +138,6 @@ void solo5_exit(int status) __attribute__((noreturn));
 void solo5_abort(void) __attribute__((noreturn));
 
 /*
- * Memory allocation. These APIs correspond to their standard C equivalents.
- */
-void *solo5_malloc(size_t);
-void solo5_free(void *);
-void *solo5_calloc(size_t, size_t);
-void *solo5_realloc(void *, size_t);
-
-/*
  * Time.
  */
 
