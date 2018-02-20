@@ -19,6 +19,6 @@
 UKVM_TARGETS=test_assert.ukvm ukvm-bin
 VIRTIO_TARGETS=test_assert.virtio
 MUEN_TARGETS=test_assert.muen
-UKVM_MODULES=dumpcore
+UKVM_MODULES=
 
 include ../Makefile.tests

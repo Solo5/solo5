@@ -62,6 +62,8 @@
 
 #endif
 
+static bool use_dumpcore = false;
+
 /*
  * the Unikernel's core format is:
  *   --------------
@@ -174,12 +176,30 @@ cleanup:
 
 static void hypercall_dumpcore(struct ukvm_hv *hv, ukvm_gpa_t gpa)
 {
-    struct ukvm_abort *t =
-        UKVM_CHECKED_GPA_P(hv, gpa, sizeof (struct ukvm_abort));
+    if (use_dumpcore) {
+        struct ukvm_abort *t =
+            UKVM_CHECKED_GPA_P(hv, gpa, sizeof (struct ukvm_abort));
 
-    if (ukvm_dumpcore_get_regs(hv) == 0) {
-        ukvm_dumpcore(hv, t);
+        if (ukvm_dumpcore_get_regs(hv) == 0) {
+            ukvm_dumpcore(hv, t);
+        }
+    } else {
+        warnx("Not dumping core since --dumpcore option is not passed");
     }
+}
+
+static int handle_cmdarg(char *cmdarg)
+{
+    if (!strcmp("--dumpcore", cmdarg)) {
+        use_dumpcore = true;
+        return 0;
+    }
+    return -1;
+}
+
+static char *usage(void)
+{
+    return "--dumpcore";
 }
 
 static int setup(struct ukvm_hv *hv)
@@ -193,7 +213,6 @@ static int setup(struct ukvm_hv *hv)
 struct ukvm_module ukvm_module_dumpcore = {
     .name = "dumpcore",
     .setup = setup,
-    .handle_cmdarg = NULL,
-    .usage = NULL 
+    .handle_cmdarg = handle_cmdarg,
+    .usage = usage
 };
-

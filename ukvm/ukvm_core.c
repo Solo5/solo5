@@ -45,6 +45,7 @@ struct ukvm_module ukvm_module_core;
 
 struct ukvm_module *ukvm_core_modules[] = {
     &ukvm_module_core,
+    &ukvm_module_dumpcore,
 #ifdef UKVM_MODULE_BLK
     &ukvm_module_blk,
 #endif
@@ -53,9 +54,6 @@ struct ukvm_module *ukvm_core_modules[] = {
 #endif
 #ifdef UKVM_MODULE_GDB
     &ukvm_module_gdb,
-#endif
-#ifdef UKVM_MODULE_DUMPCORE
-    &ukvm_module_dumpcore,
 #endif
     NULL,
 };

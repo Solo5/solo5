@@ -167,6 +167,7 @@ run_test ()
             UKVM=${TEST_DIR}/ukvm-bin
             [ -n "${DISK}" ] && UKVM="${UKVM} --disk=${DISK}"
             [ -n "${NET}" ] && UKVM="${UKVM} --net=${NET}"
+            [ -n "${WANT_COREDUMP}" ] && UKVM="${UKVM} --dumpcore"
             (set -x; timeout 30s ${UKVM} -- ${UNIKERNEL} "$@")
             STATUS=$?
             ;;
