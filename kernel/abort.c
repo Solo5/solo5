@@ -30,6 +30,18 @@ static void puts(const char *s)
     (void)platform_puts(s, strlen(s));
 }
 
+static inline void print_abort_logs(const char *file, const char *line,
+        const char *s)
+{
+    puts("Solo5: ABORT: ");
+    puts(file);
+    puts(":");
+    puts(line);
+    puts(": ");
+    puts(s);
+    puts("\n");
+}
+
 void _assert_fail(const char *file, const char *line, const char *e)
 {
     puts("Solo5: ABORT: ");
@@ -44,25 +56,13 @@ void _assert_fail(const char *file, const char *line, const char *e)
 
 void _abort(const char *file, const char *line, const char *s)
 {
-    puts("Solo5: ABORT: ");
-    puts(file);
-    puts(":");
-    puts(line);
-    puts(": ");
-    puts(s);
-    puts("\n");
+    print_abort_logs(file, line, s);
     platform_exit(SOLO5_EXIT_ABORT);
 }
 
 void _abort_and_dump(const char *file, const char *line, const char *s,
         void *regs, size_t len)
 {
-    puts("Solo5: ABORT: ");
-    puts(file);
-    puts(":");
-    puts(line);
-    puts(": ");
-    puts(s);
-    puts("\n");
+    print_abort_logs(file, line, s);
     platform_abort(regs, len);
 }
