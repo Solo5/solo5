@@ -21,8 +21,23 @@
 #include "kernel.h"
 
 static uint64_t heap_start;
-static uint64_t heap_top;
-static uint64_t stack_guard_size;
+
+/* 
+ * Locks the memory layout (by disabling mem_ialloc_pages()). Must be called
+ * before passing control to the application via solo5_app_main().
+ *
+ * Returns the first usable memory address for application heap in (*start)
+ * and the size of the heap in (*size).
+ */
+static int mem_locked = 0;
+void mem_lock_heap(uintptr_t *start, size_t *size)
+{
+    assert(!mem_locked);
+
+    mem_locked = 1;
+    *start = heap_start;
+    *size = platform_mem_size() - heap_start;
+}
 
 void mem_init(void)
 {
@@ -31,20 +46,12 @@ void mem_init(void)
 
     mem_size = platform_mem_size();
     heap_start = ((uint64_t)&_end + PAGE_SIZE - 1) & PAGE_MASK;
-    heap_top = heap_start;
+    
     /*
      * Cowardly refuse to run with less than 512KB of free memory.
      */
     if (heap_start + 0x80000 > mem_size)
 	PANIC("Not enough memory");
-    /*
-     * If we have <1MB of free memory then don't let the heap grow to more than
-     * roughly half of free memory, otherwise don't let it grow to within 1MB
-     * of the stack.
-     * TODO: Use guard pages here instead?
-     */
-    stack_guard_size = (mem_size - heap_start >= 0x100000) ?
-	0x100000 : ((mem_size - heap_start) / 2);
 
     log(INFO, "Solo5: Memory map: %lu MB addressable:\n", mem_size >> 20);
     log(INFO, "Solo5:     unused @ (0x0 - 0x%lx)\n", &_stext[-1]);
@@ -55,23 +62,17 @@ void mem_init(void)
         mem_size);
 }
 
-/*
- * Called by dlmalloc to allocate or free memory.
+/* 
+ * Allocate pages on the heap.  Should only be called on
+ * initialization (before solo5_app_main).
  */
-void *sbrk(intptr_t increment)
+void *mem_ialloc_pages(size_t num)
 {
-    uint64_t prev, brk;
-    uint64_t heap_max = (uint64_t)&prev - stack_guard_size;
-    prev = brk = heap_top;
+    assert(!mem_locked);
 
-    /*
-     * dlmalloc guarantees increment values less than half of size_t, so this
-     * is safe from overflow.
-     */
-    brk += increment;
-    if (brk >= heap_max || brk < heap_start)
-        return (void *)-1;
+    uint64_t prev = heap_start;
+    heap_start += num << PAGE_SHIFT;
+    assert(heap_start < (uint64_t)&prev);
 
-    heap_top = brk;
     return (void *)prev;
 }
