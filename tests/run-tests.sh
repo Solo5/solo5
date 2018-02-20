@@ -68,7 +68,7 @@ run_test ()
     local DISK
     local NET
     local WANT_ABORT
-    local WANT_ASSERT
+    local WANT_COREDUMP
     local NAME
     local UNIKERNEL
     local TEST_DIR
@@ -80,7 +80,7 @@ run_test ()
     DISK=
     NET=
     WANT_ABORT=
-    WANT_ASSERT=
+    WANT_COREDUMP=
     WANT_QUIET=
     while true; do
         case "$1" in
@@ -100,7 +100,7 @@ run_test ()
             ;;
         -b)
             # This test must ASSERT
-            WANT_ASSERT=true
+            WANT_COREDUMP=true
             shift
             ;;
         -v)
@@ -200,7 +200,7 @@ run_test ()
                 STATUS=0
             elif [ -n "${WANT_ABORT}" ] && [ "${STATUS}" -eq "255" ]; then
                 STATUS=0
-            elif [ -n "${WANT_ASSERT}" ] && [ "${STATUS}" -eq "255" ]; then
+            elif [ -n "${WANT_COREDUMP}" ] && [ "${STATUS}" -eq "255" ]; then
                 grep -q "unikernel core file" ${LOGS} && STATUS=0
             else
                 STATUS=99
@@ -216,7 +216,7 @@ run_test ()
             STATUS=99
             if [ "${WANT_ABORT}" ]; then
                 grep -q ABORT ${LOGS} && STATUS=0
-            elif [ "${WANT_ASSERT}" ]; then
+            elif [ "${WANT_COREDUMP}" ]; then
                 grep -q "Cannot dump core" ${LOGS} && STATUS=0
             else
                 grep -q SUCCESS ${LOGS} && STATUS=0

@@ -57,7 +57,7 @@ void _abort(const char *file, const char *line, const char *s)
 void _abort_and_dump(const char *file, const char *line, const char *s,
         void *regs, size_t len)
 {
-    puts("Solo5: ABORT & DUMPING CORE: ");
+    puts("Solo5: ABORT: ");
     puts(file);
     puts(":");
     puts(line);

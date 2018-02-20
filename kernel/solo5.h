@@ -121,6 +121,7 @@ void solo5_exit(int status) __attribute__((noreturn));
 
 /*
  * Creates a core dump and exits the application
+ * Note: dumpcore needs to be added as a module
  */
 void solo5_abort(void) __attribute__((noreturn));
 
