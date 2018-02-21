@@ -70,7 +70,7 @@ esac
 # install these to $(OPAM_INCDIR)/host where they will be picked up by
 # pkg-config.
 HOST_INCDIR=${PWD}/include-host
-CROSS_COMPILE=${TARGET_ARCH}-linux-gnu-
+CROSS_COMPILE=${TARGET}-
 TARGETCC=${CROSS_COMPILE}gcc
 
 case $(uname -s) in

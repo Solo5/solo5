@@ -31,7 +31,7 @@ endif
 # Defined by configure.sh and set in $(TOP)/Makeconf
 AS=$(CROSS_COMPILE)as
 #CC is also defined in Makeconf since it's used to generate test application Makefiles
-#CC=$(CROSS_COMPILE)cc
+CC=$(CROSS_COMPILE)gcc
 LD=$(CROSS_COMPILE)ld
 OBJCOPY=$(CROSS_COMPILE)objcopy
 
