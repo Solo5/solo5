@@ -22,12 +22,12 @@
 
 void _start(void *arg)
 {
-    static struct solo5_boot_info bi;
+    static struct solo5_start_info si;
 
     console_init();
     cpu_init();
     platform_init(arg);
-    bi.cmdline = cmdline_parse(platform_cmdline());
+    si.cmdline = cmdline_parse(platform_cmdline());
 
     log(INFO, "            |      ___|\n");
     log(INFO, "  __|  _ \\  |  _ \\ __ \\\n");
@@ -38,6 +38,6 @@ void _start(void *arg)
     time_init(arg);
     net_init();
 
-    mem_lock_heap(&bi.heap_start, &bi.heap_size);
-    solo5_exit(solo5_app_main(&bi));
+    mem_lock_heap(&si.heap_start, &si.heap_size);
+    solo5_exit(solo5_app_main(&si));
 }

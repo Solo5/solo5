@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
  *
  * This file is part of Solo5, a unikernel base layer.
@@ -111,19 +111,18 @@ static uint16_t htons(uint16_t x)
     return (x << 8) + (x >> 8);
 }
 
-static uint8_t dehex(char c)
+static void tohexs(char *dst, uint8_t *src, size_t size)
 {
-    if (c >= '0' && c <= '9')
-        return (c - '0');
-    else if (c >= 'a' && c <= 'f')
-        return 10 + (c - 'a');
-    else if (c >= 'A' && c <= 'F')
-        return 10 + (c - 'A');
-    else
-        return 0;
+    while (size--) {
+        uint8_t n = *src >> 4;
+        *dst++ = (n < 10) ? (n + '0') : (n - 10 + 'a');
+        n = *src & 0xf;
+        *dst++ = (n < 10) ? (n + '0') : (n - 10 + 'a');
+        src++;
+    }
+    *dst = '\0';
 }
 
-static uint8_t buf[1526];
 uint8_t ipaddr[4] = { 0x0a, 0x00, 0x00, 0x02 }; /* 10.0.0.2 */
 uint8_t ipaddr_brdnet[4] = { 0x0a, 0x00, 0x00, 0xff }; /* 10.0.0.255 */
 uint8_t ipaddr_brdall[4] = { 0xff, 0xff, 0xff, 0xff }; /* 255.255.255.255 */
@@ -236,35 +235,37 @@ static void send_garp(void)
     memcpy(p.arp.spa, ipaddr, PLEN_IPV4);
     memcpy(p.arp.tpa, ipaddr, PLEN_IPV4);
 
-    if (solo5_net_write_sync((uint8_t *)&p, sizeof p) == -1)
+    if (solo5_net_write((uint8_t *)&p, sizeof p) != SOLO5_R_OK)
         puts("Could not send GARP packet\n");
 }
+
+static const solo5_time_t NSEC_PER_SEC = 1000000000ULL;
 
 static void ping_serve(int verbose, int limit)
 {
     unsigned long received = 0;
 
-    /* XXX this interface should really not return a string */
-    char *smac = solo5_net_mac_str();
-    for (int i = 0; i < HLEN_ETHER; i++) {
-        macaddr[i] = dehex(*smac++) << 4;
-        macaddr[i] |= dehex(*smac++);
-        smac++;
-    }
+    struct solo5_net_info ni;
+    solo5_net_info(&ni);
+    memcpy(macaddr, ni.mac_address, sizeof macaddr);
 
+    char macaddr_s[(sizeof macaddr * 2) + 1];
+    tohexs(macaddr_s, macaddr, sizeof macaddr);
     puts("Serving ping on 10.0.0.2, with MAC: ");
-    puts(solo5_net_mac_str());
+    puts(macaddr_s);
     puts("\n");
 
     send_garp();
 
+    uint8_t buf[ni.mtu + SOLO5_NET_HLEN];
+
     for (;;) {
         struct ether *p = (struct ether *)&buf;
-        int len = sizeof(buf);
+        size_t len;
 
         /* wait for packet */
-        while (solo5_net_read_sync(buf, &len) != 0) {
-            solo5_poll(solo5_clock_monotonic() + 1000000000ULL);
+        while (solo5_net_read(buf, sizeof buf, &len) == SOLO5_R_AGAIN) {
+            solo5_yield(solo5_clock_monotonic() + NSEC_PER_SEC);
         }
 
         if (memcmp(p->target, macaddr, HLEN_ETHER) &&
@@ -288,7 +289,7 @@ static void ping_serve(int verbose, int limit)
                 goto out;
         }
 
-        if (solo5_net_write_sync(buf, len) == -1)
+        if (solo5_net_write(buf, len) != SOLO5_R_OK)
             puts("Write error\n");
 
         received++;
@@ -304,15 +305,15 @@ out:
     }
 }
 
-int solo5_app_main(const struct solo5_boot_info *bi)
+int solo5_app_main(const struct solo5_start_info *si)
 {
     int verbose = 0;
     int limit = 0;
 
     puts("\n**** Solo5 standalone test_ping_serve ****\n\n");
 
-    if (strlen(bi->cmdline) >= 1) {
-        switch (bi->cmdline[0]) {
+    if (strlen(si->cmdline) >= 1) {
+        switch (si->cmdline[0]) {
         case 'v':
             verbose = 1;
             break;

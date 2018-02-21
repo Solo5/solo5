@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
  *
  * This file is part of Solo5, a unikernel base layer.
@@ -57,7 +57,7 @@ static int blk_configured;
 /* Returns the index to the head of the buffers chain. */
 static uint16_t virtio_blk_op(uint32_t type,
                               uint64_t sector,
-                              void *data, int len)
+                              void *data, size_t len)
 {
     uint16_t mask = blkq.num - 1;
     struct virtio_blk_hdr hdr;
@@ -107,14 +107,14 @@ static uint16_t virtio_blk_op(uint32_t type,
  */
 static int virtio_blk_op_sync(uint32_t type,
                               uint64_t sector,
-                              void *data, int *len)
+                              void *data, size_t len)
 {
     uint16_t mask = blkq.num - 1;
     uint16_t head;
     struct io_buffer *data_buf, *status_buf;
     uint8_t status;
 
-    head = virtio_blk_op(type, sector, data, *len);
+    head = virtio_blk_op(type, sector, data, len);
     data_buf = &blkq.bufs[(head + 1) & mask];
     status_buf = &blkq.bufs[(head + 2) & mask];
 
@@ -126,7 +126,7 @@ static int virtio_blk_op_sync(uint32_t type,
     for (; blkq.used->idx != blkq.last_used; blkq.last_used++) {
         struct virtq_used_elem *e;
 
-	/* Assert that the used descriptor matches the descriptor of the
+        /* Assert that the used descriptor matches the descriptor of the
          * IO we started at the start of this function. */
         e = &(blkq.used->ring[blkq.last_used & mask]);
         assert(head == e->id);
@@ -139,7 +139,7 @@ static int virtio_blk_op_sync(uint32_t type,
         return -1;
 
     if (type == VIRTIO_BLK_T_IN) /* read */
-        memcpy(data, data_buf->data, *len);
+        memcpy(data, data_buf->data, len);
 
     return 0;
 }
@@ -149,7 +149,7 @@ void virtio_config_block(struct pci_config_info *pci)
     uint8_t ready_for_init = VIRTIO_PCI_STATUS_ACK | VIRTIO_PCI_STATUS_DRIVER;
     uint32_t host_features, guest_features;
     size_t pgs;
-    
+
     outb(pci->base + VIRTIO_PCI_STATUS, ready_for_init);
 
     host_features = inl(pci->base + VIRTIO_PCI_HOST_FEATURES);
@@ -183,47 +183,54 @@ void virtio_config_block(struct pci_config_info *pci)
     outb(pci->base + VIRTIO_PCI_STATUS, VIRTIO_PCI_STATUS_DRIVER_OK);
 }
 
-int solo5_blk_write_sync(uint64_t sector, uint8_t *data, int n)
+solo5_result_t solo5_block_write(solo5_off_t offset, const uint8_t *buf,
+        size_t size)
 {
     assert(blk_configured);
+
     /*
-     * XXX: virtio_blk_op_sync does not support >1 sectors per operation.
+     * XXX: This does not check for writes ending past the end of the device,
+     * virtio_blk_op_sync() will return -1 (translated to SOLO5_R_EUNSPEC)
+     * below.
      */
-    if (n > VIRTIO_BLK_SECTOR_SIZE)
-        return -1;
+    uint64_t sector = offset / VIRTIO_BLK_SECTOR_SIZE;
+    if ((offset % VIRTIO_BLK_SECTOR_SIZE != 0) ||
+        (sector >= virtio_blk_sectors) ||
+        (size != VIRTIO_BLK_SECTOR_SIZE))
+        return SOLO5_R_EINVAL;
 
-    return virtio_blk_op_sync(VIRTIO_BLK_T_OUT, sector, data, &n);
-}
-
-int solo5_blk_read_sync(uint64_t sector, uint8_t *data, int *n)
-{
-    assert(blk_configured);
     /*
-     * XXX: virtio_blk_op_sync does not support >1 sectors per operation.
+     * XXX: removing the const qualifier from buf here is fine with the current
+     * implementation which does a memcpy() on VIRTIO_BLK_T_OUT, however the
+     * internal interfaces should be refactored to reflect this.
      */
-    if (*n > VIRTIO_BLK_SECTOR_SIZE)
-        return -1;
-
-    return virtio_blk_op_sync(VIRTIO_BLK_T_IN, sector, data, n);
+    int rv = virtio_blk_op_sync(VIRTIO_BLK_T_OUT, sector, (uint8_t *)buf, size);
+    return (rv == 0) ? SOLO5_R_OK : SOLO5_R_EUNSPEC;
 }
 
-int solo5_blk_sector_size(void)
+solo5_result_t solo5_block_read(solo5_off_t offset, uint8_t *buf, size_t size)
 {
     assert(blk_configured);
 
-    return VIRTIO_BLK_SECTOR_SIZE;
+    /*
+     * XXX: This does not check for reads ending past the end of the device,
+     * virtio_blk_op_sync() will return -1 (translated to SOLO5_R_EUNSPEC)
+     * below.
+     */
+    uint64_t sector = offset / VIRTIO_BLK_SECTOR_SIZE;
+    if ((offset % VIRTIO_BLK_SECTOR_SIZE != 0) ||
+        (sector >= virtio_blk_sectors) ||
+        (size != VIRTIO_BLK_SECTOR_SIZE))
+        return SOLO5_R_EINVAL;
+
+    int rv = virtio_blk_op_sync(VIRTIO_BLK_T_IN, sector, buf, size);
+    return (rv == 0) ? SOLO5_R_OK : SOLO5_R_EUNSPEC;
 }
 
-uint64_t solo5_blk_sectors(void)
+void solo5_block_info(struct solo5_block_info *info)
 {
     assert(blk_configured);
 
-    return virtio_blk_sectors;
-}
-
-int solo5_blk_rw(void)
-{
-    assert(blk_configured);
-
-    return 1;
+    info->block_size = VIRTIO_BLK_SECTOR_SIZE;
+    info->capacity = virtio_blk_sectors * VIRTIO_BLK_SECTOR_SIZE;
 }

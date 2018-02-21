@@ -98,7 +98,7 @@ static void recv_setup(void)
 }
 
 /* performance note: we perform a copy into the xmit buffer */
-int virtio_net_xmit_packet(void *data, int len)
+int virtio_net_xmit_packet(const void *data, size_t len)
 {
     uint16_t mask = xmitq.num - 1;
     uint16_t head;
@@ -231,7 +231,7 @@ int virtio_net_pkt_poll(void)
 
 /* Get the data from the next_avail (top-most) receive buffer/descriptpr in
  * the available ring. */
-uint8_t *virtio_net_recv_pkt_get(int *size)
+uint8_t *virtio_net_recv_pkt_get(size_t *size)
 {
     uint16_t mask = recvq.num - 1;
     struct virtq_used_elem *e;
@@ -269,17 +269,18 @@ void virtio_net_recv_pkt_put(void)
     outw(virtio_net_pci_base + VIRTIO_PCI_QUEUE_NOTIFY, VIRTQ_RECV);
 }
 
-int solo5_net_write_sync(uint8_t *data, int n)
+solo5_result_t solo5_net_write(const uint8_t *buf, size_t size)
 {
     assert(net_configured);
 
-    return virtio_net_xmit_packet(data, n);
+    int rv = virtio_net_xmit_packet(buf, size);
+    return (rv == 0) ? SOLO5_R_OK : SOLO5_R_EUNSPEC;
 }
 
-int solo5_net_read_sync(uint8_t *data, int *n)
+solo5_result_t solo5_net_read(uint8_t *buf, size_t size, size_t *read_size)
 {
     uint8_t *pkt;
-    int len = *n;
+    size_t len = size;
 
     assert(net_configured);
 
@@ -291,15 +292,15 @@ int solo5_net_read_sync(uint8_t *data, int *n)
     pkt = virtio_net_recv_pkt_get(&len);
     if (!pkt) {
         recvq.avail->flags &= ~VIRTQ_AVAIL_F_NO_INTERRUPT;
-        return -1;
+        return SOLO5_R_AGAIN;
     }
 
-    assert(len <= *n);
+    assert(len <= size);
     assert(len <= PKT_BUFFER_LEN);
-    *n = len;
+    *read_size = len;
 
     /* also, it's clearly not zero copy */
-    memcpy(data, pkt, len);
+    memcpy(buf, pkt, len);
 
     /* Consume the recently used descriptor. */
     recvq.last_used++;
@@ -309,12 +310,13 @@ int solo5_net_read_sync(uint8_t *data, int *n)
 
     recvq.avail->flags &= ~VIRTQ_AVAIL_F_NO_INTERRUPT;
 
-    return 0;
+    return SOLO5_R_OK;
 }
 
-char *solo5_net_mac_str(void)
+void solo5_net_info(struct solo5_net_info *info)
 {
     assert(net_configured);
 
-    return virtio_net_mac_str;
+    memcpy(info->mac_address, virtio_net_mac, sizeof info->mac_address);
+    info->mtu = 1500;
 }
