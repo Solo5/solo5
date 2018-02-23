@@ -139,9 +139,9 @@ solo5_time_t solo5_clock_wall(void);
  * Suspends execution of the application until either:
  *
  *   a) monotonic time reaches (deadline), or
- *   b) solo5_net_recv() would succeed.
+ *   b) solo5_net_read() would succeed.
  *
- * Returns true if solo5_net_recv() will succeed, otherwise false.
+ * Returns true if solo5_net_read() will succeed, otherwise false.
  *
  * This interface may be extended in the future to allow for selection of I/O
  * events of interest to the application.
