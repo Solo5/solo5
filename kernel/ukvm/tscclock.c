@@ -77,11 +77,14 @@ int tscclock_init(uint64_t tsc_freq)
      *
      * (0.32) tsc_mult = NSEC_PER_SEC (32.32) / tsc_freq (32.0)
      */
-#if defined(__x86_64__)
-    tsc_mult = (NSEC_PER_SEC << 32) / tsc_freq;
-#elif defined(__aarch64__)
-    tsc_mult = NSEC_PER_SEC / tsc_freq;
-#endif
+    int shift = 32;
+    uint64_t tmp;
+    do {
+      tmp = (NSEC_PER_SEC << shift) / tsc_freq;
+      if ((tmp & 0xFFFFFFFF00000000L) == 0L)
+        tsc_mult = (uint32_t)tmp;
+      else shift--;
+    } while (tsc_mult == 0l);
 
     /*
      * Monotonic time begins at tsc_base (first read of TSC before
