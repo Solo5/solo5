@@ -64,8 +64,10 @@ int platform_puts(const char *buf, int n)
     return n;
 }
 
-int solo5_console_write(const char *, size_t)
-    __attribute__ ((alias("platform_puts")));
+void solo5_console_write(const char *buf, size_t size)
+{
+    (void)platform_puts(buf, size);
+}
 
 void console_init(void)
 {

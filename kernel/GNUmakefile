@@ -39,7 +39,7 @@ ukvm/time.o
 UKVM_COBJS=\
 $(COMMON_UKVM_COBJS) \
 ukvm/platform_lifecycle.o \
-ukvm/poll.o \
+ukvm/yield.o \
 ukvm/tscclock.o \
 ukvm/console.o \
 ukvm/net.o \
@@ -72,7 +72,7 @@ muen/muen-clock.o \
 muen/muen-console.o \
 muen/muen-net.o \
 muen/muen-platform_lifecycle.o \
-muen/muen-poll.o \
+muen/muen-yield.o \
 muen/muen-sinfo.o \
 $(COMMON_COBJS)
 

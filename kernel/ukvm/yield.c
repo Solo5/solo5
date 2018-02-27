@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors as noted in the AUTHORS file
+ * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
  *
  * This file is part of Solo5, a unikernel base layer.
  *
@@ -18,23 +18,18 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include "../kernel.h"
-#include "muen-net.h"
+#include "kernel.h"
 
-int solo5_poll(uint64_t until_nsecs)
+bool solo5_yield(solo5_time_t deadline)
 {
-    int rc = 0;
-    do {
-        if (muen_net_pending_data()) {
-            rc = 1;
-            break;
-        }
-        __asm__ __volatile__("pause");
-    } while (solo5_clock_monotonic() < until_nsecs);
+    struct ukvm_poll t;
+    uint64_t now;
 
-    if (muen_net_pending_data()) {
-        rc = 1;
-    }
-
-    return rc;
+    now = solo5_clock_monotonic();
+    if (deadline <= now)
+        t.timeout_nsecs = 0;
+    else
+        t.timeout_nsecs = deadline - now;
+    ukvm_do_hypercall(UKVM_HYPERCALL_POLL, &t);
+    return t.ret;
 }

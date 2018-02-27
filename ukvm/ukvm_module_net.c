@@ -178,7 +178,7 @@ static void hypercall_netinfo(struct ukvm_hv *hv, ukvm_gpa_t gpa)
     struct ukvm_netinfo *info =
         UKVM_CHECKED_GPA_P(hv, gpa, sizeof (struct ukvm_netinfo));
 
-    memcpy(info->mac_str, netinfo.mac_str, sizeof(netinfo.mac_str));
+    memcpy(info->mac_address, netinfo.mac_address, sizeof(netinfo.mac_address));
 }
 
 static void hypercall_netwrite(struct ukvm_hv *hv, ukvm_gpa_t gpa)
@@ -224,7 +224,7 @@ static int handle_cmdarg(char *cmdarg)
             warnx("Malformed mac address: %s", macptr);
             return -1;
         }
-        snprintf(netinfo.mac_str, sizeof(netinfo.mac_str), "%s", macptr);
+        memcpy(netinfo.mac_address, mac, sizeof netinfo.mac_address);
         cmdline_mac = 1;
         return 0;
     } else {
@@ -259,10 +259,7 @@ static int setup(struct ukvm_hv *hv)
         close(rfd);
         guest_mac[0] &= 0xfe;
         guest_mac[0] |= 0x02;
-        snprintf(netinfo.mac_str, sizeof(netinfo.mac_str),
-                 "%02x:%02x:%02x:%02x:%02x:%02x",
-                 guest_mac[0], guest_mac[1], guest_mac[2],
-                 guest_mac[3], guest_mac[4], guest_mac[5]);
+        memcpy(netinfo.mac_address, guest_mac, sizeof netinfo.mac_address);
     }
 
     assert(ukvm_core_register_hypercall(UKVM_HYPERCALL_NETINFO,

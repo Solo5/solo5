@@ -35,40 +35,40 @@ static struct muchannel *net_in;
 static struct muchannel *net_out;
 static struct muchannel_reader net_rdr;
 
-static char mac_str[18];
+static uint8_t mac_addr[6];
 
-/* ukvm net interface */
-int solo5_net_write_sync(uint8_t *data, int n)
+solo5_result_t solo5_net_write(const uint8_t *buf, size_t size)
 {
     struct net_msg pkt;
 
-    if (n > PACKET_SIZE)
-        return -1;
+    if (size > PACKET_SIZE)
+        return SOLO5_R_EINVAL;
 
     memset(&pkt, 0, sizeof(struct net_msg));
     cc_barrier();
-    pkt.length = n;
-    memcpy(&pkt.data, data, n);
+    pkt.length = size;
+    memcpy(&pkt.data, buf, size);
     muen_channel_write(net_out, &pkt);
 
-    return 0;
+    return SOLO5_R_OK;
 }
 
-int solo5_net_read_sync(uint8_t *data, int *n)
+solo5_result_t solo5_net_read(uint8_t *buf, size_t size, size_t *read_size)
 {
     enum muchannel_reader_result result;
     struct net_msg pkt;
-    int ret = -1;
+
+    if (size < PACKET_SIZE)
+        return SOLO5_R_EINVAL;
 
     result = muen_channel_read(net_in, &net_rdr, &pkt);
     if (result == MUCHANNEL_SUCCESS) {
-        memcpy(data, &pkt.data, sizeof(struct net_msg));
-        *n = pkt.length;
-        if (*n <= PACKET_SIZE)
-            ret = 0;
+        memcpy(buf, &pkt.data, pkt.length);
+        *read_size = pkt.length;
+        return SOLO5_R_OK;
+    } else {
+        return SOLO5_R_AGAIN;
     }
-
-    return ret;
 }
 
 bool muen_net_pending_data()
@@ -77,9 +77,10 @@ bool muen_net_pending_data()
 }
 
 /* TODO: Support configured MAC address */
-char *solo5_net_mac_str(void)
+void solo5_net_info(struct solo5_net_info *info)
 {
-    return mac_str;
+    memcpy(info->mac_address, mac_addr, sizeof info->mac_address);
+    info->mtu = 1500;
 }
 
 void generate_mac_addr(uint8_t *addr)
@@ -104,7 +105,7 @@ void generate_mac_addr(uint8_t *addr)
 
 void net_init(void)
 {
-    uint8_t mac_addr[6];
+    char mac_str[18];
     struct muen_channel_info channel;
     const uint64_t epoch = muen_get_sched_start();
 
