@@ -218,7 +218,7 @@ run_test ()
             if [ "${WANT_ABORT}" ]; then
                 grep -q ABORT ${LOGS} && STATUS=0
             elif [ "${WANT_COREDUMP}" ]; then
-                grep -q "Cannot dump core" ${LOGS} && STATUS=0
+                grep -q "solo5_abort() called" ${LOGS} && STATUS=0
             else
                 grep -q SUCCESS ${LOGS} && STATUS=0
             fi
@@ -303,7 +303,7 @@ if [ "${BUILD_UKVM}" = "yes" ]; then
     add_test test_quiet.ukvm/-v/--solo5:quiet
     add_test test_globals.ukvm
     add_test test_exception.ukvm/-a
-    add_test test_assert.ukvm/-b
+    add_test test_abort.ukvm/-b
     add_test test_fpu.ukvm
     add_test test_time.ukvm
     add_test test_blk.ukvm/-d
@@ -314,7 +314,7 @@ if [ "${BUILD_VIRTIO}" = "yes" ]; then
     add_test test_quiet.virtio/-v/--solo5:quiet
     add_test test_globals.virtio
     add_test test_exception.virtio/-a
-    add_test test_assert.virtio/-b
+    add_test test_abort.virtio/-b
     add_test test_fpu.virtio
     add_test test_time.virtio
     add_test test_blk.virtio/-d

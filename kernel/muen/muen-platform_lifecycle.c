@@ -33,7 +33,9 @@ void platform_init(void *arg)
     fpu_init();
 }
 
-void platform_exit(int status __attribute__((unused)))
+void platform_exit(int status __attribute__((unused)),
+    void *regs __attribute__((unused)),
+    size_t len  __attribute__((unused)))
 {
     const char msg[] = "Solo5: Halted\n";
     platform_puts(msg, strlen(msg));

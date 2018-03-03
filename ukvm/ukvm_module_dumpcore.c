@@ -204,7 +204,7 @@ static char *usage(void)
 
 static int setup(struct ukvm_hv *hv)
 {
-    assert(ukvm_core_register_hypercall(UKVM_HYPERCALL_ABORT,
+    assert(ukvm_core_register_hypercall(UKVM_HYPERCALL_HALT,
         hypercall_dumpcore) == 0);
 
     return 0;

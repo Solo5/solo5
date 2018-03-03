@@ -51,7 +51,7 @@ void mem_init(void)
      * Cowardly refuse to run with less than 512KB of free memory.
      */
     if (heap_start + 0x80000 > mem_size)
-	PANIC("Not enough memory");
+	PANIC("Not enough memory", NULL, 0);
 
     log(INFO, "Solo5: Memory map: %lu MB addressable:\n", mem_size >> 20);
     log(INFO, "Solo5:     unused @ (0x0 - 0x%lx)\n", &_stext[-1]);

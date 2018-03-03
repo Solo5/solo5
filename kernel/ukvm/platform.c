@@ -19,7 +19,6 @@
  */
 
 #include "kernel.h"
-#include "ukvm_guest.h"
 
 static const char *cmdline;
 static uint64_t mem_size;
@@ -40,17 +39,4 @@ const char *platform_cmdline(void)
 uint64_t platform_mem_size(void)
 {
     return mem_size;
-}
-
-void platform_abort(void *regs, size_t len)
-{
-    volatile struct ukvm_halt info;
-    memset((void *)&info, 0, sizeof(struct ukvm_halt));
-
-    if (len && len <= UKVM_HYPERCALL_MAX_DUMP_INFO_SIZE) {
-        memcpy((void *)&info.data, regs, len);
-        info.len = len;
-    }
-    ukvm_do_hypercall(UKVM_HYPERCALL_ABORT, &info);
-    platform_exit(SOLO5_EXIT_ABORT);
 }

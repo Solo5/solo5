@@ -23,11 +23,11 @@
 void solo5_exit(int status)
 {
     log(INFO, "Solo5: solo5_exit(%d) called\n", status);
-    platform_exit(status);
+    platform_exit(status, NULL, 0);
 }
 
 void solo5_abort(void)
 {
     log(INFO, "Solo5: solo5_abort() called\n");
-    platform_abort(NULL, 0);
+    platform_exit(SOLO5_EXIT_ABORT, NULL, 0);
 }

@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
  *
  * This file is part of Solo5, a unikernel base layer.
@@ -26,9 +26,18 @@ static void puts(const char *s)
     solo5_console_write(s, strlen(s));
 }
 
-int solo5_app_main(const struct solo5_boot_info *bi __attribute__((unused)))
+#define assert(e) do {                    \
+        if (!(e)) {                       \
+            puts("assertion failed: ");   \
+            puts(#e);                     \
+            puts("\n");                   \
+            solo5_abort();                \
+        }                                 \
+    } while (0)
+
+int solo5_app_main(const struct solo5_start_info *si __attribute__((unused)))
 {
     puts("\n**** Solo5 standalone test_assert****\n\n");
-    solo5_assert(0);
+    assert(0);
     return SOLO5_EXIT_SUCCESS;
 }
