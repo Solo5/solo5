@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
  *
  * This file is part of Solo5, a unikernel base layer.
@@ -20,59 +20,80 @@
 
 #include "kernel.h"
 
-/* ukvm block interface */
-int solo5_blk_write_sync(uint64_t sec, uint8_t *data, int n)
-{
-    volatile struct ukvm_blkwrite wr;
+/*
+ * TODO: To avoid changing both the Solo5 API and ukvm hypercall ABI at the
+ * same time, this module currently performs some translation between the two.
+ * This translation will be removed in a separate change which will align the
+ * ukvm hypercall ABI to match the Solo5 API.
+ */
 
-    wr.sector = sec;
-    wr.data = data;
-    wr.len = n;
+static struct solo5_block_info block_info;
+
+static void init_block_info(void)
+{
+    volatile struct ukvm_blkinfo bi;
+
+    ukvm_do_hypercall(UKVM_HYPERCALL_BLKINFO, &bi);
+
+    block_info.block_size = bi.sector_size;
+    block_info.capacity = bi.num_sectors * bi.sector_size;
+}
+
+solo5_result_t solo5_block_write(solo5_off_t offset, const uint8_t *buf,
+        size_t size)
+{
+    if (!block_info.capacity)
+        init_block_info();
+
+    /*
+     * XXX: This does not check for writes ending past the end of the device,
+     * current ukvm will return -1 (translated to SOLO5_R_EUNSPEC) below.
+     */
+    if ((offset % block_info.block_size != 0) ||
+        (offset >= block_info.capacity) ||
+        (size != block_info.block_size))
+        return SOLO5_R_EINVAL;
+
+    volatile struct ukvm_blkwrite wr;
+    wr.sector = offset / block_info.block_size;
+    wr.data = buf;
+    wr.len = size;
     wr.ret = 0;
 
     ukvm_do_hypercall(UKVM_HYPERCALL_BLKWRITE, &wr);
 
-    return wr.ret;
+    return (wr.ret == 0) ? SOLO5_R_OK : SOLO5_R_EUNSPEC;
 }
 
-int solo5_blk_read_sync(uint64_t sec, uint8_t *data, int *n)
+solo5_result_t solo5_block_read(solo5_off_t offset, uint8_t *buf, size_t size)
 {
-    volatile struct ukvm_blkread rd;
+    if (!block_info.capacity)
+        init_block_info();
 
-    rd.sector = sec;
-    rd.data = data;
-    rd.len = *n;
+    /*
+     * XXX: This does not check for reads ending past the end of the device,
+     * current ukvm will return -1 (translated to SOLO5_R_EUNSPEC) below.
+     */
+    if ((offset % block_info.block_size != 0) ||
+        (offset >= block_info.capacity) ||
+        (size != block_info.block_size))
+        return SOLO5_R_EINVAL;
+
+    volatile struct ukvm_blkread rd;
+    rd.sector = offset / block_info.block_size;
+    rd.data = buf;
+    rd.len = size;
     rd.ret = 0;
 
     ukvm_do_hypercall(UKVM_HYPERCALL_BLKREAD, &rd);
 
-    *n = rd.len;
-    return rd.ret;
+    return (rd.ret == 0 && rd.len == size) ? SOLO5_R_OK : SOLO5_R_EUNSPEC;
 }
 
-int solo5_blk_sector_size(void)
+void solo5_block_info(struct solo5_block_info *info)
 {
-    volatile struct ukvm_blkinfo info;
+    if (!block_info.capacity)
+        init_block_info();
 
-    ukvm_do_hypercall(UKVM_HYPERCALL_BLKINFO, &info);
-
-    return info.sector_size;
-}
-
-uint64_t solo5_blk_sectors(void)
-{
-    volatile struct ukvm_blkinfo info;
-
-    ukvm_do_hypercall(UKVM_HYPERCALL_BLKINFO, &info);
-
-    return info.num_sectors;
-}
-
-int solo5_blk_rw(void)
-{
-    volatile struct ukvm_blkinfo info;
-
-    ukvm_do_hypercall(UKVM_HYPERCALL_BLKINFO, &info);
-
-    return info.rw;
+    *info = block_info;
 }

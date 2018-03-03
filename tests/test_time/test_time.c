@@ -28,14 +28,15 @@ static void puts(const char *s)
 
 #define NSEC_PER_SEC 1000000000ULL
 
-int solo5_app_main(const struct solo5_boot_info *bi __attribute__((unused)))
+int solo5_app_main(const struct solo5_start_info *si __attribute__((unused)))
 {
     puts("\n**** Solo5 standalone test_time ****\n\n");
 
     /*
      * Verify that monotonic time is passing
      */
-    uint64_t ta = 0, tb = 0, iters = 5;
+    solo5_time_t ta = 0, tb = 0;
+    int iters = 5;
     ta = solo5_clock_monotonic();
     tb = solo5_clock_monotonic();
     /*
@@ -51,10 +52,10 @@ int solo5_app_main(const struct solo5_boot_info *bi __attribute__((unused)))
 
     /* 
      * The monitor is configured with no I/O modules for this test so
-     * solo5_poll() is equivalent to a sleep here.
+     * solo5_yield() is equivalent to a sleep here.
      */
     ta = solo5_clock_monotonic();
-    solo5_poll(ta + NSEC_PER_SEC);
+    solo5_yield(ta + NSEC_PER_SEC);
     tb = solo5_clock_monotonic();
     /*
      * Verify that we did not sleep less than requested (see above).

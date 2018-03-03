@@ -28,7 +28,7 @@
 static int use_pvclock;
 
 /* return ns since time_init() */
-uint64_t solo5_clock_monotonic(void)
+solo5_time_t solo5_clock_monotonic(void)
 {
     if (use_pvclock)
         return pvclock_monotonic();
@@ -37,7 +37,7 @@ uint64_t solo5_clock_monotonic(void)
 }
 
 /* return wall time in nsecs */
-uint64_t solo5_clock_wall(void)
+solo5_time_t solo5_clock_wall(void)
 {
     if (use_pvclock)
         return pvclock_monotonic() + pvclock_epochoffset();
@@ -61,9 +61,9 @@ void time_init(void)
         assert(tscclock_init() == 0);
 }
 
-int solo5_poll(uint64_t until_nsecs)
+bool solo5_yield(solo5_time_t deadline)
 {
-    int rc = 0;
+    bool rc = false;
 
     /*
      * cpu_block() as currently implemented will only poll for the maximum time
@@ -73,12 +73,12 @@ int solo5_poll(uint64_t until_nsecs)
     cpu_intr_disable();
     do {
         if (virtio_net_pkt_poll()) {
-            rc = 1;
+            rc = true;
             break;
         }
 
-        cpu_block(until_nsecs);
-    } while (solo5_clock_monotonic() < until_nsecs);
+        cpu_block(deadline);
+    } while (solo5_clock_monotonic() < deadline);
     if (!rc)
         rc = virtio_net_pkt_poll();
     cpu_intr_enable();

@@ -226,7 +226,7 @@ struct ukvm_blkread {
 /* UKVM_HYPERCALL_NETINFO */
 struct ukvm_netinfo {
     /* OUT */
-    char mac_str[18];
+    uint8_t mac_address[6];
 };
 
 /* UKVM_HYPERCALL_NETWRITE */

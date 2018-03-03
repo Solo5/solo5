@@ -45,9 +45,9 @@ void _start(void *arg)
 
 static void _start2(void *arg __attribute__((unused)))
 {
-    static struct solo5_boot_info bi;
+    static struct solo5_start_info si;
 
-    bi.cmdline = cmdline_parse(platform_cmdline());
+    si.cmdline = cmdline_parse(platform_cmdline());
 
     log(INFO, "            |      ___|\n");
     log(INFO, "  __|  _ \\  |  _ \\ __ \\\n");
@@ -59,6 +59,6 @@ static void _start2(void *arg __attribute__((unused)))
     pci_enumerate();
     cpu_intr_enable();
 
-    mem_lock_heap(&bi.heap_start, &bi.heap_size);
-    solo5_exit(solo5_app_main(&bi));
+    mem_lock_heap(&si.heap_start, &si.heap_size);
+    solo5_exit(solo5_app_main(&si));
 }
