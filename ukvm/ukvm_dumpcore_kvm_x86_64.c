@@ -41,7 +41,7 @@
 #include "ukvm_cpu_x86_64.h"
 
 static void ukvm_hv_fill_elf_prstatus(x86_elf_prstatus *prstatus,
-	 struct ukvm_hv *hv, struct ukvm_abort *info)
+	 struct ukvm_hv *hv, struct ukvm_halt *info)
 {
     memset(prstatus, 0, sizeof(x86_elf_prstatus));
     prstatus->regs.r8 = hv->b->kregs.r8;
@@ -92,7 +92,7 @@ size_t ukvm_dumpcore_get_note_size(int *num_notes)
 }
 
 int ukvm_dumpcore_dump_notes(int core_fd,
-        struct ukvm_hv *hv, struct ukvm_abort *info)
+        struct ukvm_hv *hv, struct ukvm_halt *info)
 {
     Elf64_Nhdr nhdr;
     x86_elf_prstatus prstatus;
