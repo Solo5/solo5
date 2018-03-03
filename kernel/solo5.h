@@ -232,7 +232,6 @@ solo5_result_t solo5_net_read(uint8_t *buf, size_t size, size_t *read_size);
 void solo5_abort(void) __attribute__((noreturn));
 
 /*
- * Time.
  * Architecture-independent type for block device offsets, in bytes.
  */
 typedef uint64_t solo5_off_t;
