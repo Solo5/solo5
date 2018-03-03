@@ -74,7 +74,7 @@ run_test ()
     local TEST_DIR
     local STATUS
 
-    ARGS=$(getopt dnavb $*)
+    ARGS=$(getopt dnavc $*)
     [ $? -ne 0 ] && die "Invalid test options"
     set -- ${ARGS}
     DISK=
@@ -98,7 +98,7 @@ run_test ()
             WANT_ABORT=true
             shift
             ;;
-        -b)
+        -c)
             # This test must ASSERT
             WANT_COREDUMP=true
             shift
@@ -202,7 +202,9 @@ run_test ()
             elif [ -n "${WANT_ABORT}" ] && [ "${STATUS}" -eq "255" ]; then
                 STATUS=0
             elif [ -n "${WANT_COREDUMP}" ] && [ "${STATUS}" -eq "255" ]; then
-                grep -q "unikernel core file" ${LOGS} && STATUS=0
+                CORE=`grep -o "core\.ukvm\.[0-9]*$" ${LOGS}`
+                [ -f "$CORE" ] && STATUS=0
+                [ -f "$CORE" ] && mv "$CORE" "$TMPDIR"
             else
                 STATUS=99
             fi
@@ -218,7 +220,7 @@ run_test ()
             if [ "${WANT_ABORT}" ]; then
                 grep -q ABORT ${LOGS} && STATUS=0
             elif [ "${WANT_COREDUMP}" ]; then
-                grep -q "Cannot dump core" ${LOGS} && STATUS=0
+                grep -q "solo5_abort() called" ${LOGS} && STATUS=0
             else
                 grep -q SUCCESS ${LOGS} && STATUS=0
             fi
@@ -303,7 +305,7 @@ if [ "${BUILD_UKVM}" = "yes" ]; then
     add_test test_quiet.ukvm/-v/--solo5:quiet
     add_test test_globals.ukvm
     add_test test_exception.ukvm/-a
-    add_test test_assert.ukvm/-b
+    add_test test_abort.ukvm/-c
     add_test test_fpu.ukvm
     add_test test_time.ukvm
     add_test test_blk.ukvm/-d
@@ -314,7 +316,7 @@ if [ "${BUILD_VIRTIO}" = "yes" ]; then
     add_test test_quiet.virtio/-v/--solo5:quiet
     add_test test_globals.virtio
     add_test test_exception.virtio/-a
-    add_test test_assert.virtio/-b
+    add_test test_abort.virtio/-c
     add_test test_fpu.virtio
     add_test test_time.virtio
     add_test test_blk.virtio/-d

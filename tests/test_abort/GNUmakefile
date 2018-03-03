@@ -16,9 +16,9 @@
 # NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
 # CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-UKVM_TARGETS=test_assert.ukvm ukvm-bin
-VIRTIO_TARGETS=test_assert.virtio
-MUEN_TARGETS=test_assert.muen
+UKVM_TARGETS=test_abort.ukvm ukvm-bin
+VIRTIO_TARGETS=test_abort.virtio
+MUEN_TARGETS=test_abort.muen
 UKVM_MODULES=
 
 include ../Makefile.tests

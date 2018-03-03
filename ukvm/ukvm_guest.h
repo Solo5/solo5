@@ -170,7 +170,6 @@ enum ukvm_hypercall {
     UKVM_HYPERCALL_NETWRITE,
     UKVM_HYPERCALL_NETREAD,
     UKVM_HYPERCALL_HALT,
-    UKVM_HYPERCALL_ABORT,
     UKVM_HYPERCALL_MAX
 };
 
@@ -265,12 +264,19 @@ struct ukvm_poll {
     int ret;
 };
 
-#define UKVM_HYPERCALL_MAX_DUMP_INFO_SIZE 100
-/* UKVM_HYPERCALL_HALT */
+/*
+ * UKVM_HYPERCALL_HALT: halt with a cookie (e.g., registers right after a page
+ * fault) of maximum len of UKVM_COOKIE_MAX. The cookie will read by the tender
+ * up to a maximum len of UKVM_COOKIE_MAX.
+ */
+
+#define UKVM_COOKIE_MAX		100
+
 struct ukvm_halt {
     /* IN */
-    char data[UKVM_HYPERCALL_MAX_DUMP_INFO_SIZE];
-    size_t len;
+    UKVM_GUEST_PTR(const char *) cookie;
+
+    /* IN */
     int exit_status;
 };
 

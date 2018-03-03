@@ -113,9 +113,17 @@ typedef void (*ukvm_hypercall_fn_t)(struct ukvm_hv *hv, ukvm_gpa_t gpa);
 int ukvm_core_register_hypercall(int nr, ukvm_hypercall_fn_t fn);
 
 /*
+ * Register (fn) as a shutdown handler.
+ */
+#define UKVM_SHUTDOWN_HOOKS_MAX		8
+typedef void (*ukvm_shutdown_fn_t)(struct ukvm_hv *hv, int status, void *cookie);
+int ukvm_core_register_shutdown_hook(ukvm_shutdown_fn_t fn);
+
+/*
  * Dispatch array of [UKVM_HYPERCALL_MAX] hypercalls. NULL = no handler.
  */
 extern ukvm_hypercall_fn_t ukvm_core_hypercalls[];
+int ukvm_core_hypercall_halt(struct ukvm_hv *hv, ukvm_gpa_t gpa);
 
 /*
  * Register a custom vmexit handler (fn). (fn) must return 0 if the vmexit was
@@ -209,9 +217,4 @@ int ukvm_gdb_add_breakpoint(struct ukvm_hv *hv, gdb_breakpoint_type type,
  */
 int ukvm_gdb_remove_breakpoint(struct ukvm_hv *hv, gdb_breakpoint_type type,
                                ukvm_gpa_t addr, size_t len);
-
-ssize_t pread_in_full(int fd, void *buf, size_t count, off_t offset);
-
-/* Dump Unikernel's memory into core file */
-void ukvm_dumpcore(struct ukvm_hv *hv, struct ukvm_halt *info);
 #endif /* UKVM_H */

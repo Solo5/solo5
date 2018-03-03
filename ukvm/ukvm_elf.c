@@ -41,7 +41,7 @@
 
 #include "ukvm.h"
 
-ssize_t pread_in_full(int fd, void *buf, size_t count, off_t offset)
+static ssize_t pread_in_full(int fd, void *buf, size_t count, off_t offset)
 {
     ssize_t total = 0;
     char *p = buf;

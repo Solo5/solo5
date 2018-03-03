@@ -49,19 +49,12 @@
 /* abort.c */
 void _assert_fail(const char *, const char *, const char *)
     __attribute__((noreturn));
-void _abort(const char *, const char *, const char *)
-    __attribute__((noreturn));
-void _abort_and_dump(const char *, const char *, const char *, void *, size_t)
+void _abort(const char *, const char *, const char *, void *)
     __attribute__((noreturn));
 
-#define PANIC_AND_DUMP(s, r, l)                            \
-    do {                                    \
-        _abort_and_dump(__FILE__, STR(__LINE__), s, r, l); \
-    } while (0)
-
-#define PANIC(s)                            \
-    do {                                    \
-        _abort(__FILE__, STR(__LINE__), s); \
+#define PANIC(s, r)                            \
+    do {                                       \
+        _abort(__FILE__, STR(__LINE__), s, r); \
     } while (0)
 
 #define assert(e)                                      \
@@ -110,8 +103,7 @@ int isspace(int c);
 void platform_init(void *arg);
 const char *platform_cmdline(void);
 uint64_t platform_mem_size(void);
-void platform_abort(void *regs, size_t) __attribute__((noreturn));
-void platform_exit(int status) __attribute__((noreturn));
+void platform_exit(int status, void *cookie) __attribute__((noreturn));
 int platform_puts(const char *buf, int n);
 
 /* platform_intr.c: platform-specific interrupt handling */

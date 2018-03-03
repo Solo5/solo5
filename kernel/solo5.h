@@ -225,13 +225,13 @@ solo5_result_t solo5_net_read(uint8_t *buf, size_t size, size_t *read_size);
  */
 
 /*
- * Creates a core dump and exits the application
+ * Exits the application with the exit status of SOLO5_EXIT_ABORT.
+ * This allows ukvm-bin to dump the unikernel core file.
  * Note: dumpcore needs to be added as a module
  */
 void solo5_abort(void) __attribute__((noreturn));
 
 /*
- * Time.
  * Architecture-independent type for block device offsets, in bytes.
  */
 typedef uint64_t solo5_off_t;
@@ -273,18 +273,4 @@ solo5_result_t solo5_block_write(solo5_off_t offset, const uint8_t *buf,
  * single block.
  */
 solo5_result_t solo5_block_read(solo5_off_t offset, uint8_t *buf, size_t size);
-
-/*
- * Helper macro for assertion
- */
-#define solo5_assert(e) do {                          \
-        if (!(e)) {                                   \
-            solo5_console_write("assertion failed: ", \
-                    strlen("assertion failed: "));    \
-            solo5_console_write(#e, strlen(#e));      \
-            solo5_console_write("\n", strlen("\n"));  \
-            solo5_abort();                        \
-        }                                             \
-    } while (0)
-
 #endif
