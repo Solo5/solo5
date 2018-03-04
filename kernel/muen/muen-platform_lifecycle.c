@@ -34,7 +34,7 @@ void platform_init(void *arg)
 }
 
 void platform_exit(int status __attribute__((unused)),
-    void *regs __attribute__((unused)),
+    void *cookie __attribute__((unused)),
     size_t len  __attribute__((unused)))
 {
     const char msg[] = "Solo5: Halted\n";

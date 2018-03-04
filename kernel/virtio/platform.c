@@ -98,7 +98,7 @@ uint64_t platform_mem_size(void)
 }
 
 void platform_exit(int status __attribute__((unused)),
-    void *regs __attribute__((unused)),
+    void *cookie __attribute__((unused)),
     size_t len  __attribute__((unused)))
 {
     /*
