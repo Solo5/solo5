@@ -18,6 +18,12 @@
 
 include $(TOP)/Makefile.common
 
+SHM_COBJS=\
+muen/channel.o \
+muen/reader.o \
+muen/shm_net.o \
+muen/writer.o
+
 COMMON_COBJS=\
 abort.o \
 cpu_${TARGET_ARCH}.o \
@@ -38,6 +44,7 @@ ukvm/time.o
 
 UKVM_COBJS=\
 $(COMMON_UKVM_COBJS) \
+$(SHM_COBJS) \
 ukvm/platform_lifecycle.o \
 ukvm/yield.o \
 ukvm/tscclock.o \
@@ -64,16 +71,14 @@ $(COMMON_COBJS)
 
 MUEN_COBJS=\
 $(COMMON_UKVM_COBJS) \
-muen/channel.o \
-muen/reader.o \
-muen/writer.o \
+$(SHM_COBJS) \
 muen/muen-block.o \
 muen/muen-clock.o \
 muen/muen-console.o \
 muen/muen-net.o \
+muen/muen-sinfo.o \
 muen/muen-platform_lifecycle.o \
 muen/muen-yield.o \
-muen/muen-sinfo.o \
 $(COMMON_COBJS)
 
 HEADERS=\

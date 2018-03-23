@@ -81,7 +81,7 @@ struct ukvm_hv *ukvm_hv_init(size_t mem_size)
     hv->mem_size = mem_size;
 
     struct kvm_userspace_memory_region region = {
-        .slot = 0,
+        .slot = UKVM_MEMCORE_REGION,
         .guest_phys_addr = 0,
         .memory_size = hv->mem_size,
         .userspace_addr = (uint64_t)hv->mem,

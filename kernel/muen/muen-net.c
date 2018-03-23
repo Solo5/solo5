@@ -19,56 +19,24 @@
  */
 
 #include "../ukvm/kernel.h"
+#include "shm_net.h"
 #include "sinfo.h"
 #include "reader.h"
 #include "writer.h"
 
-#define PACKET_SIZE   1514
-#define MUENNET_PROTO 0x7ade5c549b08e814ULL
-
-struct net_msg {
-    uint8_t data[PACKET_SIZE];
-    uint16_t length;
-} __attribute__((packed));
-
-static struct muchannel *net_in;
-static struct muchannel *net_out;
-static struct muchannel_reader net_rdr;
-
+struct muchannel *net_in;
+struct muchannel *net_out;
+struct muchannel_reader net_rdr;
 static uint8_t mac_addr[6];
 
 solo5_result_t solo5_net_write(const uint8_t *buf, size_t size)
 {
-    struct net_msg pkt;
-
-    if (size > PACKET_SIZE)
-        return SOLO5_R_EINVAL;
-
-    memset(&pkt, 0, sizeof(struct net_msg));
-    cc_barrier();
-    pkt.length = size;
-    memcpy(&pkt.data, buf, size);
-    muen_channel_write(net_out, &pkt);
-
-    return SOLO5_R_OK;
+    return shm_net_write(net_out, buf, size);
 }
 
 solo5_result_t solo5_net_read(uint8_t *buf, size_t size, size_t *read_size)
 {
-    enum muchannel_reader_result result;
-    struct net_msg pkt;
-
-    if (size < PACKET_SIZE)
-        return SOLO5_R_EINVAL;
-
-    result = muen_channel_read(net_in, &net_rdr, &pkt);
-    if (result == MUCHANNEL_SUCCESS) {
-        memcpy(buf, &pkt.data, pkt.length);
-        *read_size = pkt.length;
-        return SOLO5_R_OK;
-    } else {
-        return SOLO5_R_AGAIN;
-    }
+    return shm_net_read(net_in, &net_rdr, buf, size, read_size);
 }
 
 bool muen_net_pending_data()

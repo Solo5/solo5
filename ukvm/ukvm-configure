@@ -68,6 +68,14 @@ add_header ()
     done
 }
 
+
+add_include_header ()
+{
+    for i in "$@"; do
+        UKVM_INC_HEADERS="${UKVM_INC_HEADERS} ${i}"
+    done
+}
+
 add_module ()
 {
     if [ ! -f ${UKVM_SRC}/ukvm_module_$1.c ]; then
@@ -84,10 +92,15 @@ UKVM_LDLIBS=
 UKVM_HEADERS=
 UKVM_OBJS=
 add_obj ukvm_core.o ukvm_elf.o ukvm_main.o
+add_obj channel.o reader.o shm_net.o writer.o
 add_header ukvm.h ukvm_guest.h ukvm_cc.h
+add_include_header -I${UKVM_SRC}/../kernel/muen/
 
 for module in "$@"; do
     [ -z "${module}" ] && continue
+    if [ ${module} = "net" ]; then
+    	UKVM_LDLIBS="-lpthread"
+    fi
     add_module ${module}
 done
 
@@ -124,7 +137,7 @@ cat <<EOF> Makefile.ukvm
 all: ukvm-bin
 
 UKVM_CC=${UKVM_CC}
-UKVM_CFLAGS=-Wall -Werror -std=c99 -O2 -g ${UKVM_CFLAGS}
+UKVM_CFLAGS=-Wall -Werror -std=c99 -O2 -g ${UKVM_CFLAGS} ${UKVM_INC_HEADERS}
 UKVM_LDFLAGS=${UKVM_LDFLAGS}
 UKVM_LDLIBS=${UKVM_LDLIBS}
 
@@ -137,6 +150,18 @@ _build-ukvm:
 	mkdir -p _build-ukvm
 
 _build-ukvm/ukvm_%.o: ${UKVM_SRC}/ukvm_%.c \$(MAKEFILE_LIST) | _build-ukvm
+	\$(UKVM_CC) \$(UKVM_CFLAGS) -c \$< -o \$@
+
+_build-ukvm/channel.o: ${UKVM_SRC}/../kernel/muen/channel.c \$(MAKEFILE_LIST) | _build-ukvm
+	\$(UKVM_CC) \$(UKVM_CFLAGS) -c \$< -o \$@
+
+_build-ukvm/reader.o: ${UKVM_SRC}/../kernel/muen/reader.c \$(MAKEFILE_LIST) | _build-ukvm
+	\$(UKVM_CC) \$(UKVM_CFLAGS) -c \$< -o \$@
+
+_build-ukvm/shm_net.o: ${UKVM_SRC}/../kernel/muen/shm_net.c \$(MAKEFILE_LIST) | _build-ukvm
+	\$(UKVM_CC) \$(UKVM_CFLAGS) -c \$< -o \$@
+
+_build-ukvm/writer.o: ${UKVM_SRC}/../kernel/muen/writer.c \$(MAKEFILE_LIST) | _build-ukvm
 	\$(UKVM_CC) \$(UKVM_CFLAGS) -c \$< -o \$@
 
 ukvm-bin: \$(UKVM_OBJS) \$(MAKEFILE_LIST)

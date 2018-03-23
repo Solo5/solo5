@@ -125,13 +125,22 @@ static void usage(const char *prog)
     exit(1);
 }
 
+static void cleanup_modules(struct ukvm_hv *hv)
+{
+    for (struct ukvm_module **m = ukvm_core_modules; *m; m++) {
+        if ((*m)->cleanup) {
+            (*m)->cleanup(hv);
+        }
+    }
+}
+
 int main(int argc, char **argv)
 {
     size_t mem_size = 0x20000000;
     ukvm_gpa_t gpa_ep, gpa_kend;
     const char *prog;
     const char *elffile;
-    int matched;
+    int matched, ret = 0;
 
     prog = basename(*argv);
     argc--;
@@ -196,5 +205,7 @@ int main(int argc, char **argv)
 
     setup_modules(hv);
 
-    return ukvm_hv_vcpu_loop(hv);
+    ret = ukvm_hv_vcpu_loop(hv);
+    cleanup_modules(hv);
+    return ret;
 }

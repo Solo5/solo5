@@ -104,16 +104,21 @@ static void hypercall_puts(struct ukvm_hv *hv, ukvm_gpa_t gpa)
 }
 
 static struct pollfd pollfds[NUM_MODULES];
+static poll_fn_cb_t poll_fn_cb[NUM_MODULES];
 static int npollfds = 0;
 static sigset_t pollsigmask;
 
-int ukvm_core_register_pollfd(int fd)
+int ukvm_core_register_pollfd(int fd, poll_fn_cb_t cb)
 {
     if (npollfds == NUM_MODULES)
         return -1;
 
     pollfds[npollfds].fd = fd;
     pollfds[npollfds].events = POLLIN;
+
+    if (cb) {
+        poll_fn_cb[npollfds] = cb;
+    }
     npollfds++;
     return 0;
 }
@@ -123,13 +128,21 @@ static void hypercall_poll(struct ukvm_hv *hv, ukvm_gpa_t gpa)
     struct ukvm_poll *t =
         UKVM_CHECKED_GPA_P(hv, gpa, sizeof (struct ukvm_poll));
     struct timespec ts;
-    int rc;
+    int rc, i;
 
     ts.tv_sec = t->timeout_nsecs / 1000000000ULL;
     ts.tv_nsec = t->timeout_nsecs % 1000000000ULL;
 
     rc = ppoll(pollfds, npollfds, &ts, &pollsigmask);
     assert(rc >= 0);
+
+    if (rc) {
+        for (i = 0; i < npollfds; i++) {
+            if (poll_fn_cb[i] != NULL) {
+                poll_fn_cb[i]();
+            }
+        }
+    }
     t->ret = rc;
 }
 

@@ -170,6 +170,7 @@ enum ukvm_hypercall {
     UKVM_HYPERCALL_NETWRITE,
     UKVM_HYPERCALL_NETREAD,
     UKVM_HYPERCALL_HALT,
+    UKVM_HYPERCALL_NET_SHMINFO,
     UKVM_HYPERCALL_MAX
 };
 
@@ -228,6 +229,19 @@ struct ukvm_netinfo {
     uint8_t mac_address[6];
 };
 
+/* UKVM_HYPERCALL_NET_SHM_INFO */
+struct ukvm_net_shm_info {
+    /* IN */
+    uint64_t tx_channel_addr;
+    uint64_t tx_channel_addr_size;
+    uint64_t rx_channel_addr;
+    uint64_t rx_channel_addr_size;
+    int completed;
+
+    /* OUT */
+    int ret;
+};
+
 /* UKVM_HYPERCALL_NETWRITE */
 struct ukvm_netwrite {
     /* IN */
@@ -268,6 +282,15 @@ struct ukvm_poll {
 struct ukvm_halt {
     /* IN */
     int exit_status;
+};
+
+/*
+ * Canonical list of host memory regions mapped as the guest memory
+ */
+enum ukvm_memregion {
+    UKVM_MEMCORE_REGION,
+    UKVM_SHMSTREAM_RXRING_BUF_REGION,
+    UKVM_SHMSTREAM_TXRING_BUF_REGION,
 };
 
 #endif /* UKVM_GUEST_H */

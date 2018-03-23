@@ -19,9 +19,18 @@
  */
 
 #include "kernel.h"
+#include "shm_net.h"
+#include "sinfo.h"
+#include "reader.h"
+#include "writer.h"
+
+struct muchannel *tx_channel;
+struct muchannel *rx_channel;
+struct muchannel_reader net_rdr;
 
 solo5_result_t solo5_net_write(const uint8_t *buf, size_t size)
 {
+#if 0
     volatile struct ukvm_netwrite wr;
 
     wr.data = buf;
@@ -31,10 +40,13 @@ solo5_result_t solo5_net_write(const uint8_t *buf, size_t size)
     ukvm_do_hypercall(UKVM_HYPERCALL_NETWRITE, &wr);
 
     return (wr.ret == 0 && wr.len == size) ? SOLO5_R_OK : SOLO5_R_EUNSPEC;
+#endif
+    return shm_net_write(tx_channel, buf, size);
 }
 
 solo5_result_t solo5_net_read(uint8_t *buf, size_t size, size_t *read_size)
 {
+#if 0
     volatile struct ukvm_netread rd;
 
     rd.data = buf;
@@ -45,6 +57,9 @@ solo5_result_t solo5_net_read(uint8_t *buf, size_t size, size_t *read_size)
 
     *read_size = rd.len;
     return (rd.ret == 0) ? SOLO5_R_OK : SOLO5_R_AGAIN;
+#endif
+    return shm_net_read(rx_channel, &net_rdr,
+            buf, size, read_size);
 }
 
 void solo5_net_info(struct solo5_net_info *info)
@@ -61,4 +76,16 @@ void solo5_net_info(struct solo5_net_info *info)
 
 void net_init(void)
 {
+    volatile struct ukvm_net_shm_info ni = { 0 };
+    ukvm_do_hypercall(UKVM_HYPERCALL_NET_SHMINFO, &ni);
+
+    tx_channel = (struct muchannel *)ni.tx_channel_addr;
+    rx_channel = (struct muchannel *)ni.rx_channel_addr;
+
+    muen_channel_init_writer(tx_channel, MUENNET_PROTO, sizeof(struct net_msg),
+            ni.tx_channel_addr_size, 10);
+    muen_channel_init_reader(&net_rdr, MUENNET_PROTO);
+
+    ni.completed = 1;
+    ukvm_do_hypercall(UKVM_HYPERCALL_NET_SHMINFO, &ni);
 }
