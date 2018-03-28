@@ -179,7 +179,7 @@ uint64_t tscclock_monotonic(void) {
      */
     tsc_now = cpu_rdtsc();
     tsc_delta = tsc_now - tsc_base;
-    time_base += mul64_32(tsc_delta, tsc_mult);
+    time_base += mul64_32(tsc_delta, tsc_mult, 32);
     tsc_base = tsc_now;
 
     return time_base;
@@ -215,6 +215,9 @@ int tscclock_init(void) {
     /*
      * Calculate TSC scaling multiplier.
      *
+     * TODO: This calculation may overflow for low values of tsc_freq;
+     * dynamically calculate tsc_shift as in ukvm version.
+     *
      * (0.32) tsc_mult = NSEC_PER_SEC (32.32) / tsc_freq (32.0)
      */
     tsc_mult = (NSEC_PER_SEC << 32) / tsc_freq;
@@ -223,7 +226,7 @@ int tscclock_init(void) {
      * Monotonic time begins at tsc_base (first read of TSC before
      * calibration).
      */
-    time_base = mul64_32(tsc_base, tsc_mult);
+    time_base = mul64_32(tsc_base, tsc_mult, 32);
 
     /*
      * Compute RTC epoch offset by subtracting monotonic time_base from RTC
@@ -279,7 +282,7 @@ void cpu_block(uint64_t until) {
      * the timeout.
      */
     delta_ns = until - now;
-    delta_ticks = mul64_32(delta_ns, pit_mult);
+    delta_ticks = mul64_32(delta_ns, pit_mult, 32);
     if (delta_ticks < PIT_MIN_DELTA) {
         /*
          * Since we are "spinning", quickly enable interrupts in
