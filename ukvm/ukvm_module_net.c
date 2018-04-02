@@ -48,12 +48,14 @@
 #include <linux/kvm.h>
 #include <pthread.h>
 #include <sys/eventfd.h>
+#include <sys/epoll.h>
 #include "ukvm.h"
 #include "ukvm_guest.h"
 #include "ukvm_hv_kvm.h"
 #include "ukvm_cpu_x86_64.h"
 #include "shm_net.h"
 #include "writer.h"
+#define MAXEVENTS 5
 static pthread_t tid;
 struct muchannel *tx_channel;
 struct muchannel *rx_channel;
@@ -73,7 +75,7 @@ struct muchannel_reader net_rdr;
 
 #define MAX_PACKETS_READ 100
 static char *netiface;
-static int netfd, shmfd;
+static int netfd, shmfd, shm_rx_fd, shm_tx_fd, epoll_fd;
 static struct ukvm_netinfo netinfo;
 static int cmdline_mac = 0;
 static uint64_t rx_shm_size = 0x0;
@@ -207,6 +209,58 @@ void read_shmfd()
     	   (readtime.tv_nsec - writetime.tv_nsec) / 1000000); */
 }
 
+void* io_event_loop()
+{
+    struct net_msg pkt;
+    int ret, n, i;
+    uint64_t clear = 0;
+    struct epoll_event event;
+    struct epoll_event *events;
+
+    events = calloc(MAXEVENTS, sizeof event);
+
+    while (1) {
+        n = epoll_wait(epoll_fd, events, MAXEVENTS, -1);
+        for (i = 0; i < n; i++) {
+			if ((events[i].events & EPOLLERR) ||
+				  (events[i].events & EPOLLHUP) ||
+				  (!(events[i].events & EPOLLIN)))
+			{
+			  warnx("epoll error\n");
+			  close(events[i].data.fd);
+			  continue;
+			} else if (netfd == events[i].data.fd) {
+                if ((ret = read(netfd, pkt.data, PACKET_SIZE)) > 0) {
+                    if (shm_net_write(tx_channel, pkt.data, ret) != SOLO5_R_OK) {
+                        /* Don't read from netfd. Instead, wait for tx_channel to
+                         * be writable */
+                        epoll_ctl(epoll_fd, EPOLL_CTL_DEL, netfd, NULL);
+
+                        event.data.fd = shm_tx_fd;
+                        event.events = EPOLLIN | EPOLLET;
+                        epoll_ctl(epoll_fd, EPOLL_CTL_ADD, shm_tx_fd, &event);
+                    }
+                }
+            } else if (shm_tx_fd == events[i].data.fd) {
+                /* tx channel is writable again */
+                if (read(shm_tx_fd, &clear, 8) < 0) {
+                }
+                epoll_ctl(epoll_fd, EPOLL_CTL_DEL, shm_tx_fd, NULL);
+
+                event.data.fd = shm_tx_fd;
+                event.events = EPOLLIN | EPOLLET;
+                epoll_ctl(epoll_fd, EPOLL_CTL_ADD, netfd, &event);
+            } else if (shm_rx_fd == events[i].data.fd) {
+                if ((ret = shm_net_read(rx_channel, &net_rdr,
+                    pkt.data, PACKET_SIZE, (size_t *)&pkt.length) == SOLO5_R_OK)) {
+                    ret = write(netfd, pkt.data, pkt.length);
+                    assert(ret == pkt.length);
+                }
+            }
+		}
+    }
+}
+
 void* io_thread()
 {
     struct net_msg pkt;
@@ -271,7 +325,7 @@ static void hypercall_net_shm_info(struct ukvm_hv *hv, ukvm_gpa_t gpa)
     if (info->completed) {
         muen_channel_init_reader(&net_rdr, MUENNET_PROTO);
         /* Add a cmd line --shm to use shm */
-        pthread_create(&tid, NULL, &io_thread, NULL);
+        pthread_create(&tid, NULL, &io_event_loop, NULL);
     } else {
         info->tx_channel_addr = hv->mem_size;
         info->tx_channel_addr_size = rx_shm_size;
@@ -340,6 +394,42 @@ static int handle_cmdarg(char *cmdarg)
     }
 }
 
+static int configure_epoll()
+{
+    struct epoll_event event;
+    int efd;
+
+    if ((efd = epoll_create1(0)) < 0) {
+        warnx("Failed to create epoll fd");
+        return -1;
+    }
+
+    event.data.fd = netfd;
+    event.events = EPOLLIN | EPOLLET;
+    if (epoll_ctl(efd, EPOLL_CTL_ADD, netfd, &event) < 0) {
+        warnx("Failed to set up fd at epoll_ctl");
+        return -1;
+    }
+
+    if ((shm_rx_fd = eventfd(0, EFD_NONBLOCK)) < 0) {
+        warnx("Failed to create eventfd");
+        return -1;
+    }
+
+    event.data.fd = shm_rx_fd;
+    event.events = EPOLLIN | EPOLLET;
+    if (epoll_ctl(efd, EPOLL_CTL_ADD, shm_rx_fd, &event) < 0) {
+        warnx("Failed to set up fd at epoll_ctl");
+        return -1;
+    }
+
+    if ((shm_tx_fd = eventfd(0, EFD_NONBLOCK)) < 0) {
+        warnx("Failed to create eventfd");
+        return -1;
+    }
+    return efd;
+}
+
 static int configure_shmstream(struct ukvm_hv *hv)
 {
     uint64_t offset = 0x0;
@@ -354,6 +444,12 @@ static int configure_shmstream(struct ukvm_hv *hv)
     shmfd = eventfd(0, EFD_NONBLOCK);
     if (shmfd < 0) {
         err(1, "Failed to create eventfd");
+        goto err;
+    }
+
+    /* Set up epoll */
+    if ((epoll_fd = configure_epoll()) < 0) {
+        err(1, "Failed to configure epoll");
         goto err;
     }
 
