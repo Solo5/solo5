@@ -19,6 +19,7 @@
  */
 
 #include "../kernel.h"
+#include "channel.h"
 #include "writer.h"
 #include "util.h"
 
@@ -49,17 +50,22 @@ void muen_channel_deactivate(struct muchannel *channel)
     cc_barrier();
 }
 
-void muen_channel_write(struct muchannel *channel, const void * const element)
+int muen_channel_write(struct muchannel *channel, const void * const element)
 {
-    uint64_t wc, pos, size;
+    uint64_t wc, pos, size, rc;
 
     size = channel->hdr.size;
     wc = channel->hdr.wc;
     pos = wc % channel->hdr.elements;
 
     wc++;
+    serialized_copy(&channel->hdr.rc, &rc);
+    if (wc - rc >= channel->hdr.elements) {
+        return -1;
+    }
 
     serialized_copy(&wc, &channel->hdr.wsc);
     memcpy(channel->data + pos * size, element, size);
     serialized_copy(&wc, &channel->hdr.wc);
+    return 0;
 }

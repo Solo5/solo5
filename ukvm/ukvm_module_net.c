@@ -220,7 +220,6 @@ void* io_thread()
             packets_read++;
             if (shm_net_write(tx_channel, pkt.data, ret) != SOLO5_R_OK) {
                 ret = 0;
-                assert(0);
             }
         }
 

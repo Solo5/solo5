@@ -35,7 +35,9 @@ solo5_result_t shm_net_write(struct muchannel *channel,
     cc_barrier();
     pkt.length = size;
     memcpy(&pkt.data, buf, size);
-    muen_channel_write(channel, &pkt);
+    if (muen_channel_write(channel, &pkt) != 0) {
+        return SOLO5_R_AGAIN;
+    }
 
     return SOLO5_R_OK;
 }

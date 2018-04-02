@@ -63,7 +63,7 @@ void muen_channel_init_reader(struct muchannel_reader *reader, uint64_t protocol
 }
 
 enum muchannel_reader_result muen_channel_read(
-        const struct muchannel * const channel,
+        struct muchannel *channel,
         struct muchannel_reader *reader,
         void *element)
 {
@@ -95,6 +95,7 @@ enum muchannel_reader_result muen_channel_read(
             } else {
                 result = MUCHANNEL_SUCCESS;
                 reader->rc++;
+                serialized_copy(&reader->rc, &channel->hdr.rc);
             }
             if (has_epoch_changed(channel, reader)) {
                 result = MUCHANNEL_EPOCH_CHANGED;

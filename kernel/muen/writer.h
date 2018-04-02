@@ -38,6 +38,6 @@ void muen_channel_deactivate(struct muchannel *channel);
 /**
  * Write element to given channel.
  */
-void muen_channel_write(struct muchannel *channel, const void * const element);
+int muen_channel_write(struct muchannel *channel, const void * const element);
 
 #endif

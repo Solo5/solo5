@@ -40,7 +40,7 @@ struct muchannel_header {
     uint64_t protocol;
     uint64_t size;
     uint64_t elements;
-    uint64_t __reserved;
+    uint64_t rc;
     uint64_t wsc;
     uint64_t wc;
 } __attribute__((packed, aligned(8)));
