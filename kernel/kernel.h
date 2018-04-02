@@ -118,8 +118,8 @@ char *cmdline_parse(const char *cmdline);
 /* log.c: */
 typedef enum {
     ERROR=0,
-    WARN,
-    INFO,
+    WARN, 
+    INFO, 
     DEBUG,
 } log_level_t;
 #ifdef __SOLO5_KERNEL__

@@ -1,4 +1,4 @@
-/*
+/* 
  * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
  *
  * This file is part of ukvm, a unikernel monitor.
@@ -51,7 +51,7 @@ struct ukvm_hv {
  * the entry point (gpa_ep) and last byte used by the binary (gpa_kend).
  */
 void ukvm_elf_load(const char *file, uint8_t *mem, size_t mem_size,
-        ukvm_gpa_t *p_entry, ukvm_gpa_t *p_end);
+        ukvm_gpa_t *p_entry, ukvm_gpa_t *p_end);                
 
 /*
  * Check that (gpa) and (gpa + sz) are within guest memory. Returns a host-side
@@ -62,7 +62,7 @@ void ukvm_elf_load(const char *file, uint8_t *mem, size_t mem_size,
 
 inline void *ukvm_checked_gpa_p(struct ukvm_hv *hv, ukvm_gpa_t gpa, size_t sz,
         const char *file, int line)
-{
+{    
     ukvm_gpa_t r;
 
     if ((gpa >= hv->mem_size) || add_overflow(gpa, sz, r) ||

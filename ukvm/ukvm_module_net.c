@@ -71,7 +71,7 @@ struct muchannel_reader net_rdr;
 
 #include "ukvm.h"
 
-#define MAX_PACKETS_READ 1
+#define MAX_PACKETS_READ 100
 static char *netiface;
 static int netfd, shmfd;
 static struct ukvm_netinfo netinfo;
@@ -220,6 +220,7 @@ void* io_thread()
             packets_read++;
             if (shm_net_write(tx_channel, pkt.data, ret) != SOLO5_R_OK) {
                 ret = 0;
+                break;
             }
         }
 
