@@ -82,8 +82,9 @@ static int use_shm_stream = 0;
 static int use_event_thread = 0;
 static uint64_t rx_shm_size = 0x0;
 static uint64_t tx_shm_size = 0x0;
-struct timespec readtime = { 0 };
-struct timespec writetime = { 0 };
+struct timespec readtime;
+struct timespec writetime;
+struct timespec epochtime;
 
 /*
  * Attach to an existing TAP interface named 'ifname'.
@@ -215,7 +216,6 @@ void read_solo5_rx_fd()
     if (read(solo5_rx_fd, &clear, 8) < 0) {
         /*warnx("Failed to read from shm eventfd");*/
     }
-    warnx("Solo5 reading data from shmstream");
 }
 
 void* io_event_loop()
@@ -239,7 +239,7 @@ void* io_event_loop()
 			  close(events[i].data.fd);
 			  continue;
 			} else if (netfd == events[i].data.fd) {
-                clock_gettime(CLOCK_MONOTONIC, &writetime);
+                //clock_gettime(CLOCK_MONOTONIC, &writetime);
                 if ((ret = read(netfd, pkt.data, PACKET_SIZE)) > 0) {
                     if (shm_net_write(tx_channel, pkt.data, ret) != 0) {
                         /* Don't read from netfd. Instead, wait for tx_channel to
@@ -247,6 +247,7 @@ void* io_event_loop()
                         epoll_ctl(epoll_fd, EPOLL_CTL_DEL, netfd, NULL);
                         assert(0);
                     } else {
+			            warnx("read data from tap\n");
                         ret = write(solo5_rx_fd, &wrote, 8);
                     }
                 }
@@ -263,6 +264,7 @@ void* io_event_loop()
             } else if (shm_rx_fd == events[i].data.fd) {
                 /* Read data from shmstream and write to tap interface */
                 if (read(shm_rx_fd, &clear, 8) < 0) {}
+                warnx("Data to write out");
                 do {
                     ret = shm_net_read(rx_channel, &net_rdr,
                         pkt.data, PACKET_SIZE, (size_t *)&pkt.length);
@@ -281,9 +283,11 @@ void* io_event_loop()
                         break;
                     }
                 } while (1);
+#if 0
                 clock_gettime(CLOCK_MONOTONIC, &readtime);
                 warnx("Read %"PRIu64" bytes shm rx eventfd. Delta: %"PRIu64" ms", clear,
                        (readtime.tv_nsec - writetime.tv_nsec) / 1000000);
+#endif
             }
 		}
     }
@@ -415,8 +419,8 @@ static void hypercall_netxon(struct ukvm_hv *hv, ukvm_gpa_t gpa)
 static void hypercall_netnotify(struct ukvm_hv *hv, ukvm_gpa_t gpa)
 {
     uint64_t read_data = 1;
+    warnx("Notify writer");
     if (write(shm_rx_fd, &read_data, 8)) {}
-    warnx("Notifiying ukvm about the data");
 }
 
 static int handle_cmdarg(char *cmdarg)
@@ -569,9 +573,10 @@ static int configure_shmstream(struct ukvm_hv *hv)
 
     /* Init tx ring as a writer */
     tx_channel = (struct muchannel *)(shm_mem + offset);
-    /* TODO: Use monotonic epoch */	
+    /* TODO: Use monotonic epoch in kernel as well*/
+    clock_gettime(CLOCK_MONOTONIC, &epochtime);
     muen_channel_init_writer(tx_channel, MUENNET_PROTO, sizeof(struct net_msg),
-            tx_shm_size, 10);
+            tx_shm_size, epochtime.tv_nsec);
     offset += txring_region.memory_size;
 
     printf("offset = 0x%"PRIx64", total_pagesize = 0x%"PRIx64"\n", offset, total_pagesize);
