@@ -52,7 +52,10 @@ solo5_result_t solo5_net_write(const uint8_t *buf, size_t size)
         }
         return SOLO5_R_OK;
     } else if (shm_poll_enabled) {
-        return shm_net_write(tx_channel, buf, size);
+        if (shm_net_write(tx_channel, buf, size) < 0) {
+            return SOLO5_R_AGAIN;
+        }
+        return SOLO5_R_OK;
     } else {
         volatile struct ukvm_netwrite wr;
 
