@@ -221,8 +221,8 @@ void read_solo5_rx_fd()
 void* io_event_loop()
 {
     struct net_msg pkt = { 0 };
-    int ret, n, i, err;
-    uint64_t clear = 0, wrote = 1, test = 0;
+    int ret, n, i;
+    uint64_t clear = 0, wrote = 1;
     struct epoll_event event;
     struct epoll_event *events;
 
@@ -239,9 +239,8 @@ void* io_event_loop()
 			  close(events[i].data.fd);
 			  continue;
 			} else if (netfd == events[i].data.fd) {
+                clock_gettime(CLOCK_MONOTONIC, &writetime);
                 if ((ret = read(netfd, pkt.data, PACKET_SIZE)) > 0) {
-                    memcpy(&test, pkt.data, 6);
-                    warnx("Read ev mac: %lx", test);
                     if (shm_net_write(tx_channel, pkt.data, ret) != 0) {
                         /* Don't read from netfd. Instead, wait for tx_channel to
                          * be writable */
@@ -264,12 +263,12 @@ void* io_event_loop()
             } else if (shm_rx_fd == events[i].data.fd) {
                 /* Read data from shmstream and write to tap interface */
                 if (read(shm_rx_fd, &clear, 8) < 0) {}
-                clock_gettime(CLOCK_MONOTONIC, &readtime);
-                warnx("Read %"PRIu64" bytes shm rx eventfd. Delta: %"PRIu64" ms", clear,
-                       (readtime.tv_nsec - writetime.tv_nsec) / 1000000);
                 do {
                     ret = shm_net_read(rx_channel, &net_rdr,
                         pkt.data, PACKET_SIZE, (size_t *)&pkt.length);
+                    if (ret == SOLO5_R_OK) {
+                        ret = write(netfd, pkt.data, pkt.length);
+#if 0
                     if ((ret == MUCHANNEL_SUCCESS) || (ret == MUCHANNEL_XON)) {
                         if (ret == MUCHANNEL_XON) {
                             err = write(solo5_tx_xon_fd, &wrote, 8);
@@ -277,10 +276,14 @@ void* io_event_loop()
                         warnx("ukvm writing data to tap");
                         err = write(netfd, pkt.data, pkt.length);
                         assert(err == pkt.length);
+#endif
                     } else {
                         break;
                     }
                 } while (1);
+                clock_gettime(CLOCK_MONOTONIC, &readtime);
+                warnx("Read %"PRIu64" bytes shm rx eventfd. Delta: %"PRIu64" ms", clear,
+                       (readtime.tv_nsec - writetime.tv_nsec) / 1000000);
             }
 		}
     }
@@ -291,15 +294,12 @@ void* io_thread()
     struct net_msg pkt;
     int ret, tap_no_data = 0, shm_no_data = 0;
     uint64_t packets_read = 0;
-    uint64_t test = 0;
 
     while (1) {
         /* Read packets from tap interface and write to shmstream */
         while (packets_read < MAX_PACKETS_READ &&
             ((ret = read(netfd, pkt.data, PACKET_SIZE)) > 0)) {
             packets_read++;
-            memcpy(&test, pkt.data, 6);
-            warnx("Read mac: %lx", test);
             if (shm_net_write(tx_channel, pkt.data, ret) != 0) {
                 ret = 0;
                 break;
@@ -609,8 +609,7 @@ static int setup(struct ukvm_hv *hv)
         close(rfd);
         guest_mac[0] &= 0xfe;
         guest_mac[0] |= 0x02;
-        uint64_t val = 0xf6e358284e50;
-        memcpy(netinfo.mac_address, &val, sizeof netinfo.mac_address);
+        memcpy(netinfo.mac_address, &guest_mac, sizeof netinfo.mac_address);
     }
 
     if (use_shm_stream) {
