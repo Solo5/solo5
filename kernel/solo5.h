@@ -266,5 +266,7 @@ solo5_result_t solo5_block_write(solo5_off_t offset, const uint8_t *buf,
  * single block.
  */
 solo5_result_t solo5_block_read(solo5_off_t offset, uint8_t *buf, size_t size);
+solo5_result_t solo5_net_queue(const uint8_t *buf, size_t size);
+void solo5_net_flush();
 
 #endif

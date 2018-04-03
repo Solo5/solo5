@@ -30,8 +30,8 @@ struct net_msg {
     uint16_t length;
 } __attribute__((packed));
 
-solo5_result_t shm_net_write(struct muchannel *channel,
+int shm_net_write(struct muchannel *channel,
         const uint8_t *buf, size_t size);
-solo5_result_t shm_net_read(struct muchannel *channel,
+int shm_net_read(struct muchannel *channel,
         struct muchannel_reader *reader,
         uint8_t *buf, size_t size, size_t *read_size);

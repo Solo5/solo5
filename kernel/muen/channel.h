@@ -45,8 +45,14 @@ struct muchannel_header {
     uint64_t wc;
 } __attribute__((packed, aligned(8)));
 
+struct muchannel_misc {
+    uint8_t xon;
+    uint8_t reserved[7];
+};
+
 struct muchannel {
     struct muchannel_header hdr;
+    struct muchannel_misc   misc;
     char data[];
 };
 

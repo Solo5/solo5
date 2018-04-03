@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
  *
  * This file is part of Solo5, a unikernel base layer.
@@ -28,6 +28,16 @@ struct muchannel *tx_channel;
 struct muchannel *rx_channel;
 struct muchannel_reader net_rdr;
 
+solo5_result_t solo5_net_queue(const uint8_t *buf, size_t size)
+{
+    return shm_net_write(tx_channel, buf, size);
+}
+
+void solo5_net_flush()
+{
+    ukvm_do_hypercall(UKVM_HYPERCALL_NETNOTIFY, NULL);
+}
+
 solo5_result_t solo5_net_write(const uint8_t *buf, size_t size)
 {
 #if 0
@@ -41,7 +51,12 @@ solo5_result_t solo5_net_write(const uint8_t *buf, size_t size)
 
     return (wr.ret == 0 && wr.len == size) ? SOLO5_R_OK : SOLO5_R_EUNSPEC;
 #endif
-    return shm_net_write(tx_channel, buf, size);
+    int ret = solo5_net_queue(buf, size);
+    solo5_net_flush();
+    if (ret < 0) {
+        return SOLO5_R_AGAIN;
+    }
+    return SOLO5_R_OK;
 }
 
 solo5_result_t solo5_net_read(uint8_t *buf, size_t size, size_t *read_size)
@@ -58,8 +73,16 @@ solo5_result_t solo5_net_read(uint8_t *buf, size_t size, size_t *read_size)
     *read_size = rd.len;
     return (rd.ret == 0) ? SOLO5_R_OK : SOLO5_R_AGAIN;
 #endif
-    return shm_net_read(rx_channel, &net_rdr,
+    int ret = shm_net_read(rx_channel, &net_rdr,
             buf, size, read_size);
+
+    if (ret == MUCHANNEL_SUCCESS) {
+        return SOLO5_R_OK;
+    } else if (ret == MUCHANNEL_XON) {
+        ukvm_do_hypercall(UKVM_HYPERCALL_NETXON, NULL);
+        return SOLO5_R_OK;
+    }
+    return SOLO5_R_AGAIN;
 }
 
 void solo5_net_info(struct solo5_net_info *info)

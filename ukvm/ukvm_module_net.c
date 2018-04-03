@@ -75,7 +75,7 @@ struct muchannel_reader net_rdr;
 
 #define MAX_PACKETS_READ 100
 static char *netiface;
-static int netfd, shmfd, shm_rx_fd, shm_tx_fd, epoll_fd;
+static int netfd, solo5_rx_fd, solo5_tx_xon_fd, shm_rx_fd, shm_tx_fd, epoll_fd;
 static struct ukvm_netinfo netinfo;
 static int cmdline_mac = 0;
 static uint64_t rx_shm_size = 0x0;
@@ -195,25 +195,32 @@ static int tap_attach(const char *ifname)
     return fd;
 }
 
-void read_shmfd()
+/* Solo5 is woken up when the shmstream is writable again */
+void read_solo5_tx_xon_fd()
+{
+    uint64_t clear = 0;
+    if (read(solo5_tx_xon_fd, &clear, 8) < 0) {}
+}
+
+/* Solo5 is woken up when there is data to be read from
+ * shmstream */
+void read_solo5_rx_fd()
 {
     uint64_t clear = 0;
 
     /* Clears the notification */
-    clock_gettime(CLOCK_MONOTONIC, &readtime);
 
-    if (read(shmfd, &clear, 8) < 0) {
+    if (read(solo5_rx_fd, &clear, 8) < 0) {
         /*warnx("Failed to read from shm eventfd");*/
     }
-    /*warnx("Read %"PRIu64" bytes shm eventfd. Delta: %"PRIu64" ms", clear,
-    	   (readtime.tv_nsec - writetime.tv_nsec) / 1000000); */
+    warnx("Solo5 reading data from shmstream");
 }
 
 void* io_event_loop()
 {
     struct net_msg pkt;
-    int ret, n, i;
-    uint64_t clear = 0;
+    int ret, n, i, err;
+    uint64_t clear = 0, wrote = 1;
     struct epoll_event event;
     struct epoll_event *events;
 
@@ -230,32 +237,46 @@ void* io_event_loop()
 			  close(events[i].data.fd);
 			  continue;
 			} else if (netfd == events[i].data.fd) {
+                clock_gettime(CLOCK_MONOTONIC, &writetime);
                 if ((ret = read(netfd, pkt.data, PACKET_SIZE)) > 0) {
-                    if (shm_net_write(tx_channel, pkt.data, ret) != SOLO5_R_OK) {
+                    if (shm_net_write(tx_channel, pkt.data, ret) != 0) {
                         /* Don't read from netfd. Instead, wait for tx_channel to
                          * be writable */
                         epoll_ctl(epoll_fd, EPOLL_CTL_DEL, netfd, NULL);
-
-                        event.data.fd = shm_tx_fd;
-                        event.events = EPOLLIN | EPOLLET;
-                        epoll_ctl(epoll_fd, EPOLL_CTL_ADD, shm_tx_fd, &event);
+                        assert(0);
+                    } else {
+                        ret = write(solo5_rx_fd, &wrote, 8);
                     }
                 }
             } else if (shm_tx_fd == events[i].data.fd) {
                 /* tx channel is writable again */
                 if (read(shm_tx_fd, &clear, 8) < 0) {
                 }
-                epoll_ctl(epoll_fd, EPOLL_CTL_DEL, shm_tx_fd, NULL);
 
-                event.data.fd = shm_tx_fd;
+                /* Start reading from netfd */
+                event.data.fd = netfd;
                 event.events = EPOLLIN | EPOLLET;
                 epoll_ctl(epoll_fd, EPOLL_CTL_ADD, netfd, &event);
             } else if (shm_rx_fd == events[i].data.fd) {
-                if ((ret = shm_net_read(rx_channel, &net_rdr,
-                    pkt.data, PACKET_SIZE, (size_t *)&pkt.length) == SOLO5_R_OK)) {
-                    ret = write(netfd, pkt.data, pkt.length);
-                    assert(ret == pkt.length);
-                }
+                /* Read data from shmstream and write to tap interface */
+                if (read(shm_rx_fd, &clear, 8) < 0) {}
+                clock_gettime(CLOCK_MONOTONIC, &readtime);
+                warnx("Read %"PRIu64" bytes shm rx eventfd. Delta: %"PRIu64" ms", clear,
+                       (readtime.tv_nsec - writetime.tv_nsec) / 1000000);
+                do {
+                    ret = shm_net_read(rx_channel, &net_rdr,
+                        pkt.data, PACKET_SIZE, (size_t *)&pkt.length);
+                    if ((ret == MUCHANNEL_SUCCESS) || (ret == MUCHANNEL_XON)) {
+                        if (ret == MUCHANNEL_XON) {
+                            err = write(solo5_tx_xon_fd, &wrote, 8);
+                        }
+                        warnx("ukvm writing data to tap");
+                        err = write(netfd, pkt.data, pkt.length);
+                        assert(err == pkt.length);
+                    } else {
+                        break;
+                    }
+                } while (1);
             }
 		}
     }
@@ -272,7 +293,7 @@ void* io_thread()
         while (packets_read < MAX_PACKETS_READ &&
             ((ret = read(netfd, pkt.data, PACKET_SIZE)) > 0)) {
             packets_read++;
-            if (shm_net_write(tx_channel, pkt.data, ret) != SOLO5_R_OK) {
+            if (shm_net_write(tx_channel, pkt.data, ret) != 0) {
                 ret = 0;
                 break;
             }
@@ -289,8 +310,7 @@ void* io_thread()
         if (packets_read) {
             /* Notify the reader of shmstream */
             //warnx("Wrote %"PRIu64" bytes to eventfd", packets_read);
-            clock_gettime(CLOCK_MONOTONIC, &writetime);
-            ret = write(shmfd, &packets_read, 8);
+            ret = write(solo5_rx_fd, &packets_read, 8);
             packets_read = 0;
         }
 
@@ -371,6 +391,19 @@ static void hypercall_netread(struct ukvm_hv *hv, ukvm_gpa_t gpa)
     rd->ret = 0;
 }
 
+static void hypercall_netxon(struct ukvm_hv *hv, ukvm_gpa_t gpa)
+{
+    uint64_t xon = 1;
+    if (write(shm_tx_fd, &xon, 8)) {}
+}
+
+static void hypercall_netnotify(struct ukvm_hv *hv, ukvm_gpa_t gpa)
+{
+    uint64_t read_data = 1;
+    if (write(shm_rx_fd, &read_data, 8)) {}
+    warnx("Notifiying ukvm about the data");
+}
+
 static int handle_cmdarg(char *cmdarg)
 {
     if (!strncmp("--net=", cmdarg, 6)) {
@@ -427,6 +460,17 @@ static int configure_epoll()
         warnx("Failed to create eventfd");
         return -1;
     }
+
+    event.data.fd = shm_tx_fd;
+    event.events = EPOLLIN | EPOLLET;
+    epoll_ctl(epoll_fd, EPOLL_CTL_ADD, shm_tx_fd, &event);
+
+    solo5_tx_xon_fd = eventfd(0, EFD_NONBLOCK);
+    if (solo5_tx_xon_fd < 0) {
+        warnx("Failed to create eventfd");
+        return -1;
+    }
+
     return efd;
 }
 
@@ -441,8 +485,8 @@ static int configure_shmstream(struct ukvm_hv *hv)
     int ret;
 
     /* Set up eventfd */
-    shmfd = eventfd(0, EFD_NONBLOCK);
-    if (shmfd < 0) {
+    solo5_rx_fd = eventfd(0, EFD_NONBLOCK);
+    if (solo5_rx_fd < 0) {
         err(1, "Failed to create eventfd");
         goto err;
     }
@@ -560,11 +604,16 @@ static int setup(struct ukvm_hv *hv)
                 hypercall_netwrite) == 0);
     assert(ukvm_core_register_hypercall(UKVM_HYPERCALL_NETREAD,
                 hypercall_netread) == 0);
+    assert(ukvm_core_register_hypercall(UKVM_HYPERCALL_NETXON,
+                hypercall_netxon) == 0);
+    assert(ukvm_core_register_hypercall(UKVM_HYPERCALL_NETNOTIFY,
+                hypercall_netnotify) == 0);
 
     /* If shmstream is used, register eventfd, else
      * use tapfd */
     //assert(ukvm_core_register_pollfd(netfd) == 0);
-    assert(ukvm_core_register_pollfd(shmfd, read_shmfd) == 0);
+    assert(ukvm_core_register_pollfd(solo5_rx_fd, read_solo5_rx_fd) == 0);
+    assert(ukvm_core_register_pollfd(solo5_tx_xon_fd, read_solo5_tx_xon_fd) == 0);
 
     return 0;
 }

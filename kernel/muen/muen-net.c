@@ -36,7 +36,11 @@ solo5_result_t solo5_net_write(const uint8_t *buf, size_t size)
 
 solo5_result_t solo5_net_read(uint8_t *buf, size_t size, size_t *read_size)
 {
-    return shm_net_read(net_in, &net_rdr, buf, size, read_size);
+    int ret = shm_net_read(net_in, &net_rdr, buf, size, read_size);
+    if (ret == MUCHANNEL_SUCCESS || ret == MUCHANNEL_XON) {
+        return SOLO5_R_OK;
+    }
+    return SOLO5_R_AGAIN;
 }
 
 bool muen_net_pending_data()

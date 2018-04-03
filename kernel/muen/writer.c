@@ -31,7 +31,7 @@ void muen_channel_init_writer(struct muchannel *channel, const uint64_t protocol
 
     muen_channel_deactivate(channel);
     memset(channel, 0, sizeof(struct muchannel));
-    data_size = channel_size - sizeof(struct muchannel_header);
+    data_size = channel_size - sizeof(struct muchannel_header) - sizeof(struct muchannel_misc);
     memset(channel->data, 0, data_size);
 
     channel->hdr.transport = SHMSTREAM20;
@@ -40,6 +40,7 @@ void muen_channel_init_writer(struct muchannel *channel, const uint64_t protocol
     channel->hdr.elements  = data_size / element_size;
     channel->hdr.wsc       = 0;
     channel->hdr.wc        = 0;
+    channel->misc.xon      = 1;
 
     serialized_copy(&epoch, &channel->hdr.epoch);
 }
@@ -52,7 +53,7 @@ void muen_channel_deactivate(struct muchannel *channel)
 
 int muen_channel_write(struct muchannel *channel, const void * const element)
 {
-    uint64_t wc, pos, size, rc;
+    uint64_t wc, pos, size, rc, xoff = 0;
 
     size = channel->hdr.size;
     wc = channel->hdr.wc;
@@ -61,6 +62,7 @@ int muen_channel_write(struct muchannel *channel, const void * const element)
     wc++;
     serialized_copy(&channel->hdr.rc, &rc);
     if (wc - rc >= channel->hdr.elements) {
+        serialized_copy(&xoff, (uint64_t *)&channel->misc.xon);
         return -1;
     }
 
