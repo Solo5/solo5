@@ -220,9 +220,9 @@ void read_solo5_rx_fd()
 
 void* io_event_loop()
 {
-    struct net_msg pkt;
+    struct net_msg pkt = { 0 };
     int ret, n, i, err;
-    uint64_t clear = 0, wrote = 1;
+    uint64_t clear = 0, wrote = 1, test = 0;
     struct epoll_event event;
     struct epoll_event *events;
 
@@ -239,8 +239,9 @@ void* io_event_loop()
 			  close(events[i].data.fd);
 			  continue;
 			} else if (netfd == events[i].data.fd) {
-                clock_gettime(CLOCK_MONOTONIC, &writetime);
                 if ((ret = read(netfd, pkt.data, PACKET_SIZE)) > 0) {
+                    memcpy(&test, pkt.data, 6);
+                    warnx("Read ev mac: %lx", test);
                     if (shm_net_write(tx_channel, pkt.data, ret) != 0) {
                         /* Don't read from netfd. Instead, wait for tx_channel to
                          * be writable */
@@ -256,8 +257,9 @@ void* io_event_loop()
                 }
 
                 /* Start reading from netfd */
+                assert(0);
                 event.data.fd = netfd;
-                event.events = EPOLLIN | EPOLLET;
+                event.events = EPOLLIN;
                 epoll_ctl(epoll_fd, EPOLL_CTL_ADD, netfd, &event);
             } else if (shm_rx_fd == events[i].data.fd) {
                 /* Read data from shmstream and write to tap interface */
@@ -289,12 +291,15 @@ void* io_thread()
     struct net_msg pkt;
     int ret, tap_no_data = 0, shm_no_data = 0;
     uint64_t packets_read = 0;
+    uint64_t test = 0;
 
     while (1) {
         /* Read packets from tap interface and write to shmstream */
         while (packets_read < MAX_PACKETS_READ &&
             ((ret = read(netfd, pkt.data, PACKET_SIZE)) > 0)) {
             packets_read++;
+            memcpy(&test, pkt.data, 6);
+            warnx("Read mac: %lx", test);
             if (shm_net_write(tx_channel, pkt.data, ret) != 0) {
                 ret = 0;
                 break;
@@ -447,16 +452,15 @@ static int handle_cmdarg(char *cmdarg)
 static int configure_epoll()
 {
     struct epoll_event event;
-    int efd;
 
-    if ((efd = epoll_create1(0)) < 0) {
+    if ((epoll_fd = epoll_create1(0)) < 0) {
         warnx("Failed to create epoll fd");
         return -1;
     }
 
     event.data.fd = netfd;
-    event.events = EPOLLIN | EPOLLET;
-    if (epoll_ctl(efd, EPOLL_CTL_ADD, netfd, &event) < 0) {
+    event.events = EPOLLIN;
+    if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, netfd, &event) < 0) {
         warnx("Failed to set up fd at epoll_ctl");
         return -1;
     }
@@ -467,8 +471,8 @@ static int configure_epoll()
     }
 
     event.data.fd = shm_rx_fd;
-    event.events = EPOLLIN | EPOLLET;
-    if (epoll_ctl(efd, EPOLL_CTL_ADD, shm_rx_fd, &event) < 0) {
+    event.events = EPOLLIN;
+    if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, shm_rx_fd, &event) < 0) {
         warnx("Failed to set up fd at epoll_ctl");
         return -1;
     }
@@ -479,7 +483,7 @@ static int configure_epoll()
     }
 
     event.data.fd = shm_tx_fd;
-    event.events = EPOLLIN | EPOLLET;
+    event.events = EPOLLIN;
     epoll_ctl(epoll_fd, EPOLL_CTL_ADD, shm_tx_fd, &event);
 
     solo5_tx_xon_fd = eventfd(0, EFD_NONBLOCK);
@@ -488,7 +492,7 @@ static int configure_epoll()
         return -1;
     }
 
-    return efd;
+    return 0;
 }
 
 static int configure_shmstream(struct ukvm_hv *hv)
@@ -510,7 +514,7 @@ static int configure_shmstream(struct ukvm_hv *hv)
 
     if (use_event_thread) {
         /* Set up epoll */
-        if ((epoll_fd = configure_epoll()) < 0) {
+        if ((configure_epoll()) < 0) {
             err(1, "Failed to configure epoll");
             goto err;
         }
@@ -565,8 +569,9 @@ static int configure_shmstream(struct ukvm_hv *hv)
 
     /* Init tx ring as a writer */
     tx_channel = (struct muchannel *)(shm_mem + offset);
+    clock_gettime(CLOCK_MONOTONIC, &readtime);
     muen_channel_init_writer(tx_channel, MUENNET_PROTO, sizeof(struct net_msg),
-            tx_shm_size, 10);
+            tx_shm_size, readtime.tv_nsec);
     offset += txring_region.memory_size;
 
     printf("offset = 0x%"PRIx64", total_pagesize = 0x%"PRIx64"\n", offset, total_pagesize);
@@ -604,7 +609,8 @@ static int setup(struct ukvm_hv *hv)
         close(rfd);
         guest_mac[0] &= 0xfe;
         guest_mac[0] |= 0x02;
-        memcpy(netinfo.mac_address, guest_mac, sizeof netinfo.mac_address);
+        uint64_t val = 0xf6e358284e50;
+        memcpy(netinfo.mac_address, &val, sizeof netinfo.mac_address);
     }
 
     if (use_shm_stream) {

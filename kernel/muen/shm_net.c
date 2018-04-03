@@ -23,22 +23,26 @@
 #include "writer.h"
 #include "shm_net.h"
 
-int shm_net_write(struct muchannel *channel,
+solo5_result_t shm_net_write(struct muchannel *channel,
         const uint8_t *buf, size_t size)
 {
     struct net_msg pkt;
 
     if (size > PACKET_SIZE)
-        return -1;
+        return SOLO5_R_EINVAL;
 
     memset(&pkt, 0, sizeof(struct net_msg));
     cc_barrier();
     pkt.length = size;
     memcpy(&pkt.data, buf, size);
-    return muen_channel_write(channel, &pkt);
+    if (muen_channel_write(channel, &pkt) != 0) {
+        return SOLO5_R_AGAIN;
+    }
+
+    return SOLO5_R_OK;
 }
 
-int shm_net_read(struct muchannel *channel,
+solo5_result_t shm_net_read(struct muchannel *channel,
         struct muchannel_reader *reader,
         uint8_t *buf, size_t size, size_t *read_size)
 {
@@ -46,12 +50,15 @@ int shm_net_read(struct muchannel *channel,
     struct net_msg pkt;
 
     if (size < PACKET_SIZE)
-        return -1;
+        return SOLO5_R_EINVAL;
 
     result = muen_channel_read(channel, reader, &pkt);
-    if ((result == MUCHANNEL_SUCCESS) || (result == MUCHANNEL_XON)) {
+    if (result == MUCHANNEL_SUCCESS) {
         memcpy(buf, &pkt.data, pkt.length);
         *read_size = pkt.length;
+        return SOLO5_R_OK;
+    } else {
+        //return result;
+        return SOLO5_R_AGAIN;
     }
-    return result;
 }

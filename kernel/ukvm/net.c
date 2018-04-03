@@ -45,17 +45,19 @@ void solo5_net_flush()
 solo5_result_t solo5_net_write(const uint8_t *buf, size_t size)
 {
     if (shm_event_enabled) {
+#if 0
         int ret = solo5_net_queue(buf, size);
         solo5_net_flush();
         if (ret < 0) {
             return SOLO5_R_AGAIN;
         }
         return SOLO5_R_OK;
+#endif
+        int ret = solo5_net_queue(buf, size);
+        solo5_net_flush();
+        return ret;
     } else if (shm_poll_enabled) {
-        if (shm_net_write(tx_channel, buf, size) < 0) {
-            return SOLO5_R_AGAIN;
-        }
-        return SOLO5_R_OK;
+        return shm_net_write(tx_channel, buf, size);
     } else {
         volatile struct ukvm_netwrite wr;
 
@@ -72,6 +74,7 @@ solo5_result_t solo5_net_write(const uint8_t *buf, size_t size)
 solo5_result_t solo5_net_read(uint8_t *buf, size_t size, size_t *read_size)
 {
     if (shm_event_enabled) {
+#if 0
         int ret = shm_net_read(rx_channel, &net_rdr,
                 buf, size, read_size);
 
@@ -82,15 +85,12 @@ solo5_result_t solo5_net_read(uint8_t *buf, size_t size, size_t *read_size)
             return SOLO5_R_OK;
         }
         return SOLO5_R_AGAIN;
-    } else if (shm_poll_enabled) {
-        int ret = shm_net_read(rx_channel, &net_rdr,
+#endif
+        return shm_net_read(rx_channel, &net_rdr,
                 buf, size, read_size);
-
-        /* Don't need Xon/Xoff for polling. Remove it */
-        if (ret == MUCHANNEL_SUCCESS || ret == MUCHANNEL_XON) {
-            return SOLO5_R_OK;
-        }
-        return SOLO5_R_AGAIN;
+    } else if (shm_poll_enabled) {
+        return shm_net_read(rx_channel, &net_rdr,
+                buf, size, read_size);
     } else {
         volatile struct ukvm_netread rd;
 
@@ -117,9 +117,8 @@ void solo5_net_info(struct solo5_net_info *info)
     info->mtu = 1500;
 }
 
-void net_init()
+void net_init(void)
 {
-
     volatile struct ukvm_net_shm_info ni = { 0 };
     ukvm_do_hypercall(UKVM_HYPERCALL_NET_SHMINFO, &ni);
 
