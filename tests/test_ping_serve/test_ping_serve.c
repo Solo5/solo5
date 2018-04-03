@@ -127,7 +127,6 @@ uint8_t ipaddr[4] = { 0x0a, 0x00, 0x00, 0x02 }; /* 10.0.0.2 */
 uint8_t ipaddr_brdnet[4] = { 0x0a, 0x00, 0x00, 0xff }; /* 10.0.0.255 */
 uint8_t ipaddr_brdall[4] = { 0xff, 0xff, 0xff, 0xff }; /* 255.255.255.255 */
 uint8_t macaddr[HLEN_ETHER];
-uint8_t xmacaddr[HLEN_ETHER];
 uint8_t macaddr_brd[HLEN_ETHER] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
 
 static int handle_arp(uint8_t *buf)
@@ -268,17 +267,10 @@ static void ping_serve(int verbose, int limit)
         while (solo5_net_read(buf, sizeof buf, &len) == SOLO5_R_AGAIN) {
             solo5_yield(solo5_clock_monotonic() + NSEC_PER_SEC);
         }
-        memcpy(xmacaddr, p->target, sizeof macaddr);
-        tohexs(macaddr_s, xmacaddr, sizeof macaddr);
-        puts("Comparing ping:");
-        puts(macaddr_s);
-        puts("\n");
 
         if (memcmp(p->target, macaddr, HLEN_ETHER) &&
-            memcmp(p->target, macaddr_brd, HLEN_ETHER)) {
-            puts("Not addressed to us");
+            memcmp(p->target, macaddr_brd, HLEN_ETHER))
             continue; /* not ether addressed to us */
-        }
 
         switch (htons(p->type)) {
             case ETHERTYPE_ARP:

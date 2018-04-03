@@ -300,7 +300,7 @@ void* io_thread()
         while (packets_read < MAX_PACKETS_READ &&
             ((ret = read(netfd, pkt.data, PACKET_SIZE)) > 0)) {
             packets_read++;
-            if (shm_net_write(tx_channel, pkt.data, ret) != 0) {
+            if (shm_net_write(tx_channel, pkt.data, ret) != SOLO5_R_OK) {
                 ret = 0;
                 break;
             }
@@ -569,9 +569,9 @@ static int configure_shmstream(struct ukvm_hv *hv)
 
     /* Init tx ring as a writer */
     tx_channel = (struct muchannel *)(shm_mem + offset);
-    clock_gettime(CLOCK_MONOTONIC, &readtime);
+    /* TODO: Use monotonic epoch */	
     muen_channel_init_writer(tx_channel, MUENNET_PROTO, sizeof(struct net_msg),
-            tx_shm_size, readtime.tv_nsec);
+            tx_shm_size, 10);
     offset += txring_region.memory_size;
 
     printf("offset = 0x%"PRIx64", total_pagesize = 0x%"PRIx64"\n", offset, total_pagesize);
@@ -609,7 +609,7 @@ static int setup(struct ukvm_hv *hv)
         close(rfd);
         guest_mac[0] &= 0xfe;
         guest_mac[0] |= 0x02;
-        memcpy(netinfo.mac_address, &guest_mac, sizeof netinfo.mac_address);
+        memcpy(netinfo.mac_address, guest_mac, sizeof netinfo.mac_address);
     }
 
     if (use_shm_stream) {
