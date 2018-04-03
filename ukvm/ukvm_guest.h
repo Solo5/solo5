@@ -238,7 +238,9 @@ struct ukvm_net_shm_info {
     uint64_t tx_channel_addr_size;
     uint64_t rx_channel_addr;
     uint64_t rx_channel_addr_size;
-    int completed;
+    int      shm_poll_enabled;
+    int      shm_event_enabled;
+    int      completed;
 
     /* OUT */
     int ret;

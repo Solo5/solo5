@@ -78,6 +78,8 @@ static char *netiface;
 static int netfd, solo5_rx_fd, solo5_tx_xon_fd, shm_rx_fd, shm_tx_fd, epoll_fd;
 static struct ukvm_netinfo netinfo;
 static int cmdline_mac = 0;
+static int use_shm_stream = 0;
+static int use_event_thread = 0;
 static uint64_t rx_shm_size = 0x0;
 static uint64_t tx_shm_size = 0x0;
 struct timespec readtime = { 0 };
@@ -344,14 +346,22 @@ static void hypercall_net_shm_info(struct ukvm_hv *hv, ukvm_gpa_t gpa)
     /* Start the thread */
     if (info->completed) {
         muen_channel_init_reader(&net_rdr, MUENNET_PROTO);
-        /* Add a cmd line --shm to use shm */
-        pthread_create(&tid, NULL, &io_event_loop, NULL);
-    } else {
+        if (use_event_thread) {
+            pthread_create(&tid, NULL, &io_event_loop, NULL);
+        } else {
+            pthread_create(&tid, NULL, &io_thread, NULL);
+        }
+    } else if (use_shm_stream) {
         info->tx_channel_addr = hv->mem_size;
         info->tx_channel_addr_size = rx_shm_size;
 
         info->rx_channel_addr = hv->mem_size + rx_shm_size;
         info->rx_channel_addr_size = tx_shm_size;
+        if (use_event_thread) {
+            info->shm_event_enabled = true;
+        } else {
+            info->shm_poll_enabled = true;
+        }
     }
 }
 
@@ -422,6 +432,13 @@ static int handle_cmdarg(char *cmdarg)
         memcpy(netinfo.mac_address, mac, sizeof netinfo.mac_address);
         cmdline_mac = 1;
         return 0;
+    } else if (!strncmp("--shm=poll", cmdarg, 10)) {
+        use_shm_stream = 1;
+        return 0;
+    } else if (!strncmp("--shm=event", cmdarg, 11)) {
+        use_shm_stream = 1;
+        use_event_thread = 1;
+        return 0;
     } else {
         return -1;
     }
@@ -491,10 +508,12 @@ static int configure_shmstream(struct ukvm_hv *hv)
         goto err;
     }
 
-    /* Set up epoll */
-    if ((epoll_fd = configure_epoll()) < 0) {
-        err(1, "Failed to configure epoll");
-        goto err;
+    if (use_event_thread) {
+        /* Set up epoll */
+        if ((epoll_fd = configure_epoll()) < 0) {
+            err(1, "Failed to configure epoll");
+            goto err;
+        }
     }
 
     /* Find out additional memory required to configure shm */
@@ -588,32 +607,41 @@ static int setup(struct ukvm_hv *hv)
         memcpy(netinfo.mac_address, guest_mac, sizeof netinfo.mac_address);
     }
 
-    int flags = fcntl(netfd, F_GETFL, 0);
-    fcntl(netfd, F_SETFL, flags | O_NONBLOCK);
+    if (use_shm_stream) {
+        int flags = fcntl(netfd, F_GETFL, 0);
+        fcntl(netfd, F_SETFL, flags | O_NONBLOCK);
 
-    if (configure_shmstream(hv)) {
-        err(1, "Failed to configure shmstream");
-        exit(1);
+        if (configure_shmstream(hv)) {
+            err(1, "Failed to configure shmstream");
+            exit(1);
+        }
     }
 
     assert(ukvm_core_register_hypercall(UKVM_HYPERCALL_NETINFO,
                 hypercall_netinfo) == 0);
-    assert(ukvm_core_register_hypercall(UKVM_HYPERCALL_NET_SHMINFO,
-                hypercall_net_shm_info) == 0);
     assert(ukvm_core_register_hypercall(UKVM_HYPERCALL_NETWRITE,
                 hypercall_netwrite) == 0);
     assert(ukvm_core_register_hypercall(UKVM_HYPERCALL_NETREAD,
                 hypercall_netread) == 0);
-    assert(ukvm_core_register_hypercall(UKVM_HYPERCALL_NETXON,
-                hypercall_netxon) == 0);
-    assert(ukvm_core_register_hypercall(UKVM_HYPERCALL_NETNOTIFY,
-                hypercall_netnotify) == 0);
+    assert(ukvm_core_register_hypercall(UKVM_HYPERCALL_NET_SHMINFO,
+                hypercall_net_shm_info) == 0);
+    if (use_event_thread) {
+        assert(ukvm_core_register_hypercall(UKVM_HYPERCALL_NETXON,
+                    hypercall_netxon) == 0);
+        assert(ukvm_core_register_hypercall(UKVM_HYPERCALL_NETNOTIFY,
+                    hypercall_netnotify) == 0);
+    }
 
     /* If shmstream is used, register eventfd, else
      * use tapfd */
-    //assert(ukvm_core_register_pollfd(netfd) == 0);
-    assert(ukvm_core_register_pollfd(solo5_rx_fd, read_solo5_rx_fd) == 0);
-    assert(ukvm_core_register_pollfd(solo5_tx_xon_fd, read_solo5_tx_xon_fd) == 0);
+    if (use_shm_stream) {
+        assert(ukvm_core_register_pollfd(solo5_rx_fd, read_solo5_rx_fd) == 0);
+        if (use_event_thread) {
+            assert(ukvm_core_register_pollfd(solo5_tx_xon_fd, read_solo5_tx_xon_fd) == 0);
+        }
+    } else {
+        assert(ukvm_core_register_pollfd(netfd, NULL) == 0);
+    }
 
     return 0;
 }
@@ -626,8 +654,10 @@ static char *usage(void)
 
 static void cleanup(struct ukvm_hv *hv)
 {
-    if (pthread_cancel(tid) == 0) {
-        pthread_join(tid, NULL);
+    if (use_shm_stream) {
+        if (pthread_cancel(tid) == 0) {
+            pthread_join(tid, NULL);
+        }
     }
 }
 
