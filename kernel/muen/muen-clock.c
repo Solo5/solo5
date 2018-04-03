@@ -50,7 +50,7 @@ uint64_t tscclock_monotonic(void)
         tsc_now = current_start = next_start;
 
     tsc_delta = tsc_now - tsc_base;
-    time_base += mul64_32(tsc_delta, tsc_mult);
+    time_base += mul64_32(tsc_delta, tsc_mult, 32);
     tsc_base = tsc_now;
 
     return time_base;
@@ -79,6 +79,10 @@ int tscclock_init(uint64_t freq __attribute__((unused)))
     } while (wc_epochoffset == 0);
 
     tsc_freq = time_info->tsc_tick_rate_hz;
+    /*
+     * TODO: This calculation may overflow for low values of tsc_freq;
+     * dynamically calculate tsc_shift as in ukvm version.
+     */
     tsc_mult = (NSEC_PER_SEC << 32) / tsc_freq;
     min_delta = (tsc_freq + (NSEC_PER_SEC - 1)) / NSEC_PER_SEC;
     time_base = 0;
