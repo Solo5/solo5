@@ -128,16 +128,17 @@ void net_init(void)
 {
     volatile struct ukvm_net_shm_info ni = { 0 };
     ukvm_do_hypercall(UKVM_HYPERCALL_NET_SHMINFO, &ni);
+    int xon_enabled = 0;
 
     shm_poll_enabled = ni.shm_poll_enabled;
-    shm_event_enabled = ni.shm_event_enabled;
+    shm_event_enabled = (xon_enabled = ni.shm_event_enabled);
 
     if (shm_poll_enabled || shm_event_enabled) {
         tx_channel = (struct muchannel *)ni.tx_channel_addr;
         rx_channel = (struct muchannel *)ni.rx_channel_addr;
 
         muen_channel_init_writer(tx_channel, MUENNET_PROTO, sizeof(struct net_msg),
-                ni.tx_channel_addr_size, 10);
+                ni.tx_channel_addr_size, 10, xon_enabled);
         muen_channel_init_reader(&net_rdr, MUENNET_PROTO);
 
         ni.completed = 1;

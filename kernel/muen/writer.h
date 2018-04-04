@@ -28,7 +28,7 @@
  */
 void muen_channel_init_writer(struct muchannel *channel, const uint64_t protocol,
                   const uint64_t element_size, const uint64_t channel_size,
-                  const uint64_t epoch);
+                  const uint64_t epoch, const int xon_enabled);
 
 /**
  * Deactivate channel.

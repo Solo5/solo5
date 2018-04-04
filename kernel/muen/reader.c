@@ -96,8 +96,8 @@ enum muchannel_reader_result muen_channel_read(
             } else {
                 result = MUCHANNEL_SUCCESS;
                 reader->rc++;
-                if (wsc - reader->rc < ((20 * reader->elements) / 100) &&
-                    !xon) {
+                if (channel->misc.xon_enabled && !xon &&
+                    (wsc - reader->rc < ((20 * reader->elements) / 100))) {
                     xon = 1;
                     serialized_copy(&xon, (uint64_t *)&channel->misc.xon);
                     result = MUCHANNEL_XON;

@@ -46,8 +46,9 @@ struct muchannel_header {
 } __attribute__((packed, aligned(8)));
 
 struct muchannel_misc {
+    uint8_t xon_enabled;
     uint8_t xon;
-    uint8_t reserved[7];
+    uint8_t reserved[6];
 };
 
 struct muchannel {

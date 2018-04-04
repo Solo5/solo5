@@ -502,6 +502,7 @@ static int configure_shmstream(struct ukvm_hv *hv)
     uint64_t offset = 0x0;
     uint8_t *shm_mem;
     uint64_t total_pagesize = 0x0;
+    int xon_enabled = 0;
     //size_t ring_buf_size = sizeof(struct net_msg);
     rx_shm_size = 0x250000;//1000 * ring_buf_size;
     tx_shm_size = 0x250000;//1000 * ring_buf_size;
@@ -516,6 +517,7 @@ static int configure_shmstream(struct ukvm_hv *hv)
 
     if (use_event_thread) {
         /* Set up epoll */
+        xon_enabled = 1;
         if ((configure_epoll()) < 0) {
             err(1, "Failed to configure epoll");
             goto err;
@@ -574,7 +576,7 @@ static int configure_shmstream(struct ukvm_hv *hv)
     /* TODO: Use monotonic epoch in kernel as well*/
     clock_gettime(CLOCK_MONOTONIC, &epochtime);
     muen_channel_init_writer(tx_channel, MUENNET_PROTO, sizeof(struct net_msg),
-            tx_shm_size, epochtime.tv_nsec);
+            tx_shm_size, epochtime.tv_nsec, xon_enabled);
     offset += txring_region.memory_size;
 
     printf("offset = 0x%"PRIx64", total_pagesize = 0x%"PRIx64"\n", offset, total_pagesize);

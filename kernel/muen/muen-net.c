@@ -83,7 +83,7 @@ void net_init(void)
     }
     net_out  = (struct muchannel *)(channel.address);
     muen_channel_init_writer(net_out, MUENNET_PROTO, sizeof(struct net_msg),
-                             channel.size, epoch);
+                             channel.size, epoch, 0);
     log(INFO, "Solo5: Net: Muen shared memory stream, protocol 0x%lx\n",
         MUENNET_PROTO);
     log(INFO, "Solo5: Net: Output channel @ 0x%lx, size 0x%lx, epoch 0x%lx\n",

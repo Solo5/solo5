@@ -82,7 +82,7 @@ void console_init(void)
     epoch        = muen_get_sched_start();
     channel_out  = (struct muchannel *)(channel.address);
     muen_channel_init_writer(channel_out, DEBUGLOG_PROTO, sizeof(struct log_msg),
-            channel.size, epoch);
+            channel.size, epoch, 0);
     log(INFO, "Solo5: Console: Muen Channel @ 0x%lx, size 0x%lx, epoch 0x%lx\n",
         channel.address, channel.size, epoch);
 }
