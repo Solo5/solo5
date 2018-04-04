@@ -321,19 +321,19 @@ void* io_thread()
         /* Read from shmstream and write to tap interface */
         do {
             ret = shm_net_read(rx_channel, &net_rdr,
-            pkt.data, PACKET_SIZE, (size_t *)&pkt.length);
+                pkt.data, PACKET_SIZE, (size_t *)&pkt.length);
             if (ret == SHM_NET_OK || ret == SHM_NET_XON) {
                 er = write(netfd, pkt.data, pkt.length);
                 assert(er == pkt.length);
-            } else if (ret == SHM_NET_EINVAL) {
-                warnx("Invalid error when read from shmstream");
-                assert(0);
             }
         } while(++packets_read < MAX_PACKETS_READ &&
             (ret == SHM_NET_OK || ret == SHM_NET_XON));
 
         if (ret == SHM_NET_AGAIN) {
             shm_no_data = 1;
+        } else if (ret == SHM_NET_EINVAL) {
+            warnx("Invalid error when read from shmstream");
+            assert(0);
         }
 
         if (tap_no_data && shm_no_data) {
