@@ -60,14 +60,16 @@ int muen_channel_write(struct muchannel *channel, const void * const element)
     pos = wc % channel->hdr.elements;
 
     wc++;
+    serialized_copy(&wc, &channel->hdr.wsc);
+    memcpy(channel->data + pos * size, element, size);
+    serialized_copy(&wc, &channel->hdr.wc);
     serialized_copy(&channel->hdr.rc, &rc);
+
+    /* Check if there are no more slots */
     if (wc - rc >= channel->hdr.elements) {
         serialized_copy(&xoff, (uint64_t *)&channel->misc.xon);
         return -1;
     }
 
-    serialized_copy(&wc, &channel->hdr.wsc);
-    memcpy(channel->data + pos * size, element, size);
-    serialized_copy(&wc, &channel->hdr.wc);
     return 0;
 }

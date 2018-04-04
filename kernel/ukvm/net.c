@@ -30,10 +30,28 @@ struct muchannel_reader net_rdr;
 bool shm_poll_enabled  = false;
 bool shm_event_enabled = false;
 
+static inline solo5_result_t shm_to_solo5_result(int shm_result)
+{
+    switch(shm_result) {
+    case SHM_NET_OK:
+    case SHM_NET_XON:
+        return SOLO5_R_OK;
+    case SHM_NET_AGAIN:
+    case SHM_NET_EPOCH_CHANGED:
+        return SOLO5_R_AGAIN;
+    default:
+        return SOLO5_R_EUNSPEC;
+    }
+    return SOLO5_R_EUNSPEC;
+}
+
 solo5_result_t solo5_net_queue(const uint8_t *buf, size_t size)
 {
+    int ret;
+
     assert(shm_event_enabled);
-    return shm_net_write(tx_channel, buf, size);
+    ret = shm_net_write(tx_channel, buf, size);
+    return shm_to_solo5_result(ret);
 }
 
 void solo5_net_flush()
@@ -44,20 +62,14 @@ void solo5_net_flush()
 
 solo5_result_t solo5_net_write(const uint8_t *buf, size_t size)
 {
+    int ret = 0;
     if (shm_event_enabled) {
-#if 0
-        int ret = solo5_net_queue(buf, size);
-        solo5_net_flush();
-        if (ret < 0) {
-            return SOLO5_R_AGAIN;
-        }
-        return SOLO5_R_OK;
-#endif
-        int ret = solo5_net_queue(buf, size);
+        ret = solo5_net_queue(buf, size);
         solo5_net_flush();
         return ret;
     } else if (shm_poll_enabled) {
-        return shm_net_write(tx_channel, buf, size);
+        ret = shm_net_write(tx_channel, buf, size);
+        return shm_to_solo5_result(ret);
     } else {
         volatile struct ukvm_netwrite wr;
 
@@ -73,24 +85,19 @@ solo5_result_t solo5_net_write(const uint8_t *buf, size_t size)
 
 solo5_result_t solo5_net_read(uint8_t *buf, size_t size, size_t *read_size)
 {
+    int ret = 0;
     if (shm_event_enabled) {
-#if 0
-        int ret = shm_net_read(rx_channel, &net_rdr,
+        ret = shm_net_read(rx_channel, &net_rdr,
                 buf, size, read_size);
 
-        if (ret == MUCHANNEL_SUCCESS) {
-            return SOLO5_R_OK;
-        } else if (ret == MUCHANNEL_XON) {
+        if (ret == SHM_NET_XON) {
             ukvm_do_hypercall(UKVM_HYPERCALL_NETXON, NULL);
-            return SOLO5_R_OK;
         }
-        return SOLO5_R_AGAIN;
-#endif
-        return shm_net_read(rx_channel, &net_rdr,
-                buf, size, read_size);
+        return shm_to_solo5_result(ret);
     } else if (shm_poll_enabled) {
-        return shm_net_read(rx_channel, &net_rdr,
+       ret = shm_net_read(rx_channel, &net_rdr,
                 buf, size, read_size);
+        return shm_to_solo5_result(ret);
     } else {
         volatile struct ukvm_netread rd;
 

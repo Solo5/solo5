@@ -100,7 +100,7 @@ enum muchannel_reader_result muen_channel_read(
                     !xon) {
                     xon = 1;
                     serialized_copy(&xon, (uint64_t *)&channel->misc.xon);
-                    //result = MUCHANNEL_XON;
+                    result = MUCHANNEL_XON;
                 }
                 serialized_copy(&reader->rc, &channel->hdr.rc);
             }

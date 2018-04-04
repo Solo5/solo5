@@ -30,8 +30,16 @@ struct net_msg {
     uint16_t length;
 } __attribute__((packed));
 
-solo5_result_t shm_net_write(struct muchannel *channel,
+typedef enum {
+    SHM_NET_OK = 0,
+    SHM_NET_EPOCH_CHANGED,
+    SHM_NET_XON,
+    SHM_NET_AGAIN,
+    SHM_NET_EINVAL
+} shm_net_result_t;
+
+shm_net_result_t shm_net_write(struct muchannel *channel,
         const uint8_t *buf, size_t size);
-solo5_result_t shm_net_read(struct muchannel *channel,
+shm_net_result_t shm_net_read(struct muchannel *channel,
         struct muchannel_reader *reader,
         uint8_t *buf, size_t size, size_t *read_size);
