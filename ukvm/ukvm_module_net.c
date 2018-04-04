@@ -322,16 +322,14 @@ void* io_thread()
         do {
             ret = shm_net_read(rx_channel, &net_rdr,
             pkt.data, PACKET_SIZE, (size_t *)&pkt.length);
-            packets_read++;
-            if (packets_read < MAX_PACKETS_READ &&
-                (ret == SHM_NET_OK || ret == SHM_NET_XON)) {
+            if (ret == SHM_NET_OK || ret == SHM_NET_XON) {
                 er = write(netfd, pkt.data, pkt.length);
                 assert(er == pkt.length);
             } else if (ret == SHM_NET_EINVAL) {
                 warnx("Invalid error when read from shmstream");
                 assert(0);
             }
-        } while(packets_read < MAX_PACKETS_READ &&
+        } while(++packets_read < MAX_PACKETS_READ &&
             (ret == SHM_NET_OK || ret == SHM_NET_XON));
 
         if (ret == SHM_NET_AGAIN) {
