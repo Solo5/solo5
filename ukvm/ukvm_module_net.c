@@ -290,7 +290,7 @@ void* io_event_loop()
 void* io_thread()
 {
     struct net_msg pkt;
-    int ret, er, tap_no_data = 0, shm_no_data = 0;
+    int ret, tap_no_data = 0, shm_no_data = 0;
     uint64_t packets_read = 0;
 
     while (1) {
@@ -319,15 +319,13 @@ void* io_thread()
         }
 
         /* Read from shmstream and write to tap interface */
-        do {
-            ret = shm_net_read(rx_channel, &net_rdr,
-                pkt.data, PACKET_SIZE, (size_t *)&pkt.length);
-            if (ret == SHM_NET_OK || ret == SHM_NET_XON) {
-                er = write(netfd, pkt.data, pkt.length);
-                assert(er == pkt.length);
-            }
-        } while(++packets_read < MAX_PACKETS_READ &&
-            (ret == SHM_NET_OK || ret == SHM_NET_XON));
+        while (packets_read < MAX_PACKETS_READ &&
+            (ret = shm_net_read(rx_channel, &net_rdr,
+            pkt.data, PACKET_SIZE, (size_t *)&pkt.length) == SHM_NET_OK)) {
+            ret = write(netfd, pkt.data, pkt.length);
+            packets_read++;
+            assert(ret == pkt.length);
+        }
 
         if (ret == SHM_NET_AGAIN) {
             shm_no_data = 1;
