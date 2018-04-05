@@ -75,7 +75,9 @@ struct muchannel_reader net_rdr;
 
 #define MAX_PACKETS_READ 100
 static char *netiface;
-static int netfd, solo5_rx_fd, solo5_tx_xon_fd, shm_rx_fd, shm_tx_fd, epoll_fd;
+static int netfd;
+static int solo5_rx_fd;
+static int epoll_fd, solo5_tx_xon_evfd, ukvm_rx_evfd, ukvm_tx_xon_evfd;
 static struct ukvm_netinfo netinfo;
 static int cmdline_mac = 0;
 static int use_shm_stream = 0;
@@ -199,10 +201,10 @@ static int tap_attach(const char *ifname)
 }
 
 /* Solo5 is woken up when the shmstream is writable again */
-void read_solo5_tx_xon_fd()
+void read_solo5_tx_xon_evfd()
 {
     uint64_t clear = 0;
-    if (read(solo5_tx_xon_fd, &clear, 8) < 0) {}
+    if (read(solo5_tx_xon_evfd, &clear, 8) < 0) {}
 }
 
 /* Solo5 is woken up when there is data to be read from
@@ -251,28 +253,28 @@ void* io_event_loop()
                 if (packets_read) {
                     ret = write(solo5_rx_fd, &packets_read, 8);
                 }
-            } else if (shm_tx_fd == events[i].data.fd) {
+            } else if (ukvm_tx_xon_evfd == events[i].data.fd) {
                 /* tx channel is writable again */
                 warnx("tx shmstream is writable again");
-                if (read(shm_tx_fd, &clear, 8) < 0) {}
+                if (read(ukvm_tx_xon_evfd, &clear, 8) < 0) {}
 
                 /* Start reading from netfd */
                 event.data.fd = netfd;
                 event.events = EPOLLIN;
                 epoll_ctl(epoll_fd, EPOLL_CTL_ADD, netfd, &event);
-            } else if (shm_rx_fd == events[i].data.fd) {
+            } else if (ukvm_rx_evfd == events[i].data.fd) {
                 /* Read data from shmstream and write to tap interface */
                 do {
                     ret = shm_net_read(rx_channel, &net_rdr,
                         pkt.data, PACKET_SIZE, (size_t *)&pkt.length);
                     if ((ret == SHM_NET_OK) || (ret == SHM_NET_XON)) {
                         if (ret == SHM_NET_XON) {
-                            er = write(solo5_tx_xon_fd, &wrote, 8);
+                            er = write(solo5_tx_xon_evfd, &wrote, 8);
                         }
                         er = write(netfd, pkt.data, pkt.length);
                         assert(er == pkt.length);
                     } else if (ret == SHM_NET_AGAIN) {
-                        if (read(shm_rx_fd, &clear, 8) < 0) {}
+                        if (read(ukvm_rx_evfd, &clear, 8) < 0) {}
                         break;
                     } else if (ret == SHM_NET_EPOCH_CHANGED) {
                         /* Don't clear the eventfd */
@@ -350,14 +352,7 @@ static void hypercall_net_shm_info(struct ukvm_hv *hv, ukvm_gpa_t gpa)
             UKVM_CHECKED_GPA_P(hv, gpa, sizeof (struct ukvm_net_shm_info));
 
     /* Start the thread */
-    if (info->completed) {
-        muen_channel_init_reader(&net_rdr, MUENNET_PROTO);
-        if (use_event_thread) {
-            pthread_create(&tid, NULL, &io_event_loop, NULL);
-        } else {
-            pthread_create(&tid, NULL, &io_thread, NULL);
-        }
-    } else if (use_shm_stream) {
+    if (use_shm_stream) {
         info->tx_channel_addr = hv->mem_size;
         info->tx_channel_addr_size = rx_shm_size;
 
@@ -410,13 +405,14 @@ static void hypercall_netread(struct ukvm_hv *hv, ukvm_gpa_t gpa)
 static void hypercall_netxon(struct ukvm_hv *hv, ukvm_gpa_t gpa)
 {
     uint64_t xon = 1;
-    if (write(shm_tx_fd, &xon, 8)) {}
+    if (write(ukvm_tx_xon_evfd, &xon, 8)) {}
 }
 
+/* Notify ukvm-bin that there is data to send */
 static void hypercall_netnotify(struct ukvm_hv *hv, ukvm_gpa_t gpa)
 {
     uint64_t read_data = 1;
-    if (write(shm_rx_fd, &read_data, 8)) {}
+    if (write(ukvm_rx_evfd, &read_data, 8)) {}
 }
 
 static int handle_cmdarg(char *cmdarg)
@@ -465,29 +461,29 @@ static int configure_epoll()
         return -1;
     }
 
-    if ((shm_rx_fd = eventfd(0, EFD_NONBLOCK)) < 0) {
+    if ((ukvm_rx_evfd = eventfd(0, EFD_NONBLOCK)) < 0) {
         warnx("Failed to create eventfd");
         return -1;
     }
 
-    event.data.fd = shm_rx_fd;
+    event.data.fd = ukvm_rx_evfd;
     event.events = EPOLLIN;
-    if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, shm_rx_fd, &event) < 0) {
+    if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, ukvm_rx_evfd, &event) < 0) {
         warnx("Failed to set up fd at epoll_ctl");
         return -1;
     }
 
-    if ((shm_tx_fd = eventfd(0, EFD_NONBLOCK)) < 0) {
+    if ((ukvm_tx_xon_evfd = eventfd(0, EFD_NONBLOCK)) < 0) {
         warnx("Failed to create eventfd");
         return -1;
     }
 
-    event.data.fd = shm_tx_fd;
+    event.data.fd = ukvm_tx_xon_evfd;
     event.events = EPOLLIN;
-    epoll_ctl(epoll_fd, EPOLL_CTL_ADD, shm_tx_fd, &event);
+    epoll_ctl(epoll_fd, EPOLL_CTL_ADD, ukvm_tx_xon_evfd, &event);
 
-    solo5_tx_xon_fd = eventfd(0, EFD_NONBLOCK);
-    if (solo5_tx_xon_fd < 0) {
+    solo5_tx_xon_evfd = eventfd(0, EFD_NONBLOCK);
+    if (solo5_tx_xon_evfd < 0) {
         warnx("Failed to create eventfd");
         return -1;
     }
@@ -579,6 +575,18 @@ static int configure_shmstream(struct ukvm_hv *hv)
 
     printf("offset = 0x%"PRIx64", total_pagesize = 0x%"PRIx64"\n", offset, total_pagesize);
     ukvm_x86_add_pagetables(hv->mem, hv->mem_size, total_pagesize);
+    muen_channel_init_reader(&net_rdr, MUENNET_PROTO);
+    if (use_event_thread) {
+        if (pthread_create(&tid, NULL, &io_event_loop, NULL) != 0) {
+            warnx("Failed to create event thread");
+            goto err;
+        }
+    } else {
+        if (pthread_create(&tid, NULL, &io_thread, NULL) != 0) {
+            warnx("Failed to create polling thread");
+            goto err;
+        }
+    }
     return 0;
 
 err:
@@ -645,7 +653,7 @@ static int setup(struct ukvm_hv *hv)
     if (use_shm_stream) {
         assert(ukvm_core_register_pollfd(solo5_rx_fd, read_solo5_rx_fd) == 0);
         if (use_event_thread) {
-            assert(ukvm_core_register_pollfd(solo5_tx_xon_fd, read_solo5_tx_xon_fd) == 0);
+            assert(ukvm_core_register_pollfd(solo5_tx_xon_evfd, read_solo5_tx_xon_evfd) == 0);
         }
     } else {
         assert(ukvm_core_register_pollfd(netfd, NULL) == 0);

@@ -64,7 +64,7 @@ shm_net_result_t shm_net_read(struct muchannel *channel,
             return SHM_NET_XON;
         }
         return SHM_NET_OK;
-    } else if (result == MUCHANNEL_NO_DATA) {
+    } else if (result == MUCHANNEL_NO_DATA || result == MUCHANNEL_INACTIVE) {
         return SHM_NET_AGAIN;
     } else if (result == MUCHANNEL_EPOCH_CHANGED) {
         return SHM_NET_EPOCH_CHANGED;

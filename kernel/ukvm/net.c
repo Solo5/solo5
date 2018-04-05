@@ -140,8 +140,5 @@ void net_init(void)
         muen_channel_init_writer(tx_channel, MUENNET_PROTO, sizeof(struct net_msg),
                 ni.tx_channel_addr_size, 10, xon_enabled);
         muen_channel_init_reader(&net_rdr, MUENNET_PROTO);
-
-        ni.completed = 1;
-        ukvm_do_hypercall(UKVM_HYPERCALL_NET_SHMINFO, &ni);
     }
 }
