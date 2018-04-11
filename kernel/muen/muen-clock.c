@@ -58,15 +58,16 @@ uint64_t tscclock_monotonic(void)
 
 int tscclock_init(uint64_t freq __attribute__((unused)))
 {
-    struct muen_memregion_info region;
     uint64_t tsc_freq;
+    const struct muen_resource_type *const
+        region = muen_get_resource("time_info", MUEN_RES_MEMORY);
 
-    if (!muen_get_memregion_info("time_info", &region)) {
+    if (!region) {
         log(WARN, "Unable to retrieve Muen time info region\n");
         return -1;
     }
 
-    time_info = (struct time_info_type *)region.address;
+    time_info = (struct time_info_type *)region->data.mem.address;
 
     wc_epochoffset = 0;
     cc_barrier();
