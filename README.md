@@ -26,6 +26,31 @@ Solo5 is most useful as a "base layer" to run
 hypervisors (KVM/QEMU, bhyve) or on a specialized "unikernel monitor" called
 `ukvm`.
 
+# Contributing and community
+
+Solo5 is developed on Github and licensed under a liberal ISC license. We
+accept contributions via Github pull requests. When submitting a contribution,
+please add your details to the `AUTHORS` file, and if your contribution adds
+new source files copy the copyright header from an existing source file.
+
+The coding style for this project is "as for the Linux kernel, but with 4
+spaces instead of tabs".
+
+To get help as a user of Solo5, the best place to start is the community
+specific to the unikernel you intend to develop applications with:
+
+- MirageOS: https://mirage.io/community/
+- IncludeOS: http://www.includeos.org/
+
+We also operate a mailing list for general Solo5 development discussion, at
+solo5@lists.h3q.com. To subscribe to the list, send an empty email to
+solo5-subscribe@lists.h3q.com. Archives are available at [The Mail
+Archive](https://www.mail-archive.com/solo5@lists.h3q.com/).
+
+If you are considering a substantial contribution to Solo5, would like to port
+a new unikernel to Solo5, or have general questions unrelated to a specific
+unikernel, please get in touch via the mailing list.
+
 # Quickstart
 
 You can run a hello-world application like this:
@@ -159,13 +184,6 @@ and subject to change.
 
 We also have some simple standalone unikernels written in C to test
 Solo5, see `tests` for these.
-
-The coding style for this project is "as for the Linux kernel, but with 4
-spaces instead of tabs".
-
-The best place for Mirage-related discussions about Solo5 and/or
-`ukvm` is to post to the [MirageOS-devel mailing list](http://lists.xenproject.org/cgi-bin/mailman/listinfo/mirageos-devel),
-with general Solo5/`ukvm` discussions on <https://devel.unikernel.org/>.
 
 # Debugging on ukvm
 
