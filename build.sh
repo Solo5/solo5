@@ -11,6 +11,10 @@ else
     MAKE=make
 fi
 
+if [ -z "${SURF_SUDO}" ]; then
+    SURF_SUDO=sudo
+fi
+
 set -xe
 uname -a
 cc --version
@@ -22,6 +26,6 @@ if [ -n "${SURF_RUN_TESTS}" ]; then
     if [ "$(uname -s)" = "FreeBSD" ]; then
         echo BUILD_VIRTIO=no >>Makeconf
     fi
-    sudo tests/setup-tests.sh
-    sudo tests/run-tests.sh
+    ${SURF_SUDO} tests/setup-tests.sh
+    ${SURF_SUDO} tests/run-tests.sh
 fi
