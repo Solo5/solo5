@@ -18,12 +18,13 @@
 
 # The purpose of this Makefile is to ensure that a ukvm-bin with ALL modules
 # configured compiles correctly.
+include ../Makeconf
 
 .PHONY: all clean
 all: ukvm-bin
 
 Makefile.ukvm: ukvm-configure
-	./ukvm-configure . blk net gdb
+	TARGETCC=$(TARGETCC) ./ukvm-configure . blk net gdb
 
 -include Makefile.ukvm
 

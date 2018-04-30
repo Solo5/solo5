@@ -58,6 +58,7 @@ You can run a hello-world application like this:
     $ make
     $ ./tests/test_hello/ukvm-bin ./tests/test_hello/test_hello.ukvm
 
+
 # About ukvm
 
 `ukvm` runs as a Linux process and uses KVM.  The goal of `ukvm` is to
@@ -73,6 +74,14 @@ boot). Check out our
 and
 [presentation](https://www.usenix.org/sites/default/files/conference/protected-files/hotcloud16_slides_williams.pdf)
 from USENIX HotCloud '16 for more information.
+
+# Cross compilation
+
+Support for cross-compilation in Linux.
+
+```
+make clean; make TARGET=aarch64-linux-gnu
+```
 
 # Building MirageOS unikernels with Solo5
 

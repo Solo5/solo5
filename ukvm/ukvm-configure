@@ -42,7 +42,8 @@ EOM
     exit 1
 fi
 
-UKVM_CC=${UKVM_CC:-cc}
+TARGETCC=${TARGETCC:-cc}
+UKVM_CC=${UKVM_CC:-$TARGETCC}
 UKVM_SRC=$(readlink -f $1)
 if [ ! -d ${UKVM_SRC} -o ! -f ${UKVM_SRC}/ukvm_core.c ]; then
     die "Not a ukvm source directory: ${UKVM_SRC}"
