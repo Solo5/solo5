@@ -43,34 +43,47 @@
 static void ukvm_hv_fill_elf_prstatus(x86_elf_prstatus *prstatus,
 	 struct ukvm_hv *hv, struct ukvm_halt *info)
 {
-    memset(prstatus, 0, sizeof(x86_elf_prstatus));
-    prstatus->regs.r8 = hv->b->kregs.r8;
-    prstatus->regs.r9 = hv->b->kregs.r9;
-    prstatus->regs.r10 = hv->b->kregs.r10;
-    prstatus->regs.r11 = hv->b->kregs.r11;
-    prstatus->regs.r12 = hv->b->kregs.r12;
-    prstatus->regs.r13 = hv->b->kregs.r13;
-    prstatus->regs.r14 = hv->b->kregs.r14;
-    prstatus->regs.r15 = hv->b->kregs.r15;
-    prstatus->regs.rbp = hv->b->kregs.rbp;
-    prstatus->regs.rsp = hv->b->kregs.rsp;
-    prstatus->regs.rdi = hv->b->kregs.rdi;
-    prstatus->regs.rsi = hv->b->kregs.rsi;
-    prstatus->regs.rdx = hv->b->kregs.rdx;
-    prstatus->regs.rcx = hv->b->kregs.rcx;
-    prstatus->regs.rbx = hv->b->kregs.rbx;
-    prstatus->regs.rax = hv->b->kregs.rax;
-    prstatus->regs.rip = hv->b->kregs.rip;
-    prstatus->regs.eflags = hv->b->kregs.rflags;
+    struct kvm_regs  kregs;
+    struct kvm_sregs sregs;
 
-    prstatus->regs.cs = hv->b->sregs.cs.selector;
-    prstatus->regs.ss = hv->b->sregs.ss.selector;
-    prstatus->regs.ds = hv->b->sregs.ds.selector;
-    prstatus->regs.es = hv->b->sregs.es.selector;
-    prstatus->regs.fs = hv->b->sregs.fs.selector;
-    prstatus->regs.gs = hv->b->sregs.gs.selector;
-    prstatus->regs.fs_base = hv->b->sregs.fs.base;
-    prstatus->regs.gs_base = hv->b->sregs.gs.base;
+    if (ioctl(hv->b->vcpufd, KVM_GET_SREGS, &sregs) < 0) {
+        warnx("KVM: Failed to get sregister info");
+        return;
+    }
+
+    if (ioctl(hv->b->vcpufd, KVM_GET_REGS, &kregs) < 0) {
+        warnx("KVM: Failed to get kregister info");
+        return;
+    }
+
+    memset(prstatus, 0, sizeof(x86_elf_prstatus));
+    prstatus->regs.r8 = kregs.r8;
+    prstatus->regs.r9 = kregs.r9;
+    prstatus->regs.r10 = kregs.r10;
+    prstatus->regs.r11 = kregs.r11;
+    prstatus->regs.r12 = kregs.r12;
+    prstatus->regs.r13 = kregs.r13;
+    prstatus->regs.r14 = kregs.r14;
+    prstatus->regs.r15 = kregs.r15;
+    prstatus->regs.rbp = kregs.rbp;
+    prstatus->regs.rsp = kregs.rsp;
+    prstatus->regs.rdi = kregs.rdi;
+    prstatus->regs.rsi = kregs.rsi;
+    prstatus->regs.rdx = kregs.rdx;
+    prstatus->regs.rcx = kregs.rcx;
+    prstatus->regs.rbx = kregs.rbx;
+    prstatus->regs.rax = kregs.rax;
+    prstatus->regs.rip = kregs.rip;
+    prstatus->regs.eflags = kregs.rflags;
+
+    prstatus->regs.cs = sregs.cs.selector;
+    prstatus->regs.ss = sregs.ss.selector;
+    prstatus->regs.ds = sregs.ds.selector;
+    prstatus->regs.es = sregs.es.selector;
+    prstatus->regs.fs = sregs.fs.selector;
+    prstatus->regs.gs = sregs.gs.selector;
+    prstatus->regs.fs_base = sregs.fs.base;
+    prstatus->regs.gs_base = sregs.gs.base;
     prstatus->pid = getpid();
 
     /* Overwrite some register information based on
@@ -96,7 +109,7 @@ int ukvm_dumpcore_dump_notes(int core_fd,
 {
     Elf64_Nhdr nhdr;
     x86_elf_prstatus prstatus;
-    const char *name = "UNICORE";
+    const char *name = "UNIDUMP";
 
     memset((void *)&nhdr, 0, sizeof(Elf64_Nhdr));
     memset((void *)&prstatus, 0, sizeof(x86_elf_prstatus));
@@ -114,21 +127,6 @@ int ukvm_dumpcore_dump_notes(int core_fd,
         return -1;
     }
     if (write(core_fd, &prstatus, sizeof(x86_elf_prstatus)) < 0) {
-        return -1;
-    }
-    return 0;
-}
-
-int ukvm_dumpcore_get_regs(struct ukvm_hv *hv)
-{
-    if (ioctl(hv->b->vcpufd, KVM_GET_REGS, &hv->b->kregs) < 0) {
-        warnx("KVM: Failed to get register info");
-        return -1;
-    }
-
-    
-    if (ioctl(hv->b->vcpufd, KVM_GET_SREGS, &hv->b->sregs) < 0) {
-        warnx("KVM: Failed to get sregister info");
         return -1;
     }
     return 0;

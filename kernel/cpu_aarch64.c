@@ -70,7 +70,7 @@ void cpu_trap_handler(struct regs *regs, int el, int mode, int is_valid)
 
     dump_registers(regs);
 
-    PANIC("PANIC");
+    PANIC("PANIC", NULL, 0);
 }
 
 /* keeps track of cpu_intr_disable() depth */

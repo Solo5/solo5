@@ -25,16 +25,16 @@ void platform_init(void *arg)
     process_bootinfo(arg);
 }
 
-void platform_exit(int status, void *cookie, size_t len)
+void platform_exit(int status, void *cookie, size_t cookie_len)
 {
     struct ukvm_halt h;
     memset((void *)&h, 0, sizeof(struct ukvm_halt));
 
     h.exit_status = status;
 
-    if (len && len <= UKVM_HYPERCALL_MAX_DUMP_INFO_SIZE) {
-        memcpy((void *)&h.data, cookie, len);
-        h.len = len;
+    if (cookie_len && cookie_len <= UKVM_HYPERCALL_MAX_DUMP_INFO_SIZE) {
+        memcpy((void *)&h.data, cookie, cookie_len);
+        h.len = cookie_len;
     }
 
     ukvm_do_hypercall(UKVM_HYPERCALL_HALT, &h);

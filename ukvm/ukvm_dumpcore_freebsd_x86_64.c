@@ -35,12 +35,6 @@ int ukvm_dumpcore_dump_notes(int core_fd, struct ukvm_hv *hv,
     return -1;
 }
 
-int ukvm_dumpcore_get_regs(struct ukvm_hv *hv)
-{
-    /* Not supported yet */
-    return 0;
-}
-
 void ukvm_dumpcore_fill_arch_header(Elf64_Ehdr *hdr)
 {
     /* Not supported yet */

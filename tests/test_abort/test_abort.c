@@ -26,18 +26,9 @@ static void puts(const char *s)
     solo5_console_write(s, strlen(s));
 }
 
-#define assert(e) do {                    \
-        if (!(e)) {                       \
-            puts("assertion failed: ");   \
-            puts(#e);                     \
-            puts("\n");                   \
-            solo5_abort();                \
-        }                                 \
-    } while (0)
-
 int solo5_app_main(const struct solo5_start_info *si __attribute__((unused)))
 {
     puts("\n**** Solo5 standalone test_assert****\n\n");
-    assert(0);
+    solo5_abort();
     return SOLO5_EXIT_SUCCESS;
 }

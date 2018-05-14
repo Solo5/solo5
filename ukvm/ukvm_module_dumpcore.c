@@ -179,12 +179,7 @@ static void hypercall_dumpcore(struct ukvm_hv *hv, ukvm_gpa_t gpa)
     if (use_dumpcore) {
         struct ukvm_halt *t =
             UKVM_CHECKED_GPA_P(hv, gpa, sizeof (struct ukvm_halt));
-
-        if (ukvm_dumpcore_get_regs(hv) == 0) {
-            ukvm_dumpcore(hv, t);
-        }
-    } else {
-        warnx("Not dumping core since --dumpcore option is not set");
+        ukvm_dumpcore(hv, t);
     }
 }
 
