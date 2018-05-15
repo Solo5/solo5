@@ -264,11 +264,10 @@ struct ukvm_poll {
     int ret;
 };
 
-#define UKVM_HYPERCALL_MAX_DUMP_INFO_SIZE 100
 /* UKVM_HYPERCALL_HALT */
 struct ukvm_halt {
     /* IN */
-    char data[UKVM_HYPERCALL_MAX_DUMP_INFO_SIZE];
+    UKVM_GUEST_PTR(const char *) data;
     size_t len;
     int exit_status;
 };
