@@ -202,9 +202,9 @@ run_test ()
             elif [ -n "${WANT_ABORT}" ] && [ "${STATUS}" -eq "255" ]; then
                 STATUS=0
             elif [ -n "${WANT_COREDUMP}" ] && [ "${STATUS}" -eq "255" ]; then
-                CORE=`grep "Dumped an unikernel core file:" ${LOGS} | grep -o '\S*$'`
-                [ -e "$CORE" ] && STATUS=0
-                mv "$CORE" "$TMPDIR"
+                CORE=`grep -o "core\.ukvm\.[0-9]*$" ${LOGS}`
+                [ -f "$CORE" ] && STATUS=0
+                [ -f "$CORE" ] && mv "$CORE" "$TMPDIR"
             else
                 STATUS=99
             fi
