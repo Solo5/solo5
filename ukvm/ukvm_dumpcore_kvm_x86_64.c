@@ -89,7 +89,7 @@ static void ukvm_hv_fill_elf_prstatus(x86_elf_prstatus *prstatus,
     /* Overwrite some register information based on
      * the input given by the Guest */
     if (info && info->len) {
-        struct trap_regs *regs = (struct trap_regs *)info->data;
+        struct trap_regs *regs = UKVM_CHECKED_GPA_P(hv, info->data, info->len);
         prstatus->regs.rip = regs->rip;
         prstatus->regs.cs = regs->cs;
         prstatus->regs.eflags = regs->rflags;

@@ -27,13 +27,12 @@ void platform_init(void *arg)
 
 void platform_exit(int status, void *cookie, size_t cookie_len)
 {
-    struct ukvm_halt h;
-    memset((void *)&h, 0, sizeof(struct ukvm_halt));
+    struct ukvm_halt h = {0};
 
     h.exit_status = status;
 
-    if (cookie_len && cookie_len <= UKVM_HYPERCALL_MAX_DUMP_INFO_SIZE) {
-        memcpy((void *)&h.data, cookie, cookie_len);
+    if (cookie_len > 0) {
+        h.data = cookie;
         h.len = cookie_len;
     }
 
