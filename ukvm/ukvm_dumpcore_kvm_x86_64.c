@@ -41,7 +41,7 @@
 #include "ukvm_cpu_x86_64.h"
 
 static void ukvm_hv_fill_elf_prstatus(x86_elf_prstatus *prstatus,
-	 struct ukvm_hv *hv, struct ukvm_halt *info)
+	                              struct ukvm_hv *hv, void *cookie)
 {
     struct kvm_regs  kregs;
     struct kvm_sregs sregs;
@@ -88,8 +88,9 @@ static void ukvm_hv_fill_elf_prstatus(x86_elf_prstatus *prstatus,
 
     /* Overwrite some register information based on
      * the input given by the Guest */
-    if (info && info->len) {
-        struct trap_regs *regs = UKVM_CHECKED_GPA_P(hv, info->data, info->len);
+    if (cookie) {
+        assert(sizeof(x86_64_trap_regs_struct) < UKVM_COOKIE_MAX);
+        x86_64_trap_regs_struct *regs = (x86_64_trap_regs_struct *)cookie;
         prstatus->regs.rip = regs->rip;
         prstatus->regs.cs = regs->cs;
         prstatus->regs.eflags = regs->rflags;
@@ -104,8 +105,7 @@ size_t ukvm_dumpcore_get_note_size(int *num_notes)
     return (sizeof(Elf64_Nhdr) + 8 + sizeof(x86_elf_prstatus));
 }
 
-int ukvm_dumpcore_dump_notes(int core_fd,
-        struct ukvm_hv *hv, struct ukvm_halt *info)
+int ukvm_dumpcore_dump_notes(int core_fd, struct ukvm_hv *hv, void *cookie)
 {
     Elf64_Nhdr nhdr;
     x86_elf_prstatus prstatus;
@@ -114,7 +114,7 @@ int ukvm_dumpcore_dump_notes(int core_fd,
     memset((void *)&nhdr, 0, sizeof(Elf64_Nhdr));
     memset((void *)&prstatus, 0, sizeof(x86_elf_prstatus));
 
-    ukvm_hv_fill_elf_prstatus(&prstatus, hv, info);
+    ukvm_hv_fill_elf_prstatus(&prstatus, hv, cookie);
     nhdr.n_namesz = strlen(name) + 1;
     nhdr.n_descsz = sizeof(x86_elf_prstatus);
     nhdr.n_type = NT_PRSTATUS;

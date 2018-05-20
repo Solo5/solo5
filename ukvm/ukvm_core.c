@@ -72,6 +72,46 @@ int ukvm_core_register_hypercall(int nr, ukvm_hypercall_fn_t fn)
     return 0;
 }
 
+ukvm_shutdown_fn_t ukvm_core_shutdown_hooks[UKVM_SHUTDOWN_HOOKS_MAX] = {0};
+static int nr_sd_hooks;
+
+int ukvm_core_register_shutdown_hook(ukvm_shutdown_fn_t fn)
+{
+    if (nr_sd_hooks == UKVM_SHUTDOWN_HOOKS_MAX)
+        return -1;
+
+    ukvm_core_shutdown_hooks[nr_sd_hooks] = fn;
+    nr_sd_hooks++;
+    return 0;
+}
+
+int ukvm_core_hypercall_halt(struct ukvm_hv *hv, ukvm_gpa_t gpa)
+{
+    void *cookie;
+    int idx;
+    struct ukvm_halt *t =
+            UKVM_CHECKED_GPA_P(hv, gpa, sizeof (struct ukvm_halt));
+
+    /* A NULL pointer in the unikernel should be a NULL in the tender. */
+    if (t->cookie)
+	/*
+         * It is extremely important that all shutdown hooks using cookie do
+         * not access more than UKVM_COOKIE_MAX bytes of cookie as anything
+         * above that address could be above the memory of the guest.
+         */
+        cookie = UKVM_CHECKED_GPA_P(hv, t->cookie, UKVM_COOKIE_MAX);
+    else
+        cookie = NULL;
+
+    for (idx = 0; idx < nr_sd_hooks; idx++) {
+        ukvm_shutdown_fn_t fn = ukvm_core_shutdown_hooks[idx];
+        assert(fn != NULL);
+        fn(hv, t->exit_status, cookie);
+    }
+
+    return t->exit_status;
+}
+
 ukvm_vmexit_fn_t ukvm_core_vmexits[NUM_MODULES + 1] = { 0 };
 static int nvmexits = 0;
 

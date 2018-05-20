@@ -28,8 +28,7 @@ size_t ukvm_dumpcore_get_note_size(int *num_notes)
     return 0;
 }
 
-int ukvm_dumpcore_dump_notes(int core_fd, struct ukvm_hv *hv,
-        struct ukvm_dumpcore *info)
+int ukvm_dumpcore_dump_notes(int core_fd, struct ukvm_hv *hv, void *cookie)
 {
     /* Not supported yet */
     return -1;

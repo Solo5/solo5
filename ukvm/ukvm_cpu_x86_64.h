@@ -182,7 +182,7 @@ static const struct x86_sreg ukvm_x86_sreg_unusable = {
     .unusable = 1
 };
 
-struct trap_regs {
+typedef struct {
     uint64_t cr2;
     uint64_t ec;
     uint64_t rip;
@@ -190,7 +190,7 @@ struct trap_regs {
     uint64_t rflags;
     uint64_t rsp;
     uint64_t ss;
-};
+} x86_64_trap_regs_struct;
 
 typedef struct {
     uint64_t r15, r14, r13, r12, rbp, rbx, r11, r10;

@@ -39,11 +39,10 @@ void _assert_fail(const char *file, const char *line, const char *e)
     puts(": Assertion `");
     puts(e);
     puts("' failed\n");
-    platform_exit(SOLO5_EXIT_ABORT, NULL, 0);
+    platform_exit(SOLO5_EXIT_ABORT, NULL);
 }
 
-void _abort(const char *file, const char *line, const char *s,
-        void *regs, size_t len)
+void _abort(const char *file, const char *line, const char *s, void *regs_hint)
 {
     puts("Solo5: ABORT: ");
     puts(file);
@@ -52,5 +51,5 @@ void _abort(const char *file, const char *line, const char *s,
     puts(": ");
     puts(s);
     puts("\n");
-    platform_exit(SOLO5_EXIT_ABORT, regs, len);
+    platform_exit(SOLO5_EXIT_ABORT, regs_hint);
 }
