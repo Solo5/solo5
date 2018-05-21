@@ -65,7 +65,7 @@
 static bool use_dumpcore = false;
 
 /*
- * the Unikernel's core format is:
+ * The Unikernel's core format is:
  *   --------------
  *   |  elf header |
  *   --------------
@@ -78,16 +78,21 @@ static bool use_dumpcore = false;
  *   |  memory     |
  *   --------------
  *
- * we only know where the memory is saved after we write elf note into
- * vmcore.
+ * We only know where the memory is saved after we write "elf note" into
+ * the core file.
  */
-void ukvm_dumpcore(struct ukvm_hv *hv, struct ukvm_halt *info)
+void ukvm_dumpcore(struct ukvm_hv *hv, int status, void *cookie)
 {
     int core_fd, num_notes = 0;
     size_t offset, note_size;
     Elf64_Ehdr hdr;
     Elf64_Phdr phdr;
     char filename[20] = {0};
+
+    if (!use_dumpcore || status == 0) {
+        return;
+    }
+
     snprintf(filename, 20, "core.ukvm.%d", getpid());
 
     memset((void *)&hdr, 0, sizeof(Elf64_Ehdr));
@@ -156,7 +161,7 @@ void ukvm_dumpcore(struct ukvm_hv *hv, struct ukvm_halt *info)
 
     /* Write note section */
     if (num_notes &&
-        ukvm_dumpcore_dump_notes(core_fd, hv, info) < 0) {
+        ukvm_dumpcore_dump_notes(core_fd, hv, cookie) < 0) {
         goto failure;
     }
 
@@ -172,15 +177,6 @@ failure:
 
 cleanup:
     close(core_fd);
-}
-
-static void hypercall_dumpcore(struct ukvm_hv *hv, ukvm_gpa_t gpa)
-{
-    if (use_dumpcore) {
-        struct ukvm_halt *t =
-            UKVM_CHECKED_GPA_P(hv, gpa, sizeof (struct ukvm_halt));
-        ukvm_dumpcore(hv, t);
-    }
 }
 
 static int handle_cmdarg(char *cmdarg)
@@ -199,8 +195,7 @@ static char *usage(void)
 
 static int setup(struct ukvm_hv *hv)
 {
-    assert(ukvm_core_register_hypercall(UKVM_HYPERCALL_HALT,
-        hypercall_dumpcore) == 0);
+    assert(ukvm_core_register_shutdown_hook(ukvm_dumpcore) == 0);
 
     return 0;
 }

@@ -98,8 +98,7 @@ uint64_t platform_mem_size(void)
 }
 
 void platform_exit(int status __attribute__((unused)),
-    void *cookie __attribute__((unused)),
-    size_t cookie_len  __attribute__((unused)))
+    void *cookie __attribute__((unused)))
 {
     /*
      * Poke the QEMU "isa-debug-exit" device to "shutdown". Should be harmless

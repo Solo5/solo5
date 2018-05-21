@@ -25,16 +25,12 @@ void platform_init(void *arg)
     process_bootinfo(arg);
 }
 
-void platform_exit(int status, void *cookie, size_t cookie_len)
+void platform_exit(int status, void *cookie)
 {
     struct ukvm_halt h = {0};
 
     h.exit_status = status;
-
-    if (cookie_len > 0) {
-        h.data = cookie;
-        h.len = cookie_len;
-    }
+    h.cookie = cookie;
 
     ukvm_do_hypercall(UKVM_HYPERCALL_HALT, &h);
     for(;;);

@@ -40,8 +40,38 @@
 #include "ukvm_hv_kvm.h"
 #include "ukvm_cpu_x86_64.h"
 
+
+/* Structure definitions copied from qemu source code at target/i386/arch_dump.c */
+
+typedef struct {
+    uint64_t cr2;
+    uint64_t ec;
+    uint64_t rip;
+    uint64_t cs;
+    uint64_t rflags;
+    uint64_t rsp;
+    uint64_t ss;
+} x86_64_trap_regs_struct;
+
+typedef struct {
+    uint64_t r15, r14, r13, r12, rbp, rbx, r11, r10;
+    uint64_t r9, r8, rax, rcx, rdx, rsi, rdi, orig_rax;
+    uint64_t rip, cs, eflags;
+    uint64_t rsp, ss;
+    uint64_t fs_base, gs_base;
+    uint64_t ds, es, fs, gs;
+} x86_64_user_regs_struct;
+
+typedef struct {
+    char pad1[32];
+    uint32_t pid;
+    char pad2[76];
+    x86_64_user_regs_struct regs;
+    char pad3[8];
+} x86_elf_prstatus;
+
 static void ukvm_hv_fill_elf_prstatus(x86_elf_prstatus *prstatus,
-	 struct ukvm_hv *hv, struct ukvm_halt *info)
+	                              struct ukvm_hv *hv, void *cookie)
 {
     struct kvm_regs  kregs;
     struct kvm_sregs sregs;
@@ -88,8 +118,9 @@ static void ukvm_hv_fill_elf_prstatus(x86_elf_prstatus *prstatus,
 
     /* Overwrite some register information based on
      * the input given by the Guest */
-    if (info && info->len) {
-        struct trap_regs *regs = UKVM_CHECKED_GPA_P(hv, info->data, info->len);
+    if (cookie) {
+        assert(sizeof(x86_64_trap_regs_struct) < UKVM_COOKIE_MAX);
+        x86_64_trap_regs_struct *regs = (x86_64_trap_regs_struct *)cookie;
         prstatus->regs.rip = regs->rip;
         prstatus->regs.cs = regs->cs;
         prstatus->regs.eflags = regs->rflags;
@@ -104,8 +135,7 @@ size_t ukvm_dumpcore_get_note_size(int *num_notes)
     return (sizeof(Elf64_Nhdr) + 8 + sizeof(x86_elf_prstatus));
 }
 
-int ukvm_dumpcore_dump_notes(int core_fd,
-        struct ukvm_hv *hv, struct ukvm_halt *info)
+int ukvm_dumpcore_dump_notes(int core_fd, struct ukvm_hv *hv, void *cookie)
 {
     Elf64_Nhdr nhdr;
     x86_elf_prstatus prstatus;
@@ -114,7 +144,7 @@ int ukvm_dumpcore_dump_notes(int core_fd,
     memset((void *)&nhdr, 0, sizeof(Elf64_Nhdr));
     memset((void *)&prstatus, 0, sizeof(x86_elf_prstatus));
 
-    ukvm_hv_fill_elf_prstatus(&prstatus, hv, info);
+    ukvm_hv_fill_elf_prstatus(&prstatus, hv, cookie);
     nhdr.n_namesz = strlen(name) + 1;
     nhdr.n_descsz = sizeof(x86_elf_prstatus);
     nhdr.n_type = NT_PRSTATUS;
