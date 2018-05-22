@@ -36,4 +36,8 @@ static inline uint64_t cpu_cntvct(void)
     return val;
 }
 
+static inline uint64_t mul64_32(uint64_t a, uint32_t b, uint8_t s)
+{
+    return (a * b) >> s;
+}
 #endif /* !ASM_FILE */

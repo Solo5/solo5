@@ -164,15 +164,15 @@ static inline uint64_t cpu_rdtsc(void)
     return ((uint64_t)h << 32) | l;
 }
 
-static inline uint64_t mul64_32(uint64_t a, uint32_t b)
+static inline uint64_t mul64_32(uint64_t a, uint32_t b, uint8_t s)
 {
     uint64_t prod;
 
     __asm__ (
         "mul %%rdx ; "
-        "shrd $32, %%rdx, %%rax"
+        "shrd %%cl, %%rdx, %%rax"
         : "=a" (prod)
-        : "0" (a), "d" ((uint64_t)b)
+        : "0" (a), "d" ((uint64_t)b), "Ic" (s)
     );
 
     return prod;
