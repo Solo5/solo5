@@ -129,6 +129,11 @@ static void ukvm_hv_fill_elf_prstatus(x86_elf_prstatus *prstatus,
     }
 }
 
+int ukvm_is_arch_supported()
+{
+    return 1;
+}
+
 size_t ukvm_dumpcore_get_note_size(int *num_notes)
 {
     *num_notes = 1;

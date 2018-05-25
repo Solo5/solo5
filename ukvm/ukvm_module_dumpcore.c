@@ -93,6 +93,12 @@ void ukvm_dumpcore(struct ukvm_hv *hv, int status, void *cookie)
         return;
     }
 
+    /* Don't proceed further if the architecture is not supported */
+    if (!ukvm_is_arch_supported()) {
+        warnx("Not dumping corefile since the architecture is not supported\n");
+        return;
+    }
+
     snprintf(filename, 20, "core.ukvm.%d", getpid());
 
     memset((void *)&hdr, 0, sizeof(Elf64_Ehdr));
