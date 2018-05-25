@@ -195,9 +195,7 @@ int ukvm_hv_vcpu_loop(struct ukvm_hv *hv)
             if (nr == UKVM_HYPERCALL_HALT) {
                 ukvm_gpa_t gpa =
                     *(uint32_t *)((uint8_t *)run + run->io.data_offset);
-                struct ukvm_halt *p =
-                    UKVM_CHECKED_GPA_P(hv, gpa, sizeof (struct ukvm_halt));
-                return p->exit_status;
+                return ukvm_core_hypercall_halt(hv, gpa);
             }
 
             ukvm_hypercall_fn_t fn = ukvm_core_hypercalls[nr];
