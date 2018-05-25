@@ -22,6 +22,12 @@
  * ukvm_dumpcore_kvm_aarch64.c: Platform specific glue between the dumpcore ukvm_module
  * and vmm.
  */
+
+int ukvm_is_arch_supported()
+{
+    return 0;
+}
+
 size_t ukvm_dumpcore_get_note_size(int *num_notes)
 {
     /* Not supported yet */

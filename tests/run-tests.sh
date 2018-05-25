@@ -203,8 +203,13 @@ run_test ()
                 STATUS=0
             elif [ -n "${WANT_COREDUMP}" ] && [ "${STATUS}" -eq "255" ]; then
                 CORE=`grep -o "core\.ukvm\.[0-9]*$" ${LOGS}`
-                [ -f "$CORE" ] && STATUS=0
-                [ -f "$CORE" ] && mv "$CORE" "$TMPDIR"
+                grep -q "Not dumping corefile" ${LOGS}
+                if [ $? -eq 0 ]; then
+                    STATUS=0
+                elif [ -f "$CORE" ]; then
+                    STATUS=0
+                    [ -f "$CORE" ] && mv "$CORE" "$TMPDIR"
+                fi
             else
                 STATUS=99
             fi
