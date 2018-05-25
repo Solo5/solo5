@@ -264,8 +264,18 @@ struct ukvm_poll {
     int ret;
 };
 
-/* UKVM_HYPERCALL_HALT */
+/*
+ * UKVM_HYPERCALL_HALT: halt with a cookie (e.g., registers right after a page
+ * fault) of maximum len of UKVM_COOKIE_MAX. The cookie will read by the tender
+ * up to a maximum len of UKVM_COOKIE_MAX.
+ */
+
+#define UKVM_COOKIE_MAX		100
+
 struct ukvm_halt {
+    /* IN */
+    UKVM_GUEST_PTR(const char *) cookie;
+
     /* IN */
     int exit_status;
 };

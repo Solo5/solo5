@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
  *
  * This file is part of Solo5, a unikernel base layer.
@@ -18,17 +18,17 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include "kernel.h"
+#include "solo5.h"
+#include "../../kernel/lib.c"
 
-void solo5_exit(int status)
+static void puts(const char *s)
 {
-    log(INFO, "Solo5: solo5_exit(%d) called\n", status);
-    platform_exit(status, NULL);
+    solo5_console_write(s, strlen(s));
 }
 
-void solo5_abort(void)
+int solo5_app_main(const struct solo5_start_info *si __attribute__((unused)))
 {
-    log(INFO, "Solo5: solo5_abort() called\n");
-    platform_exit(SOLO5_EXIT_ABORT, NULL);
+    puts("\n**** Solo5 standalone test_assert****\n\n");
+    solo5_abort();
+    return SOLO5_EXIT_SUCCESS;
 }
-

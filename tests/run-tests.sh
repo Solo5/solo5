@@ -68,17 +68,19 @@ run_test ()
     local DISK
     local NET
     local WANT_ABORT
+    local WANT_COREDUMP
     local NAME
     local UNIKERNEL
     local TEST_DIR
     local STATUS
 
-    ARGS=$(getopt dnav $*)
+    ARGS=$(getopt dnavc $*)
     [ $? -ne 0 ] && die "Invalid test options"
     set -- ${ARGS}
     DISK=
     NET=
     WANT_ABORT=
+    WANT_COREDUMP=
     WANT_QUIET=
     while true; do
         case "$1" in
@@ -94,6 +96,11 @@ run_test ()
         -a)
             # This test must ABORT
             WANT_ABORT=true
+            shift
+            ;;
+        -c)
+            # This test must ASSERT
+            WANT_COREDUMP=true
             shift
             ;;
         -v)
@@ -160,6 +167,7 @@ run_test ()
             UKVM=${TEST_DIR}/ukvm-bin
             [ -n "${DISK}" ] && UKVM="${UKVM} --disk=${DISK}"
             [ -n "${NET}" ] && UKVM="${UKVM} --net=${NET}"
+            [ -n "${WANT_COREDUMP}" ] && UKVM="${UKVM} --dumpcore"
             (set -x; timeout 30s ${UKVM} -- ${UNIKERNEL} "$@")
             STATUS=$?
             ;;
@@ -193,6 +201,15 @@ run_test ()
                 STATUS=0
             elif [ -n "${WANT_ABORT}" ] && [ "${STATUS}" -eq "255" ]; then
                 STATUS=0
+            elif [ -n "${WANT_COREDUMP}" ] && [ "${STATUS}" -eq "255" ]; then
+                CORE=`grep -o "core\.ukvm\.[0-9]*$" ${LOGS}`
+                grep -q "Not dumping corefile" ${LOGS}
+                if [ $? -eq 0 ]; then
+                    STATUS=0
+                elif [ -f "$CORE" ]; then
+                    STATUS=0
+                    [ -f "$CORE" ] && mv "$CORE" "$TMPDIR"
+                fi
             else
                 STATUS=99
             fi
@@ -205,10 +222,12 @@ run_test ()
         # XXX Should this be abstracted out in solo5-run-virtio.sh?
         0|2|83) 
             STATUS=99
-            if [ -z "${WANT_ABORT}" ]; then
-                grep -q SUCCESS ${LOGS} && STATUS=0
-            else
+            if [ "${WANT_ABORT}" ]; then
                 grep -q ABORT ${LOGS} && STATUS=0
+            elif [ "${WANT_COREDUMP}" ]; then
+                grep -q "solo5_abort() called" ${LOGS} && STATUS=0
+            else
+                grep -q SUCCESS ${LOGS} && STATUS=0
             fi
             if [ ${STATUS} -eq "0" ]; then
                 if [ -n "${WANT_QUIET}" ]; then
@@ -291,6 +310,7 @@ if [ "${BUILD_UKVM}" = "yes" ]; then
     add_test test_quiet.ukvm/-v/--solo5:quiet
     add_test test_globals.ukvm
     add_test test_exception.ukvm/-a
+    add_test test_abort.ukvm/-c
     add_test test_fpu.ukvm
     add_test test_time.ukvm
     add_test test_blk.ukvm/-d
@@ -301,6 +321,7 @@ if [ "${BUILD_VIRTIO}" = "yes" ]; then
     add_test test_quiet.virtio/-v/--solo5:quiet
     add_test test_globals.virtio
     add_test test_exception.virtio/-a
+    add_test test_abort.virtio/-c
     add_test test_fpu.virtio
     add_test test_time.virtio
     add_test test_blk.virtio/-d

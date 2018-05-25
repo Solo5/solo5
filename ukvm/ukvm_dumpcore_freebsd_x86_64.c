@@ -1,7 +1,7 @@
 /* 
  * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
  *
- * This file is part of Solo5, a unikernel base layer.
+ * This file is part of ukvm, a unikernel monitor.
  *
  * Permission to use, copy, modify, and/or distribute this software
  * for any purpose with or without fee is hereby granted, provided
@@ -18,17 +18,29 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include "kernel.h"
+/*
+ * ukvm_dumpcore_kvm_x86_64.c: glue between the dumpcore ukvm_module
+ * and freebsd's vmm.
+ */
 
-void solo5_exit(int status)
+int ukvm_is_arch_supported()
 {
-    log(INFO, "Solo5: solo5_exit(%d) called\n", status);
-    platform_exit(status, NULL);
+    return 0;
 }
 
-void solo5_abort(void)
+size_t ukvm_dumpcore_get_note_size(int *num_notes)
 {
-    log(INFO, "Solo5: solo5_abort() called\n");
-    platform_exit(SOLO5_EXIT_ABORT, NULL);
+    /* Not supported yet */
+    return 0;
 }
 
+int ukvm_dumpcore_dump_notes(int core_fd, struct ukvm_hv *hv, void *cookie)
+{
+    /* Not supported yet */
+    return -1;
+}
+
+void ukvm_dumpcore_fill_arch_header(Elf64_Ehdr *hdr)
+{
+    /* Not supported yet */
+}
