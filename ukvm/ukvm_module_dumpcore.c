@@ -42,19 +42,26 @@
 #include <unistd.h>
 #include <assert.h>
 #include <stdio.h>
+#include <sys/uio.h>
 #include "ukvm.h"
 
 #if defined(__linux__) && defined(__x86_64__)
 
 #include "ukvm_dumpcore_kvm_x86_64.c"
+#define EM_HOST EM_X86_64
+typedef unsigned char *host_mvec_t;
 
 #elif defined(__FreeBSD__) && defined(__x86_64__)
 
 #include "ukvm_dumpcore_freebsd_x86_64.c"
+#define EM_HOST EM_X86_64
+typedef char *host_mvec_t;
 
 #elif defined(__linux__) && defined(__aarch64__)
 
 #include "ukvm_dumpcore_kvm_aarch64.c"
+#define EM_HOST EM_AARCH64
+typedef unsigned char *host_mvec_t;
 
 #else
 
@@ -64,31 +71,8 @@
 
 static bool use_dumpcore = false;
 
-/*
- * The Unikernel's core format is:
- *   --------------
- *   |  elf header |
- *   --------------
- *   |  PT_NOTE    |
- *   --------------
- *   |  PT_LOAD    |
- *   --------------
- *   |  elf note   |
- *   --------------
- *   |  memory     |
- *   --------------
- *
- * We only know where the memory is saved after we write "elf note" into
- * the core file.
- */
 void ukvm_dumpcore(struct ukvm_hv *hv, int status, void *cookie)
 {
-    int core_fd, num_notes = 0;
-    size_t offset, note_size;
-    Elf64_Ehdr hdr;
-    Elf64_Phdr phdr;
-    char filename[20] = {0};
-
     if (!use_dumpcore || status == 0) {
         return;
     }
@@ -99,90 +83,151 @@ void ukvm_dumpcore(struct ukvm_hv *hv, int status, void *cookie)
         return;
     }
 
-    snprintf(filename, 20, "core.ukvm.%d", getpid());
+    char filename[20] = { 0 };
+    snprintf(filename, sizeof filename, "core.ukvm.%d", getpid());
+    /*
+     * Note that O_APPEND must not be set as this modifies the behaviour of
+     * pwrite() on Linux.
+     */
+    int fd = open(filename, O_WRONLY | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR);
+    if (fd < 0) {
+        warn("dumpcore: open(%s)", filename);
+        goto failure;
+    }
+    warnx("dumpcore: dumping guest core to: %s", filename);
 
-    memset((void *)&hdr, 0, sizeof(Elf64_Ehdr));
-    memset((void *)&phdr, 0, sizeof(Elf64_Phdr));
+    /*
+     * Core file structure:
+     * (1) ELF header with e_type=ET_CORE
+     */
+    size_t offset = sizeof (Elf64_Ehdr);
+    Elf64_Ehdr ehdr = {
+        .e_ident = {
+            ELFMAG0, ELFMAG1, ELFMAG2, ELFMAG3,
+            ELFCLASS64, ELFDATA2LSB,
+            EV_CURRENT, ELFOSABI_STANDALONE, 0
+        },
+        .e_type = ET_CORE,
+        .e_version = EV_CURRENT,
+        .e_machine = EM_HOST,
+        .e_ehsize = sizeof (Elf64_Ehdr),
+        .e_phnum = 2, /* PT_NOTE, PT_LOAD */
+        .e_phentsize = sizeof (Elf64_Phdr),
+        .e_phoff = offset,
+    };
+    offset += ehdr.e_phnum * sizeof (Elf64_Phdr);
 
-    core_fd = open(filename, O_RDWR|O_CREAT|O_TRUNC|O_APPEND, S_IRUSR|S_IWUSR);
-    if (core_fd < 0) {
+    /*
+     * (2) PT_NOTE pointing to NT_PRSTATUS descriptor
+     * name[] must be a multiple of the ELF word size, SVR4 uses "CORE".
+     */
+    const char name[8] = "CORE";
+    size_t pnote_size = sizeof (Elf64_Nhdr) + sizeof name \
+                        + ukvm_dumpcore_prstatus_size();
+    Elf64_Phdr pnote = {
+        .p_type = PT_NOTE,
+        .p_filesz = pnote_size,
+        .p_memsz = pnote_size,
+        .p_offset = offset,
+    };
+    offset += pnote_size;
+
+    /*
+     * (3) PT_LOAD pointing to guest memory dump
+     */
+    Elf64_Phdr pload = {
+        .p_type = PT_LOAD,
+        .p_align = 0, .p_paddr = 0, .p_vaddr = 0,
+        .p_memsz = hv->mem_size,
+        .p_filesz = hv->mem_size,
+        .p_flags = 0,
+        .p_offset = offset
+    };
+
+    /*
+     * (4) NT_PRSTATUS descriptor
+     */
+    Elf64_Nhdr nhdr = {
+        .n_type = NT_PRSTATUS,
+        .n_namesz = sizeof name,
+        .n_descsz = ukvm_dumpcore_prstatus_size(),
+    };
+
+    struct iovec iov[] = {
+        { .iov_base = &ehdr, .iov_len = sizeof ehdr },
+        { .iov_base = &pnote, .iov_len = sizeof pnote },
+        { .iov_base = &pload, .iov_len = sizeof pload },
+        { .iov_base = &nhdr, .iov_len = sizeof nhdr },
+        { .iov_base = (void *)name, .iov_len = nhdr.n_namesz }
+    };
+    size_t iovlen = sizeof ehdr + sizeof pnote + sizeof pload + sizeof nhdr \
+                    + nhdr.n_namesz;
+    if (writev(fd, iov, 5) != iovlen) {
+        warn("dumpcore: Error writing ELF headers");
         goto failure;
     }
 
-    memset(&hdr, 0, sizeof(Elf64_Ehdr));
-    memcpy(&hdr, ELFMAG, SELFMAG);
-
-    hdr.e_ident[EI_VERSION] = EV_CURRENT;
-    hdr.e_type = ET_CORE;
-    hdr.e_version = EV_CURRENT;
-    hdr.e_machine = EM_X86_64;
-    hdr.e_ehsize = sizeof(hdr);
-    hdr.e_phoff = sizeof(hdr); 
-    hdr.e_phentsize = sizeof(Elf64_Phdr);
-
-    /* Fill in architecture specific contents for elf header */
-    ukvm_dumpcore_fill_arch_header(&hdr);
-
-    /* No section header in core file */
-    hdr.e_shoff = 0;
-    hdr.e_shentsize = 0;
-    hdr.e_shnum = 0;
-    hdr.e_shstrndx = 0;
-
-    note_size = ukvm_dumpcore_get_note_size(&num_notes);
-    hdr.e_phnum = 1 + num_notes;
-
-    if (write(core_fd, &hdr, sizeof(Elf64_Ehdr)) < 0) {
+    /*
+     * (5) NT_PRSTATUS content
+     */
+    if (ukvm_dumpcore_write_prstatus(fd, hv, cookie) < 0) {
+        warnx("dumpcore: Could not retrieve guest state");
         goto failure;
     }
 
-    offset = sizeof(hdr) + (hdr.e_phnum * sizeof(Elf64_Phdr));
-
-    if (num_notes) {
-        /* Write a core PT_NOTE, data for more useful notes is not available for now */
-        phdr.p_type = PT_NOTE;
-        phdr.p_offset = offset;
-        phdr.p_filesz = note_size;
-        phdr.p_memsz = note_size;
-        if (write(core_fd, &phdr, sizeof(phdr)) < 0 ) {
-            goto failure;
+    /*
+     * (6) guest memory dump
+     *
+     * We use mincore() to get the host kernel's view of which pages have
+     * actually been touched by the guest. This speeds up the process of writing
+     * out the core file significantly by reducing memory pressure on the host
+     * and writing out a sparse file.
+     *
+     * Note that mincore() is definitely not portable, but the "mvec[pg] & 1"
+     * construct should be portable across at least Linux and FreeBSD.
+     */
+    long page_size = sysconf(_SC_PAGESIZE);
+    if (page_size == -1) {
+        warn("dumpcore: Could not determine _SC_PAGESIZE");
+        goto failure;
+    }
+    assert (hv->mem_size % page_size == 0);
+    size_t npages = hv->mem_size / page_size;
+    size_t ndumped = 0;
+    host_mvec_t mvec = malloc(npages);
+    assert (mvec);
+    if (mincore(hv->mem, hv->mem_size, mvec) == -1) {
+        warn("dumpcore: mincore() failed");
+        goto failure;
+    }
+    off_t start = lseek(fd, 0, SEEK_CUR);
+    for (size_t pg = 0; pg < npages; pg++) {
+        if (mvec[pg] & 1) {
+            off_t pgoff = start + (pg * page_size);
+            ssize_t nbytes =
+                pwrite(fd, hv->mem + pgoff, page_size, start + pgoff);
+            if (nbytes == -1) {
+                warn("dumpcore: Error dumping guest memory page %zd", pg);
+                free(mvec);
+                goto failure;
+            }
+            else if (nbytes != page_size) {
+                warnx("dumpcore: Short write dumping guest memory page"
+                        "%zd: %zd bytes", pg, nbytes);
+                free(mvec);
+                goto failure;
+            }
+            ndumped++;
         }
-        offset += note_size;
     }
-
-    /* Write program headers for memory segments. We have only one? */
-    memset(&phdr, 0, sizeof(phdr));
-    phdr.p_type     = PT_LOAD;
-    phdr.p_align    = 0;
-    phdr.p_paddr    = (size_t)hv->mem;
-    phdr.p_offset = offset;
-    phdr.p_vaddr  = 0;
-    phdr.p_memsz  = hv->mem_size;
-    phdr.p_filesz = hv->mem_size;
-    phdr.p_flags  = 0;
-
-    if (write(core_fd, &phdr, sizeof(phdr)) < 0) {
-        goto failure;
-    }
-
-    /* Write note section */
-    if (num_notes &&
-        ukvm_dumpcore_dump_notes(core_fd, hv, cookie) < 0) {
-        goto failure;
-    }
-
-    /* Write memory */
-    if (write(core_fd, hv->mem, hv->mem_size) < 0) {
-        goto failure;
-    }
-    warnx("Dumped an unikernel core file: %s", filename);
-    goto cleanup;
+    free(mvec);
+    warnx("dumpcore: dumped %zd pages of total %zd pages", ndumped, npages);
+    close(fd);
+    return;
 
 failure:
-    warnx("%s: Failed to generate the core file", __FUNCTION__);
-
-cleanup:
-    close(core_fd);
+    warnx("dumpcore: error(s) dumping core, file may be incomplete");
+    close(fd);
 }
 
 static int handle_cmdarg(char *cmdarg)

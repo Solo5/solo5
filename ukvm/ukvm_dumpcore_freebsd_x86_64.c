@@ -19,8 +19,8 @@
  */
 
 /*
- * ukvm_dumpcore_kvm_x86_64.c: glue between the dumpcore ukvm_module
- * and freebsd's vmm.
+ * ukvm_dumpcore_freebsd_x86_64.c: Glue between the dumpcore module
+ * and FreeBSD vmm.
  */
 
 int ukvm_is_arch_supported()
@@ -28,19 +28,14 @@ int ukvm_is_arch_supported()
     return 0;
 }
 
-size_t ukvm_dumpcore_get_note_size(int *num_notes)
+size_t ukvm_dumpcore_prstatus_size(void)
 {
     /* Not supported yet */
     return 0;
 }
 
-int ukvm_dumpcore_dump_notes(int core_fd, struct ukvm_hv *hv, void *cookie)
+int ukvm_dumpcore_write_prstatus(int fd, struct ukvm_hv *hv, void *cookie)
 {
     /* Not supported yet */
     return -1;
-}
-
-void ukvm_dumpcore_fill_arch_header(Elf64_Ehdr *hdr)
-{
-    /* Not supported yet */
 }
