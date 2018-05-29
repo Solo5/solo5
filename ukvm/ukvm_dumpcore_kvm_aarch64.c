@@ -19,8 +19,8 @@
  */
 
 /*
- * ukvm_dumpcore_kvm_aarch64.c: Platform specific glue between the dumpcore ukvm_module
- * and vmm.
+ * ukvm_dumpcore_kvm_aarch64.c: Glue between the dumpcore module and KVM
+ * (aarch64).
  */
 
 int ukvm_is_arch_supported()
@@ -28,19 +28,14 @@ int ukvm_is_arch_supported()
     return 0;
 }
 
-size_t ukvm_dumpcore_get_note_size(int *num_notes)
+size_t ukvm_dumpcore_prstatus_size(void)
 {
     /* Not supported yet */
     return 0;
 }
 
-int ukvm_dumpcore_dump_notes(int core_fd, struct ukvm_hv *hv, void *cookie)
+int ukvm_dumpcore_write_prstatus(int fd, struct ukvm_hv *hv, void *cookie)
 {
     /* Not supported yet */
-    return 0;
-}
-
-void ukvm_dumpcore_fill_arch_header(Elf64_Ehdr *hdr)
-{
-    /* Not supported yet */
+    return -1;
 }
