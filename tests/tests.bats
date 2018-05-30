@@ -23,6 +23,7 @@ setup() {
   MAKECONF=../Makeconf
   [ ! -f ${MAKECONF} ] && skip "Can't find Makeconf, looked in ${MAKECONF}"
   eval $(grep -E ^BUILD_.+=.+ ${MAKECONF})
+  eval $(grep -E ^TARGET_ARCH=.+ ${MAKECONF})
 
   if [ -x "$(command -v timeout)" ]; then
     TIMEOUT=timeout
@@ -194,4 +195,22 @@ teardown() {
   run ${TIMEOUT} --foreground 30s ${VIRTIO} -n ${NET} -- $UNIKERNEL limit
   [ "$status" -eq 0 -o "$status" -eq 2 -o "$status" -eq 83 ]
   [[ "$output" == *"SUCCESS"* ]]
+}
+
+@test "abort ukvm" {
+  run timeout --foreground 30s test_abort/ukvm-bin --dumpcore test_abort/test_abort.ukvm
+  [ "$status" -eq 255 ]
+  if [ "$TARGET_ARCH" = "x86_64" ]; then
+    CORE=`echo "$output" | grep -o "core\.ukvm\.[0-9]*$"`
+    [ -f "$CORE" ]
+    [ -f "$CORE" ] && mv "$CORE" "$BATS_TMPDIR"
+  else
+    [[ "$output" == *"Not dumping corefile since the architecture is not supported"* ]]
+  fi
+}
+
+@test "abort virtio" {
+  run timeout --foreground 30s ${VIRTIO} -- test_abort/test_abort.virtio
+  [ "$status" -eq 0 -o "$status" -eq 2 -o "$status" -eq 83 ]
+  [[ "$output" == *"solo5_abort() called"* ]]
 }
