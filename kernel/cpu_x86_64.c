@@ -168,7 +168,7 @@ void cpu_trap_handler(uint64_t num, struct trap_regs *regs)
         traps[num], regs->ec, regs->rip, regs->rsp, regs->rflags);
     if (num == 14)
         log(INFO, "Solo5: trap: cr2=0x%lx\n", regs->cr2);
-    PANIC("Fatal trap");
+    PANIC("Fatal trap", regs);
 }
 
 /* keeps track of cpu_intr_disable() depth */
