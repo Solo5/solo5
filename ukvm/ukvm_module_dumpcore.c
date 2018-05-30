@@ -203,7 +203,7 @@ void ukvm_dumpcore(struct ukvm_hv *hv, int status, void *cookie)
     off_t start = lseek(fd, 0, SEEK_CUR);
     for (size_t pg = 0; pg < npages; pg++) {
         if (mvec[pg] & 1) {
-            off_t pgoff = start + (pg * page_size);
+            off_t pgoff = (pg * page_size);
             ssize_t nbytes =
                 pwrite(fd, hv->mem + pgoff, page_size, start + pgoff);
             if (nbytes == -1) {
