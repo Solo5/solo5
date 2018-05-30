@@ -59,7 +59,8 @@ size_t ukvm_dumpcore_prstatus_size(void)
 
 int ukvm_dumpcore_write_prstatus(int fd, struct ukvm_hv *hv, void *cookie)
 {
-    prstatus_t prstatus = { 0 };
+    prstatus_t prstatus;
+    memset(&prstatus, 0, sizeof prstatus);
     /*
      * prstatus_t.pr_reg is actually a (struct user_regs_struct) in disguise.
      * This is all non-portable, but both GLIBC and musl expose the struct
