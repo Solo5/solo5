@@ -2,6 +2,7 @@ prefix=${pcfiledir}/../..
 exec_prefix=${prefix}
 includedir=${prefix}/include/solo5-kernel-ukvm/include
 libdir=${exec_prefix}/lib/solo5-kernel-ukvm
+ld=!LD!
 ldflags=!LDFLAGS! -T ${libdir}/solo5.lds ${libdir}/solo5.o
 
 Name: solo5-kernel-ukvm
