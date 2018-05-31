@@ -83,7 +83,7 @@ UKVM_LDFLAGS=
 UKVM_LDLIBS=
 UKVM_HEADERS=
 UKVM_OBJS=
-add_obj ukvm_core.o ukvm_elf.o ukvm_main.o ukvm_module_dumpcore.o
+add_obj ukvm_core.o ukvm_elf.o ukvm_main.o
 add_header ukvm.h ukvm_guest.h ukvm_cc.h
 
 for module in "$@"; do
