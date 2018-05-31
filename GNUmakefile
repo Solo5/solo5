@@ -70,12 +70,13 @@ OPAM_VIRTIO_INCDIR=$(PREFIX)/include/solo5-kernel-virtio/include
 OPAM_MUEN_LIBDIR=$(PREFIX)/lib/solo5-kernel-muen
 OPAM_MUEN_INCDIR=$(PREFIX)/include/solo5-kernel-muen/include
 
-# We want the MD CFLAGS and LDFLAGS in the .pc file, where they can be
+# We want the MD CFLAGS, LDFLAGS and LD in the .pc file, where they can be
 # picked up by the Mirage tool / other downstream consumers.
 %.pc: %.pc.in
 	sed <$< > $@ \
 	    -e 's#!CFLAGS!#$(MD_CFLAGS)#g;' \
-	    -e 's#!LDFLAGS!#$(LDFLAGS)#g;'
+	    -e 's#!LDFLAGS!#$(LDFLAGS)#g;' \
+	    -e 's#!LD!#$(LD)#g;' \
 
 .PHONY: opam-virtio-install
 opam-virtio-install: solo5-kernel-virtio.pc virtio
