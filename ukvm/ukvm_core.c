@@ -74,16 +74,17 @@ int ukvm_core_register_hypercall(int nr, ukvm_hypercall_fn_t fn)
     return 0;
 }
 
-ukvm_shutdown_fn_t ukvm_core_shutdown_hooks[UKVM_SHUTDOWN_HOOKS_MAX] = {0};
-static int nr_sd_hooks;
+#define UKVM_HALT_HOOKS_MAX 8
+ukvm_halt_fn_t ukvm_core_halt_hooks[UKVM_HALT_HOOKS_MAX] = {0};
+static int nr_halt_hooks;
 
-int ukvm_core_register_shutdown_hook(ukvm_shutdown_fn_t fn)
+int ukvm_core_register_halt_hook(ukvm_halt_fn_t fn)
 {
-    if (nr_sd_hooks == UKVM_SHUTDOWN_HOOKS_MAX)
+    if (nr_halt_hooks == UKVM_HALT_HOOKS_MAX)
         return -1;
 
-    ukvm_core_shutdown_hooks[nr_sd_hooks] = fn;
-    nr_sd_hooks++;
+    ukvm_core_halt_hooks[nr_halt_hooks] = fn;
+    nr_halt_hooks++;
     return 0;
 }
 
@@ -94,19 +95,18 @@ int ukvm_core_hypercall_halt(struct ukvm_hv *hv, ukvm_gpa_t gpa)
     struct ukvm_halt *t =
             UKVM_CHECKED_GPA_P(hv, gpa, sizeof (struct ukvm_halt));
 
-    /* A NULL pointer in the unikernel should be a NULL in the tender. */
-    if (t->cookie)
-	/*
-         * It is extremely important that all shutdown hooks using cookie do
-         * not access more than UKVM_COOKIE_MAX bytes of cookie as anything
-         * above that address could be above the memory of the guest.
-         */
+    /*
+     * If the guest set a non-NULL cookie (non-zero before conversion), verify
+     * that the memory space pointed to by it is accessible and pass it down to
+     * halt hooks, if any.
+     */
+    if (t->cookie != 0)
         cookie = UKVM_CHECKED_GPA_P(hv, t->cookie, UKVM_COOKIE_MAX);
     else
         cookie = NULL;
 
-    for (idx = 0; idx < nr_sd_hooks; idx++) {
-        ukvm_shutdown_fn_t fn = ukvm_core_shutdown_hooks[idx];
+    for (idx = 0; idx < nr_halt_hooks; idx++) {
+        ukvm_halt_fn_t fn = ukvm_core_halt_hooks[idx];
         assert(fn != NULL);
         fn(hv, t->exit_status, cookie);
     }

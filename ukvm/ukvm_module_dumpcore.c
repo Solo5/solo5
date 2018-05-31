@@ -71,7 +71,7 @@ typedef unsigned char *host_mvec_t;
 
 static bool use_dumpcore = false;
 
-void ukvm_dumpcore(struct ukvm_hv *hv, int status, void *cookie)
+void ukvm_dumpcore_hook(struct ukvm_hv *hv, int status, void *cookie)
 {
     char filename[20] = { 0 };
     snprintf(filename, sizeof filename, "core.ukvm.%d", getpid());
@@ -239,7 +239,7 @@ static int setup(struct ukvm_hv *hv)
     if (!use_dumpcore)
         return 0;
 
-    if (ukvm_core_register_shutdown_hook(ukvm_dumpcore) == -1)
+    if (ukvm_core_register_halt_hook(ukvm_dumpcore_hook) == -1)
         return -1;
 
     if (ukvm_dumpcore_supported() == -1)

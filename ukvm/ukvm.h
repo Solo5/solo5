@@ -113,11 +113,10 @@ typedef void (*ukvm_hypercall_fn_t)(struct ukvm_hv *hv, ukvm_gpa_t gpa);
 int ukvm_core_register_hypercall(int nr, ukvm_hypercall_fn_t fn);
 
 /*
- * Register (fn) as a shutdown handler.
+ * Register (fn) as a hook for UKVM_HYPERCALL_HALT.
  */
-#define UKVM_SHUTDOWN_HOOKS_MAX		8
-typedef void (*ukvm_shutdown_fn_t)(struct ukvm_hv *hv, int status, void *cookie);
-int ukvm_core_register_shutdown_hook(ukvm_shutdown_fn_t fn);
+typedef void (*ukvm_halt_fn_t)(struct ukvm_hv *hv, int status, void *cookie);
+int ukvm_core_register_halt_hook(ukvm_halt_fn_t fn);
 
 /*
  * Dispatch array of [UKVM_HYPERCALL_MAX] hypercalls. NULL = no handler.
