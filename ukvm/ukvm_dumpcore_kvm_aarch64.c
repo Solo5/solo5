@@ -23,9 +23,9 @@
  * (aarch64).
  */
 
-int ukvm_is_arch_supported()
+int ukvm_dumpcore_supported()
 {
-    return 0;
+    return -1;
 }
 
 size_t ukvm_dumpcore_prstatus_size(void)

@@ -135,7 +135,7 @@ int ukvm_dumpcore_write_prstatus(int fd, struct ukvm_hv *hv, void *cookie)
     return 0;
 }
 
-int ukvm_is_arch_supported()
+int ukvm_dumpcore_supported()
 {
-    return 1;
+    return 0;
 }

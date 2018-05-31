@@ -73,16 +73,6 @@ static bool use_dumpcore = false;
 
 void ukvm_dumpcore(struct ukvm_hv *hv, int status, void *cookie)
 {
-    if (!use_dumpcore || status == 0) {
-        return;
-    }
-
-    /* Don't proceed further if the architecture is not supported */
-    if (!ukvm_is_arch_supported()) {
-        warnx("Not dumping corefile since the architecture is not supported\n");
-        return;
-    }
-
     char filename[20] = { 0 };
     snprintf(filename, sizeof filename, "core.ukvm.%d", getpid());
     /*
@@ -246,7 +236,14 @@ static char *usage(void)
 
 static int setup(struct ukvm_hv *hv)
 {
-    assert(ukvm_core_register_shutdown_hook(ukvm_dumpcore) == 0);
+    if (!use_dumpcore)
+        return 0;
+
+    if (ukvm_core_register_shutdown_hook(ukvm_dumpcore) == -1)
+        return -1;
+
+    if (ukvm_dumpcore_supported() == -1)
+        errx(1, "dumpcore: not implemented for this backend/architecture");
 
     return 0;
 }
