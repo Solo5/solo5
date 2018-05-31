@@ -46,5 +46,4 @@ _test_muen%: force_it
 	$(MAKE) -C $(subst _test_muen, test, $@) muen
 
 _clean_%: force_it
-	$(RM) core*
 	$(MAKE) -C $(subst _clean, test, $@) clean
