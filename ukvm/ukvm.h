@@ -216,4 +216,5 @@ int ukvm_gdb_add_breakpoint(struct ukvm_hv *hv, gdb_breakpoint_type type,
  */
 int ukvm_gdb_remove_breakpoint(struct ukvm_hv *hv, gdb_breakpoint_type type,
                                ukvm_gpa_t addr, size_t len);
+
 #endif /* UKVM_H */
