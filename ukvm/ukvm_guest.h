@@ -265,16 +265,20 @@ struct ukvm_poll {
 };
 
 /*
- * UKVM_HYPERCALL_HALT: halt with a cookie (e.g., registers right after a page
- * fault) of maximum len of UKVM_COOKIE_MAX. The cookie will read by the tender
- * up to a maximum len of UKVM_COOKIE_MAX.
+ * UKVM_HYPERCALL_HALT: Terminate guest execution.
+ *
+ * (exit_status) will be returned to the host.
+ *
+ * Additionally, the guest may supplied a (cookie) providing a hint to the
+ * monitor about where e.g. a trap frame may be found in guest memory. The
+ * memory area pointed to by (cookie) must allow for at least
+ * UKVM_HALT_COOKIE_MAX bytes.
  */
-
-#define UKVM_COOKIE_MAX		100
+#define UKVM_HALT_COOKIE_MAX 512
 
 struct ukvm_halt {
     /* IN */
-    UKVM_GUEST_PTR(const char *) cookie;
+    UKVM_GUEST_PTR(void *) cookie;
 
     /* IN */
     int exit_status;

@@ -101,7 +101,7 @@ int ukvm_core_hypercall_halt(struct ukvm_hv *hv, ukvm_gpa_t gpa)
      * halt hooks, if any.
      */
     if (t->cookie != 0)
-        cookie = UKVM_CHECKED_GPA_P(hv, t->cookie, UKVM_COOKIE_MAX);
+        cookie = UKVM_CHECKED_GPA_P(hv, t->cookie, UKVM_HALT_COOKIE_MAX);
     else
         cookie = NULL;
 

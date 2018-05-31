@@ -34,16 +34,6 @@
 #include "ukvm_hv_freebsd.h"
 #include "ukvm_cpu_x86_64.h"
 
-struct cpu_trap_regs {
-    uint64_t cr2;
-    uint64_t ec;
-    uint64_t rip;
-    uint64_t cs;
-    uint64_t rflags;
-    uint64_t rsp;
-    uint64_t ss;
-};
-
 size_t ukvm_dumpcore_prstatus_size(void)
 {
     return sizeof (prstatus_t);
@@ -112,8 +102,8 @@ int ukvm_dumpcore_write_prstatus(int fd, struct ukvm_hv *hv, void *cookie)
      * that.
      */
     if (cookie) {
-        assert(sizeof(struct cpu_trap_regs) < UKVM_COOKIE_MAX);
-        struct cpu_trap_regs *regs = (struct cpu_trap_regs *)cookie;
+        assert(sizeof(struct x86_trap_regs) < UKVM_HALT_COOKIE_MAX);
+        struct x86_trap_regs *regs = (struct x86_trap_regs *)cookie;
         uregs->r_rip = regs->rip;
         uregs->r_cs = regs->cs;
         uregs->r_rflags = regs->rflags;

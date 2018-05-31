@@ -22,35 +22,14 @@
  * ukvm_dumpcore_kvm_x86_64.c: Glue between the dumpcore module and KVM.
  */
 
-#define _GNU_SOURCE
-#include <assert.h>
-#include <err.h>
-#include <errno.h>
-#include <fcntl.h>
 #include <sys/ioctl.h>
-#include <elf.h>
-#include <sys/mman.h>
-#include <string.h>
-#include <stdlib.h>
-#include <unistd.h>
 #include <linux/kvm.h>
-
 #include <sys/procfs.h>
 #include <sys/user.h>
 
 #include "ukvm.h"
 #include "ukvm_hv_kvm.h"
 #include "ukvm_cpu_x86_64.h"
-
-struct cpu_trap_regs {
-    uint64_t cr2;
-    uint64_t ec;
-    uint64_t rip;
-    uint64_t cs;
-    uint64_t rflags;
-    uint64_t rsp;
-    uint64_t ss;
-};
 
 size_t ukvm_dumpcore_prstatus_size(void)
 {
@@ -115,8 +94,8 @@ int ukvm_dumpcore_write_prstatus(int fd, struct ukvm_hv *hv, void *cookie)
      * that.
      */
     if (cookie) {
-        assert(sizeof(struct cpu_trap_regs) < UKVM_COOKIE_MAX);
-        struct cpu_trap_regs *regs = (struct cpu_trap_regs *)cookie;
+        assert(sizeof(struct x86_trap_regs) < UKVM_HALT_COOKIE_MAX);
+        struct x86_trap_regs *regs = (struct x86_trap_regs *)cookie;
         uregs->rip = regs->rip;
         uregs->cs = regs->cs;
         uregs->eflags = regs->rflags;

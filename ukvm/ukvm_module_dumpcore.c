@@ -227,7 +227,7 @@ static int handle_cmdarg(char *cmdarg)
 
 static char *usage(void)
 {
-    return "--dumpcore";
+    return "--dumpcore (enable guest core dump on abort/trap)";
 }
 
 static int setup(struct ukvm_hv *hv)
