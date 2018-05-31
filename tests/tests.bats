@@ -23,7 +23,7 @@ setup() {
   MAKECONF=../Makeconf
   [ ! -f ${MAKECONF} ] && skip "Can't find Makeconf, looked in ${MAKECONF}"
   eval $(grep -E ^BUILD_.+=.+ ${MAKECONF})
-  eval $(grep -E ^TARGET_ARCH=.+ ${MAKECONF})
+  eval $(grep -E ^TEST_TARGET=.+ ${MAKECONF})
 
   if [ -x "$(command -v timeout)" ]; then
     TIMEOUT=timeout
@@ -35,25 +35,24 @@ setup() {
 
   case "${BATS_TEST_NAME}" in
   *ukvm)
-    [ "${BUILD_UKVM}" = "no" ] && skip "Can't run ukvm"
-    OS="$(uname -s)"
-    case ${OS} in
-    Linux)
-      [ -c /dev/kvm -a -w /dev/kvm ] || skip "There is no /dev/kvm"
+    [ "${BUILD_UKVM}" = "no" ] && skip "ukvm not built"
+    case ${TEST_TARGET} in
+    *-linux-gnu)
+      [ -c /dev/kvm -a -w /dev/kvm ] || skip "no access to /dev/kvm or not present"
       ;;
-    FreeBSD)
+    x86_64-*-freebsd*)
       # TODO, just try and run the test anyway
       ;;
     OpenBSD)
       # TODO, just try and run the test anyway
       ;;
     *)
-      skip "Don't know how to run ${BATS_TEST_NAME} on ${OS}"
+      skip "Don't know how to run ${BATS_TEST_NAME} on ${TEST_TARGET}"
       ;;
     esac
     ;;
   *virtio)
-    [ "${BUILD_VIRTIO}" = "no" ] && skip "Can't run virtio"
+    [ "${BUILD_VIRTIO}" = "no" ] && skip "virtio not built"
     VIRTIO=../tools/run/solo5-run-virtio.sh
     ;;
   esac
@@ -198,15 +197,18 @@ teardown() {
 }
 
 @test "abort ukvm" {
+  case ${TEST_TARGET} in
+    x86_64-linux-gnu|x86_64-*-freebsd*)
+      ;;
+    *)
+      skip "not implemented for ${TEST_TARGET}"
+      ;;
+  esac
   run timeout --foreground 30s test_abort/ukvm-bin --dumpcore test_abort/test_abort.ukvm
   [ "$status" -eq 255 ]
-  if [ "$TARGET_ARCH" = "x86_64" ]; then
-    CORE=`echo "$output" | grep -o "core\.ukvm\.[0-9]*$"`
-    [ -f "$CORE" ]
-    [ -f "$CORE" ] && mv "$CORE" "$BATS_TMPDIR"
-  else
-    [[ "$output" == *"Not dumping corefile since the architecture is not supported"* ]]
-  fi
+  CORE=`echo "$output" | grep -o "core\.ukvm\.[0-9]*$"`
+  [ -f "$CORE" ]
+  [ -f "$CORE" ] && mv "$CORE" "$BATS_TMPDIR"
 }
 
 @test "abort virtio" {
