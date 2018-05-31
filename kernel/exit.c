@@ -31,4 +31,3 @@ void solo5_abort(void)
     log(INFO, "Solo5: solo5_abort() called\n");
     platform_exit(SOLO5_EXIT_ABORT, NULL);
 }
-

@@ -117,6 +117,16 @@ int solo5_app_main(const struct solo5_start_info *info);
 void solo5_exit(int status) __attribute__((noreturn));
 
 /*
+ * Abort the application, returning a status of SOLO5_EXIT_ABORT to the host if
+ * possible.
+ *
+ * This call is intended to signal an abnormal exit to the host. Depending on
+ * the monitor configuration, this may trigger further actions such a
+ * generating a core file.
+ */
+void solo5_abort(void) __attribute__((noreturn));
+
+/*
  * Time.
  */
 
@@ -225,13 +235,6 @@ solo5_result_t solo5_net_read(uint8_t *buf, size_t size, size_t *read_size);
  */
 
 /*
- * Exits the application with the exit status of SOLO5_EXIT_ABORT.
- * This allows ukvm-bin to dump the unikernel core file.
- * Note: dumpcore needs to be added as a module
- */
-void solo5_abort(void) __attribute__((noreturn));
-
-/*
  * Architecture-independent type for block device offsets, in bytes.
  */
 typedef uint64_t solo5_off_t;
@@ -273,4 +276,5 @@ solo5_result_t solo5_block_write(solo5_off_t offset, const uint8_t *buf,
  * single block.
  */
 solo5_result_t solo5_block_read(solo5_off_t offset, uint8_t *buf, size_t size);
+
 #endif

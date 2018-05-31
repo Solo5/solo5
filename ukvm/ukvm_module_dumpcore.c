@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
+ * Copyright (c) 2015-2018 Contributors as noted in the AUTHORS file
  *
  * This file is part of ukvm, a unikernel monitor.
  *
@@ -19,13 +19,9 @@
  */
 
 /*
- * Based on binutils-gdb/gdb/stubs/i386-stub.c, which is:
- * Not copyrighted.
- */
-
-/*
  * ukvm_module_dumpcore.c: Dumps the unikernel memory as a core file
  */
+
 #define _GNU_SOURCE
 #include <err.h>
 #include <elf.h>

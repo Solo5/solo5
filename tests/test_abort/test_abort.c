@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
+ * Copyright (c) 2015-2018 Contributors as noted in the AUTHORS file
  *
  * This file is part of Solo5, a unikernel base layer.
  *
@@ -28,7 +28,7 @@ static void puts(const char *s)
 
 int solo5_app_main(const struct solo5_start_info *si __attribute__((unused)))
 {
-    puts("\n**** Solo5 standalone test_assert****\n\n");
+    puts("\n**** Solo5 standalone test_abort ****\n\n");
     solo5_abort();
     return SOLO5_EXIT_SUCCESS;
 }
