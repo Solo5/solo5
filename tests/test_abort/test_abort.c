@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
+ * Copyright (c) 2015-2018 Contributors as noted in the AUTHORS file
  *
  * This file is part of Solo5, a unikernel base layer.
  *
@@ -18,20 +18,17 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include "kernel.h"
+#include "solo5.h"
+#include "../../kernel/lib.c"
 
-void platform_init(void *arg)
+static void puts(const char *s)
 {
-    process_bootinfo(arg);
+    solo5_console_write(s, strlen(s));
 }
 
-void platform_exit(int status, void *cookie)
+int solo5_app_main(const struct solo5_start_info *si __attribute__((unused)))
 {
-    struct ukvm_halt h;
-
-    h.exit_status = status;
-    h.cookie = cookie;
-
-    ukvm_do_hypercall(UKVM_HYPERCALL_HALT, &h);
-    for(;;);
+    puts("\n**** Solo5 standalone test_abort ****\n\n");
+    solo5_abort();
+    return SOLO5_EXIT_SUCCESS;
 }

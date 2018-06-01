@@ -1,7 +1,7 @@
 /*
- * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
+ * Copyright (c) 2015-2018 Contributors as noted in the AUTHORS file
  *
- * This file is part of Solo5, a unikernel base layer.
+ * This file is part of ukvm, a unikernel monitor.
  *
  * Permission to use, copy, modify, and/or distribute this software
  * for any purpose with or without fee is hereby granted, provided
@@ -18,20 +18,24 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include "kernel.h"
+/*
+ * ukvm_dumpcore_kvm_aarch64.c: Glue between the dumpcore module and KVM
+ * (aarch64).
+ */
 
-void platform_init(void *arg)
+int ukvm_dumpcore_supported()
 {
-    process_bootinfo(arg);
+    return -1;
 }
 
-void platform_exit(int status, void *cookie)
+size_t ukvm_dumpcore_prstatus_size(void)
 {
-    struct ukvm_halt h;
+    /* Not supported yet */
+    return 0;
+}
 
-    h.exit_status = status;
-    h.cookie = cookie;
-
-    ukvm_do_hypercall(UKVM_HYPERCALL_HALT, &h);
-    for(;;);
+int ukvm_dumpcore_write_prstatus(int fd, struct ukvm_hv *hv, void *cookie)
+{
+    /* Not supported yet */
+    return -1;
 }

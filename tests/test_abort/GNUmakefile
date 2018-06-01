@@ -1,4 +1,4 @@
-# Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
+# Copyright (c) 2015-2018 Contributors as noted in the AUTHORS file
 #
 # This file is part of Solo5, a unikernel base layer.
 #
@@ -16,16 +16,9 @@
 # NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
 # CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-# The purpose of this Makefile is to ensure that a ukvm-bin with ALL modules
-# configured compiles correctly.
+UKVM_TARGETS=test_abort.ukvm ukvm-bin
+VIRTIO_TARGETS=test_abort.virtio
+MUEN_TARGETS=test_abort.muen
+UKVM_MODULES=dumpcore
 
-.PHONY: all clean
-all: ukvm-bin
-
-Makefile.ukvm: ukvm-configure
-	./ukvm-configure . blk net gdb dumpcore
-
--include Makefile.ukvm
-
-clean: ukvm-clean
-	$(RM) Makefile.ukvm
+include ../Makefile.tests
