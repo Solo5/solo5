@@ -158,8 +158,8 @@ case $(uname -s) in
         HOST_CFLAGS="-fno-pie -fno-stack-protector -nostdlibinc"
         HOST_LDFLAGS="-nopie"
         BUILD_UKVM="yes"
-        BUILD_VIRTIO="no" # has not been tested
-        BUILD_MUEN="no" # has not been tested
+        BUILD_VIRTIO="yes"
+        BUILD_MUEN="yes"
         ;;
     *)
         die "Unsupported build OS: $(uname -s)"
