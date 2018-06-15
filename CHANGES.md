@@ -28,6 +28,7 @@ Thanks to the following new contributors to this release:
 
 * Adam Steen
 * Nikhil AP
+* Wei Chen
 
 ## 0.2.2 (2017-04-04)
 
