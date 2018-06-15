@@ -1,3 +1,34 @@
+## 0.3.0 (2018-06-15)
+
+a.k.a. the "longest-overdue release in the history of the project", hopefully
+to stay that way.
+
+The biggest user-visible changes by far are the porting of ukvm to run on
+FreeBSD and OpenBSD vmm, and the addition of support for the Muen Separation
+Kernel as a host system. Oh, and support for ARM64 as a host architecture.
+
+Major changes:
+
+* Internal re-design and refactoring to enable support for multi-{arch,
+  host system} (#171, #192).
+* ukvm: FreeBSD vmm support (#171).
+* ukvm: OpenBSD vmm support (#226).
+* Support for Muen Separation Kernel as a host system (#190).
+* aarch64 support (#209).
+* Much improved support for GDB server in ukvm (#198).
+* ukvm: Support for post-mortem debugging (guest core dumps) (#258).
+* ukvm: Support for setting guest memory size with --mem (#211).
+* Public (unikernel-facing) API refresh, documentation and cleanups (#244,
+  #245).
+* Self-tests reworked using "bats" framework (#246).
+
+Acknowledgements:
+
+Thanks to the following new contributors to this release:
+
+* Adam Steen
+* Nikhil AP
+
 ## 0.2.2 (2017-04-04)
 
 This release incorporates fixes since the release of MirageOS 3.0.
