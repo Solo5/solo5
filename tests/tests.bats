@@ -43,7 +43,7 @@ setup() {
     x86_64-*-freebsd*)
       # TODO, just try and run the test anyway
       ;;
-    OpenBSD)
+    amd64-unknown-openbsd*)
       # TODO, just try and run the test anyway
       ;;
     *)
