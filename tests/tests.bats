@@ -43,7 +43,7 @@ setup() {
     x86_64-*-freebsd*)
       # TODO, just try and run the test anyway
       ;;
-    OpenBSD)
+    amd64-unknown-openbsd*)
       # TODO, just try and run the test anyway
       ;;
     *)
@@ -52,6 +52,9 @@ setup() {
     esac
     ;;
   *virtio)
+    if [ "$(uname -s)" = "OpenBSD" ]; then
+      skip "virtio tests not run for OpenBSD"
+    fi
     [ "${BUILD_VIRTIO}" = "no" ] && skip "virtio not built"
     VIRTIO=../tools/run/solo5-run-virtio.sh
     ;;
