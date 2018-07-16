@@ -157,7 +157,7 @@ int ukvm_hv_vcpu_loop(struct ukvm_hv *hv)
     if (vrp == NULL)
         err(1, "malloc vrp");
 
-    vrp->vrp_exit = malloc(sizeof(union vm_exit));
+    vrp->vrp_exit = malloc(sizeof(struct vm_exit));
     if (vrp == NULL)
         err(1, "malloc vrp_exit");
 
@@ -196,7 +196,7 @@ int ukvm_hv_vcpu_loop(struct ukvm_hv *hv)
             err(1, "ukvm_hv_vcpu_loop: vm / vcpu run ioctl failed");
         }
 
-        union vm_exit *vei = vrp->vrp_exit;
+        struct vm_exit *vei = vrp->vrp_exit;
         if (vrp->vrp_exit_reason != VM_EXIT_NONE) {
             switch (vrp->vrp_exit_reason) {
                 case VMX_EXIT_IO:
