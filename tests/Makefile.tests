@@ -69,4 +69,4 @@ $(SOLO5_DIR)/virtio/solo5.o:
 
 .PHONY: clean ukvm-clean
 clean: ukvm-clean
-	$(RM) *.o $(UKVM_TARGETS) Makefile.ukvm $(VIRTIO_TARGETS)
+	$(RM) *.o $(UKVM_TARGETS) Makefile.ukvm $(VIRTIO_TARGETS) $(MUEN_TARGETS)

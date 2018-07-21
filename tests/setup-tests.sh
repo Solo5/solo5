@@ -42,6 +42,13 @@ FreeBSD)
     sysctl -w net.link.tap.up_on_open=1
     ifconfig tap100 create 10.0.0.1/24 link0 up
     ;;
+OpenBSD)
+    (
+         cd /dev
+         ./MAKEDEV tap100
+    )
+    ifconfig tap100 inet 10.0.0.1 netmask 255.255.255.0
+    ;;
 *)
     exit 1
     ;;

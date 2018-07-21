@@ -281,8 +281,22 @@ struct ukvm_poll {
     int ret;
 };
 
-/* UKVM_HYPERCALL_HALT */
+/*
+ * UKVM_HYPERCALL_HALT: Terminate guest execution.
+ *
+ * (exit_status) will be returned to the host.
+ *
+ * Additionally, the guest may supplied a (cookie) providing a hint to the
+ * monitor about where e.g. a trap frame may be found in guest memory. The
+ * memory area pointed to by (cookie) must allow for at least
+ * UKVM_HALT_COOKIE_MAX bytes.
+ */
+#define UKVM_HALT_COOKIE_MAX 512
+
 struct ukvm_halt {
+    /* IN */
+    UKVM_GUEST_PTR(void *) cookie;
+
     /* IN */
     int exit_status;
 };

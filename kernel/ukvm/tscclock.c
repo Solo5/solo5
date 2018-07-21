@@ -27,14 +27,19 @@ static uint64_t wc_epochoffset;
 static uint64_t time_base;
 static uint64_t tsc_base;
 
-/* Multiplier for converting TSC ticks to nsecs. (0.32) fixed point. */
+/*
+ * Shift factor for TSC scaling multiplier; referred to as S in the following
+ * comments.
+ */
+static uint8_t tsc_shift;
+
+/* Multiplier for converting TSC ticks to nsecs. (0.S) fixed point. */
 static uint32_t tsc_mult;
 
 #if defined(__x86_64__)
 #define READ_CPU_TICKS cpu_rdtsc
 #elif defined(__aarch64__)
 #define READ_CPU_TICKS cpu_cntvct
-#define mul64_32(a, b) ((a) * (b))
 #else
 #error Unsupported architecture
 #endif
@@ -51,7 +56,7 @@ uint64_t tscclock_monotonic(void)
      */
     tsc_now = READ_CPU_TICKS();
     tsc_delta = tsc_now - tsc_base;
-    time_base += mul64_32(tsc_delta, tsc_mult);
+    time_base += mul64_32(tsc_delta, tsc_mult, tsc_shift);
     tsc_base = tsc_now;
 
     return time_base;
@@ -73,22 +78,34 @@ uint64_t tscclock_monotonic(void)
 int tscclock_init(uint64_t tsc_freq)
 {
     /*
-     * Calculate TSC scaling multiplier.
+     * Calculate TSC shift factor and scaling multiplier.
      *
-     * (0.32) tsc_mult = NSEC_PER_SEC (32.32) / tsc_freq (32.0)
+     * tsc_shift (S) needs to be the largest (<=32) shift factor where the
+     * result of the tsc_mult calculcation below fits into uint32_t without
+     * truncation. Note that we disallow an S of zero to ensure the loop always
+     * terminates.
+     *
+     * (0.S) tsc_mult = NSEC_PER_SEC (S.S) / tsc_freq (S.0)
      */
-#if defined(__x86_64__)
-    tsc_mult = (NSEC_PER_SEC << 32) / tsc_freq;
-#elif defined(__aarch64__)
-    tsc_mult = NSEC_PER_SEC / tsc_freq;
-#endif
+    tsc_shift = 32;
+    uint64_t tmp;
+    do {
+        tmp = (NSEC_PER_SEC << tsc_shift) / tsc_freq;
+        if ((tmp & 0xFFFFFFFF00000000L) == 0L)
+            tsc_mult = (uint32_t)tmp;
+        else
+            tsc_shift--;
+    } while (tsc_shift > 0 && tsc_mult == 0L);
+    assert(tsc_mult != 0L);
+    log(DEBUG, "Solo5: tscclock_init(): tsc_freq=%lu tsc_mult=%lu tsc_shift=%u\n",
+        tsc_freq, tsc_mult, tsc_shift);
 
     /*
      * Monotonic time begins at tsc_base (first read of TSC before
      * calibration).
      */
     tsc_base = READ_CPU_TICKS();
-    time_base = mul64_32(tsc_base, tsc_mult);
+    time_base = mul64_32(tsc_base, tsc_mult, tsc_shift);
 
     /*
      * Compute wall clock epoch offset by subtracting monotonic time_base from

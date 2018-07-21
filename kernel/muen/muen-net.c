@@ -74,29 +74,53 @@ void generate_mac_addr(uint8_t *addr)
 void net_init(void)
 {
     char mac_str[18];
-    struct muen_channel_info channel;
     const uint64_t epoch = muen_get_sched_start();
+    const struct muen_resource_type *const
+        chan_out = muen_get_resource("net_out", MUEN_RES_MEMORY);
+    const struct muen_resource_type *const
+        chan_in = muen_get_resource("net_in", MUEN_RES_MEMORY);
 
-    if (!muen_get_channel_info("net_out", &channel)) {
+    if (!chan_out) {
         log(WARN, "Solo5: Net: No output channel\n");
         return;
     }
-    net_out  = (struct muchannel *)(channel.address);
+    if (!(chan_out->data.mem.flags & MEM_CHANNEL_FLAG)) {
+        log(WARN, "Solo5: Net: Memory '%s' is not a channel\n",
+            chan_out->name.data);
+        return;
+    }
+    if (!(chan_out->data.mem.flags & MEM_WRITABLE_FLAG)) {
+        log(WARN, "Solo5: Net: Output channel '%s' not writable\n",
+            chan_out->name.data);
+        return;
+    }
+
+    net_out = (struct muchannel *)(chan_out->data.mem.address);
     muen_channel_init_writer(net_out, MUENNET_PROTO, sizeof(struct net_msg),
                              channel.size, epoch, 0);
     log(INFO, "Solo5: Net: Muen shared memory stream, protocol 0x%lx\n",
         MUENNET_PROTO);
     log(INFO, "Solo5: Net: Output channel @ 0x%lx, size 0x%lx, epoch 0x%lx\n",
-        channel.address, channel.size, epoch);
+        chan_out->data.mem.address, chan_out->data.mem.size, epoch);
 
-    if (!muen_get_channel_info("net_in", &channel)) {
+    if (!chan_in) {
         log(WARN, "Solo5: Net: No input channel\n");
         return;
     }
-    net_in = (struct muchannel *)(channel.address);
+    if (!(chan_in->data.mem.flags & MEM_CHANNEL_FLAG)) {
+        log(WARN, "Solo5: Net: Memory '%s' is not a channel\n",
+            chan_in->name.data);
+        return;
+    }
+    if (chan_in->data.mem.flags & MEM_WRITABLE_FLAG) {
+        log(DEBUG, "Solo5: Net: Input channel '%s' is writable\n",
+            chan_in->name.data);
+    }
+
+    net_in = (struct muchannel *)(chan_in->data.mem.address);
     muen_channel_init_reader(&net_rdr, MUENNET_PROTO);
-    log(INFO, "Solo5: Net: Input  Channel @ 0x%lx, size 0x%lx\n", channel.address,
-        channel.size);
+    log(INFO, "Solo5: Net: Input  channel @ 0x%lx, size 0x%lx\n",
+        chan_in->data.mem.address, chan_in->data.mem.size);
 
     generate_mac_addr(mac_addr);
     snprintf(mac_str, sizeof(mac_str), "%02x:%02x:%02x:%02x:%02x:%02x",

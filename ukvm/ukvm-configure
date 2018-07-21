@@ -117,7 +117,11 @@ case ${TARGET} in
     x86_64-*freebsd1[12]*)
         add_obj ukvm_hv_freebsd.o ukvm_hv_freebsd_x86_64.o ukvm_cpu_x86_64.o
         add_header ukvm_hv_freebsd.h ukvm_cpu_x86_64.h
-	    ;;
+        ;;
+    amd64-*-openbsd6.[3-9])
+        add_obj ukvm_hv_openbsd.o ukvm_hv_openbsd_x86_64.o ukvm_cpu_x86_64.o
+        add_header ukvm_hv_openbsd.h ukvm_cpu_x86_64.h
+        ;;
     aarch64-*linux*)
         add_obj ukvm_hv_kvm.o ukvm_hv_kvm_aarch64.o ukvm_cpu_aarch64.o
         add_header ukvm_hv_kvm.h ukvm_cpu_aarch64.h

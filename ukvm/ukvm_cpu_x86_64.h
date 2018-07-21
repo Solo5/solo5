@@ -216,4 +216,18 @@ void ukvm_x86_setup_pagetables(uint8_t *mem, size_t mem_size);
 void ukvm_x86_setup_gdt(uint8_t *mem);
 void ukvm_x86_add_pagetables(uint8_t *mem, uint64_t mem_start, size_t mem_size);
 
+/*
+ * Trap frame layout. Must be kept in sync with (struct trap_regs) in
+ * kernel/cpu_x86_64.h.
+ */
+struct x86_trap_regs {
+    uint64_t cr2;
+    uint64_t ec;
+    uint64_t rip;
+    uint64_t cs;
+    uint64_t rflags;
+    uint64_t rsp;
+    uint64_t ss;
+};
+
 #endif /* UKVM_CPU_X86_64_H */

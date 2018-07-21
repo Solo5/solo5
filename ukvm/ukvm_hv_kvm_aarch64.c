@@ -374,9 +374,7 @@ int ukvm_hv_vcpu_loop(struct ukvm_hv *hv)
             /* Guest has halted the CPU. */
             if (nr == UKVM_HYPERCALL_HALT) {
                 ukvm_gpa_t gpa = mmio_read32(run->mmio.data);
-                struct ukvm_halt *p =
-                    UKVM_CHECKED_GPA_P(hv, gpa, sizeof (struct ukvm_halt));
-                return p->exit_status;
+                return ukvm_core_hypercall_halt(hv, gpa);
             }
 
             ukvm_hypercall_fn_t fn = ukvm_core_hypercalls[nr];

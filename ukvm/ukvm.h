@@ -114,9 +114,16 @@ typedef void (*ukvm_hypercall_fn_t)(struct ukvm_hv *hv, ukvm_gpa_t gpa);
 int ukvm_core_register_hypercall(int nr, ukvm_hypercall_fn_t fn);
 
 /*
+ * Register (fn) as a hook for UKVM_HYPERCALL_HALT.
+ */
+typedef void (*ukvm_halt_fn_t)(struct ukvm_hv *hv, int status, void *cookie);
+int ukvm_core_register_halt_hook(ukvm_halt_fn_t fn);
+
+/*
  * Dispatch array of [UKVM_HYPERCALL_MAX] hypercalls. NULL = no handler.
  */
 extern ukvm_hypercall_fn_t ukvm_core_hypercalls[];
+int ukvm_core_hypercall_halt(struct ukvm_hv *hv, ukvm_gpa_t gpa);
 
 /*
  * Register a custom vmexit handler (fn). (fn) must return 0 if the vmexit was
@@ -151,6 +158,7 @@ extern struct ukvm_module ukvm_module_core;
 extern struct ukvm_module ukvm_module_blk;
 extern struct ukvm_module ukvm_module_net;
 extern struct ukvm_module ukvm_module_gdb;
+extern struct ukvm_module ukvm_module_dumpcore;
 
 /*
  * GDB specific functions to be implemented on all backends for all

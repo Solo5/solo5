@@ -21,11 +21,10 @@
 #include "../kernel.h"
 
 #include "sinfo.h"
-#include "musinfo.h"
 #include "muschedinfo.h"
 
 #define SINFO_ADDR      0xe00000000UL
-#define SCHED_INFO_ADDR 0xe00009000UL
+#define SCHED_INFO_ADDR 0xe00008000UL
 
 static char subject_name[MAX_NAME_LENGTH + 1];
 static bool subject_name_unset = true;
@@ -36,67 +35,37 @@ static const struct subject_info_type *sinfo =
 static volatile struct scheduling_info_type *sched_info =
     (struct scheduling_info_type *)(SCHED_INFO_ADDR);
 
-
-static void fill_channel_data(uint8_t idx, struct muen_channel_info *channel)
+static bool names_equal(const struct muen_name_type *const n1,
+                        const char *const n2)
 {
-    const struct resource_type resource = sinfo->resources[idx];
-    const struct memregion_type memregion =
-        sinfo->memregions[resource.memregion_idx - 1];
-    const struct channel_info_type channel_info =
-        sinfo->channels_info[resource.channel_info_idx - 1];
-
-    memset(&channel->name, 0, MAX_NAME_LENGTH + 1);
-    memcpy(&channel->name, resource.name.data, resource.name.length);
-
-    channel->address  = memregion.address;
-    channel->size     = memregion.size;
-    channel->writable = memregion.flags & MEM_WRITABLE_FLAG;
-
-    channel->has_event    = channel_info.flags & CHAN_EVENT_FLAG;
-    channel->event_number = channel_info.event;
-    channel->has_vector   = channel_info.flags & CHAN_VECTOR_FLAG;
-    channel->vector       = channel_info.vector;
+    return n1->length == strlen(n2)
+        && strncmp(n1->data, n2, n1->length) == 0;
 }
 
-static void fill_memregion_data(uint8_t idx, struct muen_memregion_info *region)
+struct iterator {
+    const struct muen_resource_type *res;
+    unsigned int idx;
+};
+
+/*
+ * Iterate over all resources beginning at given start resource.  If the res
+ * member of the iterator is NULL, the function (re)starts the iteration at the
+ * first available resource.
+ */
+static bool iterate_resources(struct iterator *const iter)
 {
-    const struct resource_type resource = sinfo->resources[idx];
-    const struct memregion_type memregion =
-        sinfo->memregions[resource.memregion_idx - 1];
+    if (!muen_check_magic())
+        return false;
 
-    memset(&region->name, 0, MAX_NAME_LENGTH + 1);
-    memcpy(&region->name, resource.name.data, resource.name.length);
-
-    memcpy(&region->hash, memregion.hash, HASH_LENGTH);
-
-    region->content    = memregion.content;
-    region->address    = memregion.address;
-    region->size       = memregion.size;
-    region->pattern    = memregion.pattern;
-    region->writable   = memregion.flags & MEM_WRITABLE_FLAG;
-    region->executable = memregion.flags & MEM_EXECUTABLE_FLAG;
-}
-
-static bool is_memregion(const struct resource_type * const resource)
-{
-    return resource->memregion_idx != NO_RESOURCE;
-}
-
-static bool is_channel(const struct resource_type * const resource)
-{
-    return is_memregion(resource) &&
-           resource->channel_info_idx != NO_RESOURCE;
-}
-
-static void fill_dev_data(uint8_t idx, struct muen_dev_info *dev)
-{
-    const struct dev_info_type dev_info = sinfo->dev_info[idx];
-
-    dev->sid         = dev_info.sid;
-    dev->irte_start  = dev_info.irte_start;
-    dev->irq_start   = dev_info.irq_start;
-    dev->ir_count    = dev_info.ir_count;
-    dev->msi_capable = dev_info.flags & DEV_MSI_FLAG;
+    if (!iter->res) {
+        iter->res = &sinfo->resources[0];
+        iter->idx = 0;
+    } else {
+        iter->res++;
+        iter->idx++;
+    }
+    return iter->idx < sinfo->resource_count
+        && iter->res->kind != MUEN_RES_NONE;
 }
 
 inline bool muen_check_magic(void)
@@ -118,93 +87,38 @@ const char * muen_get_subject_name(void)
     return subject_name;
 }
 
-bool muen_get_channel_info(const char * const name,
-               struct muen_channel_info *channel)
+const struct muen_resource_type *
+muen_get_resource(const char *const name, enum muen_resource_kind kind)
 {
-    int i;
+    struct iterator i = { NULL, 0 };
 
-    if (!muen_check_magic())
-        return false;
+    while (iterate_resources(&i))
+        if (i.res->kind == kind && names_equal(&i.res->name, name))
+            return i.res;
 
-    for (i = 0; i < sinfo->resource_count; i++) {
-        if (is_channel(&sinfo->resources[i]) &&
-            strncmp(sinfo->resources[i].name.data, name,
-                sinfo->resources[i].name.length) == 0) {
-            fill_channel_data(i, channel);
-            return true;
-        }
-    }
-    return false;
+    return NULL;
 }
 
-bool muen_get_memregion_info(const char * const name,
-                 struct muen_memregion_info *memregion)
+const struct muen_device_type * muen_get_device(const uint16_t sid)
 {
-    int i;
+    struct iterator i = { NULL, 0 };
 
-    if (!muen_check_magic())
-        return false;
+    while (iterate_resources(&i))
+        if (i.res->kind == MUEN_RES_DEVICE &&
+                i.res->data.dev.sid == sid)
+            return &i.res->data.dev;
 
-    for (i = 0; i < sinfo->resource_count; i++) {
-        if (is_memregion(&sinfo->resources[i]) &&
-            strncmp(sinfo->resources[i].name.data, name,
-                sinfo->resources[i].name.length) == 0) {
-            fill_memregion_data(i, memregion);
-            return true;
-        }
-    }
-    return false;
+    return NULL;
 }
 
-bool muen_get_dev_info(const uint16_t sid, struct muen_dev_info *dev)
+bool muen_for_each_resource(resource_cb func, void *data)
 {
-    int i;
+    struct iterator i = { NULL, 0 };
 
-    if (!muen_check_magic())
-        return false;
+    while (iterate_resources(&i))
+        if (!func(i.res, data))
+            return false;
 
-    for (i = 0; i < sinfo->dev_info_count; i++) {
-        if (sinfo->dev_info[i].sid == sid) {
-            fill_dev_data(i, dev);
-            return true;
-        }
-    }
-    return false;
-}
-
-bool muen_for_each_channel(channel_cb func, void *data)
-{
-    int i;
-    struct muen_channel_info current_channel;
-
-    if (!muen_check_magic())
-        return false;
-
-    for (i = 0; i < sinfo->resource_count; i++) {
-        if (is_channel(&sinfo->resources[i])) {
-            fill_channel_data(i, &current_channel);
-            if (!func(&current_channel, data))
-                return false;
-        }
-    }
-    return true;
-}
-
-bool muen_for_each_memregion(memregion_cb func, void *data)
-{
-    int i;
-    struct muen_memregion_info current_region;
-
-    if (!muen_check_magic())
-        return false;
-
-    for (i = 0; i < sinfo->resource_count; i++) {
-        if (is_memregion(&sinfo->resources[i])) {
-            fill_memregion_data(i, &current_region);
-            if (!func(&current_region, data))
-                return false;
-        }
-    }
     return true;
 }
 

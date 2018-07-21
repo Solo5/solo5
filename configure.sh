@@ -43,16 +43,22 @@ cc_is_gcc()
     cc_maybe_gcc && ! cc_is_clang
 }
 
+ld_is_lld()
+{
+    ${LD} --version 2>&1 | grep -q '^LLD'
+}
+
 # Allow external override of CC.
 # TODO: This needs further work to provide full support for cross-compiling and
 # correctly pass through to ukvm-configure where required.
 CC=${CC:-cc}
+LD=${LD:-ld}
 
 TARGET=$(${CC} -dumpmachine)
 [ $? -ne 0 ] &&
     die "Error running '${CC} -dumpmachine', is your compiler working?"
 case ${TARGET} in
-    x86_64-*)
+    x86_64-*|amd64-*)
 	TARGET_ARCH=x86_64
         ;;
     aarch64-*)
@@ -124,6 +130,37 @@ case $(uname -s) in
         BUILD_VIRTIO="yes"
         BUILD_MUEN="yes"
         ;;
+    OpenBSD)
+        # On OpenBSD/clang we use -nostdlibinc which gives us access to the
+        # clang-provided headers for compiler instrinsics. We copy the rest
+        # (std*.h, cdefs.h and their dependencies) from the host.
+        cc_is_clang || die "Only 'clang' is supported on OpenBSD"
+        [ "${TARGET_ARCH}" = "x86_64" ] ||
+            die "Only 'x86_64' is supported on OpenBSD"
+        if ! ld_is_lld; then
+            LD='/usr/bin/ld.lld'
+            echo "using GNU 'ld' is not supported on OpenBSD, falling back to 'ld.lld'"
+            [ -e ${LD} ] || die "/usr/bin/ld.lld does not exist"
+        fi
+        INCDIR=/usr/include
+        SRCS_MACH="machine/_float.h machine/endian.h machine/cdefs.h machine/_types.h"
+        SRCS_SYS="sys/_null.h sys/cdefs.h sys/_endian.h sys/endian.h sys/_types.h"
+        SRCS_AMD64="amd64/_float.h amd64/stdarg.h amd64/endian.h"
+        SRCS="float.h stddef.h stdint.h stdbool.h stdarg.h"
+
+        mkdir -p ${HOST_INCDIR}
+        mkdir -p ${HOST_INCDIR}/machine ${HOST_INCDIR}/sys ${HOST_INCDIR}/amd64
+        for f in ${SRCS_MACH}; do cp -f ${INCDIR}/$f ${HOST_INCDIR}/machine; done
+        for f in ${SRCS_SYS}; do cp -f ${INCDIR}/$f ${HOST_INCDIR}/sys; done
+        for f in ${SRCS_AMD64}; do cp -f ${INCDIR}/$f ${HOST_INCDIR}/amd64; done
+        for f in ${SRCS}; do cp -f ${INCDIR}/$f ${HOST_INCDIR}; done
+
+        HOST_CFLAGS="-fno-pie -fno-stack-protector -nostdlibinc"
+        HOST_LDFLAGS="-nopie"
+        BUILD_UKVM="yes"
+        BUILD_VIRTIO="yes"
+        BUILD_MUEN="yes"
+        ;;
     *)
         die "Unsupported build OS: $(uname -s)"
         ;;
@@ -135,6 +172,9 @@ BUILD_UKVM=${BUILD_UKVM}
 BUILD_VIRTIO=${BUILD_VIRTIO}
 BUILD_MUEN=${BUILD_MUEN}
 HOST_CFLAGS=${HOST_CFLAGS}
+HOST_LDFLAGS=${HOST_LDFLAGS}
+TEST_TARGET=${TARGET}
 TARGET_ARCH=${TARGET_ARCH}
 CC=${CC}
+LD=${LD}
 EOM

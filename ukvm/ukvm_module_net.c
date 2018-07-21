@@ -65,7 +65,12 @@ struct muchannel_reader net_rdr;
 
 #include <net/if.h>
 
-#else /* !__linux__ && !__FreeBSD__ */
+#elif defined(__OpenBSD__)
+
+#include <sys/socket.h>
+#include <net/if.h>
+
+#else /* !__linux__ && !__FreeBSD__ && !__OpenBSD__ */
 
 #error Unsupported target
 
@@ -195,6 +200,19 @@ static int tap_attach(const char *ifname)
     if (fd == -1)
         return -1;
 
+#elif defined(__OpenBSD__)
+
+    if (!up) {
+        errno = ENETDOWN;
+        return -1;
+    }
+
+    char devname[strlen(ifname) + 6];
+
+    snprintf(devname, sizeof devname, "/dev/%s", ifname);
+    fd = open(devname, O_RDWR | O_NONBLOCK);
+    if (fd == -1)
+        return -1;
 #endif
 
     return fd;

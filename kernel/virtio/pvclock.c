@@ -106,7 +106,7 @@ uint64_t pvclock_monotonic(void) {
             delta >>= -pvclock_ti.tsc_shift;
         else
             delta <<= pvclock_ti.tsc_shift;
-        time_now = mul64_32(delta, pvclock_ti.tsc_to_system_mul) +
+        time_now = mul64_32(delta, pvclock_ti.tsc_to_system_mul, 32) +
             pvclock_ti.system_time;
         __asm__ ("mfence" ::: "memory");
     } while ((pvclock_ti.version & 1) || (pvclock_ti.version != version));

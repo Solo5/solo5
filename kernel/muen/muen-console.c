@@ -71,18 +71,19 @@ void solo5_console_write(const char *buf, size_t size)
 
 void console_init(void)
 {
-    struct muen_channel_info channel;
+    const struct muen_resource_type *const
+        channel = muen_get_resource("debuglog", MUEN_RES_MEMORY);
     uint64_t epoch;
 
-    if (!muen_get_channel_info("debuglog", &channel)) {
+    if (!channel) {
         return;
     }
 
     clear_buffer();
     epoch        = muen_get_sched_start();
-    channel_out  = (struct muchannel *)(channel.address);
+    channel_out  = (struct muchannel *)(channel->data.mem.address);
     muen_channel_init_writer(channel_out, DEBUGLOG_PROTO, sizeof(struct log_msg),
             channel.size, epoch, 0);
     log(INFO, "Solo5: Console: Muen Channel @ 0x%lx, size 0x%lx, epoch 0x%lx\n",
-        channel.address, channel.size, epoch);
+        channel->data.mem.address, channel->data.mem.size, epoch);
 }

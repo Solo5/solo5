@@ -117,6 +117,16 @@ int solo5_app_main(const struct solo5_start_info *info);
 void solo5_exit(int status) __attribute__((noreturn));
 
 /*
+ * Abort the application, returning a status of SOLO5_EXIT_ABORT to the host if
+ * possible.
+ *
+ * This call is intended to signal an abnormal exit to the host. Depending on
+ * the monitor configuration, this may trigger further actions such a
+ * generating a core file.
+ */
+void solo5_abort(void) __attribute__((noreturn));
+
+/*
  * Time.
  */
 

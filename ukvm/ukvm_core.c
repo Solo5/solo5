@@ -45,6 +45,9 @@ struct ukvm_module ukvm_module_core;
 
 struct ukvm_module *ukvm_core_modules[] = {
     &ukvm_module_core,
+#ifdef UKVM_MODULE_DUMPCORE
+    &ukvm_module_dumpcore,
+#endif
 #ifdef UKVM_MODULE_BLK
     &ukvm_module_blk,
 #endif
@@ -69,6 +72,46 @@ int ukvm_core_register_hypercall(int nr, ukvm_hypercall_fn_t fn)
 
     ukvm_core_hypercalls[nr] = fn;
     return 0;
+}
+
+#define UKVM_HALT_HOOKS_MAX 8
+ukvm_halt_fn_t ukvm_core_halt_hooks[UKVM_HALT_HOOKS_MAX] = {0};
+static int nr_halt_hooks;
+
+int ukvm_core_register_halt_hook(ukvm_halt_fn_t fn)
+{
+    if (nr_halt_hooks == UKVM_HALT_HOOKS_MAX)
+        return -1;
+
+    ukvm_core_halt_hooks[nr_halt_hooks] = fn;
+    nr_halt_hooks++;
+    return 0;
+}
+
+int ukvm_core_hypercall_halt(struct ukvm_hv *hv, ukvm_gpa_t gpa)
+{
+    void *cookie;
+    int idx;
+    struct ukvm_halt *t =
+            UKVM_CHECKED_GPA_P(hv, gpa, sizeof (struct ukvm_halt));
+
+    /*
+     * If the guest set a non-NULL cookie (non-zero before conversion), verify
+     * that the memory space pointed to by it is accessible and pass it down to
+     * halt hooks, if any.
+     */
+    if (t->cookie != 0)
+        cookie = UKVM_CHECKED_GPA_P(hv, t->cookie, UKVM_HALT_COOKIE_MAX);
+    else
+        cookie = NULL;
+
+    for (idx = 0; idx < nr_halt_hooks; idx++) {
+        ukvm_halt_fn_t fn = ukvm_core_halt_hooks[idx];
+        assert(fn != NULL);
+        fn(hv, t->exit_status, cookie);
+    }
+
+    return t->exit_status;
 }
 
 ukvm_vmexit_fn_t ukvm_core_vmexits[NUM_MODULES + 1] = { 0 };
