@@ -156,7 +156,7 @@ solo5_time_t solo5_clock_wall(void);
  * This interface may be extended in the future to allow for selection of I/O
  * events of interest to the application.
  */
-bool solo5_yield(solo5_time_t deadline);
+bool solo5_yield(uint64_t deadline, void *nothing __attribute__((unused)));
 
 /*
  * Console I/O.
@@ -197,7 +197,7 @@ struct solo5_net_info {
  * Retrieves information about the network device. Caller must supply space for
  * struct solo5_net_info in (info).
  */
-void solo5_net_info(struct solo5_net_info *info);
+void solo5_net_info(int nic_index, struct solo5_net_info *info);
 
 /*
  * Sends a single network packet from the buffer (*buf), without blocking.  If
@@ -207,7 +207,7 @@ void solo5_net_info(struct solo5_net_info *info);
  * The maximum allowed value for (size) is (solo5_net_info.mtu +
  * SOLO5_NET_HLEN). The packet must include the ethernet frame header.
  */
-solo5_result_t solo5_net_write(const uint8_t *buf, size_t size);
+solo5_result_t solo5_net_write(int index, const uint8_t *buf, size_t size);
 
 /*
  * Receives a single network packet into the buffer (*buf), without blocking.
@@ -218,7 +218,7 @@ solo5_result_t solo5_net_write(const uint8_t *buf, size_t size);
  * SOLO5_R_OK and the size of the received packet including the ethernet frame
  * header in (*read_size).
  */
-solo5_result_t solo5_net_read(uint8_t *buf, size_t size, size_t *read_size);
+solo5_result_t solo5_net_read(int index, uint8_t *buf, size_t size, size_t *read_size);
 
 /*
  * Block I/O.

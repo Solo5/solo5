@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
  *
  * This file is part of Solo5, a unikernel base layer.
@@ -139,7 +139,7 @@ void virtio_config_network(struct pci_config_info *pci)
 
     /*
      * 2. Set the ACKNOWLEDGE status bit: the guest OS has notice the device.
-     * 3. Set the DRIVER status bit: the guest OS knows how to drive the device. 
+     * 3. Set the DRIVER status bit: the guest OS knows how to drive the device.
      */
 
     outb(pci->base + VIRTIO_PCI_STATUS, VIRTIO_PCI_STATUS_ACK);
@@ -149,7 +149,7 @@ void virtio_config_network(struct pci_config_info *pci)
      * 4. Read device feature bits, and write the subset of feature bits
      * understood by the OS and driver to the device. During this step the
      * driver MAY read (but MUST NOT write) the device-specific configuration
-     * fields to check that it can support the device before accepting it. 
+     * fields to check that it can support the device before accepting it.
      */
 
     host_features = inl(pci->base + VIRTIO_PCI_HOST_FEATURES);
@@ -269,7 +269,7 @@ void virtio_net_recv_pkt_put(void)
     outw(virtio_net_pci_base + VIRTIO_PCI_QUEUE_NOTIFY, VIRTQ_RECV);
 }
 
-solo5_result_t solo5_net_write(const uint8_t *buf, size_t size)
+solo5_result_t solo5_net_write(int index __attribute__((unused)), const uint8_t *buf, size_t size)
 {
     assert(net_configured);
 
@@ -277,7 +277,7 @@ solo5_result_t solo5_net_write(const uint8_t *buf, size_t size)
     return (rv == 0) ? SOLO5_R_OK : SOLO5_R_EUNSPEC;
 }
 
-solo5_result_t solo5_net_read(uint8_t *buf, size_t size, size_t *read_size)
+solo5_result_t solo5_net_read(int index __attribute__((unused)), uint8_t *buf, size_t size, size_t *read_size)
 {
     uint8_t *pkt;
     size_t len = size;
@@ -313,7 +313,7 @@ solo5_result_t solo5_net_read(uint8_t *buf, size_t size, size_t *read_size)
     return SOLO5_R_OK;
 }
 
-void solo5_net_info(struct solo5_net_info *info)
+void solo5_net_info(int index __attribute__((unused)), struct solo5_net_info *info)
 {
     assert(net_configured);
 

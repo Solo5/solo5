@@ -235,7 +235,7 @@ static void send_garp(void)
     memcpy(p.arp.spa, ipaddr, PLEN_IPV4);
     memcpy(p.arp.tpa, ipaddr, PLEN_IPV4);
 
-    if (solo5_net_write((uint8_t *)&p, sizeof p) != SOLO5_R_OK)
+    if (solo5_net_write(0, (uint8_t *)&p, sizeof p) != SOLO5_R_OK)
         puts("Could not send GARP packet\n");
 }
 
@@ -246,7 +246,7 @@ static void ping_serve(int verbose, int limit)
     unsigned long received = 0;
 
     struct solo5_net_info ni;
-    solo5_net_info(&ni);
+    solo5_net_info(0, &ni);
     memcpy(macaddr, ni.mac_address, sizeof macaddr);
 
     char macaddr_s[(sizeof macaddr * 2) + 1];
@@ -264,8 +264,8 @@ static void ping_serve(int verbose, int limit)
         size_t len;
 
         /* wait for packet */
-        while (solo5_net_read(buf, sizeof buf, &len) == SOLO5_R_AGAIN) {
-            solo5_yield(solo5_clock_monotonic() + NSEC_PER_SEC);
+        while (solo5_net_read(0, buf, sizeof buf, &len) == SOLO5_R_AGAIN) {
+            solo5_yield(solo5_clock_monotonic() + NSEC_PER_SEC, NULL);
         }
 
         if (memcmp(p->target, macaddr, HLEN_ETHER) &&
@@ -289,7 +289,7 @@ static void ping_serve(int verbose, int limit)
                 goto out;
         }
 
-        if (solo5_net_write(buf, len) != SOLO5_R_OK)
+        if (solo5_net_write(0, buf, len) != SOLO5_R_OK)
             puts("Write error\n");
 
         received++;

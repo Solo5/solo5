@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
  *
  * This file is part of Solo5, a unikernel base layer.
@@ -61,7 +61,7 @@ void time_init(void)
         assert(tscclock_init() == 0);
 }
 
-bool solo5_yield(solo5_time_t deadline)
+bool solo5_yield(uint64_t deadline, void *nothing __attribute__((unused)))
 {
     bool rc = false;
 

@@ -20,7 +20,7 @@
 
 #include "kernel.h"
 
-bool solo5_yield(solo5_time_t deadline)
+bool solo5_yield(uint64_t deadline, void *nothing __attribute__((unused)))
 {
     struct ukvm_poll t;
     uint64_t now;

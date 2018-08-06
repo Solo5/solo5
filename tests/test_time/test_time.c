@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
  *
  * This file is part of Solo5, a unikernel base layer.
@@ -50,12 +50,12 @@ int solo5_app_main(const struct solo5_start_info *si __attribute__((unused)))
         return SOLO5_EXIT_FAILURE;
     }
 
-    /* 
+    /*
      * The monitor is configured with no I/O modules for this test so
      * solo5_yield() is equivalent to a sleep here.
      */
     ta = solo5_clock_monotonic();
-    solo5_yield(ta + NSEC_PER_SEC);
+    solo5_yield(ta + NSEC_PER_SEC, NULL);
     tb = solo5_clock_monotonic();
     /*
      * Verify that we did not sleep less than requested (see above).

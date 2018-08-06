@@ -60,7 +60,7 @@ void solo5_net_flush()
     ukvm_do_hypercall(UKVM_HYPERCALL_NETNOTIFY, NULL);
 }
 
-solo5_result_t solo5_net_write(const uint8_t *buf, size_t size)
+solo5_result_t solo5_net_write(int index __attribute__((unused)), const uint8_t *buf, size_t size)
 {
     int ret = 0;
     if (shm_event_enabled) {
@@ -83,7 +83,7 @@ solo5_result_t solo5_net_write(const uint8_t *buf, size_t size)
     }
 }
 
-solo5_result_t solo5_net_read(uint8_t *buf, size_t size, size_t *read_size)
+solo5_result_t solo5_net_read(int index __attribute__((unused)), uint8_t *buf, size_t size, size_t *read_size)
 {
     int ret = 0;
     if (shm_event_enabled) {
@@ -112,7 +112,7 @@ solo5_result_t solo5_net_read(uint8_t *buf, size_t size, size_t *read_size)
     }
 }
 
-void solo5_net_info(struct solo5_net_info *info)
+void solo5_net_info(int index __attribute__((unused)), struct solo5_net_info *info)
 {
     volatile struct ukvm_netinfo ni;
 
