@@ -1,3 +1,15 @@
+## 0.3.1 (2018-08-10)
+
+Minor point release with build fixes:
+
+* Fix array-bounds compilation error with newer compilers (#266, #267).
+* Synchronise with OpenBSD vmmvar.h changes (#268).
+
+Thanks to the following new contributors to this release:
+
+* Rolf Sommerhalder
+* Sven Anderson
+
 ## 0.3.0 (2018-06-15)
 
 a.k.a. the "longest-overdue release in the history of the project", hopefully
