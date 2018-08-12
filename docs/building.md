@@ -54,8 +54,7 @@ Experimental:
   will need hardware capable of running a recent (v4.14+) 64-bit mainline
   kernel and a 64-bit Linux distribution.
 * _ukvm_: OpenBSD vmm, using ukvm as a monitor, on the x86\_64 architecture.
-  OpenBSD 6.3 is known to work, however for correct operation with downstream
-  unikernel build systems, as of June 2018 OpenBSD-current is required.
+  OpenBSD 6.4 or later is required.
 * _muen_: The Muen Separation Kernel, on the x86\_64 architecture. Please see
   this [article](https://muen.sk/articles.html#mirageos-unikernels) for
   Muen-specific instructions.
