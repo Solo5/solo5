@@ -16,9 +16,9 @@
 # NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
 # CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-UKVM_TARGETS=test_abort.ukvm ukvm-bin
+VT_TARGETS=test_abort.vt solo5-vt
 VIRTIO_TARGETS=test_abort.virtio
 MUEN_TARGETS=test_abort.muen
-UKVM_MODULES=dumpcore
+VT_MODULES=dumpcore
 
 include ../Makefile.tests
