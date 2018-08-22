@@ -22,43 +22,43 @@ $(TOP)/Makeconf:
 include Makefile.common
 
 .PHONY: all
-all: ukvm virtio muen
+all: hvt virtio muen
 .DEFAULT_GOAL := all
-.NOTPARALLEL: ukvm virtio muen
+.NOTPARALLEL: hvt virtio muen
 
 .PHONY: virtio
 virtio:
 ifeq ($(BUILD_VIRTIO), yes)
-	$(MAKE) -C kernel virtio
+	$(MAKE) -C bindings virtio
 	$(MAKE) -C tests virtio
 endif
 
-.PHONY: ukvm
-ukvm:
-ifeq ($(BUILD_UKVM), yes)
-	$(MAKE) -C kernel ukvm
-	$(MAKE) -C ukvm
-	$(MAKE) -C tests ukvm
+.PHONY: hvt
+hvt:
+ifeq ($(BUILD_HVT), yes)
+	$(MAKE) -C bindings hvt
+	$(MAKE) -C tenders/hvt
+	$(MAKE) -C tests hvt
 endif
 
 .PHONY: muen
 muen:
 ifeq ($(BUILD_MUEN), yes)
-	$(MAKE) -C kernel muen
+	$(MAKE) -C bindings muen
 	$(MAKE) -C tests muen
 endif
 
 .PHONY: clean
 clean:
-	$(MAKE) -C kernel clean
-ifeq ($(BUILD_UKVM), yes)
-	$(MAKE) -C ukvm clean
+	$(MAKE) -C bindings clean
+ifeq ($(BUILD_HVT), yes)
+	$(MAKE) -C tenders/hvt clean
 endif
 	$(MAKE) -C tests clean
 	$(RM) solo5-kernel-virtio.pc
 	$(RM) solo5-kernel-ukvm.pc
 	$(RM) solo5-kernel-muen.pc
-	$(RM) -r include-host/
+	$(RM) -r include/crt
 	$(RM) Makeconf
 
 PREFIX?=/nonexistent # Fail if not run from OPAM

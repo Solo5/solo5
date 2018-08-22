@@ -19,14 +19,14 @@
 TESTDIRS=test_hello test_globals test_ping_serve test_blk \
          test_exception test_abort test_fpu test_time test_quiet
 
-UKVM_TESTS=$(subst test, _test_ukvm, $(TESTDIRS))
+HVT_TESTS=$(subst test, _test_hvt, $(TESTDIRS))
 VIRTIO_TESTS=$(subst test, _test_virtio, $(TESTDIRS))
 MUEN_TESTS=$(subst test, _test_muen, $(TESTDIRS))
 CLEANS=$(subst test, _clean, $(TESTDIRS))
 
-all: $(UKVM_TESTS) $(VIRTIO_TESTS) $(MUEN_TESTS)
+all: $(HVT_TESTS) $(VIRTIO_TESTS) $(MUEN_TESTS)
 
-ukvm: $(UKVM_TESTS)
+hvt: $(HVT_TESTS)
 
 virtio: $(VIRTIO_TESTS)
 
@@ -36,8 +36,8 @@ clean: $(CLEANS)
 
 .PHONY: force_it
 
-_test_ukvm%: force_it
-	$(MAKE) -C $(subst _test_ukvm, test, $@) ukvm
+_test_hvt%: force_it
+	$(MAKE) -C $(subst _test_hvt, test, $@) hvt
 
 _test_virtio%: force_it
 	$(MAKE) -C $(subst _test_virtio, test, $@) virtio

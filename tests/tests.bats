@@ -34,8 +34,8 @@ setup() {
   fi
 
   case "${BATS_TEST_NAME}" in
-  *ukvm)
-    [ "${BUILD_UKVM}" = "no" ] && skip "ukvm not built"
+  *hvt)
+    [ "${BUILD_HVT}" = "no" ] && skip "hvt not built"
     case ${TEST_TARGET} in
     *-linux-gnu)
       [ -c /dev/kvm -a -w /dev/kvm ] || skip "no access to /dev/kvm or not present"
@@ -71,8 +71,8 @@ teardown() {
   rm -f ${DISK}
 }
 
-@test "hello ukvm" {
-  run ${TIMEOUT} --foreground 30s test_hello/ukvm-bin test_hello/test_hello.ukvm Hello_Solo5
+@test "hello hvt" {
+  run ${TIMEOUT} --foreground 30s test_hello/solo5-hvt test_hello/test_hello.hvt Hello_Solo5
   [ "$status" -eq 0 ]
 }
 
@@ -82,8 +82,8 @@ teardown() {
   [[ "$output" == *"SUCCESS"* ]]
 }
 
-@test "quiet ukvm" {
-  run ${TIMEOUT} --foreground 30s test_quiet/ukvm-bin test_quiet/test_quiet.ukvm --solo5:quiet
+@test "quiet hvt" {
+  run ${TIMEOUT} --foreground 30s test_quiet/solo5-hvt test_quiet/test_quiet.hvt --solo5:quiet
   [ "$status" -eq 0 ]
   [[ "$output" == *"SUCCESS"* ]]
   [[ "$output" != *"Solo5:"* ]]
@@ -114,8 +114,8 @@ teardown() {
   esac
 }
 
-@test "globals ukvm" {
-  run ${TIMEOUT} --foreground 30s test_globals/ukvm-bin test_globals/test_globals.ukvm
+@test "globals hvt" {
+  run ${TIMEOUT} --foreground 30s test_globals/solo5-hvt test_globals/test_globals.hvt
   [ "$status" -eq 0 ]
 }
 
@@ -125,8 +125,8 @@ teardown() {
   [[ "$output" == *"SUCCESS"* ]]
 }
 
-@test "exception ukvm" {
-  run ${TIMEOUT} --foreground 30s test_exception/ukvm-bin test_exception/test_exception.ukvm
+@test "exception hvt" {
+  run ${TIMEOUT} --foreground 30s test_exception/solo5-hvt test_exception/test_exception.hvt
   [ "$status" -eq 255 ]
 }
 
@@ -136,8 +136,8 @@ teardown() {
   [[ "$output" == *"ABORT"* ]]
 }
 
-@test "fpu ukvm" {
-  run ${TIMEOUT} --foreground 30s test_fpu/ukvm-bin test_fpu/test_fpu.ukvm
+@test "fpu hvt" {
+  run ${TIMEOUT} --foreground 30s test_fpu/solo5-hvt test_fpu/test_fpu.hvt
   [ "$status" -eq 0 ]
 }
 
@@ -147,8 +147,8 @@ teardown() {
   [[ "$output" == *"SUCCESS"* ]]
 }
 
-@test "time ukvm" {
-  run ${TIMEOUT} --foreground 30s test_time/ukvm-bin test_time/test_time.ukvm
+@test "time hvt" {
+  run ${TIMEOUT} --foreground 30s test_time/solo5-hvt test_time/test_time.hvt
   [ "$status" -eq 0 ]
 }
 
@@ -158,8 +158,8 @@ teardown() {
   [[ "$output" == *"SUCCESS"* ]]
 }
 
-@test "blk ukvm" {
-  run ${TIMEOUT} --foreground 30s test_blk/ukvm-bin --disk=${DISK} test_blk/test_blk.ukvm
+@test "blk hvt" {
+  run ${TIMEOUT} --foreground 30s test_blk/solo5-hvt --disk=${DISK} test_blk/test_blk.hvt
   [ "$status" -eq 0 ]
 }
 
@@ -169,9 +169,9 @@ teardown() {
   [[ "$output" == *"SUCCESS"* ]]
 }
 
-@test "ping-serve ukvm" {
-  UKVM=test_ping_serve/ukvm-bin
-  UNIKERNEL=test_ping_serve/test_ping_serve.ukvm
+@test "ping-serve hvt" {
+  TENDER=test_ping_serve/solo5-hvt
+  UNIKERNEL=test_ping_serve/test_ping_serve.hvt
 
   [ $(id -u) -ne 0 ] && skip "Need root to run this test, for ping -f"
 
@@ -180,7 +180,7 @@ teardown() {
     ${TIMEOUT} 30s ping -fq -c 100000 ${NET_IP} 
   ) &
 
-  run ${TIMEOUT} --foreground 30s ${UKVM} --net=${NET} -- ${UNIKERNEL} limit
+  run ${TIMEOUT} --foreground 30s ${TENDER} --net=${NET} -- ${UNIKERNEL} limit
   [ "$status" -eq 0 ]
 }
 
@@ -199,7 +199,7 @@ teardown() {
   [[ "$output" == *"SUCCESS"* ]]
 }
 
-@test "abort ukvm" {
+@test "abort hvt" {
   case ${TEST_TARGET} in
     x86_64-linux-gnu|x86_64-*-freebsd*)
       ;;
@@ -207,7 +207,7 @@ teardown() {
       skip "not implemented for ${TEST_TARGET}"
       ;;
   esac
-  run ${TIMEOUT} --foreground 30s test_abort/ukvm-bin --dumpcore test_abort/test_abort.ukvm
+  run ${TIMEOUT} --foreground 30s test_abort/solo5-hvt --dumpcore test_abort/test_abort.hvt
   [ "$status" -eq 255 ]
   CORE=`echo "$output" | grep -o "core\.ukvm\.[0-9]*$"`
   [ -f "$CORE" ]
