@@ -27,11 +27,11 @@ void platform_init(void *arg)
 
 void platform_exit(int status, void *cookie)
 {
-    struct ukvm_halt h;
+    struct vt_halt h;
 
     h.exit_status = status;
     h.cookie = cookie;
 
-    ukvm_do_hypercall(UKVM_HYPERCALL_HALT, &h);
+    vt_do_hypercall(VT_HYPERCALL_HALT, &h);
     for(;;);
 }

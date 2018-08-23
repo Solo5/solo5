@@ -22,26 +22,26 @@
 
 solo5_result_t solo5_net_write(const uint8_t *buf, size_t size)
 {
-    volatile struct ukvm_netwrite wr;
+    volatile struct vt_netwrite wr;
 
     wr.data = buf;
     wr.len = size;
     wr.ret = 0;
 
-    ukvm_do_hypercall(UKVM_HYPERCALL_NETWRITE, &wr);
+    vt_do_hypercall(VT_HYPERCALL_NETWRITE, &wr);
 
     return (wr.ret == 0 && wr.len == size) ? SOLO5_R_OK : SOLO5_R_EUNSPEC;
 }
 
 solo5_result_t solo5_net_read(uint8_t *buf, size_t size, size_t *read_size)
 {
-    volatile struct ukvm_netread rd;
+    volatile struct vt_netread rd;
 
     rd.data = buf;
     rd.len = size;
     rd.ret = 0;
 
-    ukvm_do_hypercall(UKVM_HYPERCALL_NETREAD, &rd);
+    vt_do_hypercall(VT_HYPERCALL_NETREAD, &rd);
 
     *read_size = rd.len;
     return (rd.ret == 0) ? SOLO5_R_OK : SOLO5_R_AGAIN;
@@ -49,9 +49,9 @@ solo5_result_t solo5_net_read(uint8_t *buf, size_t size, size_t *read_size)
 
 void solo5_net_info(struct solo5_net_info *info)
 {
-    volatile struct ukvm_netinfo ni;
+    volatile struct vt_netinfo ni;
 
-    ukvm_do_hypercall(UKVM_HYPERCALL_NETINFO, &ni);
+    vt_do_hypercall(VT_HYPERCALL_NETINFO, &ni);
 
     memcpy(info->mac_address, (uint8_t *)&ni.mac_address,
             sizeof info->mac_address);

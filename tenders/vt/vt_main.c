@@ -1,7 +1,7 @@
 /* 
  * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
  *
- * This file is part of ukvm, a unikernel monitor.
+ * This file is part of Solo5, a sandboxed execution environment.
  *
  * Permission to use, copy, modify, and/or distribute this software
  * for any purpose with or without fee is hereby granted, provided
@@ -19,7 +19,7 @@
  */
 
 /*
- * ukvm_main.c: Main program.
+ * vt_main.c: Main program.
  */
 
 #define _GNU_SOURCE
@@ -37,7 +37,7 @@
 
 static void setup_cmdline(char *cmdline, int argc, char **argv)
 {
-    size_t cmdline_free = UKVM_CMDLINE_SIZE;
+    size_t cmdline_free = VT_CMDLINE_SIZE;
 
     cmdline[0] = 0;
 
@@ -46,7 +46,7 @@ static void setup_cmdline(char *cmdline, int argc, char **argv)
                 (argc > 1) ? " " : "");
         if (alen >= cmdline_free) {
             errx(1, "Guest command line too long (max=%d characters)",
-                    UKVM_CMDLINE_SIZE - 1);
+                    VT_CMDLINE_SIZE - 1);
             break;
         }
         cmdline_free -= alen;
@@ -54,9 +54,9 @@ static void setup_cmdline(char *cmdline, int argc, char **argv)
     }
 }
 
-static void setup_modules(struct ukvm_hv *hv)
+static void setup_modules(struct vt_hv *hv)
 {
-    for (struct ukvm_module **m = ukvm_core_modules; *m; m++) {
+    for (struct vt_module **m = vt_core_modules; *m; m++) {
         assert((*m)->setup);
         if ((*m)->setup(hv)) {
             warnx("Module `%s' setup failed", (*m)->name);
@@ -71,7 +71,7 @@ static void setup_modules(struct ukvm_hv *hv)
 
 static int handle_cmdarg(char *cmdarg)
 {
-    for (struct ukvm_module **m = ukvm_core_modules; *m; m++) {
+    for (struct vt_module **m = vt_core_modules; *m; m++) {
         if ((*m)->handle_cmdarg) {
             if ((*m)->handle_cmdarg(cmdarg) == 0) {
                 return 0;
@@ -107,14 +107,14 @@ static void usage(const char *prog)
     fprintf(stderr, "  [ --mem=512 ] (guest memory in MB)\n");
     fprintf(stderr, "    --help (display this help)\n");
     fprintf(stderr, "Compiled-in modules: ");
-    for (struct ukvm_module **m = ukvm_core_modules; *m; m++) {
+    for (struct vt_module **m = vt_core_modules; *m; m++) {
         assert((*m)->name);
         fprintf(stderr, "%s ", (*m)->name);
     }
     fprintf(stderr, "\n");
     fprintf(stderr, "Compiled-in module options:\n");
     int nm = 0;
-    for (struct ukvm_module **m = ukvm_core_modules; *m; m++) {
+    for (struct vt_module **m = vt_core_modules; *m; m++) {
         if ((*m)->usage) {
             fprintf(stderr, "    %s\n", (*m)->usage());
             nm++;
@@ -128,7 +128,7 @@ static void usage(const char *prog)
 int main(int argc, char **argv)
 {
     size_t mem_size = 0x20000000;
-    ukvm_gpa_t gpa_ep, gpa_kend;
+    vt_gpa_t gpa_ep, gpa_kend;
     const char *prog;
     const char *elffile;
     int matched;
@@ -185,16 +185,16 @@ int main(int argc, char **argv)
     if (sigaction(SIGTERM, &sa, NULL) == -1)
         err(1, "Could not install signal handler");
 
-    ukvm_hv_mem_size(&mem_size);
-    struct ukvm_hv *hv = ukvm_hv_init(mem_size);
+    vt_hv_mem_size(&mem_size);
+    struct vt_hv *hv = vt_hv_init(mem_size);
 
-    ukvm_elf_load(elffile, hv->mem, hv->mem_size, &gpa_ep, &gpa_kend);
+    vt_elf_load(elffile, hv->mem, hv->mem_size, &gpa_ep, &gpa_kend);
 
     char *cmdline;
-    ukvm_hv_vcpu_init(hv, gpa_ep, gpa_kend, &cmdline);
+    vt_hv_vcpu_init(hv, gpa_ep, gpa_kend, &cmdline);
     setup_cmdline(cmdline, argc, argv);
 
     setup_modules(hv);
 
-    return ukvm_hv_vcpu_loop(hv);
+    return vt_hv_vcpu_loop(hv);
 }

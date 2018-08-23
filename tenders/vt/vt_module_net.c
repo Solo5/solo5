@@ -1,7 +1,7 @@
 /* 
  * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
  *
- * This file is part of ukvm, a unikernel monitor.
+ * This file is part of Solo5, a sandboxed execution environment.
  *
  * Permission to use, copy, modify, and/or distribute this software
  * for any purpose with or without fee is hereby granted, provided
@@ -19,7 +19,7 @@
  */
 
 /*
- * ukvm_module_net.c: Network device module.
+ * vt_module_net.c: Network device module.
  */
 
 #include <assert.h>
@@ -63,7 +63,7 @@
 
 static char *netiface;
 static int netfd;
-static struct ukvm_netinfo netinfo;
+static struct vt_netinfo netinfo;
 static int cmdline_mac = 0;
 
 /*
@@ -191,32 +191,32 @@ static int tap_attach(const char *ifname)
     return fd;
 }
 
-static void hypercall_netinfo(struct ukvm_hv *hv, ukvm_gpa_t gpa)
+static void hypercall_netinfo(struct vt_hv *hv, vt_gpa_t gpa)
 {
-    struct ukvm_netinfo *info =
-        UKVM_CHECKED_GPA_P(hv, gpa, sizeof (struct ukvm_netinfo));
+    struct vt_netinfo *info =
+        VT_CHECKED_GPA_P(hv, gpa, sizeof (struct vt_netinfo));
 
     memcpy(info->mac_address, netinfo.mac_address, sizeof(netinfo.mac_address));
 }
 
-static void hypercall_netwrite(struct ukvm_hv *hv, ukvm_gpa_t gpa)
+static void hypercall_netwrite(struct vt_hv *hv, vt_gpa_t gpa)
 {
-    struct ukvm_netwrite *wr =
-        UKVM_CHECKED_GPA_P(hv, gpa, sizeof (struct ukvm_netwrite));
+    struct vt_netwrite *wr =
+        VT_CHECKED_GPA_P(hv, gpa, sizeof (struct vt_netwrite));
     int ret;
 
-    ret = write(netfd, UKVM_CHECKED_GPA_P(hv, wr->data, wr->len), wr->len);
+    ret = write(netfd, VT_CHECKED_GPA_P(hv, wr->data, wr->len), wr->len);
     assert(wr->len == ret);
     wr->ret = 0;
 }
 
-static void hypercall_netread(struct ukvm_hv *hv, ukvm_gpa_t gpa)
+static void hypercall_netread(struct vt_hv *hv, vt_gpa_t gpa)
 {
-    struct ukvm_netread *rd =
-        UKVM_CHECKED_GPA_P(hv, gpa, sizeof (struct ukvm_netread));
+    struct vt_netread *rd =
+        VT_CHECKED_GPA_P(hv, gpa, sizeof (struct vt_netread));
     int ret;
 
-    ret = read(netfd, UKVM_CHECKED_GPA_P(hv, rd->data, rd->len), rd->len);
+    ret = read(netfd, VT_CHECKED_GPA_P(hv, rd->data, rd->len), rd->len);
     if ((ret == 0) ||
         (ret == -1 && errno == EAGAIN)) {
         rd->ret = -1;
@@ -250,7 +250,7 @@ static int handle_cmdarg(char *cmdarg)
     }
 }
 
-static int setup(struct ukvm_hv *hv)
+static int setup(struct vt_hv *hv)
 {
     if (netiface == NULL)
         return -1;
@@ -280,13 +280,13 @@ static int setup(struct ukvm_hv *hv)
         memcpy(netinfo.mac_address, guest_mac, sizeof netinfo.mac_address);
     }
 
-    assert(ukvm_core_register_hypercall(UKVM_HYPERCALL_NETINFO,
+    assert(vt_core_register_hypercall(VT_HYPERCALL_NETINFO,
                 hypercall_netinfo) == 0);
-    assert(ukvm_core_register_hypercall(UKVM_HYPERCALL_NETWRITE,
+    assert(vt_core_register_hypercall(VT_HYPERCALL_NETWRITE,
                 hypercall_netwrite) == 0);
-    assert(ukvm_core_register_hypercall(UKVM_HYPERCALL_NETREAD,
+    assert(vt_core_register_hypercall(VT_HYPERCALL_NETREAD,
                 hypercall_netread) == 0);
-    assert(ukvm_core_register_pollfd(netfd) == 0);
+    assert(vt_core_register_pollfd(netfd) == 0);
 
     return 0;
 }
@@ -297,7 +297,7 @@ static char *usage(void)
         "    [ --net-mac=HWADDR ] (guest MAC address)";
 }
 
-struct ukvm_module ukvm_module_net = {
+struct vt_module vt_module_net = {
     .name = "net",
     .setup = setup,
     .handle_cmdarg = handle_cmdarg,

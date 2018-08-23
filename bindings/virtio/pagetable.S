@@ -1,7 +1,7 @@
 /*
- * For simplicity we currently use the exact same setup as ukvm, 2MB pages with
- * a 3-level page hierarchy. We only map the first 1GB, if you want a unikernel
- * bigger than that, feel free to fix.
+ * For simplicity we currently use the exact same setup as solo5-vt, 2MB pages
+ * with a 3-level page hierarchy. We only map the first 1GB, if you want a
+ * unikernel bigger than that, feel free to fix.
  */
 
 .align 0x1000

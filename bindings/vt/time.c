@@ -20,7 +20,7 @@
 
 #include "bindings.h"
 
-void time_init(struct ukvm_boot_info *bi)
+void time_init(struct vt_boot_info *bi)
 {
     assert(tscclock_init(bi->cpu.tsc_freq) == 0);
 }

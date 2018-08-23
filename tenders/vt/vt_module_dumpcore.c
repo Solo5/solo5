@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2015-2018 Contributors as noted in the AUTHORS file
  *
- * This file is part of ukvm, a unikernel monitor.
+ * This file is part of Solo5, a sandboxed execution environment.
  *
  * Permission to use, copy, modify, and/or distribute this software
  * for any purpose with or without fee is hereby granted, provided
@@ -19,7 +19,7 @@
  */
 
 /*
- * ukvm_module_dumpcore.c: Dumps the unikernel memory as a core file
+ * vt_module_dumpcore.c: Dumps the unikernel memory as a core file
  */
 
 #define _GNU_SOURCE
@@ -74,13 +74,13 @@ typedef unsigned char *host_mvec_t;
 
 static bool use_dumpcore = false;
 
-void ukvm_dumpcore_hook(struct ukvm_hv *hv, int status, void *cookie)
+void vt_dumpcore_hook(struct vt_hv *hv, int status, void *cookie)
 {
     if (status != 255) /* SOLO5_EXIT_ABORT */
         return;
 
-    char filename[20] = { 0 };
-    snprintf(filename, sizeof filename, "core.ukvm.%d", getpid());
+    char filename[40] = { 0 };
+    snprintf(filename, sizeof filename, "core.solo5-vt.%d", getpid());
     /*
      * Note that O_APPEND must not be set as this modifies the behaviour of
      * pwrite() on Linux.
@@ -119,7 +119,7 @@ void ukvm_dumpcore_hook(struct ukvm_hv *hv, int status, void *cookie)
      */
     const char name[8] = "CORE";
     size_t pnote_size = sizeof (Elf64_Nhdr) + sizeof name \
-                        + ukvm_dumpcore_prstatus_size();
+                        + vt_dumpcore_prstatus_size();
     Elf64_Phdr pnote = {
         .p_type = PT_NOTE,
         .p_filesz = pnote_size,
@@ -146,7 +146,7 @@ void ukvm_dumpcore_hook(struct ukvm_hv *hv, int status, void *cookie)
     Elf64_Nhdr nhdr = {
         .n_type = NT_PRSTATUS,
         .n_namesz = sizeof name,
-        .n_descsz = ukvm_dumpcore_prstatus_size(),
+        .n_descsz = vt_dumpcore_prstatus_size(),
     };
 
     struct iovec iov[] = {
@@ -166,7 +166,7 @@ void ukvm_dumpcore_hook(struct ukvm_hv *hv, int status, void *cookie)
     /*
      * (5) NT_PRSTATUS content
      */
-    if (ukvm_dumpcore_write_prstatus(fd, hv, cookie) < 0) {
+    if (vt_dumpcore_write_prstatus(fd, hv, cookie) < 0) {
         warnx("dumpcore: Could not retrieve guest state");
         goto failure;
     }
@@ -240,21 +240,21 @@ static char *usage(void)
     return "--dumpcore (enable guest core dump on abort/trap)";
 }
 
-static int setup(struct ukvm_hv *hv)
+static int setup(struct vt_hv *hv)
 {
     if (!use_dumpcore)
         return 0;
 
-    if (ukvm_core_register_halt_hook(ukvm_dumpcore_hook) == -1)
+    if (vt_core_register_halt_hook(vt_dumpcore_hook) == -1)
         return -1;
 
-    if (ukvm_dumpcore_supported() == -1)
+    if (vt_dumpcore_supported() == -1)
         errx(1, "dumpcore: not implemented for this backend/architecture");
 
     return 0;
 }
 
-struct ukvm_module ukvm_module_dumpcore = {
+struct vt_module vt_module_dumpcore = {
     .name = "dumpcore",
     .setup = setup,
     .handle_cmdarg = handle_cmdarg,

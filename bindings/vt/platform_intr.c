@@ -21,7 +21,7 @@
 #include "bindings.h"
 
 /*
- * Interrupts are not used on the ukvm platform, hence these are stubs.
+ * Interrupts are not used on the vt platform, hence these are stubs.
  */
 
 void platform_intr_ack_irq(unsigned irq __attribute__((unused)))

@@ -1,7 +1,7 @@
 /* 
  * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
  *
- * This file is part of ukvm, a unikernel monitor.
+ * This file is part of Solo5, a sandboxed execution environment.
  *
  * Permission to use, copy, modify, and/or distribute this software
  * for any purpose with or without fee is hereby granted, provided
@@ -19,7 +19,7 @@
  */
 
 /*
- * ukvm_hv_kvm.c: Architecture-independent part of KVM backend implementation.
+ * vt_hv_kvm.c: Architecture-independent part of KVM backend implementation.
  */
 
 #define _GNU_SOURCE
@@ -35,18 +35,18 @@
 #include "vt.h"
 #include "vt_hv_kvm.h"
 
-struct ukvm_hv *ukvm_hv_init(size_t mem_size)
+struct vt_hv *vt_hv_init(size_t mem_size)
 {
     int ret;
 
-    struct ukvm_hv *hv = malloc(sizeof (struct ukvm_hv));
+    struct vt_hv *hv = malloc(sizeof (struct vt_hv));
     if (hv == NULL)
         err(1, "malloc");
-    memset(hv, 0, sizeof (struct ukvm_hv));
-    struct ukvm_hvb *hvb = malloc(sizeof (struct ukvm_hvb));
+    memset(hv, 0, sizeof (struct vt_hv));
+    struct vt_hvb *hvb = malloc(sizeof (struct vt_hvb));
     if (hvb == NULL)
         err(1, "malloc");
-    memset(hvb, 0, sizeof (struct ukvm_hvb));
+    memset(hvb, 0, sizeof (struct vt_hvb));
 
     hvb->kvmfd = open("/dev/kvm", O_RDWR | O_CLOEXEC);
     if (hvb->kvmfd == -1)
@@ -55,7 +55,7 @@ struct ukvm_hv *ukvm_hv_init(size_t mem_size)
     if (ret == -1)
         err(1, "KVM: ioctl (GET_API_VERSION) failed");
     if (ret != 12)
-        errx(1, "KVM: API version is %d, ukvm requires version 12", ret);
+        errx(1, "KVM: API version is %d, solo5-vt requires version 12", ret);
     hvb->vmfd = ioctl(hvb->kvmfd, KVM_CREATE_VM, 0);
     if (hvb->vmfd == -1)
         err(1, "KVM: ioctl (CREATE_VM) failed");

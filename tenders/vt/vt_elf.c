@@ -1,7 +1,7 @@
 /* 
  * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
  *
- * This file is part of ukvm, a unikernel monitor.
+ * This file is part of Solo5, a sandboxed execution environment.
  *
  * Permission to use, copy, modify, and/or distribute this software
  * for any purpose with or without fee is hereby granted, provided
@@ -19,7 +19,7 @@
  */
 
 /*
- * ukvm_elf.c: ELF loader.
+ * vt_elf.c: ELF loader.
  *
  * This module should be kept backend-independent and architectural
  * dependencies should be self-contained.
@@ -87,8 +87,8 @@ static ssize_t pread_in_full(int fd, void *buf, size_t count, off_t offset)
  *   |             |  [PROT_EXEC|READ]  |                |
  *
  */
-void ukvm_elf_load(const char *file, uint8_t *mem, size_t mem_size,
-       ukvm_gpa_t *p_entry, ukvm_gpa_t *p_end)
+void vt_elf_load(const char *file, uint8_t *mem, size_t mem_size,
+       vt_gpa_t *p_entry, vt_gpa_t *p_end)
 {
     int fd_kernel;
     ssize_t numb;

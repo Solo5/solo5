@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
  *
- * This file is part of ukvm, a unikernel monitor.
+ * This file is part of Solo5, a sandboxed execution environment.
  *
  * Permission to use, copy, modify, and/or distribute this software
  * for any purpose with or without fee is hereby granted, provided
@@ -19,25 +19,25 @@
  */
 
 /*
- * ukvm_guest.h: UKVM guest-side API definitions.
+ * vt_guest.h: VT guest hypercall ABI definitions.
  *
  * This header file must be kept self-contained with no external dependencies
  * other than C99 headers.
  *
- * This header file is dual-use; monitor code will define UKVM_HOST when
+ * This header file is dual-use; tender code will define VT_HOST when
  * including it.
  */
 
-#ifndef UKVM_GUEST_H
-#define UKVM_GUEST_H
+#ifndef VT_GUEST_H
+#define VT_GUEST_H
 
 #include <stddef.h>
 #include <stdint.h>
 
 /*
- * Arch-dependent part of struct ukvm_boot_info.
+ * Arch-dependent part of struct vt_boot_info.
  */
-struct ukvm_cpu_boot_info {
+struct vt_cpu_boot_info {
     uint64_t tsc_freq;                  /* TSC frequency in Hz */
 };
 
@@ -45,13 +45,13 @@ struct ukvm_cpu_boot_info {
 /*
  * PIO base address used to dispatch hypercalls.
  */
-#define UKVM_HYPERCALL_PIO_BASE 0x500
+#define VT_HYPERCALL_PIO_BASE 0x500
 
-#    ifdef UKVM_HOST
+#    ifdef VT_HOST
 /*
- * Non-dereferencable monitor-side type representing a guest physical address.
+ * Non-dereferencable tender-side type representing a guest physical address.
  */
-typedef uint64_t ukvm_gpa_t;
+typedef uint64_t vt_gpa_t;
 #    else
 /*
  * On x86, 32-bit PIO is used as the hypercall mechanism. This only supports
@@ -60,7 +60,7 @@ typedef uint64_t ukvm_gpa_t;
  * On x86 the compiler-only memory barrier ("memory" clobber) is sufficient
  * across the hypercall boundary.
  */
-static inline void ukvm_do_hypercall(int n, volatile void *arg)
+static inline void vt_do_hypercall(int n, volatile void *arg)
 {
 #    ifdef assert
     assert(((uint64_t)arg <= UINT32_MAX));
@@ -68,7 +68,7 @@ static inline void ukvm_do_hypercall(int n, volatile void *arg)
     __asm__ __volatile__("outl %0, %1"
             :
             : "a" ((uint32_t)((uint64_t)arg)),
-              "d" ((uint16_t)(UKVM_HYPERCALL_PIO_BASE + n))
+              "d" ((uint16_t)(VT_HYPERCALL_PIO_BASE + n))
             : "memory");
 }
 #    endif
@@ -81,7 +81,7 @@ static inline void ukvm_do_hypercall(int n, volatile void *arg)
  *
  * MMIO start from 4GB, this value can be changed by AARCH64_MMIO_BASE.
  */
-#define UKVM_HYPERCALL_MMIO_BASE    (0x100000000UL)
+#define VT_HYPERCALL_MMIO_BASE    (0x100000000UL)
 
 /*
  * On aarch64, the MMIO address must be 64-bit aligned, because we configured
@@ -89,16 +89,16 @@ static inline void ukvm_do_hypercall(int n, volatile void *arg)
  * an unaligned access. We must access this area in 64-bit.
  *
  * So the real hypercall ID will be calculated as:
- *          UKVM_HYPERCALL_MMIO_BASE + (ID << 3).
+ *          VT_HYPERCALL_MMIO_BASE + (ID << 3).
  */
-#define UKVM_HYPERCALL_ADDRESS(x)   (UKVM_HYPERCALL_MMIO_BASE + ((x) << 3))
-#define UKVM_HYPERCALL_NR(x)        (((x) - UKVM_HYPERCALL_MMIO_BASE) >> 3)
+#define VT_HYPERCALL_ADDRESS(x)   (VT_HYPERCALL_MMIO_BASE + ((x) << 3))
+#define VT_HYPERCALL_NR(x)        (((x) - VT_HYPERCALL_MMIO_BASE) >> 3)
 
-#    ifdef UKVM_HOST
+#    ifdef VT_HOST
 /*
- * Non-dereferencable monitor-side type representing a guest physical address.
+ * Non-dereferencable tender-side type representing a guest physical address.
  */
-typedef uint64_t ukvm_gpa_t;
+typedef uint64_t vt_gpa_t;
 #    else
 /*
  * In order to keep consistency with x86_64, we limit this hypercall only
@@ -108,7 +108,7 @@ typedef uint64_t ukvm_gpa_t;
  * On aarch64 the compiler-only memory barrier ("memory" clobber) is
  * sufficient across the hypercall boundary.
  */
-static inline void ukvm_do_hypercall(int n, volatile void *arg)
+static inline void vt_do_hypercall(int n, volatile void *arg)
 {
 #    ifdef assert
     assert(((uint64_t)arg <= UINT32_MAX));
@@ -116,7 +116,7 @@ static inline void ukvm_do_hypercall(int n, volatile void *arg)
 	__asm__ __volatile__("str %w0, [%1]"
 	        :
 	        : "rZ" ((uint32_t)((uint64_t)arg)),
-	          "r" ((uint64_t)UKVM_HYPERCALL_ADDRESS(n))
+	          "r" ((uint64_t)VT_HYPERCALL_ADDRESS(n))
 	        : "memory");
 }
 #    endif
@@ -126,94 +126,94 @@ static inline void ukvm_do_hypercall(int n, volatile void *arg)
 
 /*
  * Guest-provided pointers in all structures shared between the guest and
- * monitor MUST be declared with UKVM_GUEST_PTR(type), where type is the
- * desired guest-side pointer type. ukvm_gpa_t (defined earlier) will be used
- * as the monitor-side type.
+ * tender MUST be declared with VT_GUEST_PTR(type), where type is the
+ * desired guest-side pointer type. vt_gpa_t (defined earlier) will be used
+ * as the tender-side type.
  *
  * This ensures that these pointers are not directly dereferencable on the
- * monitor side.
+ * tender side.
  */
-#ifdef UKVM_HOST
-#    define UKVM_GUEST_PTR(T) ukvm_gpa_t
+#ifdef VT_HOST
+#    define VT_GUEST_PTR(T) vt_gpa_t
 #else
-#    define UKVM_GUEST_PTR(T) T
+#    define VT_GUEST_PTR(T) T
 #endif
 
 /*
- * A pointer to this structure is passed by the monitor as the sole argument to
+ * A pointer to this structure is passed by the tender as the sole argument to
  * the guest entrypoint.
  */
-struct ukvm_boot_info {
+struct vt_boot_info {
     uint64_t mem_size;                  /* Memory size in bytes */
     uint64_t kernel_end;                /* Address of end of kernel */
-    UKVM_GUEST_PTR(char *) cmdline;     /* Address of command line (C string) */
-    struct ukvm_cpu_boot_info cpu;      /* Arch-dependent part (see above) */
+    VT_GUEST_PTR(char *) cmdline;       /* Address of command line (C string) */
+    struct vt_cpu_boot_info cpu;        /* Arch-dependent part (see above) */
 };
 /*
  * Maximum size of guest command line, including the string terminator.
  */
-#define UKVM_CMDLINE_SIZE 8192
+#define VT_CMDLINE_SIZE 8192
 
 /*
- * Canonical list of hypercalls supported by all monitor modules. Actual calls
+ * Canonical list of hypercalls supported by all tender modules. Actual calls
  * supported at run time depend on module configuration at build time.
  */
-enum ukvm_hypercall {
-    /* UKVM_HYPERCALL_RESERVED=0 */
-    UKVM_HYPERCALL_WALLTIME=1,
-    UKVM_HYPERCALL_PUTS,
-    UKVM_HYPERCALL_POLL,
-    UKVM_HYPERCALL_BLKINFO,
-    UKVM_HYPERCALL_BLKWRITE,
-    UKVM_HYPERCALL_BLKREAD,
-    UKVM_HYPERCALL_NETINFO,
-    UKVM_HYPERCALL_NETWRITE,
-    UKVM_HYPERCALL_NETREAD,
-    UKVM_HYPERCALL_HALT,
-    UKVM_HYPERCALL_MAX
+enum vt_hypercall {
+    /* VT_HYPERCALL_RESERVED=0 */
+    VT_HYPERCALL_WALLTIME=1,
+    VT_HYPERCALL_PUTS,
+    VT_HYPERCALL_POLL,
+    VT_HYPERCALL_BLKINFO,
+    VT_HYPERCALL_BLKWRITE,
+    VT_HYPERCALL_BLKREAD,
+    VT_HYPERCALL_NETINFO,
+    VT_HYPERCALL_NETWRITE,
+    VT_HYPERCALL_NETREAD,
+    VT_HYPERCALL_HALT,
+    VT_HYPERCALL_MAX
 };
 
 /*
  * Hypercall definitions follow.
  */
 
-/* UKVM_HYPERCALL_WALLTIME */
-struct ukvm_walltime {
+/* VT_HYPERCALL_WALLTIME */
+struct vt_walltime {
     /* OUT */
     uint64_t nsecs;
 };
 
-/* UKVM_HYPERCALL_PUTS */
-struct ukvm_puts {
+/* VT_HYPERCALL_PUTS */
+struct vt_puts {
     /* IN */
-    UKVM_GUEST_PTR(const char *) data;
+    VT_GUEST_PTR(const char *) data;
     size_t len;
 };
 
-/* UKVM_HYPERCALL_BLKINFO */
-struct ukvm_blkinfo {
+/* VT_HYPERCALL_BLKINFO */
+struct vt_blkinfo {
     /* OUT */
     size_t sector_size;
     size_t num_sectors;
     int rw;
 };
 
-/* UKVM_HYPERCALL_BLKWRITE */
-struct ukvm_blkwrite {
+/* VT_HYPERCALL_BLKWRITE */
+struct vt_blkwrite {
     /* IN */
     size_t sector;
-    UKVM_GUEST_PTR(const void *) data;
+    VT_GUEST_PTR(const void *) data;
     size_t len;
 
     /* OUT */
     int ret;
 };
 
-/* UKVM_HYPERCALL_BLKREAD */
-struct ukvm_blkread {
+/* VT_HYPERCALL_BLKREAD */
+struct vt_blkread {
     /* IN */
     size_t sector;
-    UKVM_GUEST_PTR(void *) data;
+    VT_GUEST_PTR(void *) data;
 
     /* IN/OUT */
     size_t len;
@@ -222,26 +222,26 @@ struct ukvm_blkread {
     int ret;
 };
 
-/* UKVM_HYPERCALL_NETINFO */
-struct ukvm_netinfo {
+/* VT_HYPERCALL_NETINFO */
+struct vt_netinfo {
     /* OUT */
     uint8_t mac_address[6];
 };
 
-/* UKVM_HYPERCALL_NETWRITE */
-struct ukvm_netwrite {
+/* VT_HYPERCALL_NETWRITE */
+struct vt_netwrite {
     /* IN */
-    UKVM_GUEST_PTR(const void *) data;
+    VT_GUEST_PTR(const void *) data;
     size_t len;
 
     /* OUT */
     int ret;
 };
 
-/* UKVM_HYPERCALL_NETREAD */
-struct ukvm_netread {
+/* VT_HYPERCALL_NETREAD */
+struct vt_netread {
     /* IN */
-    UKVM_GUEST_PTR(void *) data;
+    VT_GUEST_PTR(void *) data;
 
     /* IN/OUT */
     size_t len;
@@ -251,12 +251,12 @@ struct ukvm_netread {
 };
 
 /*
- * UKVM_HYPERCALL_POLL: Block until timeout_nsecs have passed or I/O is
+ * VT_HYPERCALL_POLL: Block until timeout_nsecs have passed or I/O is
  * possible, whichever is sooner. Returns 1 if I/O is possible, otherwise 0.
  *
  * TODO: Extend this interface to select which I/O events are of interest.
  */
-struct ukvm_poll {
+struct vt_poll {
     /* IN */
     uint64_t timeout_nsecs;
 
@@ -265,23 +265,23 @@ struct ukvm_poll {
 };
 
 /*
- * UKVM_HYPERCALL_HALT: Terminate guest execution.
+ * VT_HYPERCALL_HALT: Terminate guest execution.
  *
  * (exit_status) will be returned to the host.
  *
  * Additionally, the guest may supplied a (cookie) providing a hint to the
- * monitor about where e.g. a trap frame may be found in guest memory. The
+ * tender about where e.g. a trap frame may be found in guest memory. The
  * memory area pointed to by (cookie) must allow for at least
- * UKVM_HALT_COOKIE_MAX bytes.
+ * VT_HALT_COOKIE_MAX bytes.
  */
-#define UKVM_HALT_COOKIE_MAX 512
+#define VT_HALT_COOKIE_MAX 512
 
-struct ukvm_halt {
+struct vt_halt {
     /* IN */
-    UKVM_GUEST_PTR(void *) cookie;
+    VT_GUEST_PTR(void *) cookie;
 
     /* IN */
     int exit_status;
 };
 
-#endif /* UKVM_GUEST_H */
+#endif /* VT_GUEST_H */

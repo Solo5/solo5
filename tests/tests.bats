@@ -209,7 +209,7 @@ teardown() {
   esac
   run ${TIMEOUT} --foreground 30s test_abort/solo5-vt --dumpcore test_abort/test_abort.vt
   [ "$status" -eq 255 ]
-  CORE=`echo "$output" | grep -o "core\.ukvm\.[0-9]*$"`
+  CORE=`echo "$output" | grep -o "core\.solo5-vt\.[0-9]*$"`
   [ -f "$CORE" ]
   [ -f "$CORE" ] && mv "$CORE" "$BATS_TMPDIR"
 }

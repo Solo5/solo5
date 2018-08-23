@@ -150,7 +150,8 @@ kvm|qemu)
 
     # Console. We could use just "-nograhic -vga none", however that MUXes the
     # QEMU monitor on stdio which requires ^Ax to exit. This makes things look
-    # more like a normal process (quit with ^C), consistent with bhyve and ukvm.
+    # more like a normal process (quit with ^C), consistent with bhyve and
+    # solo5-vt.
     hv_addargs -display none -serial stdio
 
     # Network

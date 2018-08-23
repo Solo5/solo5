@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
  *
- * This file is part of ukvm, a unikernel monitor.
+ * This file is part of Solo5, a sandboxed execution environment.
  *
  * Permission to use, copy, modify, and/or distribute this software
  * for any purpose with or without fee is hereby granted, provided
@@ -19,12 +19,12 @@
  */
 
 /*
- * ukvm_cpu_aarch64.h: CPU constants and initialisation data common to aarch64
+ * vt_cpu_aarch64.h: CPU constants and initialisation data common to aarch64
  * backend implementations.
  */
 
-#ifndef UKVM_CPU_AARCH64_H
-#define UKVM_CPU_AARCH64_H
+#ifndef VT_CPU_AARCH64_H
+#define VT_CPU_AARCH64_H
 
 #ifndef _BITUL
 
@@ -43,7 +43,7 @@
 #endif
 
 /*
- * As the design of ukvm_do_hypercall, the guest memory has been limited
+ * As the design of vt_do_hypercall, the guest memory has been limited
  * to the area of 0 ~ 4GB. So we can design an address space layout for
  * guest as follow:
  *
@@ -59,7 +59,7 @@
  * 0x011000    PUD
  * 0x010000    PGD, memory start for page table
  *   ...       command line arguments
- * 0x002000    ukvm_boot_info
+ * 0x002000    vt_boot_info
  * 0x001000    non-cacheable page
  * 0x000000    unused ram
  */
@@ -151,4 +151,4 @@ struct pgd {
 void aarch64_setup_memory_mapping(uint8_t *va_addr, uint64_t mem_size, uint64_t space_size);
 void aarch64_mem_size(size_t *mem_size);
 
-#endif /* UKVM_CPU_AARCH64_H */
+#endif /* VT_CPU_AARCH64_H */

@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
  *
- * This file is part of ukvm, a unikernel monitor.
+ * This file is part of Solo5, a sandboxed execution environment.
  *
  * Permission to use, copy, modify, and/or distribute this software
  * for any purpose with or without fee is hereby granted, provided
@@ -19,7 +19,7 @@
  */
 
 /*
- * ukvm_hv_freebsd.c: Architecture-independent part of FreeBSD vmm(4) backend
+ * vt_hv_freebsd.c: Architecture-independent part of FreeBSD vmm(4) backend
  * implementation.
  */
 
@@ -49,11 +49,11 @@
 /*
  * TODO: To ensure that the VM is correctly destroyed on shutdown (normal or
  * not) we currently install an atexit() handler. The top-level API will need
- * to be changed to accomodate this, e.g. by introducing a ukvm_hv_shutdown(),
+ * to be changed to accomodate this, e.g. by introducing a vt_hv_shutdown(),
  * however this is incompatible with the current "fail fast" approach to
  * internal error handling.
  */
-static struct ukvm_hv *cleanup_hv;
+static struct vt_hv *cleanup_hv;
 
 static void cleanup_vm(void)
 {
@@ -68,22 +68,22 @@ static void cleanup_vmfd(void)
         close(cleanup_hv->b->vmfd);
 }
 
-struct ukvm_hv *ukvm_hv_init(size_t mem_size)
+struct vt_hv *vt_hv_init(size_t mem_size)
 {
     int ret;
 
-    struct ukvm_hv *hv = malloc(sizeof (struct ukvm_hv));
+    struct vt_hv *hv = malloc(sizeof (struct vt_hv));
     if (hv == NULL)
         err(1, "malloc");
-    memset(hv, 0, sizeof (struct ukvm_hv));
-    struct ukvm_hvb *hvb = malloc(sizeof (struct ukvm_hvb));
+    memset(hv, 0, sizeof (struct vt_hv));
+    struct vt_hvb *hvb = malloc(sizeof (struct vt_hvb));
     if (hvb == NULL)
         err(1, "malloc");
-    memset(hvb, 0, sizeof (struct ukvm_hvb));
+    memset(hvb, 0, sizeof (struct vt_hvb));
     hv->b = hvb;
     hvb->vmfd = -1;
 
-    int namelen = asprintf(&hvb->vmname, "ukvm%d", getpid());
+    int namelen = asprintf(&hvb->vmname, "solo5-%d", getpid());
     if (namelen == -1)
         err(1, "asprintf");
     ret = sysctlbyname("hw.vmm.create", NULL, NULL, hvb->vmname, namelen);

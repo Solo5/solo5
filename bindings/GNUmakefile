@@ -86,7 +86,7 @@ virtio: virtio/solo5_virtio.o
 vt: vt/solo5_vt.o
 muen: muen/solo5_muen.o
 
-CFLAGS+=-D__SOLO5_KERNEL__
+CFLAGS+=-D__SOLO5_BINDINGS__
 
 ifeq ($(TARGET_ARCH), x86_64)
 # Prevent the compiler from adding optimizations that use shared FPU state.

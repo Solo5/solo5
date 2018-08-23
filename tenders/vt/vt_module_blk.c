@@ -1,7 +1,7 @@
 /* 
  * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
  *
- * This file is part of ukvm, a unikernel monitor.
+ * This file is part of Solo5, a sandboxed execution environment.
  *
  * Permission to use, copy, modify, and/or distribute this software
  * for any purpose with or without fee is hereby granted, provided
@@ -19,7 +19,7 @@
  */
 
 /*
- * ukvm_module_blk.c: Block device module.
+ * vt_module_blk.c: Block device module.
  */
 
 #define _GNU_SOURCE
@@ -33,24 +33,24 @@
 
 #include "vt.h"
 
-static struct ukvm_blkinfo blkinfo;
+static struct vt_blkinfo blkinfo;
 static char *diskfile;
 static int diskfd;
 
-static void hypercall_blkinfo(struct ukvm_hv *hv, ukvm_gpa_t gpa)
+static void hypercall_blkinfo(struct vt_hv *hv, vt_gpa_t gpa)
 {
-    struct ukvm_blkinfo *info =
-        UKVM_CHECKED_GPA_P(hv, gpa, sizeof (struct ukvm_blkinfo));
+    struct vt_blkinfo *info =
+        VT_CHECKED_GPA_P(hv, gpa, sizeof (struct vt_blkinfo));
 
     info->sector_size = blkinfo.sector_size;
     info->num_sectors = blkinfo.num_sectors;
     info->rw = blkinfo.rw;
 }
 
-static void hypercall_blkwrite(struct ukvm_hv *hv, ukvm_gpa_t gpa)
+static void hypercall_blkwrite(struct vt_hv *hv, vt_gpa_t gpa)
 {
-    struct ukvm_blkwrite *wr =
-        UKVM_CHECKED_GPA_P(hv, gpa, sizeof (struct ukvm_blkwrite));
+    struct vt_blkwrite *wr =
+        VT_CHECKED_GPA_P(hv, gpa, sizeof (struct vt_blkwrite));
     ssize_t ret;
     off_t pos, end;
 
@@ -66,16 +66,16 @@ static void hypercall_blkwrite(struct ukvm_hv *hv, ukvm_gpa_t gpa)
         return;
     }
 
-    ret = pwrite(diskfd, UKVM_CHECKED_GPA_P(hv, wr->data, wr->len), wr->len,
+    ret = pwrite(diskfd, VT_CHECKED_GPA_P(hv, wr->data, wr->len), wr->len,
             pos);
     assert(ret == wr->len);
     wr->ret = 0;
 }
 
-static void hypercall_blkread(struct ukvm_hv *hv, ukvm_gpa_t gpa)
+static void hypercall_blkread(struct vt_hv *hv, vt_gpa_t gpa)
 {
-    struct ukvm_blkread *rd =
-        UKVM_CHECKED_GPA_P(hv, gpa, sizeof (struct ukvm_blkread));
+    struct vt_blkread *rd =
+        VT_CHECKED_GPA_P(hv, gpa, sizeof (struct vt_blkread));
     ssize_t ret;
     off_t pos, end;
 
@@ -91,7 +91,7 @@ static void hypercall_blkread(struct ukvm_hv *hv, ukvm_gpa_t gpa)
         return;
     }
 
-    ret = pread(diskfd, UKVM_CHECKED_GPA_P(hv, rd->data, rd->len), rd->len,
+    ret = pread(diskfd, VT_CHECKED_GPA_P(hv, rd->data, rd->len), rd->len,
             pos);
     assert(ret == rd->len);
     rd->ret = 0;
@@ -106,7 +106,7 @@ static int handle_cmdarg(char *cmdarg)
     return 0;
 }
 
-static int setup(struct ukvm_hv *hv)
+static int setup(struct vt_hv *hv)
 {
     if (diskfile == NULL)
         return -1;
@@ -120,11 +120,11 @@ static int setup(struct ukvm_hv *hv)
     blkinfo.num_sectors = lseek(diskfd, 0, SEEK_END) / 512;
     blkinfo.rw = 1;
 
-    assert(ukvm_core_register_hypercall(UKVM_HYPERCALL_BLKINFO,
+    assert(vt_core_register_hypercall(VT_HYPERCALL_BLKINFO,
                 hypercall_blkinfo) == 0);
-    assert(ukvm_core_register_hypercall(UKVM_HYPERCALL_BLKWRITE,
+    assert(vt_core_register_hypercall(VT_HYPERCALL_BLKWRITE,
                 hypercall_blkwrite) == 0);
-    assert(ukvm_core_register_hypercall(UKVM_HYPERCALL_BLKREAD,
+    assert(vt_core_register_hypercall(VT_HYPERCALL_BLKREAD,
                 hypercall_blkread) == 0);
 
     return 0;
@@ -135,7 +135,7 @@ static char *usage(void)
     return "--disk=IMAGE (file exposed to the unikernel as a raw block device)";
 }
 
-struct ukvm_module ukvm_module_blk = {
+struct vt_module vt_module_blk = {
     .name = "blk",
     .setup = setup,
     .handle_cmdarg = handle_cmdarg,

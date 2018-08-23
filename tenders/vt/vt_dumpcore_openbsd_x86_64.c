@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2015-2018 Contributors as noted in the AUTHORS file
  *
- * This file is part of ukvm, a unikernel monitor.
+ * This file is part of Solo5, a sandboxed execution environment.
  *
  * Permission to use, copy, modify, and/or distribute this software
  * for any purpose with or without fee is hereby granted, provided
@@ -19,22 +19,22 @@
  */
 
 /*
- * ukvm_dumpcore_openbsd_x86_64.c: Glue between the dumpcore module and OpenBSD
+ * vt_dumpcore_openbsd_x86_64.c: Glue between the dumpcore module and OpenBSD
  * (x86_64).
  */
 
-int ukvm_dumpcore_supported()
+int vt_dumpcore_supported()
 {
     return -1;
 }
 
-size_t ukvm_dumpcore_prstatus_size(void)
+size_t vt_dumpcore_prstatus_size(void)
 {
     /* Not supported yet */
     return 0;
 }
 
-int ukvm_dumpcore_write_prstatus(int fd, struct ukvm_hv *hv, void *cookie)
+int vt_dumpcore_write_prstatus(int fd, struct vt_hv *hv, void *cookie)
 {
     /* Not supported yet */
     return -1;

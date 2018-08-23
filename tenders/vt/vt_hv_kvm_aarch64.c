@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
  *
- * This file is part of ukvm, a unikernel monitor.
+ * This file is part of Solo5, a sandboxed execution environment.
  *
  * Permission to use, copy, modify, and/or distribute this software
  * for any purpose with or without fee is hereby granted, provided
@@ -19,7 +19,7 @@
  */
 
 /*
- * ukvm_hv_kvm_aarch64.c: aarch64 architecture-dependent part of KVM backend
+ * vt_hv_kvm_aarch64.c: aarch64 architecture-dependent part of KVM backend
  * implementation.
  */
 
@@ -254,12 +254,12 @@ static void aarch64_enable_guest_mmu(int vcpufd)
  * Arguments to the kernel main are passed using the ARM64 calling
  * convention: x0 ~ x7
  */
-static void aarch64_setup_core_registers(struct ukvm_hv *hv,
-                             ukvm_gpa_t gpa_ep, ukvm_gpa_t gpa_kend)
+static void aarch64_setup_core_registers(struct vt_hv *hv,
+                             vt_gpa_t gpa_ep, vt_gpa_t gpa_kend)
 {
     int ret;
-    struct ukvm_hvb *hvb = hv->b;
-    struct ukvm_boot_info *bi;
+    struct vt_hvb *hvb = hv->b;
+    struct vt_boot_info *bi;
 
     /* Set default PSTATE flags to SPSR_EL1 */
     ret = aarch64_set_one_register(hvb->vcpufd, SPSR_EL1,
@@ -276,7 +276,7 @@ static void aarch64_setup_core_registers(struct ukvm_hv *hv,
     if (ret == -1)
          err(1, "Initialize sp[EL1] failed!\n");
 
-    bi = (struct ukvm_boot_info *)(hv->mem + AARCH64_BOOT_INFO);
+    bi = (struct vt_boot_info *)(hv->mem + AARCH64_BOOT_INFO);
     bi->mem_size = hv->mem_size;
     bi->kernel_end = gpa_kend;
     bi->cmdline = AARCH64_CMDLINE_BASE;
@@ -288,7 +288,7 @@ static void aarch64_setup_core_registers(struct ukvm_hv *hv,
      */
     bi->cpu.tsc_freq = aarch64_get_counter_frequency();
 
-    /* Passing ukvm_boot_info through x0 */
+    /* Passing vt_boot_info through x0 */
     ret = aarch64_set_one_register(hvb->vcpufd, REG_X0, AARCH64_BOOT_INFO);
     if (ret == -1)
          err(1, "Set boot info to x0 failed!\n");
@@ -299,10 +299,10 @@ static void aarch64_setup_core_registers(struct ukvm_hv *hv,
          err(1, "Set guest reset entry to PC failed!\n");
 }
 
-void ukvm_hv_vcpu_init(struct ukvm_hv *hv, ukvm_gpa_t gpa_ep,
-        ukvm_gpa_t gpa_kend, char **cmdline)
+void vt_hv_vcpu_init(struct vt_hv *hv, vt_gpa_t gpa_ep,
+        vt_gpa_t gpa_kend, char **cmdline)
 {
-    struct ukvm_hvb *hvb = hv->b;
+    struct vt_hvb *hvb = hv->b;
     uint64_t phys_space_sz;
 
     /*
@@ -331,9 +331,9 @@ static inline uint32_t mmio_read32(void *data)
     return *(uint32_t *)data;
 }
 
-int ukvm_hv_vcpu_loop(struct ukvm_hv *hv)
+int vt_hv_vcpu_loop(struct vt_hv *hv)
 {
-    struct ukvm_hvb *hvb = hv->b;
+    struct vt_hvb *hvb = hv->b;
     int ret;
 
     while (1) {
@@ -353,7 +353,7 @@ int ukvm_hv_vcpu_loop(struct ukvm_hv *hv)
         }
 
         int handled = 0;
-        for (ukvm_vmexit_fn_t *fn = ukvm_core_vmexits; *fn && !handled; fn++)
+        for (vt_vmexit_fn_t *fn = vt_core_vmexits; *fn && !handled; fn++)
             handled = ((*fn)(hv) == 0);
         if (handled)
             continue;
@@ -365,23 +365,23 @@ int ukvm_hv_vcpu_loop(struct ukvm_hv *hv)
             if (!run->mmio.is_write || run->mmio.len != 4)
                 errx(1, "Invalid guest mmio access: mmio=0x%llx len=%d", run->mmio.phys_addr, run->mmio.len);
 
-            if (run->mmio.phys_addr < UKVM_HYPERCALL_MMIO_BASE ||
-                run->mmio.phys_addr >= UKVM_HYPERCALL_ADDRESS(UKVM_HYPERCALL_MAX))
+            if (run->mmio.phys_addr < VT_HYPERCALL_MMIO_BASE ||
+                run->mmio.phys_addr >= VT_HYPERCALL_ADDRESS(VT_HYPERCALL_MAX))
                 errx(1, "Invalid guest mmio access: mmio=0x%llx", run->mmio.phys_addr);
 
-            int nr = UKVM_HYPERCALL_NR(run->mmio.phys_addr);
+            int nr = VT_HYPERCALL_NR(run->mmio.phys_addr);
 
             /* Guest has halted the CPU. */
-            if (nr == UKVM_HYPERCALL_HALT) {
-                ukvm_gpa_t gpa = mmio_read32(run->mmio.data);
-                return ukvm_core_hypercall_halt(hv, gpa);
+            if (nr == VT_HYPERCALL_HALT) {
+                vt_gpa_t gpa = mmio_read32(run->mmio.data);
+                return vt_core_hypercall_halt(hv, gpa);
             }
 
-            ukvm_hypercall_fn_t fn = ukvm_core_hypercalls[nr];
+            vt_hypercall_fn_t fn = vt_core_hypercalls[nr];
             if (fn == NULL)
                 errx(1, "Invalid guest hypercall: num=%d", nr);
 
-            ukvm_gpa_t gpa = mmio_read32(run->mmio.data);
+            vt_gpa_t gpa = mmio_read32(run->mmio.data);
             fn(hv, gpa);
             break;
         }
@@ -406,6 +406,6 @@ int ukvm_hv_vcpu_loop(struct ukvm_hv *hv)
     }
 }
 
-void ukvm_hv_mem_size(size_t *mem_size) {
+void vt_hv_mem_size(size_t *mem_size) {
     aarch64_mem_size(mem_size);
 }

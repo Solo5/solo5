@@ -1,7 +1,7 @@
 /* 
  * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
  *
- * This file is part of ukvm, a unikernel monitor.
+ * This file is part of Solo5, a sandboxed execution environment.
  *
  * Permission to use, copy, modify, and/or distribute this software
  * for any purpose with or without fee is hereby granted, provided
@@ -19,7 +19,7 @@
  */
 
 /*
- * ukvm_hv_kvm_x86_64.c: x86_64 architecture-dependent part of KVM backend
+ * vt_hv_kvm_x86_64.c: x86_64 architecture-dependent part of KVM backend
  * implementation.
  */
 
@@ -38,11 +38,11 @@
 #include "vt_hv_kvm.h"
 #include "vt_cpu_x86_64.h"
 
-void ukvm_hv_mem_size(size_t *mem_size) {
-    ukvm_x86_mem_size(mem_size);
+void vt_hv_mem_size(size_t *mem_size) {
+    vt_x86_mem_size(mem_size);
 }
 
-static void setup_cpuid(struct ukvm_hvb *hvb)
+static void setup_cpuid(struct vt_hvb *hvb)
 {
     struct kvm_cpuid2 *kvm_cpuid;
     int max_entries = 100;
@@ -76,14 +76,14 @@ static struct kvm_segment sreg_to_kvm(const struct x86_sreg *sreg)
     return kvm;
 }
 
-void ukvm_hv_vcpu_init(struct ukvm_hv *hv, ukvm_gpa_t gpa_ep,
-        ukvm_gpa_t gpa_kend, char **cmdline)
+void vt_hv_vcpu_init(struct vt_hv *hv, vt_gpa_t gpa_ep,
+        vt_gpa_t gpa_kend, char **cmdline)
 {
-    struct ukvm_hvb *hvb = hv->b;
+    struct vt_hvb *hvb = hv->b;
     int ret;
 
-    ukvm_x86_setup_gdt(hv->mem);
-    ukvm_x86_setup_pagetables(hv->mem, hv->mem_size);
+    vt_x86_setup_gdt(hv->mem);
+    vt_x86_setup_pagetables(hv->mem, hv->mem_size);
 
     setup_cpuid(hvb);
 
@@ -93,24 +93,24 @@ void ukvm_hv_vcpu_init(struct ukvm_hv *hv, ukvm_gpa_t gpa_ep,
         .cr4 = X86_CR4_INIT,
         .efer = X86_EFER_INIT,
 
-        .cs = sreg_to_kvm(&ukvm_x86_sreg_code),
-        .ss = sreg_to_kvm(&ukvm_x86_sreg_data),
-        .ds = sreg_to_kvm(&ukvm_x86_sreg_data),
-        .es = sreg_to_kvm(&ukvm_x86_sreg_data),
-        .fs = sreg_to_kvm(&ukvm_x86_sreg_data),
-        .gs = sreg_to_kvm(&ukvm_x86_sreg_data),
+        .cs = sreg_to_kvm(&vt_x86_sreg_code),
+        .ss = sreg_to_kvm(&vt_x86_sreg_data),
+        .ds = sreg_to_kvm(&vt_x86_sreg_data),
+        .es = sreg_to_kvm(&vt_x86_sreg_data),
+        .fs = sreg_to_kvm(&vt_x86_sreg_data),
+        .gs = sreg_to_kvm(&vt_x86_sreg_data),
 
         .gdt = { .base = X86_GDT_BASE, .limit = X86_GDTR_LIMIT },
-        .tr = sreg_to_kvm(&ukvm_x86_sreg_tr),
-        .ldt = sreg_to_kvm(&ukvm_x86_sreg_unusable)
+        .tr = sreg_to_kvm(&vt_x86_sreg_tr),
+        .ldt = sreg_to_kvm(&vt_x86_sreg_unusable)
     };
 
     ret = ioctl(hvb->vcpufd, KVM_SET_SREGS, &sregs);
     if (ret == -1)
         err(1, "KVM: ioctl (SET_SREGS) failed");
    
-    struct ukvm_boot_info *bi =
-        (struct ukvm_boot_info *)(hv->mem + X86_BOOT_INFO_BASE);
+    struct vt_boot_info *bi =
+        (struct vt_boot_info *)(hv->mem + X86_BOOT_INFO_BASE);
     bi->mem_size = hv->mem_size;
     bi->kernel_end = gpa_kend;
     bi->cmdline = X86_CMDLINE_BASE;
@@ -130,7 +130,7 @@ void ukvm_hv_vcpu_init(struct ukvm_hv *hv, ukvm_gpa_t gpa_ep,
     /*
      * KVM gives us the VCPU's TSC frequency in kHz; this is marginally less
      * accurate than what we want, but no less accurate than any other
-     * KVM-based monitor.
+     * KVM-based VMM.
      */
     bi->cpu.tsc_freq = tsc_khz * 1000ULL;
 
@@ -141,7 +141,7 @@ void ukvm_hv_vcpu_init(struct ukvm_hv *hv, ukvm_gpa_t gpa_ep,
         .rip = gpa_ep,
         .rflags = X86_RFLAGS_INIT,
         .rsp = hv->mem_size - 8, /* x86_64 ABI requires ((rsp + 8) % 16) == 0 */
-        .rdi = X86_BOOT_INFO_BASE,                  /* arg1 is ukvm_boot_info */
+        .rdi = X86_BOOT_INFO_BASE,                  /* arg1 is vt_boot_info */
     };
     ret = ioctl(hvb->vcpufd, KVM_SET_REGS, &regs);
     if (ret == -1)
@@ -150,9 +150,9 @@ void ukvm_hv_vcpu_init(struct ukvm_hv *hv, ukvm_gpa_t gpa_ep,
     *cmdline = (char *)(hv->mem + X86_CMDLINE_BASE);
 }
 
-int ukvm_hv_vcpu_loop(struct ukvm_hv *hv)
+int vt_hv_vcpu_loop(struct vt_hv *hv)
 {
-    struct ukvm_hvb *hvb = hv->b;
+    struct vt_hvb *hvb = hv->b;
     int ret;
 
     while (1) {
@@ -173,7 +173,7 @@ int ukvm_hv_vcpu_loop(struct ukvm_hv *hv)
         }
 
         int handled = 0;
-        for (ukvm_vmexit_fn_t *fn = ukvm_core_vmexits; *fn && !handled; fn++)
+        for (vt_vmexit_fn_t *fn = vt_core_vmexits; *fn && !handled; fn++)
             handled = ((*fn)(hv) == 0);
         if (handled)
             continue;
@@ -185,24 +185,24 @@ int ukvm_hv_vcpu_loop(struct ukvm_hv *hv)
             if (run->io.direction != KVM_EXIT_IO_OUT
                     || run->io.size != 4)
                 errx(1, "Invalid guest port access: port=0x%x", run->io.port);
-            if (run->io.port < UKVM_HYPERCALL_PIO_BASE ||
-                    run->io.port >= (UKVM_HYPERCALL_PIO_BASE + UKVM_HYPERCALL_MAX))
+            if (run->io.port < VT_HYPERCALL_PIO_BASE ||
+                    run->io.port >= (VT_HYPERCALL_PIO_BASE + VT_HYPERCALL_MAX))
                 errx(1, "Invalid guest port access: port=0x%x", run->io.port);
 
-            int nr = run->io.port - UKVM_HYPERCALL_PIO_BASE;
+            int nr = run->io.port - VT_HYPERCALL_PIO_BASE;
 
             /* Guest has halted the CPU. */
-            if (nr == UKVM_HYPERCALL_HALT) {
-                ukvm_gpa_t gpa =
+            if (nr == VT_HYPERCALL_HALT) {
+                vt_gpa_t gpa =
                     *(uint32_t *)((uint8_t *)run + run->io.data_offset);
-                return ukvm_core_hypercall_halt(hv, gpa);
+                return vt_core_hypercall_halt(hv, gpa);
             }
 
-            ukvm_hypercall_fn_t fn = ukvm_core_hypercalls[nr];
+            vt_hypercall_fn_t fn = vt_core_hypercalls[nr];
             if (fn == NULL)
                 errx(1, "Invalid guest hypercall: num=%d", nr);
 
-            ukvm_gpa_t gpa =
+            vt_gpa_t gpa =
                 *(uint32_t *)((uint8_t *)run + run->io.data_offset);
             fn(hv, gpa);
             break;

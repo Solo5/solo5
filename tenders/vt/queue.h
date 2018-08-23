@@ -31,8 +31,8 @@
  *	@(#)queue.h	8.5 (Berkeley) 8/20/94
  */
 
-#ifndef	_SOLO5_QUEUE_H_
-#define	_SOLO5_QUEUE_H_
+#ifndef	_QUEUE_H_
+#define	_QUEUE_H_
 
 /*
  * This file defines five types of data structures: singly-linked lists,
@@ -79,12 +79,6 @@
  *
  * For details on the use of these macros, see the queue(3) manual page.
  */
-
-/* XXX: Consider moving this to some common libraries directory for solo5 and
- *      ukvm. */
-#ifdef __SOLO5_KERNEL__
-#    include "kernel.h"
-#endif
 
 /*
  * Singly-linked List definitions.
@@ -641,4 +635,4 @@ struct {								\
 	        ((struct type *)(void *)				\
 		((char *)((head)->stqh_last) - offsetof(struct type, field))))
 
-#endif	/* !_SOLO5_QUEUE_H_ */
+#endif	/* !_QUEUE_H_ */

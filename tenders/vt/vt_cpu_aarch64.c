@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
  *
- * This file is part of ukvm, a unikernel monitor.
+ * This file is part of Solo5, a sandboxed execution environment.
  *
  * Permission to use, copy, modify, and/or distribute this software
  * for any purpose with or without fee is hereby granted, provided
@@ -19,7 +19,7 @@
  */
 
 /*
- * ukvm_cpu_aarch64.c: Common architecture-dependent code supporting aarch64
+ * vt_cpu_aarch64.c: Common architecture-dependent code supporting aarch64
  * backend implementations.
  */
 #include <err.h>
@@ -78,13 +78,13 @@ void aarch64_setup_memory_mapping(uint8_t *va_addr, uint64_t ram_size,
     uint64_t map_size, pud_table;
 
     /*
-     * In order to keep consistency with x86_64, we limit ukvm_hypercall only
+     * In order to keep consistency with x86_64, we limit vt_hypercall only
      * to support sending 32-bit pointers. So we limit the guest to support
      * only 4GB memory. This will avoid using additional code to guarantee the
      * hypercall parameters are using the memory below 4GB.
      *
      * Address above 4GB is using for MMIO space now. This would be changed
-     * easily if the design of ukvm_hypercall would be changed in the future.
+     * easily if the design of vt_hypercall would be changed in the future.
      */
     if (ram_size > AARCH64_MMIO_BASE)
         err(1, "The guest memory [0x%lx] exceeds the max size [0x%lx]\n",

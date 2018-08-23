@@ -1,7 +1,7 @@
 /* 
  * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
  *
- * This file is part of ukvm, a unikernel monitor.
+ * This file is part of Solo5, a sandboxed execution environment.
  *
  * Permission to use, copy, modify, and/or distribute this software
  * for any purpose with or without fee is hereby granted, provided
@@ -19,11 +19,11 @@
  */
 
 /*
- * ukvm_gdb_x86_64.h: GDB constants common to x86_64 backend implementations.
+ * vt_gdb_x86_64.h: GDB constants common to x86_64 backend implementations.
  */
 
-#ifndef UKVM_GDB_X86_64_H
-#define UKVM_GDB_X86_64_H
+#ifndef VT_GDB_X86_64_H
+#define VT_GDB_X86_64_H
 
 /*
  * XXX: Can't find any gdb include file with the list of registers per
@@ -40,7 +40,7 @@
  * (gdb)
  */
 
-struct ukvm_gdb_regs {
+struct vt_gdb_regs {
     uint64_t rax;
     uint64_t rbx;
     uint64_t rcx;
@@ -68,4 +68,4 @@ struct ukvm_gdb_regs {
     uint32_t gs;
 };
 
-#endif /* UKVM_GDB_X86_64_H */
+#endif /* VT_GDB_X86_64_H */
