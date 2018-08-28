@@ -9,22 +9,15 @@ homepage: "https://github.com/solo5/solo5"
 bug-reports: "https://github.com/solo5/solo5/issues"
 license: "ISC"
 dev-repo: "https://github.com/solo5/solo5.git"
-build: [make "ukvm"]
-install: [make "opam-ukvm-install" "PREFIX=%{prefix}%"]
-remove: [make "opam-ukvm-uninstall" "PREFIX=%{prefix}%"]
+build: [make "muen"]
+install: [make "opam-muen-install" "PREFIX=%{prefix}%"]
+remove: [make "opam-muen-uninstall" "PREFIX=%{prefix}%"]
 depends: "conf-pkg-config"
-depexts: [
-  [["alpine"] ["linux-headers"]]
-  [["debian"] ["linux-libc-dev"]]
-  [["fedora"] ["kernel-headers"]]
-  [["rhel"] ["kernel-headers"]]
-  [["ubuntu"] ["linux-libc-dev"]]
-]
 conflicts: [
-  "solo5-kernel-virtio"
-  "solo5-kernel-muen"
+  "solo5-bindings-vt"
+  "solo5-bindings-virtio"
 ]
 available: [
-  ocaml-version >= "4.02.3" & (arch = "x86_64" | arch = "amd64" | arch = "aarch64") &
+  ocaml-version >= "4.02.3" & (arch = "x86_64" | arch = "amd64") &
   (os = "linux" | os = "freebsd" | os = "openbsd")
 ]
