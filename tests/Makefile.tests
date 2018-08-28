@@ -51,8 +51,8 @@ $(BINDINGS_DIR)/hvt/solo5_hvt.o:
 endif
 
 ifeq ($(BUILD_MUEN), yes)
-%.muen: %.o $(BINDINGS_DIR)/hvt/solo5_hvt.lds $(BINDINGS_DIR)/muen/solo5_muen.o
-	$(LD) -T $(BINDINGS_DIR)/hvt/solo5_hvt.lds $(LDFLAGS) -o $@ $(BINDINGS_DIR)/muen/solo5_muen.o $< $(LDLIBS)
+%.muen: %.o $(BINDINGS_DIR)/muen/solo5_muen.lds $(BINDINGS_DIR)/muen/solo5_muen.o
+	$(LD) -T $(BINDINGS_DIR)/muen/solo5_muen.lds $(LDFLAGS) -o $@ $(BINDINGS_DIR)/muen/solo5_muen.o $< $(LDLIBS)
 
 $(BINDINGS_DIR)/muen/solo5_muen.o:
 	$(MAKE) -C $(BINDINGS_DIR) muen

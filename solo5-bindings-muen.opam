@@ -9,15 +9,15 @@ homepage: "https://github.com/solo5/solo5"
 bug-reports: "https://github.com/solo5/solo5/issues"
 license: "ISC"
 dev-repo: "https://github.com/solo5/solo5.git"
-build: [make "virtio"]
-install: [make "opam-virtio-install" "PREFIX=%{prefix}%"]
-remove: [make "opam-virtio-uninstall" "PREFIX=%{prefix}%"]
+build: [make "muen"]
+install: [make "opam-muen-install" "PREFIX=%{prefix}%"]
+remove: [make "opam-muen-uninstall" "PREFIX=%{prefix}%"]
 depends: "conf-pkg-config"
 conflicts: [
-  "solo5-kernel-ukvm"
-  "solo5-kernel-muen"
+  "solo5-bindings-hvt"
+  "solo5-bindings-virtio"
 ]
 available: [
   ocaml-version >= "4.02.3" & (arch = "x86_64" | arch = "amd64") &
-  os != "darwin"
+  (os = "linux" | os = "freebsd" | os = "openbsd")
 ]

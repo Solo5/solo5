@@ -108,7 +108,7 @@ hvt/solo5_hvt.o: $(HVT_COBJS) hvt/solo5_hvt.lds
 	$(LD) -r $(LDFLAGS) -o $@ $(HVT_COBJS)
 	$(OBJCOPY) -w -G solo5_\* -G _start\* $@ $@
 
-muen/solo5_muen.o: $(MUEN_COBJS) hvt/solo5_hvt.lds
+muen/solo5_muen.o: $(MUEN_COBJS) muen/solo5_muen.lds
 	$(LD) -r $(LDFLAGS) -o $@ $(MUEN_COBJS)
 	$(OBJCOPY) -w -G solo5_\* -G _start\* $@ $@
 
