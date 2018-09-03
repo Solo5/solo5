@@ -155,7 +155,7 @@ case $(uname -s) in
         for f in ${SRCS_AMD64}; do cp -f ${INCDIR}/$f ${HOST_INCDIR}/amd64; done
         for f in ${SRCS}; do cp -f ${INCDIR}/$f ${HOST_INCDIR}; done
 
-        HOST_CFLAGS="-fno-pie -fno-stack-protector -nostdlibinc"
+        HOST_CFLAGS="-fno-stack-protector -nostdlibinc"
         HOST_LDFLAGS="-nopie"
         BUILD_UKVM="yes"
         BUILD_VIRTIO="yes"
