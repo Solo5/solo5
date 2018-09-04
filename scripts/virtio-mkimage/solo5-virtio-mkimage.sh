@@ -18,9 +18,9 @@
 # CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 #
-# solo5-mkimage: Builds an MBR-partitioned disk image with SYSLINUX and a
-# unikernel in it. The image file is sparse, sized to 1GB (or modify $SIZE
-# below).
+# solo5-virtio-mkimage: Builds an MBR-partitioned disk image with SYSLINUX and
+# a virtio unikernel in it. The image file is sparse, sized to 1GB (or modify
+# $SIZE below).
 #
 # Requirements: A Linux system with sfdisk, mtools and syslinux installed.
 # Path names for syslinux library files are based on those for Debian/Alpine,
@@ -29,7 +29,7 @@
 usage ()
 {
     cat <<EOM 1>&2
-usage: solo5-mkimage [ OPTIONS ] [ -- ] IMAGE UNIKERNEL [ ARGUMENTS ... ]
+usage: solo5-virtio-mkimage [ OPTIONS ] [ -- ] IMAGE UNIKERNEL [ ARGUMENTS ... ]
 
 Builds an MBR-partitioned disk IMAGE with a boot loader and UNIKERNEL in it.
 ARGUMENTS, if specified, will be embedded in the image and passed to the
@@ -38,7 +38,7 @@ unikernel at boot time.
 UNIKERNEL must be a unikernel built for the 'virtio' target.
 
 Options:
-    -d: Run in a Docker container (using mato/solo5-mkimage).
+    -d: Run in a Docker container (using mato/solo5-virtio-mkimage).
 
     -f FORMAT: Output a 'raw' disk image (default) or a 'tar' file suitable
         for uploading to Google Compute Engine.
@@ -48,7 +48,7 @@ EOM
 
 die ()
 {
-    echo solo5-mkimage: error: "$@" 1>&2
+    echo solo5-virtio-mkimage: error: "$@" 1>&2
     if [ -n "${TMPDIR}" -a -f "${TMPDIR}"/log ]; then
         echo For more information, see ${TMPDIR}/log
         PRESERVE_TMPDIR=1
@@ -133,7 +133,7 @@ if [ -n "${RUN_IN_DOCKER}" ]; then
     exec docker run --rm \
         ${TMPFS} \
         -v ${SRCDIR}:/host/src -v ${DESTDIR}:/host/dest \
-        mato/solo5-mkimage -f ${FORMAT} \
+        mato/solo5-virtio-mkimage -f ${FORMAT} \
             -- \
             /host/dest/${DESTFILE} /host/src/${SRCFILE} "$@"
 fi

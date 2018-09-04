@@ -88,15 +88,15 @@ opam-virtio-install: solo5-kernel-virtio.pc virtio
 	mkdir -p $(OPAM_BINDIR)
 	mkdir -p $(PREFIX)/lib/pkgconfig
 	cp solo5-kernel-virtio.pc $(PREFIX)/lib/pkgconfig
-	cp tools/mkimage/solo5-mkimage.sh ${OPAM_BINDIR}/solo5-mkimage
-	cp tools/run/solo5-run-virtio.sh ${OPAM_BINDIR}/solo5-run-virtio
+	cp scripts/virtio-mkimage/solo5-virtio-mkimage.sh ${OPAM_BINDIR}/solo5-virtio-mkimage
+	cp scripts/virtio-run/solo5-virtio-run.sh ${OPAM_BINDIR}/solo5-virtio-run
 
 .PHONY: opam-virtio-uninstall
 opam-virtio-uninstall:
 	rm -rf $(OPAM_VIRTIO_INCDIR) $(OPAM_VIRTIO_LIBDIR)
 	rm -f $(PREFIX)/lib/pkgconfig/solo5-kernel-virtio.pc
-	rm -f ${OPAM_BINDIR}/solo5-mkimage
-	rm -f ${OPAM_BINDIR}/solo5-run-virtio
+	rm -f ${OPAM_BINDIR}/solo5-virtio-mkimage
+	rm -f ${OPAM_BINDIR}/solo5-virtio-run
 
 .PHONY: opam-ukvm-install
 opam-ukvm-install: solo5-kernel-ukvm.pc ukvm

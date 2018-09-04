@@ -20,7 +20,7 @@
 usage ()
 {
     cat <<EOM 1>&2
-Usage: solo5-run-virtio [ OPTIONS ] UNIKERNEL [ -- ] [ ARGUMENTS ... ]
+Usage: solo5-virtio-run [ OPTIONS ] UNIKERNEL [ -- ] [ ARGUMENTS ... ]
 
 Launch the Solo5 UNIKERNEL (virtio target). Unikernel output is sent to stdout.
 
@@ -40,7 +40,7 @@ EOM
 
 die ()
 {
-    echo solo5-run-virtio: error: "$@" 1>&2
+    echo solo5-virtio-run: error: "$@" 1>&2
     exit 1
 }
 
