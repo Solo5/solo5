@@ -56,7 +56,7 @@ setup() {
       skip "virtio tests not run for OpenBSD"
     fi
     [ "${BUILD_VIRTIO}" = "no" ] && skip "virtio not built"
-    VIRTIO=../tools/run/solo5-run-virtio.sh
+    VIRTIO=../scripts/virtio-run/solo5-virtio-run.sh
     ;;
   esac
 

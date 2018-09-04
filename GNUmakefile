@@ -84,8 +84,8 @@ opam-virtio-install: solo5-bindings-virtio.pc virtio
 	cp -R include/. $(OPAM_VIRTIO_INCDIR)
 	cp bindings/virtio/solo5_virtio.o bindings/virtio/solo5_virtio.lds $(OPAM_VIRTIO_LIBDIR)
 	mkdir -p $(OPAM_BINDIR)
-	cp tools/mkimage/solo5-mkimage.sh ${OPAM_BINDIR}/solo5-mkimage
-	cp tools/run/solo5-run-virtio.sh ${OPAM_BINDIR}/solo5-run-virtio
+	cp scripts/virtio-mkimage/solo5-virtio-mkimage.sh ${OPAM_BINDIR}/solo5-virtio-mkimage
+	cp scripts/virtio-run/solo5-virtio-run.sh ${OPAM_BINDIR}/solo5-virtio-run
 	mkdir -p $(PREFIX)/lib/pkgconfig
 	cp solo5-bindings-virtio.pc $(PREFIX)/lib/pkgconfig
 
@@ -93,8 +93,8 @@ opam-virtio-install: solo5-bindings-virtio.pc virtio
 opam-virtio-uninstall:
 	rm -rf $(OPAM_VIRTIO_INCDIR) $(OPAM_VIRTIO_LIBDIR)
 	rm -f $(PREFIX)/lib/pkgconfig/solo5-bindings-virtio.pc
-	rm -f ${OPAM_BINDIR}/solo5-mkimage
-	rm -f ${OPAM_BINDIR}/solo5-run-virtio
+	rm -f ${OPAM_BINDIR}/solo5-virtio-mkimage
+	rm -f ${OPAM_BINDIR}/solo5-virtio-run
 
 .PHONY: opam-vt-install
 opam-vt-install: solo5-bindings-vt.pc vt
