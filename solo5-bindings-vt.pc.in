@@ -1,0 +1,11 @@
+prefix=${pcfiledir}/../..
+exec_prefix=${prefix}
+includedir=${prefix}/include/solo5-bindings-vt/include
+libdir=${exec_prefix}/lib/solo5-bindings-vt
+ld=!LD!
+ldflags=!LDFLAGS! -T ${libdir}/solo5_vt.lds ${libdir}/solo5_vt.o
+
+Name: solo5-bindings-vt
+Version: 0.1
+Description: Solo5 unikernel base (vt target)
+Cflags: !CFLAGS! -isystem ${includedir}/crt -I${includedir}/solo5

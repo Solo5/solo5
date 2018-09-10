@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
 # Copyright (c) 2015-2018 Contributors as noted in the AUTHORS file
 #
-# This file is part of Solo5, a unikernel base layer.
+# This file is part of Solo5, a sandboxed execution environment.
 #
 # Permission to use, copy, modify, and/or distribute this software
 # for any purpose with or without fee is hereby granted, provided
@@ -34,8 +34,8 @@ setup() {
   fi
 
   case "${BATS_TEST_NAME}" in
-  *ukvm)
-    [ "${BUILD_UKVM}" = "no" ] && skip "ukvm not built"
+  *vt)
+    [ "${BUILD_VT}" = "no" ] && skip "vt not built"
     case ${TEST_TARGET} in
     *-linux-gnu)
       [ -c /dev/kvm -a -w /dev/kvm ] || skip "no access to /dev/kvm or not present"
@@ -56,7 +56,7 @@ setup() {
       skip "virtio tests not run for OpenBSD"
     fi
     [ "${BUILD_VIRTIO}" = "no" ] && skip "virtio not built"
-    VIRTIO=../tools/run/solo5-run-virtio.sh
+    VIRTIO=../scripts/virtio-run/solo5-virtio-run.sh
     ;;
   esac
 
@@ -71,8 +71,8 @@ teardown() {
   rm -f ${DISK}
 }
 
-@test "hello ukvm" {
-  run ${TIMEOUT} --foreground 30s test_hello/ukvm-bin test_hello/test_hello.ukvm Hello_Solo5
+@test "hello vt" {
+  run ${TIMEOUT} --foreground 30s test_hello/solo5-vt test_hello/test_hello.vt Hello_Solo5
   [ "$status" -eq 0 ]
 }
 
@@ -82,8 +82,8 @@ teardown() {
   [[ "$output" == *"SUCCESS"* ]]
 }
 
-@test "quiet ukvm" {
-  run ${TIMEOUT} --foreground 30s test_quiet/ukvm-bin test_quiet/test_quiet.ukvm --solo5:quiet
+@test "quiet vt" {
+  run ${TIMEOUT} --foreground 30s test_quiet/solo5-vt test_quiet/test_quiet.vt --solo5:quiet
   [ "$status" -eq 0 ]
   [[ "$output" == *"SUCCESS"* ]]
   [[ "$output" != *"Solo5:"* ]]
@@ -114,8 +114,8 @@ teardown() {
   esac
 }
 
-@test "globals ukvm" {
-  run ${TIMEOUT} --foreground 30s test_globals/ukvm-bin test_globals/test_globals.ukvm
+@test "globals vt" {
+  run ${TIMEOUT} --foreground 30s test_globals/solo5-vt test_globals/test_globals.vt
   [ "$status" -eq 0 ]
 }
 
@@ -125,8 +125,8 @@ teardown() {
   [[ "$output" == *"SUCCESS"* ]]
 }
 
-@test "exception ukvm" {
-  run ${TIMEOUT} --foreground 30s test_exception/ukvm-bin test_exception/test_exception.ukvm
+@test "exception vt" {
+  run ${TIMEOUT} --foreground 30s test_exception/solo5-vt test_exception/test_exception.vt
   [ "$status" -eq 255 ]
 }
 
@@ -136,8 +136,8 @@ teardown() {
   [[ "$output" == *"ABORT"* ]]
 }
 
-@test "fpu ukvm" {
-  run ${TIMEOUT} --foreground 30s test_fpu/ukvm-bin test_fpu/test_fpu.ukvm
+@test "fpu vt" {
+  run ${TIMEOUT} --foreground 30s test_fpu/solo5-vt test_fpu/test_fpu.vt
   [ "$status" -eq 0 ]
 }
 
@@ -147,8 +147,8 @@ teardown() {
   [[ "$output" == *"SUCCESS"* ]]
 }
 
-@test "time ukvm" {
-  run ${TIMEOUT} --foreground 30s test_time/ukvm-bin test_time/test_time.ukvm
+@test "time vt" {
+  run ${TIMEOUT} --foreground 30s test_time/solo5-vt test_time/test_time.vt
   [ "$status" -eq 0 ]
 }
 
@@ -158,8 +158,8 @@ teardown() {
   [[ "$output" == *"SUCCESS"* ]]
 }
 
-@test "blk ukvm" {
-  run ${TIMEOUT} --foreground 30s test_blk/ukvm-bin --disk=${DISK} test_blk/test_blk.ukvm
+@test "blk vt" {
+  run ${TIMEOUT} --foreground 30s test_blk/solo5-vt --disk=${DISK} test_blk/test_blk.vt
   [ "$status" -eq 0 ]
 }
 
@@ -169,9 +169,9 @@ teardown() {
   [[ "$output" == *"SUCCESS"* ]]
 }
 
-@test "ping-serve ukvm" {
-  UKVM=test_ping_serve/ukvm-bin
-  UNIKERNEL=test_ping_serve/test_ping_serve.ukvm
+@test "ping-serve vt" {
+  TENDER=test_ping_serve/solo5-vt
+  UNIKERNEL=test_ping_serve/test_ping_serve.vt
 
   [ $(id -u) -ne 0 ] && skip "Need root to run this test, for ping -f"
 
@@ -180,7 +180,7 @@ teardown() {
     ${TIMEOUT} 30s ping -fq -c 100000 ${NET_IP} 
   ) &
 
-  run ${TIMEOUT} --foreground 30s ${UKVM} --net=${NET} -- ${UNIKERNEL} limit
+  run ${TIMEOUT} --foreground 30s ${TENDER} --net=${NET} -- ${UNIKERNEL} limit
   [ "$status" -eq 0 ]
 }
 
@@ -199,7 +199,7 @@ teardown() {
   [[ "$output" == *"SUCCESS"* ]]
 }
 
-@test "abort ukvm" {
+@test "abort vt" {
   case ${TEST_TARGET} in
     x86_64-linux-gnu|x86_64-*-freebsd*)
       ;;
@@ -207,9 +207,9 @@ teardown() {
       skip "not implemented for ${TEST_TARGET}"
       ;;
   esac
-  run ${TIMEOUT} --foreground 30s test_abort/ukvm-bin --dumpcore test_abort/test_abort.ukvm
+  run ${TIMEOUT} --foreground 30s test_abort/solo5-vt --dumpcore test_abort/test_abort.vt
   [ "$status" -eq 255 ]
-  CORE=`echo "$output" | grep -o "core\.ukvm\.[0-9]*$"`
+  CORE=`echo "$output" | grep -o "core\.solo5-vt\.[0-9]*$"`
   [ -f "$CORE" ]
   [ -f "$CORE" ] && mv "$CORE" "$BATS_TMPDIR"
 }

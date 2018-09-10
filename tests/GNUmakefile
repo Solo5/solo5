@@ -1,6 +1,6 @@
-# Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
+# Copyright (c) 2015-2018 Contributors as noted in the AUTHORS file
 #
-# This file is part of Solo5, a unikernel base layer.
+# This file is part of Solo5, a sandboxed execution environment.
 #
 # Permission to use, copy, modify, and/or distribute this software
 # for any purpose with or without fee is hereby granted, provided
@@ -19,14 +19,14 @@
 TESTDIRS=test_hello test_globals test_ping_serve test_blk \
          test_exception test_abort test_fpu test_time test_quiet
 
-UKVM_TESTS=$(subst test, _test_ukvm, $(TESTDIRS))
+VT_TESTS=$(subst test, _test_vt, $(TESTDIRS))
 VIRTIO_TESTS=$(subst test, _test_virtio, $(TESTDIRS))
 MUEN_TESTS=$(subst test, _test_muen, $(TESTDIRS))
 CLEANS=$(subst test, _clean, $(TESTDIRS))
 
-all: $(UKVM_TESTS) $(VIRTIO_TESTS) $(MUEN_TESTS)
+all: $(VT_TESTS) $(VIRTIO_TESTS) $(MUEN_TESTS)
 
-ukvm: $(UKVM_TESTS)
+vt: $(VT_TESTS)
 
 virtio: $(VIRTIO_TESTS)
 
@@ -36,8 +36,8 @@ clean: $(CLEANS)
 
 .PHONY: force_it
 
-_test_ukvm%: force_it
-	$(MAKE) -C $(subst _test_ukvm, test, $@) ukvm
+_test_vt%: force_it
+	$(MAKE) -C $(subst _test_vt, test, $@) vt
 
 _test_virtio%: force_it
 	$(MAKE) -C $(subst _test_virtio, test, $@) virtio
