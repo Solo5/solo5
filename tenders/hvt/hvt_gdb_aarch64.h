@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
  *
- * This file is part of ukvm, a unikernel monitor.
+ * This file is part of Solo5, a sandboxed execution environment.
  *
  * Permission to use, copy, modify, and/or distribute this software
  * for any purpose with or without fee is hereby granted, provided
@@ -19,13 +19,13 @@
  */
 
 /*
- * ukvm_gdb_aarch64.h: GDB constants common to aarch64 backend implementations.
+ * hvt_gdb_aarch64.h: GDB constants common to aarch64 backend implementations.
  */
 
-#ifndef UKVM_GDB_AARCH64_H
-#define UKVM_GDB_AARCH64_H
+#ifndef HVT_GDB_AARCH64_H
+#define HVT_GDB_AARCH64_H
 
-struct ukvm_gdb_regs {
+struct hvt_gdb_regs {
     uint64_t regs[31];
     uint64_t lr;
     uint64_t pc;
@@ -33,4 +33,4 @@ struct ukvm_gdb_regs {
     uint64_t sp;
 };
 
-#endif /* UKVM_GDB_AARCH64_H */
+#endif /* HVT_GDB_AARCH64_H */

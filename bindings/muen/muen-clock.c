@@ -82,7 +82,7 @@ int tscclock_init(uint64_t freq __attribute__((unused)))
     tsc_freq = time_info->tsc_tick_rate_hz;
     /*
      * TODO: This calculation may overflow for low values of tsc_freq;
-     * dynamically calculate tsc_shift as in ukvm version.
+     * dynamically calculate tsc_shift as in hvt version.
      */
     tsc_mult = (NSEC_PER_SEC << 32) / tsc_freq;
     min_delta = (tsc_freq + (NSEC_PER_SEC - 1)) / NSEC_PER_SEC;

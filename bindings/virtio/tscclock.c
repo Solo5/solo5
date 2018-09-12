@@ -216,7 +216,7 @@ int tscclock_init(void) {
      * Calculate TSC scaling multiplier.
      *
      * TODO: This calculation may overflow for low values of tsc_freq;
-     * dynamically calculate tsc_shift as in ukvm version.
+     * dynamically calculate tsc_shift as in hvt version.
      *
      * (0.32) tsc_mult = NSEC_PER_SEC (32.32) / tsc_freq (32.0)
      */

@@ -72,7 +72,7 @@ uint64_t tscclock_monotonic(void)
  * "Invariant TSC".
  * 2. The host hypervisor MUST NOT implement any RDTSC emulation.
  *
- * It is up to the monitor to ensure that these requirements are met, and to
+ * It is up to the tender to ensure that these requirements are met, and to
  * supply the TSC frequency to the guest.
  */
 int tscclock_init(uint64_t tsc_freq)
@@ -115,8 +115,8 @@ int tscclock_init(uint64_t tsc_freq)
      * to clock skew over time and cannot get corrections from the host (via
      * e.g. NTP). 
      */
-    struct ukvm_walltime t;
-    ukvm_do_hypercall(UKVM_HYPERCALL_WALLTIME, &t);
+    struct hvt_walltime t;
+    hvt_do_hypercall(HVT_HYPERCALL_WALLTIME, &t);
     wc_epochoffset = t.nsecs - time_base;
 
     return 0;

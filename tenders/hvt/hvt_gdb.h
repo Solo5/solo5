@@ -1,7 +1,7 @@
 /* 
  * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
  *
- * This file is part of ukvm, a unikernel monitor.
+ * This file is part of Solo5, a sandboxed execution environment.
  *
  * Permission to use, copy, modify, and/or distribute this software
  * for any purpose with or without fee is hereby granted, provided
@@ -18,8 +18,8 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef UKVM_GDB_H
-#define UKVM_GDB_H
+#ifndef HVT_GDB_H
+#define HVT_GDB_H
 
 /* GDB breakpoint/watchpoint types */
 typedef enum _gdb_breakpoint_type {
@@ -42,4 +42,4 @@ typedef enum _gdb_breakpoint_type {
 #define GDB_SIGNAL_IO            23
 #define GDB_SIGNAL_DEFAULT       144
 
-#endif /* #ifndef UKVM_GDB_H */
+#endif /* #ifndef HVT_GDB_H */

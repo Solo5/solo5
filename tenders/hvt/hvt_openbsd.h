@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
  *
- * This file is part of ukvm, a unikernel monitor.
+ * This file is part of Solo5, a sandboxed execution environment.
  *
  * Permission to use, copy, modify, and/or distribute this software
  * for any purpose with or without fee is hereby granted, provided
@@ -19,19 +19,19 @@
  */
 
 /*
- * ukvm_hv_openbsd.h: OpenBSD vmm(4) backend definitions.
+ * hvt_openbsd.h: OpenBSD vmm(4) backend definitions.
  */
 
-#ifndef UKVM_HV_OPENBSD_H
-#define UKVM_HV_OPENBSD_H
+#ifndef HVT_HV_OPENBSD_H
+#define HVT_HV_OPENBSD_H
 
 #define VMM_NODE    "/dev/vmm"
 #define VMD_USER    "_vmd"
 
-struct ukvm_hvb {
+struct hvt_b {
     int      vmd_fd;
     uint32_t vcp_id;
     uint32_t vcpu_id;
 };
 
-#endif /* UKVM_HV_OPENBSD_H */
+#endif /* HVT_HV_OPENBSD_H */

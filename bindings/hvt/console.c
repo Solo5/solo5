@@ -22,12 +22,12 @@
 
 int platform_puts(const char *buf, int n)
 {
-    struct ukvm_puts str;
+    struct hvt_puts str;
 
     str.data = (char *)buf;
     str.len = n;
 
-    ukvm_do_hypercall(UKVM_HYPERCALL_PUTS, &str);
+    hvt_do_hypercall(HVT_HYPERCALL_PUTS, &str);
 
     return str.len;
 }

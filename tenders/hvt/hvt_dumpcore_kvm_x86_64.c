@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2015-2018 Contributors as noted in the AUTHORS file
  *
- * This file is part of ukvm, a unikernel monitor.
+ * This file is part of Solo5, a sandboxed execution environment.
  *
  * Permission to use, copy, modify, and/or distribute this software
  * for any purpose with or without fee is hereby granted, provided
@@ -19,7 +19,7 @@
  */
 
 /*
- * ukvm_dumpcore_kvm_x86_64.c: Glue between the dumpcore module and KVM.
+ * hvt_dumpcore_kvm_x86_64.c: Glue between the dumpcore module and KVM.
  */
 
 #include <sys/ioctl.h>
@@ -31,12 +31,12 @@
 #include "hvt_kvm.h"
 #include "hvt_cpu_x86_64.h"
 
-size_t ukvm_dumpcore_prstatus_size(void)
+size_t hvt_dumpcore_prstatus_size(void)
 {
     return sizeof (prstatus_t);
 }
 
-int ukvm_dumpcore_write_prstatus(int fd, struct ukvm_hv *hv, void *cookie)
+int hvt_dumpcore_write_prstatus(int fd, struct hvt *hvt, void *cookie)
 {
     prstatus_t prstatus;
     memset(&prstatus, 0, sizeof prstatus);
@@ -51,12 +51,12 @@ int ukvm_dumpcore_write_prstatus(int fd, struct ukvm_hv *hv, void *cookie)
     struct kvm_regs kregs;
     struct kvm_sregs sregs;
 
-    if (ioctl(hv->b->vcpufd, KVM_GET_SREGS, &sregs) == -1) {
+    if (ioctl(hvt->b->vcpufd, KVM_GET_SREGS, &sregs) == -1) {
         warn("dumpcore: KVM: ioctl(KVM_GET_SREGS) failed");
         return -1;
     }
 
-    if (ioctl(hv->b->vcpufd, KVM_GET_REGS, &kregs) == -1) {
+    if (ioctl(hvt->b->vcpufd, KVM_GET_REGS, &kregs) == -1) {
         warn("dumpcore: KVM: ioctl(KVM_GET_REGS) failed");
         return -1;
     }
@@ -94,7 +94,7 @@ int ukvm_dumpcore_write_prstatus(int fd, struct ukvm_hv *hv, void *cookie)
      * that.
      */
     if (cookie) {
-        assert(sizeof(struct x86_trap_regs) < UKVM_HALT_COOKIE_MAX);
+        assert(sizeof(struct x86_trap_regs) < HVT_HALT_COOKIE_MAX);
         struct x86_trap_regs *regs = (struct x86_trap_regs *)cookie;
         uregs->rip = regs->rip;
         uregs->cs = regs->cs;
@@ -117,7 +117,7 @@ int ukvm_dumpcore_write_prstatus(int fd, struct ukvm_hv *hv, void *cookie)
     return 0;
 }
 
-int ukvm_dumpcore_supported()
+int hvt_dumpcore_supported()
 {
     return 0;
 }

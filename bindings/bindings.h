@@ -18,10 +18,16 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef __KERNEL_H__
-#define __KERNEL_H__
+/*
+ * bindings.h: Solo5 bindings, primary header file and internal interfaces.
+ *
+ * This header file is included by all bindings, and apart from the common
+ * internal interfaces includes and defines all necessary C99 runtime
+ * interfaces used by bindings.
+*/
 
-/* This is the main header file for everything in the kernel */
+#ifndef __BINDINGS_H__
+#define __BINDINGS_H__
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -99,7 +105,7 @@ char *strcpy(char *restrict dest, const char *restrict src);
 size_t strlen(const char *s);
 int isspace(int c);
 
-/* platform.c: specifics for ukvm or virito platform */
+/* platform.c: specifics for hvt or virito platform */
 void platform_init(void *arg);
 const char *platform_cmdline(void);
 uint64_t platform_mem_size(void);
@@ -130,4 +136,4 @@ void log_set_level(log_level_t level);
 
 #define NSEC_PER_SEC	1000000000ULL
 
-#endif
+#endif /* __BINDINGS_H__ */

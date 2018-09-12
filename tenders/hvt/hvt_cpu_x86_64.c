@@ -1,7 +1,7 @@
 /* 
  * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
  *
- * This file is part of ukvm, a unikernel monitor.
+ * This file is part of Solo5, a sandboxed execution environment.
  *
  * Permission to use, copy, modify, and/or distribute this software
  * for any purpose with or without fee is hereby granted, provided
@@ -19,7 +19,7 @@
  */
 
 /*
- * ukvm_cpu_x86_64.c: Common architecture-dependent code supporting x86_64
+ * hvt_cpu_x86_64.c: Common architecture-dependent code supporting x86_64
  * backend implementations.
  */
 
@@ -31,7 +31,7 @@
 
 #include "hvt_cpu_x86_64.h"
 
-void ukvm_x86_mem_size(size_t *mem_size) {
+void hvt_x86_mem_size(size_t *mem_size) {
     size_t mem;
     mem = (*mem_size / X86_GUEST_PAGE_SIZE) * X86_GUEST_PAGE_SIZE;
     assert (mem <= *mem_size);
@@ -43,7 +43,7 @@ void ukvm_x86_mem_size(size_t *mem_size) {
     *mem_size = mem;
 }
 
-void ukvm_x86_setup_pagetables(uint8_t *mem, size_t mem_size)
+void hvt_x86_setup_pagetables(uint8_t *mem, size_t mem_size)
 {
     uint64_t *pml4 = (uint64_t *)(mem + X86_PML4_BASE);
     uint64_t *pdpte = (uint64_t *)(mem + X86_PDPTE_BASE);
@@ -93,12 +93,12 @@ static struct x86_gdt_desc sreg_to_desc(const struct x86_sreg *sreg)
     return desc;
 }
 
-void ukvm_x86_setup_gdt(uint8_t *mem)
+void hvt_x86_setup_gdt(uint8_t *mem)
 {
     struct x86_gdt_desc *gdt = (struct x86_gdt_desc *)(mem + X86_GDT_BASE);
     struct x86_gdt_desc null = { 0 };
 
     gdt[X86_GDT_NULL] = null;
-    gdt[X86_GDT_CODE] = sreg_to_desc(&ukvm_x86_sreg_code);
-    gdt[X86_GDT_DATA] = sreg_to_desc(&ukvm_x86_sreg_data);
+    gdt[X86_GDT_CODE] = sreg_to_desc(&hvt_x86_sreg_code);
+    gdt[X86_GDT_DATA] = sreg_to_desc(&hvt_x86_sreg_data);
 }

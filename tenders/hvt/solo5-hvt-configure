@@ -1,7 +1,7 @@
 #!/bin/sh
 # Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
 #
-# This file is part of ukvm, a unikernel monitor.
+# This file is part of Solo5, a sandboxed execution environment.
 #
 # Permission to use, copy, modify, and/or distribute this software
 # for any purpose with or without fee is hereby granted, provided
@@ -82,7 +82,7 @@ add_module ()
     if [ ! -f ${SOLO5_HVT_SRC}/hvt_module_$1.c ]; then
         die "Invalid module: $1"
     fi
-    enableit="-DUKVM_MODULE_$(echo $1 | tr '[a-z]' '[A-Z]')"
+    enableit="-DHVT_MODULE_$(echo $1 | tr '[a-z]' '[A-Z]')"
     add_obj "hvt_module_$1.o"
     add_cflags "${enableit}"
 }

@@ -1,7 +1,7 @@
 /* 
  * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
  *
- * This file is part of ukvm, a unikernel monitor.
+ * This file is part of Solo5, a sandboxed execution environment.
  *
  * Permission to use, copy, modify, and/or distribute this software
  * for any purpose with or without fee is hereby granted, provided
@@ -24,7 +24,7 @@
  */
 
 /*
- * ukvm_module_gdb.c: Implements the GDB Remote Serial Protocol
+ * hvt_module_gdb.c: Implements the GDB Remote Serial Protocol
  * https://sourceware.org/gdb/onlinedocs/gdb/Overview.html
  */
 
@@ -316,7 +316,7 @@ static void send_packet_no_ack(char *buffer)
      * We ignore all send_char errors as we either: (1) care about sending our
      * packet and we will keep sending it until we get a good ACK from the
      * debugger, or (2) not care and just send it as a best-effort notification
-     * when dying (see handle_ukvm_exit).
+     * when dying (see handle_hvt_exit).
      */
 
     send_char('$');
@@ -380,7 +380,7 @@ static void send_response(char code, int sigval, bool wait_for_ack)
         send_packet_no_ack(obuf);
 }
 
-static void gdb_handle_exception(struct ukvm_hv *hv, int sigval)
+static void gdb_handle_exception(struct hvt *hvt, int sigval)
 {
     char *packet;
     char obuf[BUFMAX];
@@ -389,7 +389,7 @@ static void gdb_handle_exception(struct ukvm_hv *hv, int sigval)
     send_response('S', sigval, true);
 
     for (;;) {
-        ukvm_gpa_t addr = 0, result;
+        hvt_gpa_t addr = 0, result;
         gdb_breakpoint_type type;
         size_t len;
         int command, ret;
@@ -419,7 +419,7 @@ static void gdb_handle_exception(struct ukvm_hv *hv, int sigval)
                 send_not_supported_msg();
                 break; /* Wait for another command. */
             }
-	    if (ukvm_gdb_enable_ss(hv) == -1) {
+	    if (hvt_gdb_enable_ss(hvt) == -1) {
                     send_error_msg();
                     break; /* Wait for another command. */
             }
@@ -434,7 +434,7 @@ static void gdb_handle_exception(struct ukvm_hv *hv, int sigval)
                 send_not_supported_msg();
                 break; /* Wait for another command. */
             }
-	    if (ukvm_gdb_disable_ss(hv) == -1) {
+	    if (hvt_gdb_disable_ss(hvt) == -1) {
                     send_error_msg();
                     break; /* Wait for another command. */
             }
@@ -449,14 +449,14 @@ static void gdb_handle_exception(struct ukvm_hv *hv, int sigval)
                 break;
             }
 
-            if ((addr > hv->mem_size) ||
+            if ((addr > hvt->mem_size) ||
                 add_overflow(addr, len, result) ||
-                (result > hv->mem_size)) {
+                (result > hvt->mem_size)) {
 		/* Don't panic about this, just return error so the debugger
                  * tries again. */
                 send_error_msg();
             } else {
-                mem2hex(hv->mem + addr, obuf, len);
+                mem2hex(hvt->mem + addr, obuf, len);
                 send_packet(obuf);
             }
             break; /* Wait for another command. */
@@ -470,14 +470,14 @@ static void gdb_handle_exception(struct ukvm_hv *hv, int sigval)
                 break;
             }
 
-            if ((addr > hv->mem_size) ||
+            if ((addr > hvt->mem_size) ||
                 add_overflow(addr, len, result) ||
-                (result > hv->mem_size)) {
+                (result > hvt->mem_size)) {
 		/* Don't panic about this, just return error so the debugger
                  * tries again. */
                 send_error_msg();
             } else {
-                hex2mem(obuf, hv->mem + addr, len);
+                hex2mem(obuf, hvt->mem + addr, len);
                 send_okay_msg();
             }
             break; /* Wait for another command. */
@@ -486,7 +486,7 @@ static void gdb_handle_exception(struct ukvm_hv *hv, int sigval)
         case 'g': {
             /* Read general registers */
             len = BUFMAX;
-            if (ukvm_gdb_read_registers(hv, registers, &len) == -1) {
+            if (hvt_gdb_read_registers(hvt, registers, &len) == -1) {
                 send_error_msg();
             } else {
                 mem2hex(registers, obuf, len);
@@ -499,13 +499,13 @@ static void gdb_handle_exception(struct ukvm_hv *hv, int sigval)
             /* Write general registers */
             len = BUFMAX;
             /* Call read_registers just to get len (not very efficient). */
-            if (ukvm_gdb_read_registers(hv, registers, &len) == -1) {
+            if (hvt_gdb_read_registers(hvt, registers, &len) == -1) {
                 send_error_msg();
                 break;
             }
             /* Packet looks like 'Gxxxxx', so we have to skip the first char */
             hex2mem(packet + 1, registers, len);
-            if (ukvm_gdb_write_registers(hv, registers, len) == -1) {
+            if (hvt_gdb_write_registers(hvt, registers, len) == -1) {
                 send_error_msg();
                 break;
             }
@@ -530,9 +530,9 @@ static void gdb_handle_exception(struct ukvm_hv *hv, int sigval)
                 break;
             }
 
-            if ((addr > hv->mem_size) ||
+            if ((addr > hvt->mem_size) ||
                 add_overflow(addr, len, result) ||
-                (result > hv->mem_size)) {
+                (result > hvt->mem_size)) {
 		/* Don't panic about this, just return error so the debugger
                  * tries again. */
                 send_error_msg();
@@ -540,9 +540,9 @@ static void gdb_handle_exception(struct ukvm_hv *hv, int sigval)
             }
 
             if (command == 'Z')
-                ret = ukvm_gdb_add_breakpoint(hv, type, addr, len);
+                ret = hvt_gdb_add_breakpoint(hvt, type, addr, len);
             else
-                ret = ukvm_gdb_remove_breakpoint(hv, type, addr, len);
+                ret = hvt_gdb_remove_breakpoint(hvt, type, addr, len);
 
             if (ret == -1)
                 send_error_msg();
@@ -572,10 +572,10 @@ static void gdb_handle_exception(struct ukvm_hv *hv, int sigval)
     return;
 }
 
-static void gdb_stub_start(struct ukvm_hv *hv)
+static void gdb_stub_start(struct hvt *hvt)
 {
     wait_for_connect();
-    gdb_handle_exception(hv, GDB_SIGNAL_FIRST);
+    gdb_handle_exception(hvt, GDB_SIGNAL_FIRST);
 }
 
 /*
@@ -583,17 +583,17 @@ static void gdb_stub_start(struct ukvm_hv *hv)
  * we handle it here (and not in the vcpu loop). We force the handling here, by 
  * returning 0; and return -1 otherwise.
  */
-static int handle_exit(struct ukvm_hv *hv)
+static int handle_exit(struct hvt *hvt)
 {
     int sigval = 0;
 
-    if (ukvm_gdb_read_last_signal(hv, &sigval) == -1)
+    if (hvt_gdb_read_last_signal(hvt, &sigval) == -1)
         /* Handle this exit in the vcpu loop */
         return -1;
 
     switch(sigval) {
     case GDB_SIGNAL_TRAP:
-        gdb_handle_exception(hv, sigval);
+        gdb_handle_exception(hvt, sigval);
         return 0;
 
     case GDB_SIGNAL_TERM:
@@ -604,7 +604,7 @@ static int handle_exit(struct ukvm_hv *hv)
     case GDB_SIGNAL_QUIT:
     case GDB_SIGNAL_KILL:
     case GDB_SIGNAL_SEGV:
-        gdb_handle_exception(hv, sigval);
+        gdb_handle_exception(hvt, sigval);
         return 0;
 
     default:
@@ -613,36 +613,36 @@ static int handle_exit(struct ukvm_hv *hv)
     }
 }
 
-void handle_ukvm_exit(void)
+void handle_hvt_exit(void)
 {
     /* Tell the debugger that we exited with a "SIGKILL", and
      * don't wait for an ACK. */
     send_response('X', GDB_SIGNAL_KILL, false);
 }
 
-static int setup(struct ukvm_hv *hv)
+static int setup(struct hvt *hvt)
 {
     if (!use_gdb)
         return 0;
 
-    if (ukvm_core_register_vmexit(handle_exit) == -1)
+    if (hvt_core_register_vmexit(handle_exit) == -1)
         return -1;
 
-    if (ukvm_gdb_supported() == -1)
+    if (hvt_gdb_supported() == -1)
         errx(1, "GDB support not implemented on this backend/architecture");
 
     /*
      * GDB clients can change memory, and software breakpoints work by
      * replacing instructions with int3's.
      */
-    if (mprotect(hv->mem, hv->mem_size,
+    if (mprotect(hvt->mem, hvt->mem_size,
                  PROT_READ | PROT_WRITE | PROT_EXEC) == -1)
         err(1, "GDB: Cannot remove guest memory protection");
 
     /* Notify the debugger that we are dying. */
-    atexit(handle_ukvm_exit);
+    atexit(handle_hvt_exit);
 
-    gdb_stub_start(hv);
+    gdb_stub_start(hvt);
 
     return 0;
 }
@@ -668,7 +668,7 @@ static char *usage(void)
         "    [ --gdb-port=1234 ] (port to use) ";
 }
 
-struct ukvm_module ukvm_module_gdb = {
+struct hvt_module hvt_module_gdb = {
     .name = "gdb",
     .setup = setup,
     .handle_cmdarg = handle_cmdarg,

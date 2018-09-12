@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
  *
- * This file is part of ukvm, a unikernel monitor.
+ * This file is part of Solo5, a sandboxed execution environment.
  *
  * Permission to use, copy, modify, and/or distribute this software
  * for any purpose with or without fee is hereby granted, provided
@@ -19,7 +19,7 @@
  */
 
 /*
- * ukvm_hv_freebsd.c: Architecture-independent part of FreeBSD vmm(4) backend
+ * hvt_freebsd.c: Architecture-independent part of FreeBSD vmm(4) backend
  * implementation.
  */
 
@@ -49,47 +49,47 @@
 /*
  * TODO: To ensure that the VM is correctly destroyed on shutdown (normal or
  * not) we currently install an atexit() handler. The top-level API will need
- * to be changed to accomodate this, e.g. by introducing a ukvm_hv_shutdown(),
+ * to be changed to accomodate this, e.g. by introducing a hvt_shutdown(),
  * however this is incompatible with the current "fail fast" approach to
  * internal error handling.
  */
-static struct ukvm_hv *cleanup_hv;
+static struct hvt *cleanup_hvt;
 
 static void cleanup_vm(void)
 {
-    if (cleanup_hv != NULL)
-        sysctlbyname("hw.vmm.destroy", NULL, NULL, cleanup_hv->b->vmname,
-                strlen(cleanup_hv->b->vmname));
+    if (cleanup_hvt != NULL)
+        sysctlbyname("hw.vmm.destroy", NULL, NULL, cleanup_hvt->b->vmname,
+                strlen(cleanup_hvt->b->vmname));
 }
 
 static void cleanup_vmfd(void)
 {
-    if (cleanup_hv != NULL && cleanup_hv->b->vmfd != -1)
-        close(cleanup_hv->b->vmfd);
+    if (cleanup_hvt != NULL && cleanup_hvt->b->vmfd != -1)
+        close(cleanup_hvt->b->vmfd);
 }
 
-struct ukvm_hv *ukvm_hv_init(size_t mem_size)
+struct hvt *hvt_init(size_t mem_size)
 {
     int ret;
 
-    struct ukvm_hv *hv = malloc(sizeof (struct ukvm_hv));
-    if (hv == NULL)
+    struct hvt *hvt = malloc(sizeof (struct hvt));
+    if (hvt == NULL)
         err(1, "malloc");
-    memset(hv, 0, sizeof (struct ukvm_hv));
-    struct ukvm_hvb *hvb = malloc(sizeof (struct ukvm_hvb));
+    memset(hvt, 0, sizeof (struct hvt));
+    struct hvt_b *hvb = malloc(sizeof (struct hvt_b));
     if (hvb == NULL)
         err(1, "malloc");
-    memset(hvb, 0, sizeof (struct ukvm_hvb));
-    hv->b = hvb;
+    memset(hvb, 0, sizeof (struct hvt_b));
+    hvt->b = hvb;
     hvb->vmfd = -1;
 
-    int namelen = asprintf(&hvb->vmname, "ukvm%d", getpid());
+    int namelen = asprintf(&hvb->vmname, "solo5-%d", getpid());
     if (namelen == -1)
         err(1, "asprintf");
     ret = sysctlbyname("hw.vmm.create", NULL, NULL, hvb->vmname, namelen);
     if (ret == -1)
         err(1, "Cannot create VM '%s'", hvb->vmname);
-    cleanup_hv = hv;
+    cleanup_hvt = hvt;
     atexit(cleanup_vm);
 
     char *vmmdevname;
@@ -123,10 +123,10 @@ struct ukvm_hv *ukvm_hv_init(size_t mem_size)
     if (ret == -1)
 	err(1, "VM_MMAP_MEMSEG");
 
-    hv->mem = mmap(NULL, mem_size, PROT_READ | PROT_WRITE, MAP_SHARED,
+    hvt->mem = mmap(NULL, mem_size, PROT_READ | PROT_WRITE, MAP_SHARED,
 	    hvb->vmfd, 0);
-    if (hv->mem == MAP_FAILED)
+    if (hvt->mem == MAP_FAILED)
 	err(1, "mmap");
-    hv->mem_size = mem_size;
-    return hv;
+    hvt->mem_size = mem_size;
+    return hvt;
 }

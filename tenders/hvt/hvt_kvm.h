@@ -1,7 +1,7 @@
 /* 
  * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
  *
- * This file is part of ukvm, a unikernel monitor.
+ * This file is part of Solo5, a sandboxed execution environment.
  *
  * Permission to use, copy, modify, and/or distribute this software
  * for any purpose with or without fee is hereby granted, provided
@@ -19,17 +19,17 @@
  */
 
 /*
- * ukvm_hv_kvm.h: KVM backend definitions.
+ * hvt_kvm.h: KVM backend definitions.
  */
 
-#ifndef UKVM_HV_KVM_H
-#define UKVM_HV_KVM_H
+#ifndef HVT_HV_KVM_H
+#define HVT_HV_KVM_H
 
-struct ukvm_hvb {
+struct hvt_b {
     int kvmfd;
     int vmfd;
     int vcpufd;
     struct kvm_run *vcpurun;
 };
 
-#endif /* UKVM_HV_KVM_H */
+#endif /* HVT_HV_KVM_H */

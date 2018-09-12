@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
  *
- * This file is part of ukvm, a unikernel monitor.
+ * This file is part of Solo5, a sandboxed execution environment.
  *
  * Permission to use, copy, modify, and/or distribute this software
  * for any purpose with or without fee is hereby granted, provided
@@ -19,7 +19,7 @@
  */
 
 /*
- * ukvm_hv_openbsd.c: Architecture-independent part of OpenBSD vmm(4) backend
+ * hvt_openbsd.c: Architecture-independent part of OpenBSD vmm(4) backend
  * implementation.
  */
 
@@ -47,31 +47,31 @@
 /*
  * TODO: To ensure that the VM is correctly destroyed on shutdown (normal or
  * not) we currently install an atexit() handler. The top-level API will need
- * to be changed to accomodate this, e.g. by introducing a ukvm_hv_shutdown(),
+ * to be changed to accomodate this, e.g. by introducing a hvt_shutdown(),
  * however this is incompatible with the current "fail fast" approach to
  * internal error handling.
  */
-static struct ukvm_hv *cleanup_hv;
+static struct hvt *cleanup_hvt;
 
 static void cleanup_vmd_fd(void)
 {
-    if (cleanup_hv != NULL && cleanup_hv->b->vmd_fd != -1)
-        close(cleanup_hv->b->vmd_fd);
+    if (cleanup_hvt != NULL && cleanup_hvt->b->vmd_fd != -1)
+        close(cleanup_hvt->b->vmd_fd);
 }
 
 static void cleanup_vm(void)
 {
-    if (cleanup_hv != NULL && cleanup_hv->b->vcp_id != -1) {
-        struct vm_terminate_params vtp = { .vtp_vm_id = cleanup_hv->b->vcp_id };
-        if (ioctl(cleanup_hv->b->vmd_fd, VMM_IOC_TERM, &vtp) < 0)
+    if (cleanup_hvt != NULL && cleanup_hvt->b->vcp_id != -1) {
+        struct vm_terminate_params vtp = { .vtp_vm_id = cleanup_hvt->b->vcp_id };
+        if (ioctl(cleanup_hvt->b->vmd_fd, VMM_IOC_TERM, &vtp) < 0)
             err(1, "terminate vmm ioctl failed - still exiting");
     }
 }
 
-struct ukvm_hv *ukvm_hv_init(size_t mem_size)
+struct hvt *hvt_init(size_t mem_size)
 {
-    struct ukvm_hv          *hv;
-    struct ukvm_hvb         *hvb;
+    struct hvt *hvt;
+    struct hvt_b *hvb;
     struct vm_create_params *vcp;
     struct vm_mem_range *vmr;
     void *p;
@@ -81,22 +81,22 @@ struct ukvm_hv *ukvm_hv_init(size_t mem_size)
         err(1, "need root privileges");
     }
 
-    hv = calloc(1, sizeof (struct ukvm_hv));
-    if (hv == NULL)
+    hvt = calloc(1, sizeof (struct hvt));
+    if (hvt == NULL)
         err(1, "calloc hv");
 
-    hvb = calloc(1, sizeof (struct ukvm_hvb));
+    hvb = calloc(1, sizeof (struct hvt_b));
     if (hvb == NULL)
         err(1, "calloc");
 
-    hv->b = hvb;
+    hvt->b = hvb;
     hvb->vmd_fd = -1;
 
     hvb->vmd_fd = open(VMM_NODE, O_RDWR);
     if (hvb->vmd_fd == -1)
         err(1, "VMM_NODE");
 
-    cleanup_hv = hv;
+    cleanup_hvt = hvt;
     atexit(cleanup_vmd_fd);
 
     vcp = calloc(1, sizeof (struct vm_create_params));
@@ -104,7 +104,7 @@ struct ukvm_hv *ukvm_hv_init(size_t mem_size)
         err(1, "calloc");
 
     vcp->vcp_ncpus = 1; // vmm only supports 1 cpu for now.
-    int size = snprintf(vcp->vcp_name, VMM_MAX_NAME_LEN, "ukvm%d", getpid());
+    int size = snprintf(vcp->vcp_name, VMM_MAX_NAME_LEN, "solo5-%d", getpid());
     if (size == -1)
         err(1, "snprintf");
 
@@ -119,8 +119,8 @@ struct ukvm_hv *ukvm_hv_init(size_t mem_size)
         err(1, "mmap");
 
     vmr->vmr_va = (vaddr_t)p;
-    hv->mem = p;
-    hv->mem_size = mem_size;
+    hvt->mem = p;
+    hvt->mem_size = mem_size;
 
     if (ioctl(hvb->vmd_fd, VMM_IOC_CREATE, vcp) < 0)
         err(1, "create vmm ioctl failed - exiting");
@@ -130,6 +130,6 @@ struct ukvm_hv *ukvm_hv_init(size_t mem_size)
 
     atexit(cleanup_vm);
 
-    return hv;
+    return hvt;
 }
 

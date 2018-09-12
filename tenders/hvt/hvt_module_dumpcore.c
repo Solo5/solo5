@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2015-2018 Contributors as noted in the AUTHORS file
  *
- * This file is part of ukvm, a unikernel monitor.
+ * This file is part of Solo5, a sandboxed execution environment.
  *
  * Permission to use, copy, modify, and/or distribute this software
  * for any purpose with or without fee is hereby granted, provided
@@ -19,7 +19,7 @@
  */
 
 /*
- * ukvm_module_dumpcore.c: Dumps the unikernel memory as a core file
+ * hvt_module_dumpcore.c: Dumps the unikernel memory as a core file
  */
 
 #define _GNU_SOURCE
@@ -74,13 +74,13 @@ typedef unsigned char *host_mvec_t;
 
 static bool use_dumpcore = false;
 
-void ukvm_dumpcore_hook(struct ukvm_hv *hv, int status, void *cookie)
+void hvt_dumpcore_hook(struct hvt *hvt, int status, void *cookie)
 {
     if (status != 255) /* SOLO5_EXIT_ABORT */
         return;
 
-    char filename[20] = { 0 };
-    snprintf(filename, sizeof filename, "core.ukvm.%d", getpid());
+    char *filename;
+    assert(asprintf(&filename, "core.solo5-hvt.%d", getpid()) != -1);
     /*
      * Note that O_APPEND must not be set as this modifies the behaviour of
      * pwrite() on Linux.
@@ -119,7 +119,7 @@ void ukvm_dumpcore_hook(struct ukvm_hv *hv, int status, void *cookie)
      */
     const char name[8] = "CORE";
     size_t pnote_size = sizeof (Elf64_Nhdr) + sizeof name \
-                        + ukvm_dumpcore_prstatus_size();
+                        + hvt_dumpcore_prstatus_size();
     Elf64_Phdr pnote = {
         .p_type = PT_NOTE,
         .p_filesz = pnote_size,
@@ -134,8 +134,8 @@ void ukvm_dumpcore_hook(struct ukvm_hv *hv, int status, void *cookie)
     Elf64_Phdr pload = {
         .p_type = PT_LOAD,
         .p_align = 0, .p_paddr = 0, .p_vaddr = 0,
-        .p_memsz = hv->mem_size,
-        .p_filesz = hv->mem_size,
+        .p_memsz = hvt->mem_size,
+        .p_filesz = hvt->mem_size,
         .p_flags = 0,
         .p_offset = offset
     };
@@ -146,7 +146,7 @@ void ukvm_dumpcore_hook(struct ukvm_hv *hv, int status, void *cookie)
     Elf64_Nhdr nhdr = {
         .n_type = NT_PRSTATUS,
         .n_namesz = sizeof name,
-        .n_descsz = ukvm_dumpcore_prstatus_size(),
+        .n_descsz = hvt_dumpcore_prstatus_size(),
     };
 
     struct iovec iov[] = {
@@ -166,7 +166,7 @@ void ukvm_dumpcore_hook(struct ukvm_hv *hv, int status, void *cookie)
     /*
      * (5) NT_PRSTATUS content
      */
-    if (ukvm_dumpcore_write_prstatus(fd, hv, cookie) < 0) {
+    if (hvt_dumpcore_write_prstatus(fd, hvt, cookie) < 0) {
         warnx("dumpcore: Could not retrieve guest state");
         goto failure;
     }
@@ -187,12 +187,12 @@ void ukvm_dumpcore_hook(struct ukvm_hv *hv, int status, void *cookie)
         warn("dumpcore: Could not determine _SC_PAGESIZE");
         goto failure;
     }
-    assert (hv->mem_size % page_size == 0);
-    size_t npages = hv->mem_size / page_size;
+    assert (hvt->mem_size % page_size == 0);
+    size_t npages = hvt->mem_size / page_size;
     size_t ndumped = 0;
     host_mvec_t mvec = malloc(npages);
     assert (mvec);
-    if (mincore(hv->mem, hv->mem_size, mvec) == -1) {
+    if (mincore(hvt->mem, hvt->mem_size, mvec) == -1) {
         warn("dumpcore: mincore() failed");
         goto failure;
     }
@@ -201,7 +201,7 @@ void ukvm_dumpcore_hook(struct ukvm_hv *hv, int status, void *cookie)
         if (mvec[pg] & 1) {
             off_t pgoff = (pg * page_size);
             ssize_t nbytes =
-                pwrite(fd, hv->mem + pgoff, page_size, start + pgoff);
+                pwrite(fd, hvt->mem + pgoff, page_size, start + pgoff);
             if (nbytes == -1) {
                 warn("dumpcore: Error dumping guest memory page %zd", pg);
                 free(mvec);
@@ -240,21 +240,21 @@ static char *usage(void)
     return "--dumpcore (enable guest core dump on abort/trap)";
 }
 
-static int setup(struct ukvm_hv *hv)
+static int setup(struct hvt *hvt)
 {
     if (!use_dumpcore)
         return 0;
 
-    if (ukvm_core_register_halt_hook(ukvm_dumpcore_hook) == -1)
+    if (hvt_core_register_halt_hook(hvt_dumpcore_hook) == -1)
         return -1;
 
-    if (ukvm_dumpcore_supported() == -1)
+    if (hvt_dumpcore_supported() == -1)
         errx(1, "dumpcore: not implemented for this backend/architecture");
 
     return 0;
 }
 
-struct ukvm_module ukvm_module_dumpcore = {
+struct hvt_module hvt_module_dumpcore = {
     .name = "dumpcore",
     .setup = setup,
     .handle_cmdarg = handle_cmdarg,

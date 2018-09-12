@@ -18,13 +18,20 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef __UKVM_KERNEL_H__
-#define __UKVM_KERNEL_H__
+/*
+ * bindings.h: Solo5 bindings, hvt implementation additions.
+ *
+ * This header file includes (supersedes) the common bindings.h for the hvt
+ * implementation.
+ */
+
+#ifndef __HVT_BINDINGS_H__
+#define __HVT_BINDINGS_H__
 
 #include "../bindings.h"
 #include "hvt_abi.h"
 
-void time_init(struct ukvm_boot_info *bi);
+void time_init(struct hvt_boot_info *bi);
 void console_init(void);
 void net_init(void);
 
@@ -34,4 +41,5 @@ int tscclock_init(uint64_t tsc_freq);
 uint64_t tscclock_epochoffset(void);
 
 void process_bootinfo(void *arg);
-#endif
+
+#endif /* __HVT_BINDINGS_H__ */

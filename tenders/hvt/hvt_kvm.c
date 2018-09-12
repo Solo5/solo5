@@ -1,7 +1,7 @@
 /* 
  * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
  *
- * This file is part of ukvm, a unikernel monitor.
+ * This file is part of Solo5, a sandboxed execution environment.
  *
  * Permission to use, copy, modify, and/or distribute this software
  * for any purpose with or without fee is hereby granted, provided
@@ -19,7 +19,7 @@
  */
 
 /*
- * ukvm_hv_kvm.c: Architecture-independent part of KVM backend implementation.
+ * hvt_kvm.c: Architecture-independent part of KVM backend implementation.
  */
 
 #define _GNU_SOURCE
@@ -35,18 +35,18 @@
 #include "hvt.h"
 #include "hvt_kvm.h"
 
-struct ukvm_hv *ukvm_hv_init(size_t mem_size)
+struct hvt *hvt_init(size_t mem_size)
 {
     int ret;
 
-    struct ukvm_hv *hv = malloc(sizeof (struct ukvm_hv));
-    if (hv == NULL)
+    struct hvt *hvt = malloc(sizeof (struct hvt));
+    if (hvt == NULL)
         err(1, "malloc");
-    memset(hv, 0, sizeof (struct ukvm_hv));
-    struct ukvm_hvb *hvb = malloc(sizeof (struct ukvm_hvb));
+    memset(hvt, 0, sizeof (struct hvt));
+    struct hvt_b *hvb = malloc(sizeof (struct hvt_b));
     if (hvb == NULL)
         err(1, "malloc");
-    memset(hvb, 0, sizeof (struct ukvm_hvb));
+    memset(hvb, 0, sizeof (struct hvt_b));
 
     hvb->kvmfd = open("/dev/kvm", O_RDWR | O_CLOEXEC);
     if (hvb->kvmfd == -1)
@@ -55,7 +55,7 @@ struct ukvm_hv *ukvm_hv_init(size_t mem_size)
     if (ret == -1)
         err(1, "KVM: ioctl (GET_API_VERSION) failed");
     if (ret != 12)
-        errx(1, "KVM: API version is %d, ukvm requires version 12", ret);
+        errx(1, "KVM: API version is %d, solo5-hvt requires version 12", ret);
     hvb->vmfd = ioctl(hvb->kvmfd, KVM_CREATE_VM, 0);
     if (hvb->vmfd == -1)
         err(1, "KVM: ioctl (CREATE_VM) failed");
@@ -74,22 +74,22 @@ struct ukvm_hv *ukvm_hv_init(size_t mem_size)
     if (hvb->vcpurun == MAP_FAILED)
         err(1, "KVM: VCPU mmap failed");
 
-    hv->mem = mmap(NULL, mem_size, PROT_READ | PROT_WRITE,
+    hvt->mem = mmap(NULL, mem_size, PROT_READ | PROT_WRITE,
                MAP_SHARED | MAP_ANONYMOUS, -1, 0);
-    if (hv->mem == MAP_FAILED)
+    if (hvt->mem == MAP_FAILED)
         err(1, "Error allocating guest memory");
-    hv->mem_size = mem_size;
+    hvt->mem_size = mem_size;
 
     struct kvm_userspace_memory_region region = {
         .slot = 0,
         .guest_phys_addr = 0,
-        .memory_size = hv->mem_size,
-        .userspace_addr = (uint64_t)hv->mem,
+        .memory_size = hvt->mem_size,
+        .userspace_addr = (uint64_t)hvt->mem,
     };
     ret = ioctl(hvb->vmfd, KVM_SET_USER_MEMORY_REGION, &region);
     if (ret == -1)
         err(1, "KVM: ioctl (SET_USER_MEMORY_REGION) failed");
 
-    hv->b = hvb;
-    return hv;
+    hvt->b = hvb;
+    return hvt;
 }

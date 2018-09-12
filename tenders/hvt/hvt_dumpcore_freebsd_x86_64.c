@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2015-2018 Contributors as noted in the AUTHORS file
  *
- * This file is part of ukvm, a unikernel monitor.
+ * This file is part of Solo5, a sandboxed execution environment.
  *
  * Permission to use, copy, modify, and/or distribute this software
  * for any purpose with or without fee is hereby granted, provided
@@ -19,7 +19,7 @@
  */
 
 /*
- * ukvm_dumpcore_freebsd_x86_64.c: Glue between the dumpcore module
+ * hvt_dumpcore_freebsd_x86_64.c: Glue between the dumpcore module
  * and FreeBSD vmm.
  */
 
@@ -34,7 +34,7 @@
 #include "hvt_freebsd.h"
 #include "hvt_cpu_x86_64.h"
 
-size_t ukvm_dumpcore_prstatus_size(void)
+size_t hvt_dumpcore_prstatus_size(void)
 {
     return sizeof (prstatus_t);
 }
@@ -50,9 +50,9 @@ static uint64_t vmm_get_reg(int vmfd, int reg)
     return vmreg.regval;
 }
 
-int ukvm_dumpcore_write_prstatus(int fd, struct ukvm_hv *hv, void *cookie)
+int hvt_dumpcore_write_prstatus(int fd, struct hvt *hvt, void *cookie)
 {
-    struct ukvm_hvb *hvb = hv->b;
+    struct hvt_b *hvb = hvt->b;
 
     prstatus_t prstatus = { 0 };
     /*
@@ -102,7 +102,7 @@ int ukvm_dumpcore_write_prstatus(int fd, struct ukvm_hv *hv, void *cookie)
      * that.
      */
     if (cookie) {
-        assert(sizeof(struct x86_trap_regs) < UKVM_HALT_COOKIE_MAX);
+        assert(sizeof(struct x86_trap_regs) < HVT_HALT_COOKIE_MAX);
         struct x86_trap_regs *regs = (struct x86_trap_regs *)cookie;
         uregs->r_rip = regs->rip;
         uregs->r_cs = regs->cs;
@@ -125,7 +125,7 @@ int ukvm_dumpcore_write_prstatus(int fd, struct ukvm_hv *hv, void *cookie)
     return 0;
 }
 
-int ukvm_dumpcore_supported()
+int hvt_dumpcore_supported()
 {
     return 0;
 }

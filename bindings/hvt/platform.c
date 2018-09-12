@@ -25,7 +25,7 @@ static uint64_t mem_size;
 
 void process_bootinfo(void *arg)
 {
-    struct ukvm_boot_info *bi = arg;
+    struct hvt_boot_info *bi = arg;
 
     cmdline = bi->cmdline;
     mem_size = bi->mem_size;

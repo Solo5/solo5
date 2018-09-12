@@ -46,7 +46,7 @@
 
 /*
  * This file currently serves dual purposes; it's used both by the Solo5
- * kernel code and the tests. The presence of __SOLO5_KERNEL__ controls
+ * bindings code and the tests. The presence of __SOLO5_BINDINGS__ controls
  * which mode of operation is selected.
  *
  * When adding functions to this file ensure that they are entirely
@@ -55,7 +55,7 @@
  * TODO: Replace this with a proper intergration of nolibc into both the
  * kernel and tests.
  */
-#ifdef __SOLO5_KERNEL__
+#ifdef __SOLO5_BINDINGS__
 #include "bindings.h"
 #endif
 

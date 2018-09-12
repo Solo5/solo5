@@ -22,7 +22,7 @@
 
 bool solo5_yield(solo5_time_t deadline)
 {
-    struct ukvm_poll t;
+    struct hvt_poll t;
     uint64_t now;
 
     now = solo5_clock_monotonic();
@@ -30,6 +30,6 @@ bool solo5_yield(solo5_time_t deadline)
         t.timeout_nsecs = 0;
     else
         t.timeout_nsecs = deadline - now;
-    ukvm_do_hypercall(UKVM_HYPERCALL_POLL, &t);
+    hvt_do_hypercall(HVT_HYPERCALL_POLL, &t);
     return t.ret;
 }

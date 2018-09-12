@@ -1,7 +1,7 @@
 /* 
  * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
  *
- * This file is part of ukvm, a unikernel monitor.
+ * This file is part of Solo5, a sandboxed execution environment.
  *
  * Permission to use, copy, modify, and/or distribute this software
  * for any purpose with or without fee is hereby granted, provided
@@ -19,12 +19,12 @@
  */
 
 /*
- * ukvm_cpu_x86_64.h: CPU constants and initialisation data common to x86_64
+ * hvt_cpu_x86_64.h: CPU constants and initialisation data common to x86_64
  * backend implementations.
  */
 
-#ifndef UKVM_CPU_X86_64_H
-#define UKVM_CPU_X86_64_H
+#ifndef HVT_CPU_X86_64_H
+#define HVT_CPU_X86_64_H
 
 #ifndef _BITUL
 
@@ -153,7 +153,7 @@ struct x86_sreg {
  * us regardless, setting it explicitly here does no harm and gives us one
  * consistent place for the initial values.
  */
-static const struct x86_sreg ukvm_x86_sreg_code = {
+static const struct x86_sreg hvt_x86_sreg_code = {
     .selector = X86_GDT_CODE,
     .base = 0,
     .limit = 0xffffffff,
@@ -161,7 +161,7 @@ static const struct x86_sreg ukvm_x86_sreg_code = {
     .p = 1, .dpl = 0, .db = 0, .s = 1, .l = 1, .g = 1
 };
 
-static const struct x86_sreg ukvm_x86_sreg_data = {
+static const struct x86_sreg hvt_x86_sreg_data = {
     .selector = X86_GDT_DATA,
     .base = 0,
     .limit = 0xffffffff,
@@ -169,7 +169,7 @@ static const struct x86_sreg ukvm_x86_sreg_data = {
     .p = 1, .dpl = 0, .db = 1, .s = 1, .l = 0, .g = 1
 };
 
-static const struct x86_sreg ukvm_x86_sreg_tr = {
+static const struct x86_sreg hvt_x86_sreg_tr = {
     .selector = X86_GDT_NULL,
     .base = 0,
     .limit = 0,
@@ -177,7 +177,7 @@ static const struct x86_sreg ukvm_x86_sreg_tr = {
     .p = 1
 };
 
-static const struct x86_sreg ukvm_x86_sreg_unusable = {
+static const struct x86_sreg hvt_x86_sreg_unusable = {
     .selector = X86_GDT_NULL,
     .unusable = 1
 };
@@ -211,9 +211,9 @@ static const struct x86_sreg ukvm_x86_sreg_unusable = {
  */
 #define X86_RFLAGS_INIT         0x2
 
-void ukvm_x86_mem_size(size_t *mem_size);
-void ukvm_x86_setup_pagetables(uint8_t *mem, size_t mem_size);
-void ukvm_x86_setup_gdt(uint8_t *mem);
+void hvt_x86_mem_size(size_t *mem_size);
+void hvt_x86_setup_pagetables(uint8_t *mem, size_t mem_size);
+void hvt_x86_setup_gdt(uint8_t *mem);
 
 /*
  * Trap frame layout. Must be kept in sync with (struct trap_regs) in
@@ -229,4 +229,4 @@ struct x86_trap_regs {
     uint64_t ss;
 };
 
-#endif /* UKVM_CPU_X86_64_H */
+#endif /* HVT_CPU_X86_64_H */

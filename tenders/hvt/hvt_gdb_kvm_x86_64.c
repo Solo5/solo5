@@ -1,7 +1,7 @@
 /* 
  * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
  *
- * This file is part of ukvm, a unikernel monitor.
+ * This file is part of Solo5, a sandboxed execution environment.
  *
  * Permission to use, copy, modify, and/or distribute this software
  * for any purpose with or without fee is hereby granted, provided
@@ -19,7 +19,7 @@
  */
 
 /*
- * ukvm_gdb_update_guest_debug is based on update_guest_debug from the QEMU
+ * hvt_gdb_update_guest_debug is based on update_guest_debug from the QEMU
  * source code, target/i386/kvm.c, which is:
  *
  * Copyright (C) 2006-2008 Qumranet Technologies
@@ -27,7 +27,7 @@
  */
 
 /*
- * ukvm_gdb_kvm_x86_64.c: glue between the GDB server (at ukvm_modules_gdb.c)
+ * hvt_gdb_kvm_x86_64.c: glue between the GDB server (at hvt_modules_gdb.c)
  * and KVM.
  */
 
@@ -53,7 +53,7 @@
 
 struct breakpoint_t {
     gdb_breakpoint_type type;
-    ukvm_gpa_t addr;
+    hvt_gpa_t addr;
     size_t len;
     uint32_t refcount;
     uint8_t saved_insn; /* for software breakpoints */
@@ -74,11 +74,11 @@ static bool stepping = false;
 /* This is the trap instruction used for software breakpoints. */
 static const uint8_t int3 = 0xcc;
 
-static int kvm_arch_insert_sw_breakpoint(struct ukvm_hv *hv, struct breakpoint_t *bp)
+static int kvm_arch_insert_sw_breakpoint(struct hvt *hvt, struct breakpoint_t *bp)
 {
     /* The address check at the GDB server just returned an error if addr was
-     * bad. UKVM_CHECKED_GPA_P will panic if that's the case. */
-    uint8_t *insn = UKVM_CHECKED_GPA_P(hv, bp->addr, bp->len);
+     * bad. HVT_CHECKED_GPA_P will panic if that's the case. */
+    uint8_t *insn = HVT_CHECKED_GPA_P(hvt, bp->addr, bp->len);
     bp->saved_insn = *insn;
     /*
      * We just modify the first byte even if the instruction is multi-byte.
@@ -90,15 +90,15 @@ static int kvm_arch_insert_sw_breakpoint(struct ukvm_hv *hv, struct breakpoint_t
     return 0;
 }
 
-static int kvm_arch_remove_sw_breakpoint(struct ukvm_hv *hv, struct breakpoint_t *bp)
+static int kvm_arch_remove_sw_breakpoint(struct hvt *hvt, struct breakpoint_t *bp)
 {
-    uint8_t *insn = UKVM_CHECKED_GPA_P(hv, bp->addr, bp->len);
+    uint8_t *insn = HVT_CHECKED_GPA_P(hvt, bp->addr, bp->len);
     assert(*insn == int3);
     *insn = bp->saved_insn;
     return 0;
 }
 
-static int ukvm_gdb_update_guest_debug(struct ukvm_hv *hv)
+static int hvt_gdb_update_guest_debug(struct hvt *hvt)
 {
     struct kvm_guest_debug dbg = {0};
     struct breakpoint_t *bp;
@@ -149,7 +149,7 @@ static int ukvm_gdb_update_guest_debug(struct ukvm_hv *hv)
         }
     }
 
-    if (ioctl(hv->b->vcpufd, KVM_SET_GUEST_DEBUG, &dbg) == -1) {
+    if (ioctl(hvt->b->vcpufd, KVM_SET_GUEST_DEBUG, &dbg) == -1) {
         /* The KVM_CAP_SET_GUEST_DEBUG capbility is not available. */
         err(1, "KVM_SET_GUEST_DEBUG failed");
         return -1;
@@ -158,7 +158,7 @@ static int ukvm_gdb_update_guest_debug(struct ukvm_hv *hv)
     return 0;
 }
 
-static struct breakpoint_t *bp_list_find(gdb_breakpoint_type type, ukvm_gpa_t addr, size_t len)
+static struct breakpoint_t *bp_list_find(gdb_breakpoint_type type, hvt_gpa_t addr, size_t len)
 {
     struct breakpoint_t *bp;
 
@@ -194,7 +194,7 @@ static struct breakpoint_t *bp_list_find(gdb_breakpoint_type type, ukvm_gpa_t ad
  * number of allowed hardware breakpoints (4).
  */
 static struct breakpoint_t *bp_list_insert(gdb_breakpoint_type type,
-                                           ukvm_gpa_t addr,
+                                           hvt_gpa_t addr,
                                            size_t len)
 {
     struct breakpoint_t *bp;
@@ -242,7 +242,7 @@ static struct breakpoint_t *bp_list_insert(gdb_breakpoint_type type,
  * Returns -1 if the breakpoint is not in the list.
  */
 static int bp_list_remove(gdb_breakpoint_type type,
-                          ukvm_gpa_t addr, size_t len)
+                          hvt_gpa_t addr, size_t len)
 {
     struct breakpoint_t *bp = NULL;
 
@@ -277,36 +277,36 @@ static int bp_list_remove(gdb_breakpoint_type type,
     return 0;
 }
 
-int ukvm_gdb_supported(void)
+int hvt_gdb_supported(void)
 {
     return 0;
 }
 
-int ukvm_gdb_read_registers(struct ukvm_hv *hv,
+int hvt_gdb_read_registers(struct hvt *hvt,
                             uint8_t *registers,
                             size_t *len)
 {
     struct kvm_regs kregs;
     struct kvm_sregs sregs;
-    struct ukvm_gdb_regs *gregs = (struct ukvm_gdb_regs *) registers;
+    struct hvt_gdb_regs *gregs = (struct hvt_gdb_regs *) registers;
     int ret;
 
-    ret = ioctl(hv->b->vcpufd, KVM_GET_REGS, &kregs);
+    ret = ioctl(hvt->b->vcpufd, KVM_GET_REGS, &kregs);
     if (ret == -1) {
         err(1, "KVM_GET_REGS");
         return -1;
     }
 
-    ret = ioctl(hv->b->vcpufd, KVM_GET_SREGS, &sregs);
+    ret = ioctl(hvt->b->vcpufd, KVM_GET_SREGS, &sregs);
     if (ret == -1) {
         err(1, "KVM_GET_REGS");
         return -1;
     }
 
-    if (*len < sizeof(struct ukvm_gdb_regs))
+    if (*len < sizeof(struct hvt_gdb_regs))
         return -1;
 
-    *len = sizeof(struct ukvm_gdb_regs);
+    *len = sizeof(struct hvt_gdb_regs);
 
     gregs->rax = kregs.rax;
     gregs->rbx = kregs.rbx;
@@ -336,29 +336,29 @@ int ukvm_gdb_read_registers(struct ukvm_hv *hv,
     return 0;
 }
 
-int ukvm_gdb_write_registers(struct ukvm_hv *hv,
+int hvt_gdb_write_registers(struct hvt *hvt,
                              uint8_t *registers,
                              size_t len)
 {
     struct kvm_regs kregs;
     struct kvm_sregs sregs;
-    struct ukvm_gdb_regs *gregs = (struct ukvm_gdb_regs *) registers;
+    struct hvt_gdb_regs *gregs = (struct hvt_gdb_regs *) registers;
     int ret;
 
     /* Let's read all registers just in case we miss filling one of them. */
-    ret = ioctl(hv->b->vcpufd, KVM_GET_REGS, &kregs);
+    ret = ioctl(hvt->b->vcpufd, KVM_GET_REGS, &kregs);
     if (ret == -1) {
         err(1, "KVM_GET_REGS");
         return -1;
     }
 
-    ret = ioctl(hv->b->vcpufd, KVM_GET_SREGS, &sregs);
+    ret = ioctl(hvt->b->vcpufd, KVM_GET_SREGS, &sregs);
     if (ret == -1) {
         err(1, "KVM_GET_REGS");
         return -1;
     }
 
-    if (len < sizeof(struct ukvm_gdb_regs))
+    if (len < sizeof(struct hvt_gdb_regs))
         return -1;
 
     kregs.rax = gregs->rax;
@@ -387,13 +387,13 @@ int ukvm_gdb_write_registers(struct ukvm_hv *hv,
     sregs.fs.selector = gregs->fs;
     sregs.gs.selector = gregs->gs;
 
-    ret = ioctl(hv->b->vcpufd, KVM_SET_REGS, &kregs);
+    ret = ioctl(hvt->b->vcpufd, KVM_SET_REGS, &kregs);
     if (ret == -1) {
         err(1, "KVM_GET_REGS");
         return -1;
     }
 
-    ret = ioctl(hv->b->vcpufd, KVM_SET_SREGS, &sregs);
+    ret = ioctl(hvt->b->vcpufd, KVM_SET_SREGS, &sregs);
     if (ret == -1) {
         err(1, "KVM_GET_REGS");
         return -1;
@@ -402,9 +402,9 @@ int ukvm_gdb_write_registers(struct ukvm_hv *hv,
     return 0;
 }
 
-int ukvm_gdb_add_breakpoint(struct ukvm_hv *hv,
+int hvt_gdb_add_breakpoint(struct hvt *hvt,
                             gdb_breakpoint_type type,
-                            ukvm_gpa_t addr, size_t len)
+                            hvt_gpa_t addr, size_t len)
 {
     struct breakpoint_t *bp;
 
@@ -418,17 +418,17 @@ int ukvm_gdb_add_breakpoint(struct ukvm_hv *hv,
         return -1;
 
     if (type == GDB_BREAKPOINT_SW)
-        kvm_arch_insert_sw_breakpoint(hv, bp);
+        kvm_arch_insert_sw_breakpoint(hvt, bp);
 
-    if (ukvm_gdb_update_guest_debug(hv) == -1)
+    if (hvt_gdb_update_guest_debug(hvt) == -1)
         return -1;
 
     return 0;
 }
 
-int ukvm_gdb_remove_breakpoint(struct ukvm_hv *hv,
+int hvt_gdb_remove_breakpoint(struct hvt *hvt,
                                gdb_breakpoint_type type,
-                               ukvm_gpa_t addr, size_t len)
+                               hvt_gpa_t addr, size_t len)
 {
     struct breakpoint_t *bp;
 
@@ -437,33 +437,33 @@ int ukvm_gdb_remove_breakpoint(struct ukvm_hv *hv,
     if (type == GDB_BREAKPOINT_SW) {
         bp = bp_list_find(type, addr, len);
         if (bp)
-            kvm_arch_remove_sw_breakpoint(hv, bp);
+            kvm_arch_remove_sw_breakpoint(hvt, bp);
     }
 
     if (bp_list_remove(type, addr, len) == -1)
         return -1;
 
-    if (ukvm_gdb_update_guest_debug(hv) == -1)
+    if (hvt_gdb_update_guest_debug(hvt) == -1)
         return -1;
 
     return 0;
 }
 
-int ukvm_gdb_enable_ss(struct ukvm_hv *hv)
+int hvt_gdb_enable_ss(struct hvt *hvt)
 {
     stepping = true;
 
-    if (ukvm_gdb_update_guest_debug(hv) == -1)
+    if (hvt_gdb_update_guest_debug(hvt) == -1)
         return -1;
 
     return 0;
 }
 
-int ukvm_gdb_disable_ss(struct ukvm_hv *hv)
+int hvt_gdb_disable_ss(struct hvt *hvt)
 {
     stepping = false;
 
-    if (ukvm_gdb_update_guest_debug(hv) == -1)
+    if (hvt_gdb_update_guest_debug(hvt) == -1)
         return -1;
 
     return 0;
@@ -474,9 +474,9 @@ int ukvm_gdb_disable_ss(struct ukvm_hv *hv)
  * GDB signals are regular UNIX signals, so the job here is to map
  * exits to signals (which does not always make sense).
  */
-int ukvm_gdb_read_last_signal(struct ukvm_hv *hv, int *signal)
+int hvt_gdb_read_last_signal(struct hvt *hvt, int *signal)
 {
-    switch (hv->b->vcpurun->exit_reason) {
+    switch (hvt->b->vcpurun->exit_reason) {
     case KVM_EXIT_DEBUG:
         *signal = GDB_SIGNAL_TRAP;
         break;

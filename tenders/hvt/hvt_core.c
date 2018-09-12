@@ -1,7 +1,7 @@
 /* 
  * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
  *
- * This file is part of ukvm, a unikernel monitor.
+ * This file is part of Solo5, a sandboxed execution environment.
  *
  * Permission to use, copy, modify, and/or distribute this software
  * for any purpose with or without fee is hereby granted, provided
@@ -19,7 +19,7 @@
  */
 
 /*
- * ukvm_core.c: Core functionality.
+ * hvt_core.c: Core functionality.
  *
  * Maintains tables of modules, hypercall handlers and vmexit handlers.
  * Implements core hypercall functionality which is always present.
@@ -41,59 +41,59 @@
 
 #include "hvt.h"
 
-struct ukvm_module ukvm_module_core;
+struct hvt_module hvt_module_core;
 
-struct ukvm_module *ukvm_core_modules[] = {
-    &ukvm_module_core,
-#ifdef UKVM_MODULE_DUMPCORE
-    &ukvm_module_dumpcore,
+struct hvt_module *hvt_core_modules[] = {
+    &hvt_module_core,
+#ifdef HVT_MODULE_DUMPCORE
+    &hvt_module_dumpcore,
 #endif
-#ifdef UKVM_MODULE_BLK
-    &ukvm_module_blk,
+#ifdef HVT_MODULE_BLK
+    &hvt_module_blk,
 #endif
-#ifdef UKVM_MODULE_NET
-    &ukvm_module_net,
+#ifdef HVT_MODULE_NET
+    &hvt_module_net,
 #endif
-#ifdef UKVM_MODULE_GDB
-    &ukvm_module_gdb,
+#ifdef HVT_MODULE_GDB
+    &hvt_module_gdb,
 #endif
     NULL,
 };
-#define NUM_MODULES ((sizeof ukvm_core_modules / sizeof (struct ukvm_module *)) - 1)
+#define NUM_MODULES ((sizeof hvt_core_modules / sizeof (struct hvt_module *)) - 1)
 
-ukvm_hypercall_fn_t ukvm_core_hypercalls[UKVM_HYPERCALL_MAX] = { 0 };
+hvt_hypercall_fn_t hvt_core_hypercalls[HVT_HYPERCALL_MAX] = { 0 };
 
-int ukvm_core_register_hypercall(int nr, ukvm_hypercall_fn_t fn)
+int hvt_core_register_hypercall(int nr, hvt_hypercall_fn_t fn)
 {
-    if (nr >= UKVM_HYPERCALL_MAX)
+    if (nr >= HVT_HYPERCALL_MAX)
         return -1;
-    if (ukvm_core_hypercalls[nr] != NULL)
+    if (hvt_core_hypercalls[nr] != NULL)
         return -1;
 
-    ukvm_core_hypercalls[nr] = fn;
+    hvt_core_hypercalls[nr] = fn;
     return 0;
 }
 
-#define UKVM_HALT_HOOKS_MAX 8
-ukvm_halt_fn_t ukvm_core_halt_hooks[UKVM_HALT_HOOKS_MAX] = {0};
+#define HVT_HALT_HOOKS_MAX 8
+hvt_halt_fn_t hvt_core_halt_hooks[HVT_HALT_HOOKS_MAX] = {0};
 static int nr_halt_hooks;
 
-int ukvm_core_register_halt_hook(ukvm_halt_fn_t fn)
+int hvt_core_register_halt_hook(hvt_halt_fn_t fn)
 {
-    if (nr_halt_hooks == UKVM_HALT_HOOKS_MAX)
+    if (nr_halt_hooks == HVT_HALT_HOOKS_MAX)
         return -1;
 
-    ukvm_core_halt_hooks[nr_halt_hooks] = fn;
+    hvt_core_halt_hooks[nr_halt_hooks] = fn;
     nr_halt_hooks++;
     return 0;
 }
 
-int ukvm_core_hypercall_halt(struct ukvm_hv *hv, ukvm_gpa_t gpa)
+int hvt_core_hypercall_halt(struct hvt *hvt, hvt_gpa_t gpa)
 {
     void *cookie;
     int idx;
-    struct ukvm_halt *t =
-            UKVM_CHECKED_GPA_P(hv, gpa, sizeof (struct ukvm_halt));
+    struct hvt_halt *t =
+            HVT_CHECKED_GPA_P(hvt, gpa, sizeof (struct hvt_halt));
 
     /*
      * If the guest set a non-NULL cookie (non-zero before conversion), verify
@@ -101,36 +101,36 @@ int ukvm_core_hypercall_halt(struct ukvm_hv *hv, ukvm_gpa_t gpa)
      * halt hooks, if any.
      */
     if (t->cookie != 0)
-        cookie = UKVM_CHECKED_GPA_P(hv, t->cookie, UKVM_HALT_COOKIE_MAX);
+        cookie = HVT_CHECKED_GPA_P(hvt, t->cookie, HVT_HALT_COOKIE_MAX);
     else
         cookie = NULL;
 
     for (idx = 0; idx < nr_halt_hooks; idx++) {
-        ukvm_halt_fn_t fn = ukvm_core_halt_hooks[idx];
+        hvt_halt_fn_t fn = hvt_core_halt_hooks[idx];
         assert(fn != NULL);
-        fn(hv, t->exit_status, cookie);
+        fn(hvt, t->exit_status, cookie);
     }
 
     return t->exit_status;
 }
 
-ukvm_vmexit_fn_t ukvm_core_vmexits[NUM_MODULES + 1] = { 0 };
+hvt_vmexit_fn_t hvt_core_vmexits[NUM_MODULES + 1] = { 0 };
 static int nvmexits = 0;
 
-int ukvm_core_register_vmexit(ukvm_vmexit_fn_t fn)
+int hvt_core_register_vmexit(hvt_vmexit_fn_t fn)
 {
     if (nvmexits == NUM_MODULES)
         return -1;
 
-    ukvm_core_vmexits[nvmexits] = fn;
+    hvt_core_vmexits[nvmexits] = fn;
     nvmexits++;
     return 0;
 }
 
-static void hypercall_walltime(struct ukvm_hv *hv, ukvm_gpa_t gpa)
+static void hypercall_walltime(struct hvt *hvt, hvt_gpa_t gpa)
 {
-    struct ukvm_walltime *t =
-        UKVM_CHECKED_GPA_P(hv, gpa, sizeof (struct ukvm_walltime));
+    struct hvt_walltime *t =
+        HVT_CHECKED_GPA_P(hvt, gpa, sizeof (struct hvt_walltime));
     struct timespec ts;
 
     int rc = clock_gettime(CLOCK_REALTIME, &ts);
@@ -138,11 +138,11 @@ static void hypercall_walltime(struct ukvm_hv *hv, ukvm_gpa_t gpa)
     t->nsecs = (ts.tv_sec * 1000000000ULL) + ts.tv_nsec;
 }
 
-static void hypercall_puts(struct ukvm_hv *hv, ukvm_gpa_t gpa)
+static void hypercall_puts(struct hvt *hvt, hvt_gpa_t gpa)
 {
-    struct ukvm_puts *p =
-        UKVM_CHECKED_GPA_P(hv, gpa, sizeof (struct ukvm_puts));
-    int rc = write(1, UKVM_CHECKED_GPA_P(hv, p->data, p->len), p->len);
+    struct hvt_puts *p =
+        HVT_CHECKED_GPA_P(hvt, gpa, sizeof (struct hvt_puts));
+    int rc = write(1, HVT_CHECKED_GPA_P(hvt, p->data, p->len), p->len);
     assert(rc >= 0);
 }
 
@@ -150,7 +150,7 @@ static struct pollfd pollfds[NUM_MODULES];
 static int npollfds = 0;
 static sigset_t pollsigmask;
 
-int ukvm_core_register_pollfd(int fd)
+int hvt_core_register_pollfd(int fd)
 {
     if (npollfds == NUM_MODULES)
         return -1;
@@ -161,10 +161,10 @@ int ukvm_core_register_pollfd(int fd)
     return 0;
 }
 
-static void hypercall_poll(struct ukvm_hv *hv, ukvm_gpa_t gpa)
+static void hypercall_poll(struct hvt *hvt, hvt_gpa_t gpa)
 {
-    struct ukvm_poll *t =
-        UKVM_CHECKED_GPA_P(hv, gpa, sizeof (struct ukvm_poll));
+    struct hvt_poll *t =
+        HVT_CHECKED_GPA_P(hvt, gpa, sizeof (struct hvt_poll));
     struct timespec ts;
     int rc;
 
@@ -176,13 +176,13 @@ static void hypercall_poll(struct ukvm_hv *hv, ukvm_gpa_t gpa)
     t->ret = rc;
 }
 
-static int setup(struct ukvm_hv *hv)
+static int setup(struct hvt *hvt)
 {
-    assert(ukvm_core_register_hypercall(UKVM_HYPERCALL_WALLTIME,
+    assert(hvt_core_register_hypercall(HVT_HYPERCALL_WALLTIME,
                 hypercall_walltime) == 0);
-    assert(ukvm_core_register_hypercall(UKVM_HYPERCALL_PUTS,
+    assert(hvt_core_register_hypercall(HVT_HYPERCALL_PUTS,
                 hypercall_puts) == 0);
-    assert(ukvm_core_register_hypercall(UKVM_HYPERCALL_POLL,
+    assert(hvt_core_register_hypercall(HVT_HYPERCALL_POLL,
                 hypercall_poll) == 0);
 
     /*
@@ -195,7 +195,7 @@ static int setup(struct ukvm_hv *hv)
     return 0;
 }
 
-struct ukvm_module ukvm_module_core = {
+struct hvt_module hvt_module_core = {
     .name = "core",
     .setup = setup
 };

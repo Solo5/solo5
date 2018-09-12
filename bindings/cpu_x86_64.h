@@ -75,8 +75,8 @@
 /*
  * GDT layout
  *
- * This should be kept consistent with the layout used by the ukvm target (as
- * defined in ukvm/ukvm_cpu_x86_64.h.
+ * This should be kept consistent with the layout used by the hvt tender (as
+ * defined in tenders/hvt/hvt_cpu_x86_64.h.
  */
 #define GDT_DESC_NULL           0
 #define GDT_DESC_CODE           1

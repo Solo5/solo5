@@ -121,7 +121,7 @@ void solo5_exit(int status) __attribute__((noreturn));
  * possible.
  *
  * This call is intended to signal an abnormal exit to the host. Depending on
- * the monitor configuration, this may trigger further actions such a
+ * the tender configuration, this may trigger further actions such a
  * generating a core file.
  */
 void solo5_abort(void) __attribute__((noreturn));

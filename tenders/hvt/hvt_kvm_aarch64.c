@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
  *
- * This file is part of ukvm, a unikernel monitor.
+ * This file is part of Solo5, a sandboxed execution environment.
  *
  * Permission to use, copy, modify, and/or distribute this software
  * for any purpose with or without fee is hereby granted, provided
@@ -19,7 +19,7 @@
  */
 
 /*
- * ukvm_hv_kvm_aarch64.c: aarch64 architecture-dependent part of KVM backend
+ * hvt_kvm_aarch64.c: aarch64 architecture-dependent part of KVM backend
  * implementation.
  */
 
@@ -254,12 +254,12 @@ static void aarch64_enable_guest_mmu(int vcpufd)
  * Arguments to the kernel main are passed using the ARM64 calling
  * convention: x0 ~ x7
  */
-static void aarch64_setup_core_registers(struct ukvm_hv *hv,
-                             ukvm_gpa_t gpa_ep, ukvm_gpa_t gpa_kend)
+static void aarch64_setup_core_registers(struct hvt *hvt,
+                             hvt_gpa_t gpa_ep, hvt_gpa_t gpa_kend)
 {
     int ret;
-    struct ukvm_hvb *hvb = hv->b;
-    struct ukvm_boot_info *bi;
+    struct hvt_b *hvb = hvt->b;
+    struct hvt_boot_info *bi;
 
     /* Set default PSTATE flags to SPSR_EL1 */
     ret = aarch64_set_one_register(hvb->vcpufd, SPSR_EL1,
@@ -272,12 +272,12 @@ static void aarch64_setup_core_registers(struct ukvm_hv *hv,
      * alignment by default.
      */
     ret = aarch64_set_one_register(hvb->vcpufd, SP_EL1,
-                                   hv->mem_size - 16);
+                                   hvt->mem_size - 16);
     if (ret == -1)
          err(1, "Initialize sp[EL1] failed!\n");
 
-    bi = (struct ukvm_boot_info *)(hv->mem + AARCH64_BOOT_INFO);
-    bi->mem_size = hv->mem_size;
+    bi = (struct hvt_boot_info *)(hvt->mem + AARCH64_BOOT_INFO);
+    bi->mem_size = hvt->mem_size;
     bi->kernel_end = gpa_kend;
     bi->cmdline = AARCH64_CMDLINE_BASE;
 
@@ -288,7 +288,7 @@ static void aarch64_setup_core_registers(struct ukvm_hv *hv,
      */
     bi->cpu.tsc_freq = aarch64_get_counter_frequency();
 
-    /* Passing ukvm_boot_info through x0 */
+    /* Passing hvt_boot_info through x0 */
     ret = aarch64_set_one_register(hvb->vcpufd, REG_X0, AARCH64_BOOT_INFO);
     if (ret == -1)
          err(1, "Set boot info to x0 failed!\n");
@@ -299,10 +299,10 @@ static void aarch64_setup_core_registers(struct ukvm_hv *hv,
          err(1, "Set guest reset entry to PC failed!\n");
 }
 
-void ukvm_hv_vcpu_init(struct ukvm_hv *hv, ukvm_gpa_t gpa_ep,
-        ukvm_gpa_t gpa_kend, char **cmdline)
+void hvt_vcpu_init(struct hvt *hvt, hvt_gpa_t gpa_ep,
+        hvt_gpa_t gpa_kend, char **cmdline)
 {
-    struct ukvm_hvb *hvb = hv->b;
+    struct hvt_b *hvb = hvt->b;
     uint64_t phys_space_sz;
 
     /*
@@ -311,7 +311,7 @@ void ukvm_hv_vcpu_init(struct ukvm_hv *hv, ukvm_gpa_t gpa_ep,
      * to 1TB address space which we configured in TCR_EL1.
      */
     phys_space_sz = AARCH64_MMIO_BASE + AARCH64_MMIO_SZ;
-    aarch64_setup_memory_mapping(hv->mem, hv->mem_size, phys_space_sz);
+    aarch64_setup_memory_mapping(hvt->mem, hvt->mem_size, phys_space_sz);
 
     /* Select preferred target for guest */
     aarch64_setup_preferred_target(hvb->vmfd, hvb->vcpufd);
@@ -321,9 +321,9 @@ void ukvm_hv_vcpu_init(struct ukvm_hv *hv, ukvm_gpa_t gpa_ep,
     aarch64_enable_guest_mmu(hvb->vcpufd);
 
     /* Initialize core registers for guest */
-    aarch64_setup_core_registers(hv, gpa_ep, gpa_kend);
+    aarch64_setup_core_registers(hvt, gpa_ep, gpa_kend);
 
-    *cmdline = (char *)(hv->mem + AARCH64_CMDLINE_BASE);
+    *cmdline = (char *)(hvt->mem + AARCH64_CMDLINE_BASE);
 }
 
 static inline uint32_t mmio_read32(void *data)
@@ -331,9 +331,9 @@ static inline uint32_t mmio_read32(void *data)
     return *(uint32_t *)data;
 }
 
-int ukvm_hv_vcpu_loop(struct ukvm_hv *hv)
+int hvt_vcpu_loop(struct hvt *hvt)
 {
-    struct ukvm_hvb *hvb = hv->b;
+    struct hvt_b *hvb = hvt->b;
     int ret;
 
     while (1) {
@@ -353,8 +353,8 @@ int ukvm_hv_vcpu_loop(struct ukvm_hv *hv)
         }
 
         int handled = 0;
-        for (ukvm_vmexit_fn_t *fn = ukvm_core_vmexits; *fn && !handled; fn++)
-            handled = ((*fn)(hv) == 0);
+        for (hvt_vmexit_fn_t *fn = hvt_core_vmexits; *fn && !handled; fn++)
+            handled = ((*fn)(hvt) == 0);
         if (handled)
             continue;
 
@@ -365,24 +365,24 @@ int ukvm_hv_vcpu_loop(struct ukvm_hv *hv)
             if (!run->mmio.is_write || run->mmio.len != 4)
                 errx(1, "Invalid guest mmio access: mmio=0x%llx len=%d", run->mmio.phys_addr, run->mmio.len);
 
-            if (run->mmio.phys_addr < UKVM_HYPERCALL_MMIO_BASE ||
-                run->mmio.phys_addr >= UKVM_HYPERCALL_ADDRESS(UKVM_HYPERCALL_MAX))
+            if (run->mmio.phys_addr < HVT_HYPERCALL_MMIO_BASE ||
+                run->mmio.phys_addr >= HVT_HYPERCALL_ADDRESS(HVT_HYPERCALL_MAX))
                 errx(1, "Invalid guest mmio access: mmio=0x%llx", run->mmio.phys_addr);
 
-            int nr = UKVM_HYPERCALL_NR(run->mmio.phys_addr);
+            int nr = HVT_HYPERCALL_NR(run->mmio.phys_addr);
 
             /* Guest has halted the CPU. */
-            if (nr == UKVM_HYPERCALL_HALT) {
-                ukvm_gpa_t gpa = mmio_read32(run->mmio.data);
-                return ukvm_core_hypercall_halt(hv, gpa);
+            if (nr == HVT_HYPERCALL_HALT) {
+                hvt_gpa_t gpa = mmio_read32(run->mmio.data);
+                return hvt_core_hypercall_halt(hvt, gpa);
             }
 
-            ukvm_hypercall_fn_t fn = ukvm_core_hypercalls[nr];
+            hvt_hypercall_fn_t fn = hvt_core_hypercalls[nr];
             if (fn == NULL)
                 errx(1, "Invalid guest hypercall: num=%d", nr);
 
-            ukvm_gpa_t gpa = mmio_read32(run->mmio.data);
-            fn(hv, gpa);
+            hvt_gpa_t gpa = mmio_read32(run->mmio.data);
+            fn(hvt, gpa);
             break;
         }
 
@@ -406,6 +406,6 @@ int ukvm_hv_vcpu_loop(struct ukvm_hv *hv)
     }
 }
 
-void ukvm_hv_mem_size(size_t *mem_size) {
+void hvt_mem_size(size_t *mem_size) {
     aarch64_mem_size(mem_size);
 }

@@ -1,7 +1,7 @@
 /* 
  * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
  *
- * This file is part of ukvm, a unikernel monitor.
+ * This file is part of Solo5, a sandboxed execution environment.
  *
  * Permission to use, copy, modify, and/or distribute this software
  * for any purpose with or without fee is hereby granted, provided
@@ -19,130 +19,130 @@
  */
 
 /*
- * ukvm.h: Monitor API definitions.
+ * hvt.h: hvt tender internal API definitions.
  *
  * Architecture and backend-independent users should not need to include any
  * other header files.
  */
 
-#ifndef UKVM_H
-#define UKVM_H
+#ifndef HVT_H
+#define HVT_H
 
 #include <inttypes.h>
 #include <err.h>
 
 #include "cc.h"
-#define UKVM_HOST
+#define HVT_HOST
 #include "hvt_abi.h"
 #include "hvt_gdb.h"
 
 /*
  * Hypervisor {arch,backend}-independent data is defined here.
- * {arch,backend}-dependent data (b) is defined in ukvm_hv_{backend}.h.
+ * {arch,backend}-dependent data (b) is defined in hvt_{backend}.h.
  */
-struct ukvm_hv {
+struct hvt {
     uint8_t *mem;
     size_t mem_size;
-    struct ukvm_hvb *b;
+    struct hvt_b *b;
 };
 
 /*
  * Load an ELF binary from (file) into (mem_size) bytes of (mem), returning
  * the entry point (gpa_ep) and last byte used by the binary (gpa_kend).
  */
-void ukvm_elf_load(const char *file, uint8_t *mem, size_t mem_size,
-        ukvm_gpa_t *p_entry, ukvm_gpa_t *p_end);                
+void hvt_elf_load(const char *file, uint8_t *mem, size_t mem_size,
+        hvt_gpa_t *p_entry, hvt_gpa_t *p_end);                
 
 /*
  * Check that (gpa) and (gpa + sz) are within guest memory. Returns a host-side
  * pointer to (gpa) if successful, aborts if not.
  */
-#define UKVM_CHECKED_GPA_P(hv, gpa, sz) \
-    ukvm_checked_gpa_p((hv), (gpa), (sz), __FILE__, __LINE__)
+#define HVT_CHECKED_GPA_P(hvt, gpa, sz) \
+    hvt_checked_gpa_p((hvt), (gpa), (sz), __FILE__, __LINE__)
 
-inline void *ukvm_checked_gpa_p(struct ukvm_hv *hv, ukvm_gpa_t gpa, size_t sz,
+inline void *hvt_checked_gpa_p(struct hvt *hvt, hvt_gpa_t gpa, size_t sz,
         const char *file, int line)
 {    
-    ukvm_gpa_t r;
+    hvt_gpa_t r;
 
-    if ((gpa >= hv->mem_size) || add_overflow(gpa, sz, r) ||
-            (r >= hv->mem_size)) {
+    if ((gpa >= hvt->mem_size) || add_overflow(gpa, sz, r) ||
+            (r >= hvt->mem_size)) {
         errx(1, "%s:%d: Invalid guest access: gpa=0x%" PRIx64 ", sz=%zu",
                 file, line, gpa, sz);
     }
     else {
-        return (void *)(hv->mem + gpa);
+        return (void *)(hvt->mem + gpa);
     }
 }
 
 /*
  * Initialise hypervisor, with (mem_size) bytes of guest memory.
- * (hv->mem) and (hv->mem_size) are valid after this function has been called.
+ * (hvt->mem) and (hvt->mem_size) are valid after this function has been called.
  */
-struct ukvm_hv *ukvm_hv_init(size_t mem_size);
+struct hvt *hvt_init(size_t mem_size);
 
 /*
- * Computes the memory size to use for this monitor, based on the user-provided
+ * Computes the memory size to use for this tender, based on the user-provided
  * value (rounding down if necessary).
  */
-void ukvm_hv_mem_size(size_t *mem_size);
+void hvt_mem_size(size_t *mem_size);
 
 /*
  * Initialise VCPU state with (gpa_ep) as the entry point and (gpa_kend) as the
  * last byte of memory used by the guest binary. In (*cmdline), returns a
- * buffer with UKVM_CMDLINE_SIZE bytes of space for the guest command line.
+ * buffer with HVT_CMDLINE_SIZE bytes of space for the guest command line.
  */
-void ukvm_hv_vcpu_init(struct ukvm_hv *hv, ukvm_gpa_t gpa_ep,
-        ukvm_gpa_t gpa_kend, char **cmdline);
+void hvt_vcpu_init(struct hvt *hvt, hvt_gpa_t gpa_ep,
+        hvt_gpa_t gpa_kend, char **cmdline);
 
 /*
  * Run the VCPU. Returns on normal guest exit. Returns the exit status passed
  * from the unikernel on the final exit.
  */
-int ukvm_hv_vcpu_loop(struct ukvm_hv *hv);
+int hvt_vcpu_loop(struct hvt *hvt);
 
 /*
- * Register the file descriptor (fd) for use with UKVM_HYPERCALL_POLL.
+ * Register the file descriptor (fd) for use with HVT_HYPERCALL_POLL.
  */
-int ukvm_core_register_pollfd(int fd);
+int hvt_core_register_pollfd(int fd);
 
 /*
  * Register (fn) as the handler for hypercall (nr).
  */
-typedef void (*ukvm_hypercall_fn_t)(struct ukvm_hv *hv, ukvm_gpa_t gpa);
-int ukvm_core_register_hypercall(int nr, ukvm_hypercall_fn_t fn);
+typedef void (*hvt_hypercall_fn_t)(struct hvt *hvt, hvt_gpa_t gpa);
+int hvt_core_register_hypercall(int nr, hvt_hypercall_fn_t fn);
 
 /*
- * Register (fn) as a hook for UKVM_HYPERCALL_HALT.
+ * Register (fn) as a hook for HVT_HYPERCALL_HALT.
  */
-typedef void (*ukvm_halt_fn_t)(struct ukvm_hv *hv, int status, void *cookie);
-int ukvm_core_register_halt_hook(ukvm_halt_fn_t fn);
+typedef void (*hvt_halt_fn_t)(struct hvt *hvt, int status, void *cookie);
+int hvt_core_register_halt_hook(hvt_halt_fn_t fn);
 
 /*
- * Dispatch array of [UKVM_HYPERCALL_MAX] hypercalls. NULL = no handler.
+ * Dispatch array of [HVT_HYPERCALL_MAX] hypercalls. NULL = no handler.
  */
-extern ukvm_hypercall_fn_t ukvm_core_hypercalls[];
-int ukvm_core_hypercall_halt(struct ukvm_hv *hv, ukvm_gpa_t gpa);
+extern hvt_hypercall_fn_t hvt_core_hypercalls[];
+int hvt_core_hypercall_halt(struct hvt *hvt, hvt_gpa_t gpa);
 
 /*
  * Register a custom vmexit handler (fn). (fn) must return 0 if the vmexit was
  * handled, -1 if not.
  */
-typedef int (*ukvm_vmexit_fn_t)(struct ukvm_hv *hv);
-int ukvm_core_register_vmexit(ukvm_vmexit_fn_t fn);
+typedef int (*hvt_vmexit_fn_t)(struct hvt *hvt);
+int hvt_core_register_vmexit(hvt_vmexit_fn_t fn);
 
 /*
  * Dispatch array of module-registered vmexit handlers. NULL terminated.
  */
-extern ukvm_vmexit_fn_t ukvm_core_vmexits[];
+extern hvt_vmexit_fn_t hvt_core_vmexits[];
 
 /*
  * Module definition. (name) and (setup) are required, all other functions are
  * optional.
  */
-struct ukvm_module {
+struct hvt_module {
     const char *name;
-    int (*setup)(struct ukvm_hv *hv);
+    int (*setup)(struct hvt *hvt);
     int (*handle_cmdarg)(char *cmdarg);
     char *(*usage)(void);
 };
@@ -150,13 +150,13 @@ struct ukvm_module {
 /*
  * Array of compiled-in modules. NULL terminated.
  */
-extern struct ukvm_module *ukvm_core_modules[];
+extern struct hvt_module *hvt_core_modules[];
 
-extern struct ukvm_module ukvm_module_core;
-extern struct ukvm_module ukvm_module_blk;
-extern struct ukvm_module ukvm_module_net;
-extern struct ukvm_module ukvm_module_gdb;
-extern struct ukvm_module ukvm_module_dumpcore;
+extern struct hvt_module hvt_module_core;
+extern struct hvt_module hvt_module_blk;
+extern struct hvt_module hvt_module_net;
+extern struct hvt_module hvt_module_gdb;
+extern struct hvt_module hvt_module_dumpcore;
 
 /*
  * GDB specific functions to be implemented on all backends for all
@@ -168,14 +168,14 @@ extern struct ukvm_module ukvm_module_dumpcore;
  * Note backends not implementing GDB support still need to implement the
  * remaining functions in this section, all of which should return -1.
  */
-int ukvm_gdb_supported(void);
+int hvt_gdb_supported(void);
 
 /*
  * Fills *reg with a stream of hexadecimal digits for each guest register
  * in GDB register order, where each register is in target endian order.
  * Returns 0 if success, -1 otherwise.
  */
-int ukvm_gdb_read_registers(struct ukvm_hv *hv, uint8_t *reg, size_t *len);
+int hvt_gdb_read_registers(struct hvt *hvt, uint8_t *reg, size_t *len);
 
 /*
  * Writes all guest registers from a stream of hexadecimal digits for each
@@ -183,38 +183,38 @@ int ukvm_gdb_read_registers(struct ukvm_hv *hv, uint8_t *reg, size_t *len);
  * target endian order.
  * Returns 0 if success, -1 otherwise.
  */
-int ukvm_gdb_write_registers(struct ukvm_hv *hv, uint8_t *reg, size_t len);
+int hvt_gdb_write_registers(struct hvt *hvt, uint8_t *reg, size_t len);
 
 /*
  * Enable single stepping. Returns 0 if success, -1 otherwise.
  */
-int ukvm_gdb_enable_ss(struct ukvm_hv *hv);
+int hvt_gdb_enable_ss(struct hvt *hvt);
 
 /*
  * Disable single stepping. Returns 0 if success, -1 otherwise.
  */
-int ukvm_gdb_disable_ss(struct ukvm_hv *hv);
+int hvt_gdb_disable_ss(struct hvt *hvt);
 
 /*
  * Reads the current KVM exit code and maps it to a GDB signal value.
  * Returns 0 if success, -1 otherwise.
  */
-int ukvm_gdb_read_last_signal(struct ukvm_hv *hv, int *signal);
+int hvt_gdb_read_last_signal(struct hvt *hvt, int *signal);
 
 /*
  * Add a breakpoint of type software or hardware, at address addr.  len is
  * typically the size of the breakpoint in bytes that should be inserted
  * Returns 0 if success, -1 otherwise.
  */
-int ukvm_gdb_add_breakpoint(struct ukvm_hv *hv, gdb_breakpoint_type type,
-                            ukvm_gpa_t addr, size_t len);
+int hvt_gdb_add_breakpoint(struct hvt *hvt, gdb_breakpoint_type type,
+                            hvt_gpa_t addr, size_t len);
 
 /*
  * Remove a breakpoint of type software or hardware, at address addr.  len is
  * typically the size of the breakpoint in bytes that should be inserted.
  * Returns 0 if success, -1 otherwise.
  */
-int ukvm_gdb_remove_breakpoint(struct ukvm_hv *hv, gdb_breakpoint_type type,
-                               ukvm_gpa_t addr, size_t len);
+int hvt_gdb_remove_breakpoint(struct hvt *hvt, gdb_breakpoint_type type,
+                               hvt_gpa_t addr, size_t len);
 
-#endif /* UKVM_H */
+#endif /* HVT_H */

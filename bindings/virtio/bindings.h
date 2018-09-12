@@ -18,8 +18,15 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef __VIRTIO_KERNEL_H__
-#define __VIRTIO_KERNEL_H__
+/*
+ * bindings.h: Solo5 bindings, virtio implementation additions.
+ *
+ * This header file includes (supersedes) the common bindings.h for the virtio
+ * implementation.
+*/
+
+#ifndef __VIRTIO_BINDINGS_H__
+#define __VIRTIO_BINDINGS_H__
 
 #include "../bindings.h"
 #include "multiboot.h"
@@ -62,4 +69,4 @@ void virtio_net_pkt_put(void);      /* we're done with recv'd data */
 int virtio_net_xmit_packet(const void *data, size_t len);
 int virtio_net_pkt_poll(void);      /* test if packet(s) are available */
 
-#endif
+#endif /* __VIRTIO_BINDINGS_H__ */

@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
  *
- * This file is part of ukvm, a unikernel monitor.
+ * This file is part of Solo5, a sandboxed execution environment.
  *
  * Permission to use, copy, modify, and/or distribute this software
  * for any purpose with or without fee is hereby granted, provided
@@ -19,7 +19,7 @@
  */
 
 /*
- * ukvm_hv_freebsd_x86_64.c: x86_64 architecture-dependent part of FreeBSD
+ * hvt_freebsd_x86_64.c: x86_64 architecture-dependent part of FreeBSD
  * vmm(4) backend implementation.
  */
 
@@ -45,8 +45,8 @@
 #include "hvt_freebsd.h"
 #include "hvt_cpu_x86_64.h"
 
-void ukvm_hv_mem_size(size_t *mem_size) {
-    ukvm_x86_mem_size(mem_size);
+void hvt_mem_size(size_t *mem_size) {
+    hvt_x86_mem_size(mem_size);
 }
 
 static void vmm_set_desc(int vmfd, int reg, uint64_t base, uint32_t limit,
@@ -93,33 +93,33 @@ static void vmm_set_sreg(int vmfd, int reg, const struct x86_sreg *sreg)
     vmm_set_reg(vmfd, reg, sreg->selector * 8);
 }
 
-void ukvm_hv_vcpu_init(struct ukvm_hv *hv, ukvm_gpa_t gpa_ep,
-        ukvm_gpa_t gpa_kend, char **cmdline)
+void hvt_vcpu_init(struct hvt *hvt, hvt_gpa_t gpa_ep,
+        hvt_gpa_t gpa_kend, char **cmdline)
 {
-    struct ukvm_hvb *hvb = hv->b;
+    struct hvt_b *hvb = hvt->b;
 
-    ukvm_x86_setup_gdt(hv->mem);
-    ukvm_x86_setup_pagetables(hv->mem, hv->mem_size);
+    hvt_x86_setup_gdt(hvt->mem);
+    hvt_x86_setup_pagetables(hvt->mem, hvt->mem_size);
 
     vmm_set_reg(hvb->vmfd, VM_REG_GUEST_CR0, X86_CR0_INIT);
     vmm_set_reg(hvb->vmfd, VM_REG_GUEST_CR3, X86_CR3_INIT);
     vmm_set_reg(hvb->vmfd, VM_REG_GUEST_CR4, X86_CR4_INIT);
     vmm_set_reg(hvb->vmfd, VM_REG_GUEST_EFER, X86_EFER_INIT);
 
-    vmm_set_sreg(hvb->vmfd, VM_REG_GUEST_CS, &ukvm_x86_sreg_code);
-    vmm_set_sreg(hvb->vmfd, VM_REG_GUEST_SS, &ukvm_x86_sreg_data);
-    vmm_set_sreg(hvb->vmfd, VM_REG_GUEST_DS, &ukvm_x86_sreg_data);
-    vmm_set_sreg(hvb->vmfd, VM_REG_GUEST_ES, &ukvm_x86_sreg_data);
-    vmm_set_sreg(hvb->vmfd, VM_REG_GUEST_FS, &ukvm_x86_sreg_data);
-    vmm_set_sreg(hvb->vmfd, VM_REG_GUEST_GS, &ukvm_x86_sreg_data);
+    vmm_set_sreg(hvb->vmfd, VM_REG_GUEST_CS, &hvt_x86_sreg_code);
+    vmm_set_sreg(hvb->vmfd, VM_REG_GUEST_SS, &hvt_x86_sreg_data);
+    vmm_set_sreg(hvb->vmfd, VM_REG_GUEST_DS, &hvt_x86_sreg_data);
+    vmm_set_sreg(hvb->vmfd, VM_REG_GUEST_ES, &hvt_x86_sreg_data);
+    vmm_set_sreg(hvb->vmfd, VM_REG_GUEST_FS, &hvt_x86_sreg_data);
+    vmm_set_sreg(hvb->vmfd, VM_REG_GUEST_GS, &hvt_x86_sreg_data);
 
     vmm_set_desc(hvb->vmfd, VM_REG_GUEST_GDTR, X86_GDT_BASE, X86_GDTR_LIMIT, 0);
-    vmm_set_sreg(hvb->vmfd, VM_REG_GUEST_TR, &ukvm_x86_sreg_tr);
-    vmm_set_sreg(hvb->vmfd, VM_REG_GUEST_LDTR, &ukvm_x86_sreg_unusable);
+    vmm_set_sreg(hvb->vmfd, VM_REG_GUEST_TR, &hvt_x86_sreg_tr);
+    vmm_set_sreg(hvb->vmfd, VM_REG_GUEST_LDTR, &hvt_x86_sreg_unusable);
 
-    struct ukvm_boot_info *bi =
-        (struct ukvm_boot_info *)(hv->mem + X86_BOOT_INFO_BASE);
-    bi->mem_size = hv->mem_size;
+    struct hvt_boot_info *bi =
+        (struct hvt_boot_info *)(hvt->mem + X86_BOOT_INFO_BASE);
+    bi->mem_size = hvt->mem_size;
     bi->kernel_end = gpa_kend;
     bi->cmdline = X86_CMDLINE_BASE;
 
@@ -139,7 +139,7 @@ void ukvm_hv_vcpu_init(struct ukvm_hv *hv, ukvm_gpa_t gpa_ep,
 
     vmm_set_reg(hvb->vmfd, VM_REG_GUEST_RIP, gpa_ep);
     vmm_set_reg(hvb->vmfd, VM_REG_GUEST_RFLAGS, X86_RFLAGS_INIT);
-    vmm_set_reg(hvb->vmfd, VM_REG_GUEST_RSP, hv->mem_size - 8);
+    vmm_set_reg(hvb->vmfd, VM_REG_GUEST_RSP, hvt->mem_size - 8);
     vmm_set_reg(hvb->vmfd, VM_REG_GUEST_RDI, X86_BOOT_INFO_BASE);
 
     struct vm_activate_cpu ac = {
@@ -149,7 +149,7 @@ void ukvm_hv_vcpu_init(struct ukvm_hv *hv, ukvm_gpa_t gpa_ep,
     if (ret == -1)
         err(1, "VM_ACTIVATE_CPU");
 
-    *cmdline = (char *)(hv->mem + X86_CMDLINE_BASE);
+    *cmdline = (char *)(hvt->mem + X86_CMDLINE_BASE);
 }
 
 static void dump_vmx(struct vm_exit *vme)
@@ -164,13 +164,13 @@ static void dump_vmx(struct vm_exit *vme)
     warnx("\tinst_error\t%d", vme->u.vmx.inst_error);
 }
 
-int ukvm_hv_vcpu_loop(struct ukvm_hv *hv)
+int hvt_vcpu_loop(struct hvt *hvt)
 {
-    struct ukvm_hvb *hvb = hv->b;
+    struct hvt_b *hvb = hvt->b;
     int ret;
 
     while (1) {
-        ret = ioctl(hv->b->vmfd, VM_RUN, &hvb->vmrun);
+        ret = ioctl(hvt->b->vmfd, VM_RUN, &hvb->vmrun);
         if (ret == -1 && errno == EINTR)
             continue;
         if (ret == -1) {
@@ -178,8 +178,8 @@ int ukvm_hv_vcpu_loop(struct ukvm_hv *hv)
         }
 
         int handled = 0;
-        for (ukvm_vmexit_fn_t *fn = ukvm_core_vmexits; *fn && !handled; fn++)
-            handled = ((*fn)(hv) == 0);
+        for (hvt_vmexit_fn_t *fn = hvt_core_vmexits; *fn && !handled; fn++)
+            handled = ((*fn)(hvt) == 0);
         if (handled)
             continue;
 
@@ -190,25 +190,25 @@ int ukvm_hv_vcpu_loop(struct ukvm_hv *hv)
             if (vme->u.inout.in || vme->u.inout.bytes != 4)
                 errx(1, "Invalid guest port access: port=0x%x",
                         vme->u.inout.port);
-            if (vme->u.inout.port < UKVM_HYPERCALL_PIO_BASE ||
-                    vme->u.inout.port >= (UKVM_HYPERCALL_PIO_BASE + UKVM_HYPERCALL_MAX))
+            if (vme->u.inout.port < HVT_HYPERCALL_PIO_BASE ||
+                    vme->u.inout.port >= (HVT_HYPERCALL_PIO_BASE + HVT_HYPERCALL_MAX))
                 errx(1, "Invalid guest port access: port=0x%x",
                         vme->u.inout.port);
 
-            int nr = vme->u.inout.port - UKVM_HYPERCALL_PIO_BASE;
+            int nr = vme->u.inout.port - HVT_HYPERCALL_PIO_BASE;
 
             /* Guest has halted the CPU. */
-            if (nr == UKVM_HYPERCALL_HALT) {
-                ukvm_gpa_t gpa = vme->u.inout.eax;
-                return ukvm_core_hypercall_halt(hv, gpa);
+            if (nr == HVT_HYPERCALL_HALT) {
+                hvt_gpa_t gpa = vme->u.inout.eax;
+                return hvt_core_hypercall_halt(hvt, gpa);
             }
 
-            ukvm_hypercall_fn_t fn = ukvm_core_hypercalls[nr];
+            hvt_hypercall_fn_t fn = hvt_core_hypercalls[nr];
             if (fn == NULL)
                 errx(1, "Invalid guest hypercall: num=%d", nr);
 
-            ukvm_gpa_t gpa = vme->u.inout.eax;
-            fn(hv, gpa);
+            hvt_gpa_t gpa = vme->u.inout.eax;
+            fn(hvt, gpa);
             break;
         }
 

@@ -23,7 +23,7 @@
 static uint64_t cpu_gdt64[GDT_NUM_ENTRIES] ALIGN_64_BIT;
 
 /*
- * The monitor (ukvm) or bootloader + bootstrap (virtio) starts us up with a
+ * The tender (hvt) or bootloader + bootstrap (virtio) starts us up with a
  * bootstrap GDT which is "invisible" to the guest, init and switch to our own
  * GDT.
  *
