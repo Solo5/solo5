@@ -28,7 +28,6 @@
 #include <err.h>
 #include <errno.h>
 #include <inttypes.h>
-#include <pwd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -149,9 +148,6 @@ int ukvm_hv_vcpu_loop(struct ukvm_hv *hv)
 {
     struct ukvm_hvb         *hvb = hv->b;
     struct vm_run_params    *vrp;
-    struct passwd *pw;
-    uid_t uid;
-    gid_t gid;
 
     vrp = malloc(sizeof(struct vm_run_params));
     if (vrp == NULL)
@@ -164,30 +160,6 @@ int ukvm_hv_vcpu_loop(struct ukvm_hv *hv)
     vrp->vrp_vm_id = hvb->vcp_id;
     vrp->vrp_vcpu_id = hvb->vcpu_id;
     vrp->vrp_continue = 0;
-
-    if ((pw = getpwnam(VMD_USER)) == NULL)
-        err(1, "can't get _vmd user");
-    uid = pw->pw_uid;
-    gid = pw->pw_gid;
-
-    if (chroot(pw->pw_dir) == -1)
-        err(1, "chroot: %s", pw->pw_dir);
-
-    if (chdir("/") == -1)
-        err(1, "chdir(\"/\")");
-
-    if (setgroups(1, &gid) ||
-        setresgid(gid, gid, gid) ||
-        setresuid(uid, uid, uid))
-        err(1, "unable to revoke privs");
-
-    /*
-     * pledge in the vm processes:
-     * stdio - for malloc and basic I/O including events.
-     * vmm - for the vmm ioctls and operations.
-     */
-    if (pledge("stdio vmm", NULL) == -1)
-        err(errno, "pledge");
 
     for (;;) {
         vrp->vrp_irq = 0xFFFF;

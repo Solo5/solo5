@@ -73,6 +73,9 @@ add_module ()
     if [ ! -f ${UKVM_SRC}/ukvm_module_$1.c ]; then
         die "Invalid module: $1"
     fi
+    if [ $1 = 'dumpcore' ]; then
+        add_cflags "-DUKVM_DROP_PRIVILEGES=0"
+    fi
     enableit="-DUKVM_MODULE_$(echo $1 | tr '[a-z]' '[A-Z]')"
     add_obj "ukvm_module_$1.o"
     add_cflags "${enableit}"

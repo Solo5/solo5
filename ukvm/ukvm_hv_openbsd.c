@@ -27,6 +27,7 @@
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <pwd.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -75,7 +76,7 @@ struct ukvm_hv *ukvm_hv_init(size_t mem_size)
     struct vm_create_params *vcp;
     struct vm_mem_range *vmr;
     void *p;
-    
+
     if(geteuid() != 0) {
         errno = EPERM;
         err(1, "need root privileges");
@@ -133,3 +134,32 @@ struct ukvm_hv *ukvm_hv_init(size_t mem_size)
     return hv;
 }
 
+void ukvm_hv_drop_privileges() {
+    struct passwd *pw;
+    uid_t uid;
+    gid_t gid;
+
+    if ((pw = getpwnam(VMD_USER)) == NULL)
+        err(1, "can't get _vmd user");
+    uid = pw->pw_uid;
+    gid = pw->pw_gid;
+
+    if (chroot(pw->pw_dir) == -1)
+        err(1, "chroot: %s", pw->pw_dir);
+
+    if (chdir("/") == -1)
+        err(1, "chdir(\"/\")");
+
+    if (setgroups(1, &gid) ||
+        setresgid(gid, gid, gid) ||
+        setresuid(uid, uid, uid))
+        err(1, "unable to revoke privs");
+
+    /*
+     * pledge in the vm processes:
+     * stdio - for malloc and basic I/O including events.
+     * vmm - for the vmm ioctls and operations.
+     */
+    if (pledge("stdio vmm", NULL) == -1)
+        err(errno, "pledge");
+}

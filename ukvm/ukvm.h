@@ -36,6 +36,10 @@
 #include "ukvm_guest.h"
 #include "ukvm_gdb.h"
 
+#ifndef UKVM_DROP_PRIVILEGES
+#define UKVM_DROP_PRIVILEGES 1
+#endif
+
 /*
  * Hypervisor {arch,backend}-independent data is defined here.
  * {arch,backend}-dependent data (b) is defined in ukvm_hv_{backend}.h.
@@ -62,7 +66,7 @@ void ukvm_elf_load(const char *file, uint8_t *mem, size_t mem_size,
 
 inline void *ukvm_checked_gpa_p(struct ukvm_hv *hv, ukvm_gpa_t gpa, size_t sz,
         const char *file, int line)
-{    
+{
     ukvm_gpa_t r;
 
     if ((gpa >= hv->mem_size) || add_overflow(gpa, sz, r) ||
@@ -100,6 +104,12 @@ void ukvm_hv_vcpu_init(struct ukvm_hv *hv, ukvm_gpa_t gpa_ep,
  * from the unikernel on the final exit.
  */
 int ukvm_hv_vcpu_loop(struct ukvm_hv *hv);
+
+
+/*
+ * Drop Privileges
+ */
+void ukvm_hv_drop_privileges();
 
 /*
  * Register the file descriptor (fd) for use with UKVM_HYPERCALL_POLL.
