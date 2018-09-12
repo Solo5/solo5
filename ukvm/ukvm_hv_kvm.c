@@ -93,3 +93,6 @@ struct ukvm_hv *ukvm_hv_init(size_t mem_size)
     hv->b = hvb;
     return hv;
 }
+
+void ukvm_hv_drop_privileges() {
+}

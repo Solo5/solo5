@@ -196,5 +196,10 @@ int main(int argc, char **argv)
 
     setup_modules(hv);
 
+    if(UKVM_DROP_PRIVILEGES == 1) {
+        ukvm_hv_drop_privileges();
+    } else {
+        warnx("Stern Warning, not recommended for production");
+    }
     return ukvm_hv_vcpu_loop(hv);
 }
