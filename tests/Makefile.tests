@@ -1,6 +1,6 @@
-# Copyright (c) 2015-2017 Contributors as noted in the AUTHORS file
+# Copyright (c) 2015-2018 Contributors as noted in the AUTHORS file
 #
-# This file is part of Solo5, a unikernel base layer.
+# This file is part of Solo5, a sandboxed execution environment.
 #
 # Permission to use, copy, modify, and/or distribute this software
 # for any purpose with or without fee is hereby granted, provided
@@ -19,8 +19,8 @@
 TOP?=../..
 include $(TOP)/Makefile.common
 
-.PHONY: ukvm
-ukvm: $(UKVM_TARGETS)
+.PHONY: hvt
+hvt: $(HVT_TARGETS)
 
 .PHONY: virtio
 virtio:	$(VIRTIO_TARGETS)
@@ -28,45 +28,42 @@ virtio:	$(VIRTIO_TARGETS)
 .PHONY: muen
 muen: $(MUEN_TARGETS)
 
-SOLO5_DIR=$(TOP)/kernel
-UKVM_SRC=$(TOP)/ukvm
+BINDINGS_DIR=$(TOP)/bindings
+SOLO5_HVT_SRC=$(TOP)/tenders/hvt
 
-CFLAGS+=-I$(SOLO5_DIR)
+CFLAGS+=-I$(BINDINGS_DIR)
 
 %.o: %.c $(HEADERS)
 	$(CC) $(CFLAGS) -c $< -o $@
 .PRECIOUS: %.o
 
-ifeq ($(BUILD_UKVM), yes)
-Makefile.ukvm: $(UKVM_SRC)/ukvm-configure
-	$(UKVM_SRC)/ukvm-configure $(UKVM_SRC) $(UKVM_MODULES)
+ifeq ($(BUILD_HVT), yes)
+Makefile.solo5-hvt: $(SOLO5_HVT_SRC)/solo5-hvt-configure
+	$(SOLO5_HVT_SRC)/solo5-hvt-configure $(SOLO5_HVT_SRC) $(HVT_MODULES)
 
--include Makefile.ukvm
+-include Makefile.solo5-hvt
 
-%.ukvm: %.o $(SOLO5_DIR)/ukvm/solo5.lds $(SOLO5_DIR)/ukvm/solo5.o
-	$(LD) -T $(SOLO5_DIR)/ukvm/solo5.lds \
-			 $(LDFLAGS) -o $@ $(SOLO5_DIR)/ukvm/solo5.o $< $(LDLIBS)
+%.hvt: %.o $(BINDINGS_DIR)/hvt/solo5_hvt.lds $(BINDINGS_DIR)/hvt/solo5_hvt.o
+	$(LD) -T $(BINDINGS_DIR)/hvt/solo5_hvt.lds $(LDFLAGS) -o $@ $(BINDINGS_DIR)/hvt/solo5_hvt.o $< $(LDLIBS)
 
-$(SOLO5_DIR)/ukvm/solo5.o: 
-	$(MAKE) -C $(SOLO5_DIR) ukvm
+$(BINDINGS_DIR)/hvt/solo5_hvt.o: 
+	$(MAKE) -C $(BINDINGS_DIR) hvt
 endif
 
 ifeq ($(BUILD_MUEN), yes)
-%.muen: %.o $(SOLO5_DIR)/ukvm/solo5.lds $(SOLO5_DIR)/muen/solo5.o
-	$(LD) -T $(SOLO5_DIR)/ukvm/solo5.lds \
-			 $(LDFLAGS) -o $@ $(SOLO5_DIR)/muen/solo5.o $< $(LDLIBS)
+%.muen: %.o $(BINDINGS_DIR)/muen/solo5_muen.lds $(BINDINGS_DIR)/muen/solo5_muen.o
+	$(LD) -T $(BINDINGS_DIR)/muen/solo5_muen.lds $(LDFLAGS) -o $@ $(BINDINGS_DIR)/muen/solo5_muen.o $< $(LDLIBS)
 
-$(SOLO5_DIR)/muen/solo5.o:
-	$(MAKE) -C $(SOLO5_DIR) muen
+$(BINDINGS_DIR)/muen/solo5_muen.o:
+	$(MAKE) -C $(BINDINGS_DIR) muen
 endif
 
-%.virtio: %.o $(SOLO5_DIR)/virtio/solo5.lds $(SOLO5_DIR)/virtio/solo5.o
-	$(LD) -T $(SOLO5_DIR)/virtio/solo5.lds \
-			 $(LDFLAGS) -o $@ $(SOLO5_DIR)/virtio/solo5.o $< $(LDLIBS)
+%.virtio: %.o $(BINDINGS_DIR)/virtio/solo5_virtio.lds $(BINDINGS_DIR)/virtio/solo5_virtio.o
+	$(LD) -T $(BINDINGS_DIR)/virtio/solo5_virtio.lds $(LDFLAGS) -o $@ $(BINDINGS_DIR)/virtio/solo5_virtio.o $< $(LDLIBS)
 
-$(SOLO5_DIR)/virtio/solo5.o: 
-	$(MAKE) -C $(SOLO5_DIR) virtio
+$(BINDINGS_DIR)/virtio/solo5_virtio.o: 
+	$(MAKE) -C $(BINDINGS_DIR) virtio
 
-.PHONY: clean ukvm-clean
-clean: ukvm-clean
-	$(RM) *.o $(UKVM_TARGETS) Makefile.ukvm $(VIRTIO_TARGETS) $(MUEN_TARGETS)
+.PHONY: clean solo5-hvt-clean
+clean: solo5-hvt-clean
+	$(RM) *.o $(HVT_TARGETS) Makefile.solo5-hvt $(VIRTIO_TARGETS) $(MUEN_TARGETS)

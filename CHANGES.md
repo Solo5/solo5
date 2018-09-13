@@ -1,3 +1,38 @@
+## 0.4.0 (2018-09-XX) (Not yet released)
+
+This release is a major restructuring and renaming of Solo5 components,
+primarily to reflect that the "ukvm monitor" is no longer specific to the KVM
+hypervisor and to allow for future development of further targets and tenders
+enabling different sandboxing technologies.
+
+Major changes:
+
+* `kernel/X`: Moved to `bindings/X`, now referred to as the "Solo5 _bindings_
+  for X".  Build products are now named `bindings/X/solo5_X.o`.
+  * `kernel/solo5.h`: Moved to `include/solo5/solo5.h`.
+* _ukvm_: Target has been renamed to _hvt_. Monitor code is now referred to as
+  the hvt _tender_ and has been moved to `tenders/hvt/`.
+  * `ukvm-configure`: Now named `solo5-hvt-configure`.
+  * `ukvm-bin`: Now named `solo5-hvt`.
+  * `ukvm/ukvm_guest.h`: Renamed to `include/solo5/hvt_abi.h`.
+* Generated VM names used on FreeBSD and OpenBSD have been changed from
+  `ukvm%d` to `solo5-%d`, with `%d` being the PID of the `solo5-hvt` tender.
+* Core file names produced by the _hvt_ dumpcore module have been changed from
+  `core.ukvm.%d` to `core.solo5-hvt.%d`.
+* `solo5-run-virtio` and `solo5-mkimage`: Renamed to `solo5-virtio-run` and
+  `solo5-virtio-mkimage` respectively.
+* OPAM packages used by MirageOS have been renamed from `solo5-kernel-X` to
+  `solo5-bindings-X`, accounting for the change from `ukvm` to `hvt`. Full
+  details of the impact of this change on existing Mirage/Solo5 installations
+  will be provided separately as part of a MirageOS release.
+
+For further details please refer to the discussion and commits merged as part
+of #274.
+
+Other changes:
+
+* Update OpenBSD requirements to 6.4 and minor OpenBSD build fixes (#270, #273).
+
 ## 0.3.1 (2018-08-10)
 
 Minor point release with build fixes:

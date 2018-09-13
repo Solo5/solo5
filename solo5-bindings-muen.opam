@@ -1,0 +1,23 @@
+opam-version: "1.2"
+maintainer: "martin@lucina.net"
+authors: [
+  "Dan Williams <djwillia@us.ibm.com>"
+  "Martin Lucina <martin@lucina.net>"
+  "Ricardo Koller <kollerr@us.ibm.com>"
+]
+homepage: "https://github.com/solo5/solo5"
+bug-reports: "https://github.com/solo5/solo5/issues"
+license: "ISC"
+dev-repo: "https://github.com/solo5/solo5.git"
+build: [make "muen"]
+install: [make "opam-muen-install" "PREFIX=%{prefix}%"]
+remove: [make "opam-muen-uninstall" "PREFIX=%{prefix}%"]
+depends: "conf-pkg-config"
+conflicts: [
+  "solo5-bindings-hvt"
+  "solo5-bindings-virtio"
+]
+available: [
+  ocaml-version >= "4.02.3" & (arch = "x86_64" | arch = "amd64") &
+  (os = "linux" | os = "freebsd" | os = "openbsd")
+]
