@@ -5,9 +5,9 @@ limited to, running applications built using various unikernels (a.k.a.
 library operating systems).
 
 Conceptually, if you think of a unikernel as a user process, albeit one that
-does more in "userspace", Solo5 re-defines the [interface](../kernel/solo5.h)
-between the process and its host operating system or hypervisor in a way that
-is designed to:
+does more in "userspace", Solo5 re-defines the
+[interface](../include/solo5/solo5.h) between the process and its host
+operating system or hypervisor in a way that is designed to:
 
 - be as "legacy-free" and "thin"(\*) as possible, thus having a _minimal attack
   surface_, making it much easier to reason about the isolation properties of
@@ -32,17 +32,18 @@ properties:
 - ease of porting existing and future unikernels to run on top of the Solo5
   interface.
 
-Additionally, Solo5 introduces the concept of a _monitor_, which is loosely the
-equivalent of QEMU in the standard KVM/QEMU setup. The [ukvm](../ukvm/)
-_monitor_ is designed to be modular from the outset, and is several orders of
+Additionally, Solo5 introduces the concept of a _tender_, which is loosely the
+equivalent of QEMU in the standard KVM/QEMU setup. The [hvt](../tenders/hvt/)
+_tender_ is designed to be modular from the outset, and is several orders of
 magnitude smaller in code size than QEMU. (See the original ukvm
 [paper](https://www.usenix.org/system/files/conference/hotcloud16/hotcloud16_williams.pdf)
 from Hotcloud 2016 for a detailed comparison).
 
-Note that ukvm (both the _monitor_ and _target_) are due to be renamed to a
-better name shortly to reflect both that it is no longer specific to the
-Linux/KVM hypervisor, and to allow for more _monitors_ using different
-sandboxing technologies.
+Note that both the hvt _tender_ and _target_ were formerly known as the "ukvm
+monitor", or just ukvm. As of the Solo5 0.4.0 release, these have been renamed
+to reflect that they are no longer specific to the Linux/KVM hypervisor, and to
+allow for development of further _tenders_ using different sandboxing
+technologies.
 
 ## Goals
 
@@ -82,24 +83,21 @@ We expect to provide a stable ABI (binary compatibility) in the future.
 
 # Architecture and code organisation
 
-Please note that this organisation and terminology will change after the 0.3.0
-release, for details refer to issue
-[#172](https://github.com/Solo5/solo5/issues/172).
-
 The main components of Solo5 are:
 
-- [kernel/](../kernel/): the Solo5 _bindings_ to (implementation of) the
+- [bindings/](../bindings/): the Solo5 _bindings_ to (implementation of) the
   unikernel-facing interface for the various supported targets, as defined in
-  [kernel/solo5.h](../kernel/solo5.h).
-- [ukvm/](../ukvm/): the monitor implementation for the _ukvm_ target, with
-  monitor-wide interfaces defined in [ukvm/ukvm.h](../ukvm/ukvm.h) and the
-  internal isolation ("hypercall") interface to Solo5 defined in
-  [ukvm/ukvm\_guest.h](../ukvm/ukvm_guest.h). All non-core code is contained in
-  optional modules, which are selected at unikernel build time by the
-  [ukvm-configure](../ukvm/ukvm-configure) script.
+  [solo5.h](../include/solo5/solo5.h).
+- [tenders/hvt/](../tenders/hvt/): the tender implementation for the _hvt_
+  target, with tender-internal interfaces defined in
+  [hvt.h](../tenders/hvt/hvt.h) and the internal isolation ("hypercall")
+  interface to Solo5 defined in [hvt\_abi.h](../include/solo5/hvt_abi.h). All
+  non-core code is contained in optional modules, which are selected at
+  unikernel build time by the
+  [solo5-hvt-configure](../tenders/hvt/solo5-hvt-configure) script.
 - [tests/](../tests/): self tests used as part of our CI system.
-- [tools/](..tools/): extra tooling and scripts (mainly to support the _virtio_
-  target).
+- [scripts/](../scripts/): extra tooling and scripts (mainly to support the
+  _virtio_ target).
 
 The code is architected to split processor architecture and/or host operating
 system (_target_)-specific modules from shared functionality where possible.

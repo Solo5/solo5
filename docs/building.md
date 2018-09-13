@@ -44,17 +44,17 @@ architectures:
 
 Production:
 
-* _ukvm_: Linux/KVM, using ukvm as a monitor, on the x86\_64 architecture.
-* _ukvm_; FreeBSD vmm, using ukvm as a monitor, on the x86\_64 architecture.
-  FreeBSD 11-RELEASE or later is required.
+* _hvt_: Linux/KVM, using `solo5-hvt` as a tender, on the x86\_64 architecture.
+* _hvt_; FreeBSD vmm, using `solo5-hvt` as a tender, on the x86\_64
+  architecture.  FreeBSD 11-RELEASE or later is required.
 
 Experimental:
 
-* _ukvm_: Linux/KVM, using ukvm as a monitor, on the aarch64 architecture. You
-  will need hardware capable of running a recent (v4.14+) 64-bit mainline
+* _hvt_: Linux/KVM, using `solo5-hvt` as a tender, on the aarch64 architecture.
+  You will need hardware capable of running a recent (v4.14+) 64-bit mainline
   kernel and a 64-bit Linux distribution.
-* _ukvm_: OpenBSD vmm, using ukvm as a monitor, on the x86\_64 architecture.
-  OpenBSD 6.4 or later is required.
+* _hvt_: OpenBSD vmm, using `solo5-hvt` as a tender, on the x86\_64
+  architecture.  OpenBSD 6.4 or later is required.
 * _muen_: The Muen Separation Kernel, on the x86\_64 architecture. Please see
   this [article](https://muen.sk/articles.html#mirageos-unikernels) for
   Muen-specific instructions.
@@ -83,8 +83,8 @@ The products of building a Solo5 unikernel are, depending on the _target_, one
 or two artifacts:
 
 - an ELF binary containing the built unikernel,
-- for the _ukvm_ target, a specialized _[monitor](architecture.md)_, by
-  convention currently built as `ukvm-bin` alongside the unikernel binary.
+- for the _hvt_ target, a specialized _[tender](architecture.md)_, by
+  convention currently built as `solo5-hvt` alongside the unikernel binary.
 
 `test_ping_serve` is a minimalist network test which will respond only to ARP
 and ICMP echo requests sent to the hard-coded IP address of `10.0.0.2`. It
@@ -114,21 +114,21 @@ To set up vmm and the `tap100` interface on OpenBSD, run (as root):
     ./MAKEDEV tap100
     ifconfig tap100 inet 10.0.0.1 netmask 255.255.255.0
 
-## _ukvm_: Running on Linux, FreeBSD and OpenBSD
+## _hvt_: Running on Linux, FreeBSD and OpenBSD
 
-A specialized monitor called `ukvm-bin` is generated as part of the
+A specialized _tender_ called `solo5-hvt` is generated as part of the
 build process, so the command line arguments may differ depending on
-the needs of the unikernel.  To see the arguments, run `ukvm-bin` with
+the needs of the unikernel.  To see the arguments, run `solo5-hvt` with
 no arguments or `--help`.
 
-On Linux, `ukvm-bin` only requires access to `/dev/kvm` and `/dev/net/tun`, and
-thus does NOT need to run as `root` provided your have granted the user in
+On Linux, `solo5-hvt` only requires access to `/dev/kvm` and `/dev/net/tun`,
+and thus does NOT need to run as `root` provided your have granted the user in
 question the correct permissions. On FreeBSD and OpenBSD, `root` privileges are
 currently required in order to access the `vmm` APIs.
 
 To launch the unikernel:
 
-    ./ukvm-bin --net=tap100 -- test_ping_serve.ukvm verbose
+    ./solo5-hvt --net=tap100 -- test_ping_serve.hvt verbose
 
 Use `^C` to terminate the unikernel.
 
@@ -167,7 +167,7 @@ keeping it around as it is useful to some users, it is essentially a
 virtualization. As the goals of Solo5 have since evolved, we do not expect to
 devote a substantial amount of time to the further development of _virtio_.
 
-Therefore, we recommend that new deployments use the _ukvm_ target instead.
+Therefore, we recommend that new deployments use the _hvt_ target instead.
 
 The following devices are supported by the _virtio_ target:
 
