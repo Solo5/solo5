@@ -5,7 +5,7 @@ unikernel, and post-mortem debugging (guest core dumps). In both cases, you
 will need to enable building the relevant module in your `solo5-hvt` _tender_.
 
 To do so for the standalone tests provided with Solo5, edit the Makefile and
-add the module to the `UKVM_MODULES` variable. For other downstream build
+add the module to the `HVT_MODULES` variable. For other downstream build
 systems, consult the documentation of your unikernel project, and/or instruct
 your build system to add the module to the invocation of `solo5-hvt-configure`.
 

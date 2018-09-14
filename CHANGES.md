@@ -1,4 +1,4 @@
-## 0.4.0 (2018-09-XX) (Not yet released)
+## 0.4.0 (2018-09-14)
 
 This release is a major restructuring and renaming of Solo5 components,
 primarily to reflect that the "ukvm monitor" is no longer specific to the KVM
