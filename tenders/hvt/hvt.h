@@ -36,6 +36,10 @@
 #include "hvt_abi.h"
 #include "hvt_gdb.h"
 
+#ifndef HVT_DROP_PRIVILEGES
+#define HVT_DROP_PRIVILEGES 1
+#endif
+
 /*
  * Hypervisor {arch,backend}-independent data is defined here.
  * {arch,backend}-dependent data (b) is defined in hvt_{backend}.h.
@@ -94,6 +98,13 @@ void hvt_mem_size(size_t *mem_size);
  */
 void hvt_vcpu_init(struct hvt *hvt, hvt_gpa_t gpa_ep,
         hvt_gpa_t gpa_kend, char **cmdline);
+
+#if(HVT_DROP_PRIVILEGES == 1)
+/*
+ * Drop Privileges
+ */
+void hvt_drop_privileges();
+#endif
 
 /*
  * Run the VCPU. Returns on normal guest exit. Returns the exit status passed

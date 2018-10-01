@@ -196,5 +196,11 @@ int main(int argc, char **argv)
 
     setup_modules(hvt);
 
+#if(HVT_DROP_PRIVILEGES == 1)
+    hvt_drop_privileges();
+#else
+    warnx("Stern Warning, not recommended for production");
+#endif
+
     return hvt_vcpu_loop(hvt);
 }
