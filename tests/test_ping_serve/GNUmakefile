@@ -19,6 +19,7 @@
 HVT_TARGETS=test_ping_serve.hvt solo5-hvt
 VIRTIO_TARGETS=test_ping_serve.virtio
 MUEN_TARGETS=test_ping_serve.muen
+GENODE_TARGETS=test_ping_serve.genode
 HVT_MODULES=net
 
 include ../Makefile.tests

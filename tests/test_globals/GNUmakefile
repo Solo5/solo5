@@ -19,6 +19,7 @@
 HVT_TARGETS=test_globals.hvt solo5-hvt
 VIRTIO_TARGETS=test_globals.virtio
 MUEN_TARGETS=test_globals.muen
+GENODE_TARGETS=test_globals.genode
 HVT_MODULES=
 
 include ../Makefile.tests

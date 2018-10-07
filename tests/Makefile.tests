@@ -28,6 +28,9 @@ virtio:	$(VIRTIO_TARGETS)
 .PHONY: muen
 muen: $(MUEN_TARGETS)
 
+.PHONY: genode
+genode: $(GENODE_TARGETS)
+
 BINDINGS_DIR=$(TOP)/bindings
 SOLO5_HVT_SRC=$(TOP)/tenders/hvt
 
@@ -56,6 +59,14 @@ ifeq ($(BUILD_MUEN), yes)
 
 $(BINDINGS_DIR)/muen/solo5_muen.o:
 	$(MAKE) -C $(BINDINGS_DIR) muen
+endif
+
+ifeq ($(BUILD_GENODE), yes)
+%.genode: %.o $(BINDINGS_DIR)/genode/genode_dyn.ld $(BINDINGS_DIR)/genode/solo5_genode.lib.so
+	$(LD) -T $(BINDINGS_DIR)/genode/genode_dyn.ld $(GENODE_LDFLAGS) -o $@ $(BINDINGS_DIR)/genode/solo5.lib.so $< $(LDLIBS)
+
+$(BINDINGS_DIR)/genode/solo5_genode.lib.so:
+	$(MAKE) -C $(BINDINGS_DIR) genode
 endif
 
 %.virtio: %.o $(BINDINGS_DIR)/virtio/solo5_virtio.lds $(BINDINGS_DIR)/virtio/solo5_virtio.o

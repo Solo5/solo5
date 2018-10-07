@@ -19,6 +19,7 @@
 HVT_TARGETS=test_time.hvt solo5-hvt
 VIRTIO_TARGETS=test_time.virtio
 MUEN_TARGETS=test_time.muen
+GENODE_TARGETS=test_time.genode
 HVT_MODULES=
 
 include ../Makefile.tests

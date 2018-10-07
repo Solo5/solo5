@@ -18,6 +18,7 @@
 
 HVT_TARGETS=test_blk.hvt solo5-hvt
 VIRTIO_TARGETS=test_blk.virtio
+GENODE_TARGETS=test_blk.genode
 HVT_MODULES=blk
 
 include ../Makefile.tests

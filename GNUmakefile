@@ -22,9 +22,9 @@ $(TOP)/Makeconf:
 include Makefile.common
 
 .PHONY: all
-all: hvt virtio muen
+all: hvt virtio muen genode
 .DEFAULT_GOAL := all
-.NOTPARALLEL: hvt virtio muen
+.NOTPARALLEL: hvt virtio muen genode
 
 .PHONY: virtio
 virtio:
@@ -48,6 +48,13 @@ ifeq ($(BUILD_MUEN), yes)
 	$(MAKE) -C tests muen
 endif
 
+.PHONY: genode
+genode:
+ifeq ($(BUILD_GENODE), yes)
+	$(MAKE) -C bindings genode
+	$(MAKE) -C tests genode
+endif
+
 .PHONY: clean
 clean:
 	$(MAKE) -C bindings clean
@@ -58,6 +65,7 @@ endif
 	$(RM) solo5-bindings-virtio.pc
 	$(RM) solo5-bindings-hvt.pc
 	$(RM) solo5-bindings-muen.pc
+	$(RM) solo5-bindings-genode.pc
 	$(RM) -r include/crt
 	$(RM) Makeconf
 
@@ -69,6 +77,8 @@ OPAM_VIRTIO_LIBDIR=$(PREFIX)/lib/solo5-bindings-virtio
 OPAM_VIRTIO_INCDIR=$(PREFIX)/include/solo5-bindings-virtio
 OPAM_MUEN_LIBDIR=$(PREFIX)/lib/solo5-bindings-muen
 OPAM_MUEN_INCDIR=$(PREFIX)/include/solo5-bindings-muen
+OPAM_GENODE_LIBDIR=$(PREFIX)/lib/solo5-bindings-genode
+OPAM_GENODE_INCDIR=$(PREFIX)/include/solo5-bindings-genode
 
 # We want the MD CFLAGS, LDFLAGS and LD in the .pc file, where they can be
 # picked up by the Mirage tool / other downstream consumers.
@@ -76,6 +86,7 @@ OPAM_MUEN_INCDIR=$(PREFIX)/include/solo5-bindings-muen
 	sed <$< > $@ \
 	    -e 's#!CFLAGS!#$(MD_CFLAGS)#g;' \
 	    -e 's#!LDFLAGS!#$(LDFLAGS)#g;' \
+	    -e 's#!GENODE_APP_LDFLAGS!#$(GENODE_APP_LDFLAGS)#g;' \
 	    -e 's#!LD!#$(LD)#g;' \
 
 .PHONY: opam-virtio-install
@@ -126,3 +137,16 @@ opam-muen-install: solo5-bindings-muen.pc muen
 opam-muen-uninstall:
 	$(RM) -r $(OPAM_MUEN_INCDIR) $(OPAM_MUEN_LIBDIR)
 	$(RM) $(PREFIX)/lib/pkgconfig/solo5-bindings-muen.pc
+
+.PHONY: opam-genode-install
+opam-genode-install: solo5-bindings-genode.pc genode
+	mkdir -p $(OPAM_GENODE_INCDIR) $(OPAM_GENODE_LIBDIR)
+	cp -R include/. $(OPAM_GENODE_INCDIR)
+	cp bindings/genode/solo5.lib.so bindings/genode/genode_dyn.ld $(OPAM_GENODE_LIBDIR)
+	mkdir -p $(PREFIX)/lib/pkgconfig
+	cp solo5-bindings-genode.pc $(PREFIX)/lib/pkgconfig
+
+.PHONY: opam-genode-uninstall
+opam-genode-uninstall:
+	$(RM) -r $(OPAM_GENODE_INCDIR) $(OPAM_GENODE_LIBDIR)
+	$(RM) $(PREFIX)/lib/pkgconfig/solo5-bindings-genode.pc

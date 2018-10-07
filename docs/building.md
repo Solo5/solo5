@@ -34,8 +34,8 @@ To run the built-in self-tests:
     tests/run-tests.sh   # Root required to run network tests
 
 Note that Solo5 does not support cross-compilation; with the exception of the
-_muen_ target (which is not self-hosting), you should build Solo5 and
-unikernels on a system matching the host you will be running them on.
+_muen_ and _genode_ targets (which are not self-hosting), you should build
+Solo5 and unikernels on a system matching the host you will be running them on.
 
 ## Supported targets
 
@@ -58,6 +58,12 @@ Experimental:
 * _muen_: The Muen Separation Kernel, on the x86\_64 architecture. Please see
   this [article](https://muen.sk/articles.html#mirageos-unikernels) for
   Muen-specific instructions.
+* _genode_: The Genode Operating System Framework on the x86\_64 architecture.
+  Unikernels may be linked against a shared library containing Solo5 bindings
+  and executed as a native Genode component. The bindings library is provided
+  here in the form of a stub library that can be built using a stock C
+  toolchain along with the C++ implementation that must be built using the
+  Genode toolchain.
 
 Limited:
 

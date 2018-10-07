@@ -19,6 +19,7 @@
 HVT_TARGETS=test_quiet.hvt solo5-hvt
 VIRTIO_TARGETS=test_quiet.virtio
 MUEN_TARGETS=test_quiet.muen
+GENODE_TARGETS=test_quiet.genode
 HVT_MODULES=
 
 include ../Makefile.tests

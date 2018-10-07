@@ -19,6 +19,7 @@
 HVT_TARGETS=test_abort.hvt solo5-hvt
 VIRTIO_TARGETS=test_abort.virtio
 MUEN_TARGETS=test_abort.muen
+GENODE_TARGETS=test_abort.genode
 HVT_MODULES=dumpcore
 
 include ../Makefile.tests

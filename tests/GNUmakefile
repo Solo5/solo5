@@ -22,6 +22,7 @@ TESTDIRS=test_hello test_globals test_ping_serve test_blk \
 HVT_TESTS=$(subst test, _test_hvt, $(TESTDIRS))
 VIRTIO_TESTS=$(subst test, _test_virtio, $(TESTDIRS))
 MUEN_TESTS=$(subst test, _test_muen, $(TESTDIRS))
+GENODE_TESTS=$(subst test, _test_genode, $(TESTDIRS))
 CLEANS=$(subst test, _clean, $(TESTDIRS))
 
 all: $(HVT_TESTS) $(VIRTIO_TESTS) $(MUEN_TESTS)
@@ -31,6 +32,8 @@ hvt: $(HVT_TESTS)
 virtio: $(VIRTIO_TESTS)
 
 muen: $(MUEN_TESTS)
+
+genode: $(GENODE_TESTS)
 
 clean: $(CLEANS)
 
@@ -44,6 +47,9 @@ _test_virtio%: force_it
 
 _test_muen%: force_it
 	$(MAKE) -C $(subst _test_muen, test, $@) muen
+
+_test_genode%: force_it
+	$(MAKE) -C $(subst _test_genode, test, $@) genode
 
 _clean_%: force_it
 	$(MAKE) -C $(subst _clean, test, $@) clean
