@@ -76,7 +76,7 @@ struct hvt *hvt_init(size_t mem_size)
     struct vm_create_params *vcp;
     struct vm_mem_range *vmr;
     void *p;
-    
+
     if(geteuid() != 0) {
         errno = EPERM;
         err(1, "need root privileges");
@@ -128,6 +128,7 @@ struct hvt *hvt_init(size_t mem_size)
 
     hvb->vcp_id = vcp->vcp_id;
     hvb->vcpu_id = 0; // the first and only cpu is at 0
+    hvb->vrs = NULL;
 
     atexit(cleanup_vm);
 

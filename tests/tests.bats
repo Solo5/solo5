@@ -201,7 +201,7 @@ teardown() {
 
 @test "abort hvt" {
   case ${TEST_TARGET} in
-    x86_64-linux-gnu|x86_64-*-freebsd*)
+    x86_64-linux-gnu|x86_64-*-freebsd*|amd64-unknown-openbsd*)
       ;;
     *)
       skip "not implemented for ${TEST_TARGET}"
