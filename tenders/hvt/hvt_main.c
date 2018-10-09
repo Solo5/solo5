@@ -196,10 +196,12 @@ int main(int argc, char **argv)
 
     setup_modules(hvt);
 
-#if(HVT_DROP_PRIVILEGES == 1)
+#if HVT_DROP_PRIVILEGES
     hvt_drop_privileges();
 #else
-    warnx("Stern Warning, not recommended for production");
+    warnx("WARNING: Tender is configured with HVT_DROP_PRIVILEGES=0. Not"
+          " dropping any privileges.");
+    warnx("WARNING: This is not recommended for production use.");
 #endif
 
     return hvt_vcpu_loop(hvt);
