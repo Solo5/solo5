@@ -37,6 +37,16 @@
 #include "hvt_gdb.h"
 
 /*
+ * HVT_DROP_PRIVILEGES (1) enables the function hvt_drop_privileges
+ * please see hvt_drop_privileges for more information
+ * HCT_DROP_PRIVILEGES would be disabled in a debugging scenario
+ * where the hvt has to create/modify files outside it normal operating domain
+ */
+#ifndef HVT_DROP_PRIVILEGES
+#define HVT_DROP_PRIVILEGES 1
+#endif
+
+/*
  * Hypervisor {arch,backend}-independent data is defined here.
  * {arch,backend}-dependent data (b) is defined in hvt_{backend}.h.
  */
@@ -94,6 +104,16 @@ void hvt_mem_size(size_t *mem_size);
  */
 void hvt_vcpu_init(struct hvt *hvt, hvt_gpa_t gpa_ep,
         hvt_gpa_t gpa_kend, char **cmdline);
+
+#if HVT_DROP_PRIVILEGES
+/*
+ * Drop privileges. This function is called by the tender before entering the
+ * VCPU loop, after guest memory has been set up and all host resources have
+ * been acquired. Backend implementations SHOULD drop privileges to the minimum
+ * required to run the guest at this point.
+ */
+void hvt_drop_privileges();
+#endif
 
 /*
  * Run the VCPU. Returns on normal guest exit. Returns the exit status passed

@@ -82,6 +82,9 @@ add_module ()
     if [ ! -f ${SOLO5_HVT_SRC}/hvt_module_$1.c ]; then
         die "Invalid module: $1"
     fi
+    if [ $1 = 'dumpcore' ]; then
+        add_cflags "-DHVT_DROP_PRIVILEGES=0"
+    fi
     enableit="-DHVT_MODULE_$(echo $1 | tr '[a-z]' '[A-Z]')"
     add_obj "hvt_module_$1.o"
     add_cflags "${enableit}"

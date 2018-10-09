@@ -130,3 +130,9 @@ struct hvt *hvt_init(size_t mem_size)
     hvt->mem_size = mem_size;
     return hvt;
 }
+
+#if HVT_DROP_PRIVILEGES
+void hvt_drop_privileges()
+{
+}
+#endif
