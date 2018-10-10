@@ -35,23 +35,30 @@
 
 #include "hvt.h"
 
+static void push_cmdline(char c, size_t *pos, char *cmdline)
+{
+    if (*pos > HVT_CMDLINE_SIZE - 1) {
+        errx(1, "Guest command line too long (max=%d characters)",
+            HVT_CMDLINE_SIZE - 1);
+    }
+    cmdline[(*pos)++] = c;
+}
+
 static void setup_cmdline(char *cmdline, int argc, char **argv)
 {
-    size_t cmdline_free = HVT_CMDLINE_SIZE;
-
-    cmdline[0] = 0;
-
+    size_t pos = 0;
     for (; *argv; argc--, argv++) {
-        size_t alen = snprintf(cmdline, cmdline_free, "%s%s", *argv,
-                (argc > 1) ? " " : "");
-        if (alen >= cmdline_free) {
-            errx(1, "Guest command line too long (max=%d characters)",
-                    HVT_CMDLINE_SIZE - 1);
-            break;
+        for (char *p = *argv; *p; p++) {
+            if (*p == '\\' || *p == '"' || *p == ' ') {
+                push_cmdline('\\', &pos, cmdline);
+            }
+            push_cmdline(*p, &pos, cmdline);
         }
-        cmdline_free -= alen;
-        cmdline += alen;
+        if (argc > 1) {
+            push_cmdline(' ', &pos, cmdline);
+        }
     }
+    push_cmdline('\0', &pos, cmdline);
 }
 
 static void setup_modules(struct hvt *hvt)
