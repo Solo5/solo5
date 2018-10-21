@@ -25,6 +25,9 @@
 #ifndef HVT_HV_FREEBSD_H
 #define HVT_HV_FREEBSD_H
 
+#define VMM_USER      "nobody"
+#define VMM_CHROOT    "/var/empty"
+
 struct hvt_b {
     char *vmname;
     int vmfd;
