@@ -24,6 +24,9 @@
  */
 
 #include <assert.h>
+#ifndef WITHOUT_CAPSICUM
+#include <capsicum_helpers.h>
+#endif
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -34,6 +37,9 @@
 #define _WITH_DPRINTF
 #include <stdio.h>
 
+#ifndef WITHOUT_CAPSICUM
+#include <sys/capsicum.h>
+#endif
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 #include <sys/types.h>
@@ -128,11 +134,30 @@ struct hvt *hvt_init(size_t mem_size)
     if (hvt->mem == MAP_FAILED)
 	err(1, "mmap");
     hvt->mem_size = mem_size;
+#ifndef WITHOUT_CAPSICUM
+    cap_rights_t rights;
+    const cap_ioctl_t cmds[] = { VM_RUN, VM_SET_CAPABILITY, VM_ALLOC_MEMSEG,
+                                 VM_MMAP_MEMSEG,VM_SET_SEGMENT_DESCRIPTOR,
+                                 VM_SET_REGISTER, VM_GET_REGISTER,
+                                 VM_ACTIVATE_CPU };
+
+    cap_rights_init(&rights, CAP_IOCTL, CAP_MMAP_RW);
+    if (cap_rights_limit(hvb->vmfd, &rights) == -1 && errno != ENOSYS)
+        err(1, "cap_rights_limit() failed");
+    if (cap_ioctls_limit(hvb->vmfd, cmds, nitems(cmds)) == -1 && errno!= ENOSYS)
+        err(1, "cap_ioclts_limit() failed");
+#endif
     return hvt;
 }
 
 #if HVT_DROP_PRIVILEGES
 void hvt_drop_privileges()
 {
+#ifndef WITHOUT_CAPSICUM
+    if (caph_limit_stdout() == -1 || caph_limit_stderr() == -1)
+	err(1, "Unable to apply rights for sandbox");
+    if (caph_enter() == -1)
+	err(1, "cap_enter() failed");
+#endif
 }
 #endif

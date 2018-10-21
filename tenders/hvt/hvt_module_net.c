@@ -49,6 +49,9 @@
 #elif defined(__FreeBSD__)
 
 #include <net/if.h>
+#ifndef WITHOUT_CAPSICUM
+#include <sys/capsicum.h>
+#endif
 
 #elif defined(__OpenBSD__)
 
@@ -172,6 +175,12 @@ static int tap_attach(const char *ifname)
     fd = open(devname, O_RDWR | O_NONBLOCK);
     if (fd == -1)
         return -1;
+#ifndef WITHOUT_CAPSICUM
+    cap_rights_t rights;
+    cap_rights_init(&rights, CAP_EVENT, CAP_WRITE, CAP_READ);
+    if (cap_rights_limit(fd, &rights) == -1 && errno != ENOSYS)
+	err(1, "cap_rights_limit() failed");
+#endif
 
 #elif defined(__OpenBSD__)
 

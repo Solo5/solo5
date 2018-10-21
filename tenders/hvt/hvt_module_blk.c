@@ -31,6 +31,15 @@
 #include <string.h>
 #include <unistd.h>
 
+#if defined(__FreeBSD__)
+
+#ifndef WITHOUT_CAPSICUM
+#include <errno.h>
+#include <sys/capsicum.h>
+#endif
+
+#endif
+
 #include "hvt.h"
 
 static struct hvt_blkinfo blkinfo;
@@ -119,6 +128,14 @@ static int setup(struct hvt *hvt)
     blkinfo.sector_size = 512;
     blkinfo.num_sectors = lseek(diskfd, 0, SEEK_END) / 512;
     blkinfo.rw = 1;
+#if defined(__FreeBSD__)
+#ifndef WITHOUT_CAPSICUM
+    cap_rights_t rights;
+    cap_rights_init(&rights, CAP_READ, CAP_WRITE, CAP_SEEK);
+    if (cap_rights_limit(diskfd, &rights) == -1 && errno != ENOSYS)
+	err(1, "cap_rights_limit() failed");
+#endif
+#endif
 
     assert(hvt_core_register_hypercall(HVT_HYPERCALL_BLKINFO,
                 hypercall_blkinfo) == 0);
