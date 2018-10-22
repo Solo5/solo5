@@ -268,13 +268,20 @@ struct Solo5::Platform
 			return SOLO5_R_AGAIN;
 
 		/* allocate a packet in the shared packet buffer */
-		auto pkt = tx.alloc_packet(size);
-		/* copy-in payload */
-		Genode::memcpy(tx.packet_content(pkt), buf, size);
+		try {
+			auto pkt = tx.alloc_packet(size);
+			/* copy-in payload */
+			Genode::memcpy(tx.packet_content(pkt), buf, size);
 
-		/* signal the server */
-		tx.submit_packet(pkt);
-		return SOLO5_R_OK;
+			/* signal the server */
+			tx.submit_packet(pkt);
+			return SOLO5_R_OK;
+		}
+
+		catch (Nic::Session::Tx::Source::Packet_alloc_failed) {
+			/* the packet buffer is full, try again later */
+			return SOLO5_R_AGAIN;
+		}
 	}
 
 	solo5_result_t net_read(uint8_t *buf, size_t size, size_t *read_size)
