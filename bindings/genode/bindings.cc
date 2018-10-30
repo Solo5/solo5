@@ -430,9 +430,11 @@ solo5_time_t solo5_clock_wall(void)
 }
 
 
-bool solo5_yield(solo5_time_t deadline)
+bool solo5_yield(solo5_time_t deadline_ns)
 {
-	solo5_time_t deadline_us = deadline / 1000;
+	if (_platform->nic_ready) return true;
+
+	solo5_time_t deadline_us = deadline_ns / 1000;
 	solo5_time_t now_us = _platform->timer.curr_time()
 		.trunc_to_plain_us().value;
 
@@ -446,12 +448,10 @@ bool solo5_yield(solo5_time_t deadline)
 	 * The handlers defined in the Platform class will be
 	 * invoked during "wait_and_dispatch_one_io_signal".
 	 */
-	do {
+	while (!_platform->nic_ready && _platform->yield_timeout.scheduled())
 		_platform->env.ep().wait_and_dispatch_one_io_signal();
-		if (_platform->nic_ready)
-			_platform->yield_timeout.discard();
-	} while (_platform->yield_timeout.scheduled());
 
+	_platform->yield_timeout.discard();
 	return _platform->nic_ready;
 }
 
