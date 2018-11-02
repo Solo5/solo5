@@ -62,10 +62,10 @@ $(BINDINGS_DIR)/muen/solo5_muen.o:
 endif
 
 ifeq ($(BUILD_GENODE), yes)
-%.genode: %.o $(BINDINGS_DIR)/genode/genode_dyn.ld $(BINDINGS_DIR)/genode/solo5_genode.lib.so
+%.genode: %.o $(BINDINGS_DIR)/genode/genode_dyn.ld $(BINDINGS_DIR)/genode/solo5.lib.so
 	$(LD) -T $(BINDINGS_DIR)/genode/genode_dyn.ld $(GENODE_LDFLAGS) -o $@ $(BINDINGS_DIR)/genode/solo5.lib.so $< $(LDLIBS)
 
-$(BINDINGS_DIR)/genode/solo5_genode.lib.so:
+$(BINDINGS_DIR)/genode/solo5.lib.so:
 	$(MAKE) -C $(BINDINGS_DIR) genode
 endif
 
