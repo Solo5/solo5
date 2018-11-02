@@ -1,4 +1,5 @@
 *.o
+*.lib.so
 *.swp
 *.pcap
 Makeconf
@@ -8,6 +9,7 @@ include/crt
 tests/*/*.hvt
 tests/*/*.virtio
 tests/*/*.muen
+tests/*/*.genode
 tests/*/solo5-hvt
 tests/*/Makefile.solo5-hvt
 tenders/hvt/Makefile.solo5-hvt

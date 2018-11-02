@@ -19,6 +19,7 @@
 HVT_TARGETS=test_exception.hvt solo5-hvt
 VIRTIO_TARGETS=test_exception.virtio
 MUEN_TARGETS=test_exception.muen
+GENODE_TARGETS=test_exception.genode
 HVT_MODULES=
 
 include ../Makefile.tests

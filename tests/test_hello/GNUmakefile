@@ -19,6 +19,7 @@
 HVT_TARGETS=test_hello.hvt solo5-hvt
 VIRTIO_TARGETS=test_hello.virtio
 MUEN_TARGETS=test_hello.muen
+GENODE_TARGETS=test_hello.genode
 HVT_MODULES=gdb
 
 include ../Makefile.tests

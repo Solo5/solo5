@@ -21,8 +21,9 @@ depexts: [
   [["ubuntu"] ["linux-libc-dev"]]
 ]
 conflicts: [
-  "solo5-bindings-virtio"
+  "solo5-bindings-genode"
   "solo5-bindings-muen"
+  "solo5-bindings-virtio"
 ]
 available: [
   ocaml-version >= "4.02.3" & (arch = "x86_64" | arch = "amd64" | arch = "aarch64") &

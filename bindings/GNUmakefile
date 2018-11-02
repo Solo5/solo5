@@ -76,15 +76,19 @@ muen/muen-yield.o \
 muen/muen-sinfo.o \
 $(COMMON_COBJS)
 
+GENODE_COBJS=\
+genode/stubs.o
+
 HEADERS=\
 bindings.h
 
 all: virtio hvt
 
-.PHONY: virtio hvt muen
+.PHONY: virtio hvt muen genode
 virtio: virtio/solo5_virtio.o
 hvt: hvt/solo5_hvt.o
 muen: muen/solo5_muen.o
+genode: genode/solo5.lib.so
 
 CFLAGS+=-D__SOLO5_BINDINGS__
 
@@ -112,6 +116,9 @@ muen/solo5_muen.o: $(MUEN_COBJS) muen/solo5_muen.lds
 	$(LD) -r $(LDFLAGS) -o $@ $(MUEN_COBJS)
 	$(OBJCOPY) -w -G solo5_\* -G _start\* $@ $@
 
+genode/solo5.lib.so: $(GENODE_COBJS)
+	$(LD) $(GENODE_LIB_LDFLAGS) -o $@ $^
+
 .PHONY: clean
 clean:
-	$(RM) *.o virtio/*.o hvt/*.o muen/*.o
+	$(RM) *.o virtio/*.o hvt/*.o muen/*.o genode/*.o genode/*.lib.so
