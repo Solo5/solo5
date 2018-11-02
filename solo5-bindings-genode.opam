@@ -1,4 +1,4 @@
-opam-version: "1.2"
+opam-version: "2.0"
 maintainer: "ehmry@posteo.net"
 authors: [
   "Emery Hemingway <ehmry@posteo.net>"
@@ -6,7 +6,7 @@ authors: [
 homepage: "https://github.com/solo5/solo5"
 bug-reports: "https://github.com/solo5/solo5/issues"
 license: "ISC"
-dev-repo: "https://github.com/solo5/solo5.git"
+dev-repo: "git+https://github.com/solo5/solo5.git"
 build: [make "genode"]
 install: [make "opam-genode-install" "PREFIX=%{prefix}%"]
 remove: [make "opam-genode-uninstall" "PREFIX=%{prefix}%"]
@@ -17,6 +17,19 @@ conflicts: [
   "solo5-bindings-virtio"
 ]
 available: [
-  ocaml-version >= "4.02.3" & (arch = "x86_64" | arch = "amd64") &
-  (os = "linux")
+  arch = "x86_64" &
+  (os = "linux" | os = "freebsd" | os = "openbsd")
 ]
+synopsis: "Solo5 sandboxed execution environment (genode target)"
+description: """
+Solo5 is a sandboxed execution environment primarily intended
+for, but not limited to, running applications built using various
+unikernels (a.k.a.  library operating systems).
+
+This package provides the Solo5 components needed to build
+MirageOS unikernels on the "genode" target. The resulting
+unikernels can then be deployed directly on a host running the
+Genode Operating System Framework.
+
+Building the "genode" target is supported on 64-bit Linux, FreeBSD
+and OpenBSD systems."""
