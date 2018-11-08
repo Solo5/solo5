@@ -17,8 +17,8 @@ Some of the unique features of Solo5:
 - a public [API](include/solo5/solo5.h) designed for ease of porting existing
   and future unikernel-native applications,
 - a host to guest interface designed with isolation, a _minimal attack surface_
-  and ease of porting to different sandboxing technologies or host systems in
-  mind,
+  and ease of porting to different sandboxing technologies or
+  [host systems](docs/building.md#supported-targets) in mind,
 - a minimal, modular _tender_ which [implements](tenders/hvt/) this interface
   using hardware virtualization (several orders of magnitude smaller than
   QEMU),
