@@ -1,3 +1,20 @@
+## 0.4.1 (2018-11-08)
+
+This release introduces experimental support for the Genode Operating System
+Framework as a target for Solo5-based unikernels, and basic support for
+dropping "root" privileges in the "hvt" tender on FreeBSD and OpenBSD.
+
+Other changes:
+
+* Migrate OPAM integration to OPAM 2.
+
+Acknowledgements:
+
+Thanks to the following new contributors to this release:
+
+* Emery Hemingway
+* Stefan Grundmann
+
 ## 0.4.0 (2018-09-14)
 
 This release is a major restructuring and renaming of Solo5 components,
