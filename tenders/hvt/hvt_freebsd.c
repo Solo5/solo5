@@ -135,24 +135,21 @@ struct hvt *hvt_init(size_t mem_size)
 #if HVT_DROP_PRIVILEGES
 void hvt_drop_privileges()
 {
-    struct passwd *pw;
-    uid_t uid;
-    gid_t gid;
-
-    if ((pw = getpwnam(VMM_USER)) == NULL)
+    struct passwd *pw = getpwnam(VMM_USER);
+    if (pw == NULL)
         err(1, "can't get %s user", VMM_USER);
-    uid = pw->pw_uid;
-    gid = pw->pw_gid;
+    uid_t uid = pw->pw_uid;
+    gid_t gid = pw->pw_gid;
 
     if (chroot(VMM_CHROOT) == -1)
-        err(1, "chroot: %s", VMM_CHROOT);
+        err(1, "chroot(%s)", VMM_CHROOT);
 
     if (chdir("/") == -1)
-        err(1, "chdir(\"/\")");
+        err(1, "chdir(/)");
 
     if (setgroups(1, &gid) ||
-        setresgid(gid, gid, gid) ||
-        setresuid(uid, uid, uid))
+            setresgid(gid, gid, gid) ||
+            setresuid(uid, uid, uid))
         err(1, "unable to revoke privs");
 }
 #endif

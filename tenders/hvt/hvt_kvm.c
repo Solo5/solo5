@@ -97,5 +97,8 @@ struct hvt *hvt_init(size_t mem_size)
 #if HVT_DROP_PRIVILEGES
 void hvt_drop_privileges()
 {
+    /*
+     * This function intentionally left blank for now (see #282).
+     */
 }
 #endif
