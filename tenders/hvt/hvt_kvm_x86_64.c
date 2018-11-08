@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (c) 2015-2018 Contributors as noted in the AUTHORS file
  *
  * This file is part of Solo5, a sandboxed execution environment.
@@ -108,7 +108,7 @@ void hvt_vcpu_init(struct hvt *hvt, hvt_gpa_t gpa_ep,
     ret = ioctl(hvb->vcpufd, KVM_SET_SREGS, &sregs);
     if (ret == -1)
         err(1, "KVM: ioctl (SET_SREGS) failed");
-   
+
     struct hvt_boot_info *bi =
         (struct hvt_boot_info *)(hvt->mem + X86_BOOT_INFO_BASE);
     bi->mem_size = hvt->mem_size;
@@ -221,7 +221,7 @@ int hvt_vcpu_loop(struct hvt *hvt)
             ret = ioctl(hvb->vcpufd, KVM_GET_REGS, &regs);
             if (ret == -1)
                 err(1, "KVM: ioctl (GET_REGS) failed after unhandled exit");
-            errx(1, "KVM: unhandled exit: exit_reason=0x%x, rip=0x%llx", 
+            errx(1, "KVM: unhandled exit: exit_reason=0x%x, rip=0x%llx",
                     run->exit_reason, regs.rip);
         }
         } /* switch(run->exit_reason) */

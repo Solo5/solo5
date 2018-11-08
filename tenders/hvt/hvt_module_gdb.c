@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (c) 2015-2018 Contributors as noted in the AUTHORS file
  *
  * This file is part of Solo5, a sandboxed execution environment.
@@ -69,7 +69,7 @@
 
 #error Unsupported target
 
-#endif 
+#endif
 
 static bool use_gdb = false;
 static int socket_fd = 0;
@@ -146,7 +146,7 @@ static int wait_for_connect()
         err(1, "Could not create socket");
         return -1;
     }
-    
+
     opt = 1;
     if (setsockopt(listen_socket_fd, SOL_SOCKET, SO_REUSEADDR, &opt,
                    sizeof(opt)) == -1)
@@ -155,21 +155,21 @@ static int wait_for_connect()
     server_addr.sin_family = AF_INET;
     server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
     server_addr.sin_port = htons(portno);
-     
+
     if (bind(listen_socket_fd, (struct sockaddr *)&server_addr,
              sizeof(server_addr)) == -1) {
         err(1, "bind failed");
         return -1;
     }
-     
+
     if (listen(listen_socket_fd , 0) == -1) {
         err(1, "listen failed");
         return -1;
     }
-     
+
     warnx("Waiting for a debugger. Connect to it like this:");
     warnx("\tgdb --ex=\"target remote localhost:%d\" KERNEL", portno);
-     
+
     len = sizeof(client_addr);
     socket_fd = accept(listen_socket_fd, (struct sockaddr *)&client_addr, &len);
     if (socket_fd == -1) {
@@ -396,30 +396,30 @@ static void gdb_handle_exception(struct hvt *hvt, int sigval)
 
         packet = recv_packet();
         if (packet == NULL)
-	    /* Without a packet with instructions with what to do next there is
+            /* Without a packet with instructions with what to do next there is
              * really nothing we can do to recover. So, dying. */
-	    errx(1, "GDB: Exiting as we could not receive the next command from "
-                    "the debugger.");
+            errx(1, "GDB: Exiting as we could not receive the next command "
+                    "from the debugger.");
 
         /*
          * From the GDB manual:
-	 * "At a minimum, a stub is required to support the ‘g’ and ‘G’
-	 * commands for register access, and the ‘m’ and ‘M’ commands
-	 * for memory access. Stubs that only control single-threaded
-	 * targets can implement run control with the ‘c’ (continue),
-	 * and ‘s’ (step) commands."
+         * "At a minimum, a stub is required to support the ‘g’ and ‘G’
+         * commands for register access, and the ‘m’ and ‘M’ commands
+         * for memory access. Stubs that only control single-threaded
+         * targets can implement run control with the ‘c’ (continue),
+         * and ‘s’ (step) commands."
          */
         command = packet[0];
         switch (command) {
         case 's': {
             /* Step */
             if (sscanf(packet, "s%"PRIx64, &addr) == 1) {
-		/* not supported, but that's OK as GDB will retry with the
+                /* not supported, but that's OK as GDB will retry with the
                  * slower version of this: update all registers. */
                 send_not_supported_msg();
                 break; /* Wait for another command. */
             }
-	    if (hvt_gdb_enable_ss(hvt) == -1) {
+            if (hvt_gdb_enable_ss(hvt) == -1) {
                     send_error_msg();
                     break; /* Wait for another command. */
             }
@@ -429,12 +429,12 @@ static void gdb_handle_exception(struct hvt *hvt, int sigval)
         case 'c': {
             /* Continue (and disable stepping for the next instruction) */
             if (sscanf(packet, "c%"PRIx64, &addr) == 1) {
-		/* not supported, but that's OK as GDB will retry with the
+                /* not supported, but that's OK as GDB will retry with the
                  * slower version of this: update all registers. */
                 send_not_supported_msg();
                 break; /* Wait for another command. */
             }
-	    if (hvt_gdb_disable_ss(hvt) == -1) {
+            if (hvt_gdb_disable_ss(hvt) == -1) {
                     send_error_msg();
                     break; /* Wait for another command. */
             }
@@ -452,7 +452,7 @@ static void gdb_handle_exception(struct hvt *hvt, int sigval)
             if ((addr > hvt->mem_size) ||
                 add_overflow(addr, len, result) ||
                 (result > hvt->mem_size)) {
-		/* Don't panic about this, just return error so the debugger
+                /* Don't panic about this, just return error so the debugger
                  * tries again. */
                 send_error_msg();
             } else {
@@ -473,7 +473,7 @@ static void gdb_handle_exception(struct hvt *hvt, int sigval)
             if ((addr > hvt->mem_size) ||
                 add_overflow(addr, len, result) ||
                 (result > hvt->mem_size)) {
-		/* Don't panic about this, just return error so the debugger
+                /* Don't panic about this, just return error so the debugger
                  * tries again. */
                 send_error_msg();
             } else {
@@ -533,7 +533,7 @@ static void gdb_handle_exception(struct hvt *hvt, int sigval)
             if ((addr > hvt->mem_size) ||
                 add_overflow(addr, len, result) ||
                 (result > hvt->mem_size)) {
-		/* Don't panic about this, just return error so the debugger
+                /* Don't panic about this, just return error so the debugger
                  * tries again. */
                 send_error_msg();
                 break;
@@ -579,9 +579,9 @@ static void gdb_stub_start(struct hvt *hvt)
 }
 
 /*
- * Maps a VM exit to a GDB signal, and if it is of type trap (breakpoint or step),
- * we handle it here (and not in the vcpu loop). We force the handling here, by 
- * returning 0; and return -1 otherwise.
+ * Maps a VM exit to a GDB signal, and if it is of type trap (breakpoint or
+ * step), we handle it here (and not in the vcpu loop). We force the handling
+ * here, by returning 0; and return -1 otherwise.
  */
 static int handle_exit(struct hvt *hvt)
 {
