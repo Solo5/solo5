@@ -19,7 +19,7 @@ Start solo5-hvt with the `--gdb` flag, like this:
     $ cd tests/test_hello
     $ ./solo5-hvt --gdb test_hello.hvt
 
-This will start a GDB server on TCP port 1234, and the monitor will wait for
+This will start a GDB server on TCP port 1234, and the tender will wait for
 GDB to connect before launching the unikernel. You can use the `--gdb-port`
 option to specify a different port.
 
