@@ -129,8 +129,12 @@ no arguments or `--help`.
 
 On Linux, `solo5-hvt` only requires access to `/dev/kvm` and `/dev/net/tun`,
 and thus does NOT need to run as `root` provided your have granted the user in
-question the correct permissions. On FreeBSD and OpenBSD, `root` privileges are
-currently required in order to access the `vmm` APIs.
+question the correct permissions.
+
+On FreeBSD and OpenBSD, `root` privileges are currently required in order to
+access the `vmm` APIs. However, before starting the unikernel, the tender will
+drop privileges to an unprivileged user and, in the case of OpenBSD, use
+`pledge(2)` to further lower its privileges.
 
 To launch the unikernel:
 
