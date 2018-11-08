@@ -76,7 +76,7 @@ struct hvt *hvt_init(size_t mem_size)
     struct vm_create_params *vcp;
     struct vm_mem_range *vmr;
     void *p;
-    
+
     if(geteuid() != 0) {
         errno = EPERM;
         err(1, "need root privileges");
@@ -137,24 +137,21 @@ struct hvt *hvt_init(size_t mem_size)
 #if HVT_DROP_PRIVILEGES
 void hvt_drop_privileges()
 {
-    struct passwd *pw;
-    uid_t uid;
-    gid_t gid;
-
-    if ((pw = getpwnam(VMD_USER)) == NULL)
+    struct passwd *pw = getpwnam(VMD_USER);
+    if (pw == NULL)
         err(1, "can't get _vmd user");
-    uid = pw->pw_uid;
-    gid = pw->pw_gid;
+    uid_t uid = pw->pw_uid;
+    git_t gid = pw->pw_gid;
 
     if (chroot(pw->pw_dir) == -1)
-        err(1, "chroot: %s", pw->pw_dir);
+        err(1, "chroot(%s)", pw->pw_dir);
 
     if (chdir("/") == -1)
-        err(1, "chdir(\"/\")");
+        err(1, "chdir(/)");
 
     if (setgroups(1, &gid) ||
-        setresgid(gid, gid, gid) ||
-        setresuid(uid, uid, uid))
+            setresgid(gid, gid, gid) ||
+            setresuid(uid, uid, uid))
         err(1, "unable to revoke privs");
 
     /*

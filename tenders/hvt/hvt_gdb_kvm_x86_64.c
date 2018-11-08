@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (c) 2015-2018 Contributors as noted in the AUTHORS file
  *
  * This file is part of Solo5, a sandboxed execution environment.
@@ -132,7 +132,7 @@ static int hvt_gdb_update_guest_debug(struct hvt *hvt)
     if (!SLIST_EMPTY(&hw_breakpoints)) {
         dbg.control |= KVM_GUESTDBG_ENABLE | KVM_GUESTDBG_USE_HW_BP;
 
-	/* Enable global breakpointing (across all threads) on the control
+        /* Enable global breakpointing (across all threads) on the control
          * debug register. */
         dbg.arch.debugreg[7] = 1 << 9;
         dbg.arch.debugreg[7] |= 1 << 10;

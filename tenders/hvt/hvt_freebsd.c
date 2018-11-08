@@ -99,35 +99,35 @@ struct hvt *hvt_init(size_t mem_size)
         err(1, "asprintf");
     hvb->vmfd = open(vmmdevname, O_RDWR, 0);
     if (hvb->vmfd == -1)
-	err(1, "open(%s)", vmmdevname);
+        err(1, "open(%s)", vmmdevname);
     atexit(cleanup_vmfd);
 
     struct vm_capability vmcap = {
-	.cpuid = 0, .captype = VM_CAP_HALT_EXIT, .capval = 1
+        .cpuid = 0, .captype = VM_CAP_HALT_EXIT, .capval = 1
     };
     ret = ioctl(hvb->vmfd, VM_SET_CAPABILITY, &vmcap);
     if (ret == -1)
-	err(1, "set VM_CAP_HALT_EXIT");
+        err(1, "set VM_CAP_HALT_EXIT");
 
     struct vm_memseg memseg = {
-	.segid = 0, .len = mem_size
+        .segid = 0, .len = mem_size
     };
     ret = ioctl(hvb->vmfd, VM_ALLOC_MEMSEG, &memseg);
     if (ret == -1)
-	err(1, "VM_ALLOC_MEMSEG");
+        err(1, "VM_ALLOC_MEMSEG");
 
     struct vm_memmap memmap = {
-	.gpa = 0, .len = mem_size, .segid = 0, .segoff = 0,
-	.prot = PROT_READ | PROT_WRITE | PROT_EXEC, .flags = 0
+        .gpa = 0, .len = mem_size, .segid = 0, .segoff = 0,
+        .prot = PROT_READ | PROT_WRITE | PROT_EXEC, .flags = 0
     };
     ret = ioctl(hvb->vmfd, VM_MMAP_MEMSEG, &memmap);
     if (ret == -1)
-	err(1, "VM_MMAP_MEMSEG");
+        err(1, "VM_MMAP_MEMSEG");
 
     hvt->mem = mmap(NULL, mem_size, PROT_READ | PROT_WRITE, MAP_SHARED,
-	    hvb->vmfd, 0);
+            hvb->vmfd, 0);
     if (hvt->mem == MAP_FAILED)
-	err(1, "mmap");
+        err(1, "mmap");
     hvt->mem_size = mem_size;
     return hvt;
 }
@@ -135,24 +135,21 @@ struct hvt *hvt_init(size_t mem_size)
 #if HVT_DROP_PRIVILEGES
 void hvt_drop_privileges()
 {
-    struct passwd *pw;
-    uid_t uid;
-    gid_t gid;
-
-    if ((pw = getpwnam(VMM_USER)) == NULL)
-	err(1, "can't get %s user", VMM_USER);
-    uid = pw->pw_uid;
-    gid = pw->pw_gid;
+    struct passwd *pw = getpwnam(VMM_USER);
+    if (pw == NULL)
+        err(1, "can't get %s user", VMM_USER);
+    uid_t uid = pw->pw_uid;
+    gid_t gid = pw->pw_gid;
 
     if (chroot(VMM_CHROOT) == -1)
-	err(1, "chroot: %s", VMM_CHROOT);
+        err(1, "chroot(%s)", VMM_CHROOT);
 
     if (chdir("/") == -1)
-	err(1, "chdir(\"/\")");
+        err(1, "chdir(/)");
 
     if (setgroups(1, &gid) ||
-	setresgid(gid, gid, gid) ||
-	setresuid(uid, uid, uid))
-	err(1, "unable to revoke privs");
+            setresgid(gid, gid, gid) ||
+            setresuid(uid, uid, uid))
+        err(1, "unable to revoke privs");
 }
 #endif

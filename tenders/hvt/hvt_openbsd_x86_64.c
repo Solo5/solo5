@@ -136,7 +136,7 @@ void hvt_vcpu_init(struct hvt *hvt, hvt_gpa_t gpa_ep,
         (struct hvt_boot_info *)(hvt->mem + X86_BOOT_INFO_BASE);
     bi->mem_size = hvt->mem_size;
     bi->kernel_end = gpa_kend;
-    bi->cmdline = X86_CMDLINE_BASE; 
+    bi->cmdline = X86_CMDLINE_BASE;
     bi->cpu.tsc_freq = get_tsc_freq();
 
     if (ioctl(hvb->vmd_fd, VMM_IOC_RESETCPU, &vrp) < 0)
