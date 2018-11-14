@@ -55,7 +55,7 @@ int solo5_app_main(const struct solo5_start_info *si __attribute__((unused)))
      * solo5_yield() is equivalent to a sleep here.
      */
     ta = solo5_clock_monotonic();
-    solo5_yield(ta + NSEC_PER_SEC, NULL);
+    solo5_yield(ta + NSEC_PER_SEC);
     tb = solo5_clock_monotonic();
     /*
      * Verify that we did not sleep less than requested (see above).

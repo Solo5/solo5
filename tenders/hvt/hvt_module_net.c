@@ -22,7 +22,7 @@
  * hvt_module_net.c: Network device module.
  */
 
-#define _BSD_SOURCE
+#define _DEFAULT_SOURCE
 #include <assert.h>
 #include <err.h>
 #include <errno.h>
@@ -51,7 +51,6 @@
 #include <pthread.h>
 #include <sys/eventfd.h>
 #include <sys/epoll.h>
-#include "hvt.h"
 #include "hvt_abi.h"
 #include "hvt_kvm.h"
 #include "hvt_cpu_x86_64.h"
@@ -59,9 +58,6 @@
 #include "writer.h"
 #define MAXEVENTS 5
 static pthread_t tid;
-struct muchannel *tx_channel;
-struct muchannel *rx_channel;
-struct muchannel_reader net_rdr;
 
 #elif defined(__FreeBSD__)
 
@@ -78,20 +74,30 @@ struct muchannel_reader net_rdr;
 
 #endif
 
-#define MAX_PACKETS_READ 100
+#define RING_SHM_SIZE 0x25000
+#define MAX_PACKETS_READ 90
 static char *netiface;
 static int netfd;
-static int solo5_rx_fd;
-static int epoll_fd, solo5_tx_xon_evfd, hvt_rx_evfd, hvt_tx_xon_evfd;
+static int epoll_fd, // The big epoll for the io thread
+           /* Event fd to notify the kernel that shm has packet to read */
+           kernel_read_fd,
+           /* Event fd to notify the kernel that shm is XON'ed */
+           kernel_xon_notify_fd,
+           /* Event fd to notify the tender that shm is XON'ed */
+           tender_xon_notify_fd,
+           /* Event fd to notify tender that shm has packet to read */
+           tender_read_fd;
 static struct hvt_netinfo netinfo;
 static int cmdline_mac = 0;
 static int use_shm_stream = 0;
-static int use_event_thread = 0;
 static uint64_t rx_shm_size = 0x0;
 static uint64_t tx_shm_size = 0x0;
 struct timespec readtime;
 struct timespec writetime;
 struct timespec epochtime;
+struct muchannel *tx_channel;
+struct muchannel *rx_channel;
+struct muchannel_reader net_rdr;
 
 /*
  * Attach to an existing TAP interface named 'ifname'.
@@ -218,33 +224,42 @@ static int tap_attach(const char *ifname)
     return fd;
 }
 
-/* Solo5 is woken up when the shmstream is writable again */
-void read_solo5_tx_xon_evfd()
+#if defined(__linux__)
+/* Kernel is woken up when the shmstream is writable again */
+void read_kernel_xon_notify_fd()
 {
     uint64_t clear = 0;
-    if (read(solo5_tx_xon_evfd, &clear, 8) < 0) {}
+    if (read(kernel_xon_notify_fd, &clear, 8) < 0) {
+        warnx("Failed to clear the xon notification for the kernel\n");
+    }
 }
 
-/* Solo5 is woken up when there is data to be read from
+/* Kernel is woken up when there is data to be read from
  * shmstream */
-void read_solo5_rx_fd()
+void read_kernel_read_fd()
 {
     uint64_t clear = 0;
 
     /* Clears the notification */
-    if (read(solo5_rx_fd, &clear, 8) < 0) {}
+    if (read(kernel_read_fd, &clear, 8) < 0) {
+        warnx("Failed to clear the read notification for the kernel\n");
+    }
 }
 
 void* io_event_loop()
 {
-    struct net_msg pkt = { 0 };
+    struct net_msg pkt;
     int ret, n, i, er;
     uint64_t clear = 0, wrote = 1;
     struct epoll_event event;
     struct epoll_event *events;
     uint64_t packets_read = 0;
 
-    events = calloc(MAXEVENTS, sizeof event);
+    if ((events = calloc(MAXEVENTS, sizeof event)) == NULL) {
+        warnx("Failed to allocate memory for io event loop\n");
+        assert(0);
+    }
+    memset(&pkt, 0, sizeof(pkt)); 
 
     while (1) {
         n = epoll_wait(epoll_fd, events, MAXEVENTS, -1);
@@ -269,30 +284,33 @@ void* io_event_loop()
                     packets_read++;
                 }
                 if (packets_read) {
-                    ret = write(solo5_rx_fd, &packets_read, 8);
+                    ret = write(kernel_read_fd, &packets_read, 8);
                 }
-            } else if (hvt_tx_xon_evfd == events[i].data.fd) {
+            } else if (tender_xon_notify_fd == events[i].data.fd) {
                 /* tx channel is writable again */
-                warnx("tx shmstream is writable again");
-                if (read(hvt_tx_xon_evfd, &clear, 8) < 0) {}
+                if (read(tender_xon_notify_fd, &clear, 8) < 0) {
+                    warnx("Failed to clear the xon notification for the tender\n");
+                }
 
                 /* Start reading from netfd */
                 event.data.fd = netfd;
                 event.events = EPOLLIN;
                 epoll_ctl(epoll_fd, EPOLL_CTL_ADD, netfd, &event);
-            } else if (hvt_rx_evfd == events[i].data.fd) {
+            } else if (tender_read_fd == events[i].data.fd) {
                 /* Read data from shmstream and write to tap interface */
                 do {
                     ret = shm_net_read(rx_channel, &net_rdr,
                         pkt.data, PACKET_SIZE, (size_t *)&pkt.length);
                     if ((ret == SHM_NET_OK) || (ret == SHM_NET_XON)) {
                         if (ret == SHM_NET_XON) {
-                            er = write(solo5_tx_xon_evfd, &wrote, 8);
+                            er = write(kernel_xon_notify_fd, &wrote, 8);
                         }
                         er = write(netfd, pkt.data, pkt.length);
                         assert(er == pkt.length);
                     } else if (ret == SHM_NET_AGAIN) {
-                        if (read(hvt_rx_evfd, &clear, 8) < 0) {}
+                        if (read(tender_read_fd, &clear, 8) < 0) {
+                            warnx("Failed to clear the read notification for the tender\n");
+                        }
                         break;
                     } else if (ret == SHM_NET_EPOCH_CHANGED) {
                         /* Don't clear the eventfd */
@@ -306,81 +324,20 @@ void* io_event_loop()
 		}
     }
 }
+#endif
 
-void* io_thread()
+static void hypercall_shm_info(struct hvt *hv, hvt_gpa_t gpa)
 {
-    struct net_msg pkt;
-    int ret, tap_no_data = 0, shm_no_data = 0;
-    uint64_t packets_read = 0;
+    struct hvt_shm_info *info =
+            HVT_CHECKED_GPA_P(hv, gpa, sizeof (struct hvt_shm_info));
 
-    while (1) {
-        /* Read packets from tap interface and write to shmstream */
-        while (packets_read < MAX_PACKETS_READ &&
-            ((ret = read(netfd, pkt.data, PACKET_SIZE)) > 0)) {
-            packets_read++;
-            if (shm_net_write(tx_channel, pkt.data, ret) != SHM_NET_OK) {
-                ret = 0;
-                break;
-            }
-        }
-
-        if ((ret == 0) ||
-            (ret == -1 && errno == EAGAIN)) {
-            /* NO data */
-            tap_no_data = 1;
-        } else if (ret < 0) {
-            /* error */
-            assert(0);
-        }
-        if (packets_read) {
-            /* Notify the reader of shmstream */
-            ret = write(solo5_rx_fd, &packets_read, 8);
-            packets_read = 0;
-        }
-
-        /* Read from shmstream and write to tap interface */
-        while (packets_read < MAX_PACKETS_READ &&
-            (ret = shm_net_read(rx_channel, &net_rdr,
-            pkt.data, PACKET_SIZE, (size_t *)&pkt.length) == SHM_NET_OK)) {
-            ret = write(netfd, pkt.data, pkt.length);
-            packets_read++;
-            assert(ret == pkt.length);
-        }
-
-        if (ret == SHM_NET_AGAIN) {
-            shm_no_data = 1;
-        } else if (ret == SHM_NET_EINVAL) {
-            warnx("Invalid error when read from shmstream");
-            assert(0);
-        }
-
-        if (tap_no_data && shm_no_data) {
-            /* Sleep for a millisec */
-            usleep(1);
-        }
-        packets_read = 0;
-        tap_no_data = 0;
-        shm_no_data = 0;
-    }
-}
-
-static void hypercall_net_shm_info(struct hvt *hv, hvt_gpa_t gpa)
-{
-    struct hvt_net_shm_info *info =
-            HVT_CHECKED_GPA_P(hv, gpa, sizeof (struct hvt_net_shm_info));
-
-    /* Start the thread */
     if (use_shm_stream) {
         info->tx_channel_addr = hv->mem_size;
         info->tx_channel_addr_size = rx_shm_size;
 
         info->rx_channel_addr = hv->mem_size + rx_shm_size;
         info->rx_channel_addr_size = tx_shm_size;
-        if (use_event_thread) {
-            info->shm_event_enabled = true;
-        } else {
-            info->shm_poll_enabled = true;
-        }
+        info->shm_enabled = true;
     }
 }
 
@@ -423,14 +380,18 @@ static void hypercall_netread(struct hvt *hvt, hvt_gpa_t gpa)
 static void hypercall_netxon(struct hvt *hv, hvt_gpa_t gpa)
 {
     uint64_t xon = 1;
-    if (write(hvt_tx_xon_evfd, &xon, 8)) {}
+    if (write(tender_xon_notify_fd, &xon, 8)) {
+        warnx("Failed to xon notify the tender\n");
+    }
 }
 
-/* Notify hvt-bin that there is data to send */
+/* Notify tender that there is data to send */
 static void hypercall_netnotify(struct hvt *hv, hvt_gpa_t gpa)
 {
     uint64_t read_data = 1;
-    if (write(hvt_rx_evfd, &read_data, 8)) {}
+    if (write(tender_read_fd, &read_data, 8))  {
+        warnx("Failed to notify tender about the data in shm\n");
+    }
 }
 
 static int handle_cmdarg(char *cmdarg)
@@ -451,18 +412,18 @@ static int handle_cmdarg(char *cmdarg)
         memcpy(netinfo.mac_address, mac, sizeof netinfo.mac_address);
         cmdline_mac = 1;
         return 0;
-    } else if (!strncmp("--shm=poll", cmdarg, 10)) {
+    } else if (!strncmp("--shm", cmdarg, 5)) {
+#if defined(__linux__)
         use_shm_stream = 1;
         return 0;
-    } else if (!strncmp("--shm=event", cmdarg, 11)) {
-        use_shm_stream = 1;
-        use_event_thread = 1;
-        return 0;
+#endif
+        return -1;
     } else {
         return -1;
     }
 }
 
+#if defined(__linux__)
 static int configure_epoll()
 {
     struct epoll_event event;
@@ -475,34 +436,34 @@ static int configure_epoll()
     event.data.fd = netfd;
     event.events = EPOLLIN;
     if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, netfd, &event) < 0) {
-        warnx("Failed to set up fd at epoll_ctl");
+        warnx("Failed to set up netfd at epoll_ctl");
         return -1;
     }
 
-    if ((hvt_rx_evfd = eventfd(0, EFD_NONBLOCK)) < 0) {
-        warnx("Failed to create eventfd");
+    if ((tender_read_fd = eventfd(0, EFD_NONBLOCK)) < 0) {
+        warnx("Failed to create tender read fd");
         return -1;
     }
 
-    event.data.fd = hvt_rx_evfd;
+    event.data.fd = tender_read_fd;
     event.events = EPOLLIN;
-    if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, hvt_rx_evfd, &event) < 0) {
-        warnx("Failed to set up fd at epoll_ctl");
+    if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, tender_read_fd, &event) < 0) {
+        warnx("Failed to set up tender read fd at epoll_ctl");
         return -1;
     }
 
-    if ((hvt_tx_xon_evfd = eventfd(0, EFD_NONBLOCK)) < 0) {
-        warnx("Failed to create eventfd");
+    if ((tender_xon_notify_fd = eventfd(0, EFD_NONBLOCK)) < 0) {
+        warnx("Failed to create tender xon notify fd");
         return -1;
     }
 
-    event.data.fd = hvt_tx_xon_evfd;
+    event.data.fd = tender_xon_notify_fd;
     event.events = EPOLLIN;
-    epoll_ctl(epoll_fd, EPOLL_CTL_ADD, hvt_tx_xon_evfd, &event);
+    epoll_ctl(epoll_fd, EPOLL_CTL_ADD, tender_xon_notify_fd, &event);
 
-    solo5_tx_xon_evfd = eventfd(0, EFD_NONBLOCK);
-    if (solo5_tx_xon_evfd < 0) {
-        warnx("Failed to create eventfd");
+    kernel_xon_notify_fd = eventfd(0, EFD_NONBLOCK);
+    if (kernel_xon_notify_fd < 0) {
+        warnx("Failed to create kernel xon notify fd");
         return -1;
     }
 
@@ -515,19 +476,17 @@ static int configure_shmstream(struct hvt *hv)
     uint8_t *shm_mem;
     uint64_t total_pagesize = 0x0;
     int xon_enabled = 0;
-    //size_t ring_buf_size = sizeof(struct net_msg);
-    rx_shm_size = 0x250000;//1000 * ring_buf_size;
-    tx_shm_size = 0x250000;//1000 * ring_buf_size;
+    rx_shm_size = tx_shm_size = RING_SHM_SIZE;
     int ret;
 
     /* Set up eventfd */
-    solo5_rx_fd = eventfd(0, EFD_NONBLOCK);
-    if (solo5_rx_fd < 0) {
+    kernel_read_fd = eventfd(0, EFD_NONBLOCK);
+    if (kernel_read_fd < 0) {
         err(1, "Failed to create eventfd");
         goto err;
     }
 
-    if (use_event_thread) {
+    if (use_shm_stream) {
         /* Set up epoll */
         xon_enabled = 1;
         if ((configure_epoll()) < 0) {
@@ -594,14 +553,9 @@ static int configure_shmstream(struct hvt *hv)
     printf("offset = 0x%"PRIx64", total_pagesize = 0x%"PRIx64"\n", offset, total_pagesize);
     hvt_x86_add_pagetables(hv->mem, hv->mem_size, total_pagesize);
     muen_channel_init_reader(&net_rdr, MUENNET_PROTO);
-    if (use_event_thread) {
+    if (use_shm_stream) {
         if (pthread_create(&tid, NULL, &io_event_loop, NULL) != 0) {
             warnx("Failed to create event thread");
-            goto err;
-        }
-    } else {
-        if (pthread_create(&tid, NULL, &io_thread, NULL) != 0) {
-            warnx("Failed to create polling thread");
             goto err;
         }
     }
@@ -610,6 +564,7 @@ static int configure_shmstream(struct hvt *hv)
 err:
     return -1;
 }
+#endif
 
 static int setup(struct hvt *hvt)
 {
@@ -641,6 +596,7 @@ static int setup(struct hvt *hvt)
         memcpy(netinfo.mac_address, guest_mac, sizeof netinfo.mac_address);
     }
 
+#if defined(__linux__)
     if (use_shm_stream) {
         int flags = fcntl(netfd, F_GETFL, 0);
         fcntl(netfd, F_SETFL, flags | O_NONBLOCK);
@@ -650,6 +606,7 @@ static int setup(struct hvt *hvt)
             exit(1);
         }
     }
+#endif
 
     assert(hvt_core_register_hypercall(HVT_HYPERCALL_NETINFO,
                 hypercall_netinfo) == 0);
@@ -657,22 +614,22 @@ static int setup(struct hvt *hvt)
                 hypercall_netwrite) == 0);
     assert(hvt_core_register_hypercall(HVT_HYPERCALL_NETREAD,
                 hypercall_netread) == 0);
-    assert(hvt_core_register_hypercall(HVT_HYPERCALL_NET_SHMINFO,
-                hypercall_net_shm_info) == 0);
-    if (use_event_thread) {
-        assert(hvt_core_register_hypercall(HVT_HYPERCALL_NETXON,
+    assert(hvt_core_register_hypercall(HVT_HYPERCALL_SHMINFO,
+                hypercall_shm_info) == 0);
+    if (use_shm_stream) {
+        assert(hvt_core_register_hypercall(HVT_HYPERCALL_NET_XON,
                     hypercall_netxon) == 0);
-        assert(hvt_core_register_hypercall(HVT_HYPERCALL_NETNOTIFY,
+        assert(hvt_core_register_hypercall(HVT_HYPERCALL_NET_NOTIFY,
                     hypercall_netnotify) == 0);
     }
 
     /* If shmstream is used, register eventfd, else
      * use tapfd */
     if (use_shm_stream) {
-        assert(hvt_core_register_pollfd(solo5_rx_fd, read_solo5_rx_fd) == 0);
-        if (use_event_thread) {
-            assert(hvt_core_register_pollfd(solo5_tx_xon_evfd, read_solo5_tx_xon_evfd) == 0);
-        }
+#if defined(__linux__)
+        assert(hvt_core_register_pollfd(kernel_read_fd, read_kernel_read_fd) == 0);
+        assert(hvt_core_register_pollfd(kernel_xon_notify_fd, read_kernel_xon_notify_fd) == 0);
+#endif
     } else {
         assert(hvt_core_register_pollfd(netfd, NULL) == 0);
     }
@@ -682,17 +639,23 @@ static int setup(struct hvt *hvt)
 
 static char *usage(void)
 {
+#if defined(__linux__)
+    return "--net=TAP (host tap device for guest network interface or @NN tap fd)\n"
+        "    [ --net-mac=HWADDR ] (guest MAC address)  [ --shm ]";
+#endif
     return "--net=TAP (host tap device for guest network interface or @NN tap fd)\n"
         "    [ --net-mac=HWADDR ] (guest MAC address)";
 }
 
 static void cleanup(struct hvt *hv)
 {
+#if defined(__linux__)
     if (use_shm_stream) {
         if (pthread_cancel(tid) == 0) {
             pthread_join(tid, NULL);
         }
     }
+#endif
 }
 
 struct hvt_module hvt_module_net = {

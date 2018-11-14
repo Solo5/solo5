@@ -156,7 +156,7 @@ solo5_time_t solo5_clock_wall(void);
  * This interface may be extended in the future to allow for selection of I/O
  * events of interest to the application.
  */
-bool solo5_yield(uint64_t deadline, void *nothing __attribute__((unused)));
+bool solo5_yield(solo5_time_t deadline);
 
 /*
  * Console I/O.
@@ -197,7 +197,7 @@ struct solo5_net_info {
  * Retrieves information about the network device. Caller must supply space for
  * struct solo5_net_info in (info).
  */
-void solo5_net_info(int nic_index, struct solo5_net_info *info);
+void solo5_net_info(struct solo5_net_info *info);
 
 /*
  * Sends a single network packet from the buffer (*buf), without blocking.  If
@@ -207,7 +207,7 @@ void solo5_net_info(int nic_index, struct solo5_net_info *info);
  * The maximum allowed value for (size) is (solo5_net_info.mtu +
  * SOLO5_NET_HLEN). The packet must include the ethernet frame header.
  */
-solo5_result_t solo5_net_write(int index, const uint8_t *buf, size_t size);
+solo5_result_t solo5_net_write(const uint8_t *buf, size_t size);
 
 /*
  * Receives a single network packet into the buffer (*buf), without blocking.
@@ -218,8 +218,22 @@ solo5_result_t solo5_net_write(int index, const uint8_t *buf, size_t size);
  * SOLO5_R_OK and the size of the received packet including the ethernet frame
  * header in (*read_size).
  */
-solo5_result_t solo5_net_read(int index, uint8_t *buf, size_t size, size_t *read_size);
+solo5_result_t solo5_net_read(uint8_t *buf, size_t size, size_t *read_size);
 
+/*
+ * Can be used only when shared memory is enabled.
+ * Queues a single network packet from buffer (*buf) to the net device.
+ * If the queue is full, SOLO5_R_AGAIN is returned, which implies the packets
+ * need to be sent out. This can be done using solo5_net_flush().
+ * On successful queueing SOLO5_R_OK is returned.
+ */
+solo5_result_t solo5_net_queue(const uint8_t *buf, size_t size);
+
+/*
+ * Can be used only when shared memory is enabled.
+ * Sends the packets which are queued onto the network.
+ */
+void solo5_net_flush();
 /*
  * Block I/O.
  *
@@ -252,7 +266,7 @@ void solo5_block_info(struct solo5_block_info *info);
 
 /*
  * Writes data of (size) bytes from the buffer (*buf) to the block device,
- * starting at byte (offset). Data is either written in it's entirety or not at
+ * starting at byte (offset). Data is either written in its entirety or not at
  * all ("short writes" are not possible).
  *
  * Both (size) and (offset) must be a multiple of the block size, otherwise
@@ -276,7 +290,5 @@ solo5_result_t solo5_block_write(solo5_off_t offset, const uint8_t *buf,
  * single block.
  */
 solo5_result_t solo5_block_read(solo5_off_t offset, uint8_t *buf, size_t size);
-solo5_result_t solo5_net_queue(const uint8_t *buf, size_t size);
-void solo5_net_flush();
 
 #endif

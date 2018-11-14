@@ -146,6 +146,12 @@ static void hypercall_puts(struct hvt *hvt, hvt_gpa_t gpa)
     assert(rc >= 0);
 }
 
+#ifndef HVT_MODULE_NET
+static void hypercall_noop(struct hvt *hvt, hvt_gpa_t gpa)
+{
+}
+#endif
+
 static struct pollfd pollfds[NUM_MODULES];
 static poll_fn_cb_t poll_fn_cb[NUM_MODULES];
 static int npollfds = 0;
@@ -197,6 +203,17 @@ static int setup(struct hvt *hvt)
                 hypercall_puts) == 0);
     assert(hvt_core_register_hypercall(HVT_HYPERCALL_POLL,
                 hypercall_poll) == 0);
+
+    /* HACK!: I need to to register this only in the net module for now. 
+     * This will be called by net_init() to setup the kernel's view of shared memory.
+     * However net_init() is called every time the kernel is booted, even when net module is 
+     * not compiled in. This will result in unknown hyercall number error.
+     * I would prefer if there is a way to net init only when net module is required.
+     * I guess that's not happening so this is least ugliest hack I could think of */
+#ifndef HVT_MODULE_NET
+    assert(hvt_core_register_hypercall(HVT_HYPERCALL_SHMINFO,
+                hypercall_noop) == 0);
+#endif
 
     /*
      * XXX: This needs documenting / coordination with the top-level caller.

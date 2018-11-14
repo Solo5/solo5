@@ -76,9 +76,9 @@ muen/muen-block.o \
 muen/muen-clock.o \
 muen/muen-console.o \
 muen/muen-net.o \
-muen/muen-sinfo.o \
 muen/muen-platform_lifecycle.o \
 muen/muen-yield.o \
+muen/muen-sinfo.o \
 $(COMMON_COBJS)
 
 GENODE_COBJS=\

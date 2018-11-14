@@ -239,4 +239,13 @@ int hvt_gdb_add_breakpoint(struct hvt *hvt, gdb_breakpoint_type type,
 int hvt_gdb_remove_breakpoint(struct hvt *hvt, gdb_breakpoint_type type,
                                hvt_gpa_t addr, size_t len);
 
+/*
+ * Canonical list of host memory regions mapped as the guest memory
+ */
+enum hvt_memregion {
+    HVT_MEMCORE_REGION,
+    HVT_SHMSTREAM_RXRING_BUF_REGION,
+    HVT_SHMSTREAM_TXRING_BUF_REGION,
+};
+
 #endif /* HVT_H */

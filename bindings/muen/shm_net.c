@@ -69,6 +69,5 @@ shm_net_result_t shm_net_read(struct muchannel *channel,
     } else if (result == MUCHANNEL_EPOCH_CHANGED) {
         return SHM_NET_EPOCH_CHANGED;
     }
-    assert(0);
     return SHM_NET_EINVAL;
 }

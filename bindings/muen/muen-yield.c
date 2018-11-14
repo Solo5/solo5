@@ -21,7 +21,7 @@
 #include "../bindings.h"
 #include "muen-net.h"
 
-bool solo5_yield(uint64_t deadline, void *nothing __attribute__((unused)))
+bool solo5_yield(solo5_time_t deadline)
 {
     bool rc = false;
     do {

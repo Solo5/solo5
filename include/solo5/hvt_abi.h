@@ -170,9 +170,9 @@ enum hvt_hypercall {
     HVT_HYPERCALL_NETWRITE,
     HVT_HYPERCALL_NETREAD,
     HVT_HYPERCALL_HALT,
-    HVT_HYPERCALL_NET_SHMINFO,
-    HVT_HYPERCALL_NETXON,
-    HVT_HYPERCALL_NETNOTIFY,
+    HVT_HYPERCALL_SHMINFO,
+    HVT_HYPERCALL_NET_XON,
+    HVT_HYPERCALL_NET_NOTIFY,
     HVT_HYPERCALL_MAX
 };
 
@@ -232,10 +232,9 @@ struct hvt_netinfo {
 };
 
 /* HVT_HYPERCALL_NET_SHM_INFO */
-struct hvt_net_shm_info {
+struct hvt_shm_info {
     /* IN */
-    int      shm_poll_enabled;
-    int      shm_event_enabled;
+    int      shm_enabled;
     uint64_t tx_channel_addr;
     uint64_t tx_channel_addr_size;
     uint64_t rx_channel_addr;
@@ -299,15 +298,6 @@ struct hvt_halt {
 
     /* IN */
     int exit_status;
-};
-
-/*
- * Canonical list of host memory regions mapped as the guest memory
- */
-enum hvt_memregion {
-    HVT_MEMCORE_REGION,
-    HVT_SHMSTREAM_RXRING_BUF_REGION,
-    HVT_SHMSTREAM_TXRING_BUF_REGION,
 };
 
 #endif /* HVT_GUEST_H */

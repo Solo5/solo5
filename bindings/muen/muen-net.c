@@ -29,12 +29,12 @@ struct muchannel *net_out;
 struct muchannel_reader net_rdr;
 static uint8_t mac_addr[6];
 
-solo5_result_t solo5_net_write(int index __attribute__((unused)), const uint8_t *buf, size_t size)
+solo5_result_t solo5_net_write(const uint8_t *buf, size_t size)
 {
     return shm_net_write(net_out, buf, size);
 }
 
-solo5_result_t solo5_net_read(int index __attribute__((unused)), uint8_t *buf, size_t size, size_t *read_size)
+solo5_result_t solo5_net_read(uint8_t *buf, size_t size, size_t *read_size)
 {
     return shm_net_read(net_in, &net_rdr, buf, size, read_size);
 }
@@ -45,7 +45,7 @@ bool muen_net_pending_data()
 }
 
 /* TODO: Support configured MAC address */
-void solo5_net_info(int index __attribute__((unused)), struct solo5_net_info *info)
+void solo5_net_info(struct solo5_net_info *info)
 {
     memcpy(info->mac_address, mac_addr, sizeof info->mac_address);
     info->mtu = 1500;

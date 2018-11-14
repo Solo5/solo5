@@ -28,8 +28,7 @@
 struct muchannel *tx_channel;
 struct muchannel *rx_channel;
 struct muchannel_reader net_rdr;
-bool shm_poll_enabled  = false;
-bool shm_event_enabled = false;
+bool shm_enabled = false;
 
 static inline solo5_result_t shm_to_solo5_result(int shm_result)
 {
@@ -41,7 +40,7 @@ static inline solo5_result_t shm_to_solo5_result(int shm_result)
     case SHM_NET_EPOCH_CHANGED:
         return SOLO5_R_AGAIN;
     default:
-        return SOLO5_R_EUNSPEC;
+        break;
     }
     return SOLO5_R_EUNSPEC;
 }
@@ -50,27 +49,24 @@ solo5_result_t solo5_net_queue(const uint8_t *buf, size_t size)
 {
     int ret;
 
-    assert(shm_event_enabled);
+    assert(shm_enabled);
     ret = shm_net_write(tx_channel, buf, size);
     return shm_to_solo5_result(ret);
 }
 
 void solo5_net_flush()
 {
-    assert(shm_event_enabled);
-    hvt_do_hypercall(HVT_HYPERCALL_NETNOTIFY, NULL);
+    assert(shm_enabled);
+    hvt_do_hypercall(HVT_HYPERCALL_NET_NOTIFY, NULL);
 }
 
-solo5_result_t solo5_net_write(int index __attribute__((unused)), const uint8_t *buf, size_t size)
+solo5_result_t solo5_net_write(const uint8_t *buf, size_t size)
 {
     int ret = 0;
-    if (shm_event_enabled) {
+    if (shm_enabled) {
         ret = solo5_net_queue(buf, size);
         solo5_net_flush();
         return ret;
-    } else if (shm_poll_enabled) {
-        ret = shm_net_write(tx_channel, buf, size);
-        return shm_to_solo5_result(ret);
     } else {
         volatile struct hvt_netwrite wr;
 
@@ -84,20 +80,16 @@ solo5_result_t solo5_net_write(int index __attribute__((unused)), const uint8_t 
     }
 }
 
-solo5_result_t solo5_net_read(int index __attribute__((unused)), uint8_t *buf, size_t size, size_t *read_size)
+solo5_result_t solo5_net_read(uint8_t *buf, size_t size, size_t *read_size)
 {
     int ret = 0;
-    if (shm_event_enabled) {
+    if (shm_enabled) {
         ret = shm_net_read(rx_channel, &net_rdr,
                 buf, size, read_size);
 
         if (ret == SHM_NET_XON) {
-            hvt_do_hypercall(HVT_HYPERCALL_NETXON, NULL);
+            hvt_do_hypercall(HVT_HYPERCALL_NET_XON, NULL);
         }
-        return shm_to_solo5_result(ret);
-    } else if (shm_poll_enabled) {
-       ret = shm_net_read(rx_channel, &net_rdr,
-                buf, size, read_size);
         return shm_to_solo5_result(ret);
     } else {
         volatile struct hvt_netread rd;
@@ -113,7 +105,7 @@ solo5_result_t solo5_net_read(int index __attribute__((unused)), uint8_t *buf, s
     }
 }
 
-void solo5_net_info(int index __attribute__((unused)), struct solo5_net_info *info)
+void solo5_net_info(struct solo5_net_info *info)
 {
     volatile struct hvt_netinfo ni;
 
@@ -127,19 +119,17 @@ void solo5_net_info(int index __attribute__((unused)), struct solo5_net_info *in
 
 void net_init(void)
 {
-    volatile struct hvt_net_shm_info ni = { 0 };
-    hvt_do_hypercall(HVT_HYPERCALL_NET_SHMINFO, &ni);
-    int xon_enabled = 0;
+    volatile struct hvt_shm_info ni;
+    hvt_do_hypercall(HVT_HYPERCALL_SHMINFO, &ni);
 
-    shm_poll_enabled = ni.shm_poll_enabled;
-    shm_event_enabled = (xon_enabled = ni.shm_event_enabled);
+    shm_enabled = ni.shm_enabled;
 
-    if (shm_poll_enabled || shm_event_enabled) {
+    if (shm_enabled) {
         tx_channel = (struct muchannel *)ni.tx_channel_addr;
         rx_channel = (struct muchannel *)ni.rx_channel_addr;
 
         muen_channel_init_writer(tx_channel, MUENNET_PROTO, sizeof(struct net_msg),
-                ni.tx_channel_addr_size, 10, xon_enabled);
+                ni.tx_channel_addr_size, 10, 1);
         muen_channel_init_reader(&net_rdr, MUENNET_PROTO);
     }
 }
