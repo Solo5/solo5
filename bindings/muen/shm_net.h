@@ -20,6 +20,7 @@
 
 #include "channel.h"
 #include "reader.h"
+#include "solo5.h"
 
 #define PACKET_SIZE   1514
 #define MUENNET_PROTO 0x7ade5c549b08e814ULL
@@ -36,6 +37,21 @@ typedef enum {
     SHM_NET_AGAIN,
     SHM_NET_EINVAL
 } shm_net_result_t;
+
+static inline solo5_result_t shm_to_solo5_result(int shm_result)
+{
+    switch(shm_result) {
+    case SHM_NET_OK:
+    case SHM_NET_XON:
+        return SOLO5_R_OK;
+    case SHM_NET_AGAIN:
+    case SHM_NET_EPOCH_CHANGED:
+        return SOLO5_R_AGAIN;
+    default:
+        break;
+    }
+    return SOLO5_R_EUNSPEC;
+}
 
 shm_net_result_t shm_net_write(struct muchannel *channel,
         const uint8_t *buf, size_t size);

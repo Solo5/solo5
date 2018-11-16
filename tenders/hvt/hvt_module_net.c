@@ -33,11 +33,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 #include <unistd.h>
 
 #include "hvt.h"
+#include "hvt_abi.h"
+#include "shm_net.h"
+#include "writer.h"
 
 #if defined(__linux__)
 
@@ -51,11 +55,8 @@
 #include <pthread.h>
 #include <sys/eventfd.h>
 #include <sys/epoll.h>
-#include "hvt_abi.h"
 #include "hvt_kvm.h"
 #include "hvt_cpu_x86_64.h"
-#include "shm_net.h"
-#include "writer.h"
 #define MAXEVENTS 5
 static pthread_t tid;
 
@@ -78,6 +79,10 @@ static pthread_t tid;
 #define MAX_PACKETS_READ 90
 static char *netiface;
 static int netfd;
+static struct hvt_netinfo netinfo;
+static int cmdline_mac = 0;
+static int use_shm_stream = 0;
+#if defined(__linux__)
 static int epoll_fd, // The big epoll for the io thread
            /* Event fd to notify the kernel that shm has packet to read */
            kernel_read_fd,
@@ -87,17 +92,13 @@ static int epoll_fd, // The big epoll for the io thread
            tender_xon_notify_fd,
            /* Event fd to notify tender that shm has packet to read */
            tender_read_fd;
-static struct hvt_netinfo netinfo;
-static int cmdline_mac = 0;
-static int use_shm_stream = 0;
 static uint64_t rx_shm_size = 0x0;
 static uint64_t tx_shm_size = 0x0;
-struct timespec readtime;
-struct timespec writetime;
 struct timespec epochtime;
 struct muchannel *tx_channel;
 struct muchannel *rx_channel;
 struct muchannel_reader net_rdr;
+#endif
 
 /*
  * Attach to an existing TAP interface named 'ifname'.
@@ -328,6 +329,7 @@ void* io_event_loop()
 
 static void hypercall_shm_info(struct hvt *hv, hvt_gpa_t gpa)
 {
+#if defined(__linux__)
     struct hvt_shm_info *info =
             HVT_CHECKED_GPA_P(hv, gpa, sizeof (struct hvt_shm_info));
 
@@ -339,6 +341,7 @@ static void hypercall_shm_info(struct hvt *hv, hvt_gpa_t gpa)
         info->rx_channel_addr_size = tx_shm_size;
         info->shm_enabled = true;
     }
+#endif
 }
 
 static void hypercall_netinfo(struct hvt *hvt, hvt_gpa_t gpa)
@@ -379,19 +382,23 @@ static void hypercall_netread(struct hvt *hvt, hvt_gpa_t gpa)
 
 static void hypercall_netxon(struct hvt *hv, hvt_gpa_t gpa)
 {
+#if defined(__linux__)
     uint64_t xon = 1;
     if (write(tender_xon_notify_fd, &xon, 8)) {
         warnx("Failed to xon notify the tender\n");
     }
+#endif
 }
 
 /* Notify tender that there is data to send */
 static void hypercall_netnotify(struct hvt *hv, hvt_gpa_t gpa)
 {
+#if defined(__linux__)
     uint64_t read_data = 1;
     if (write(tender_read_fd, &read_data, 8))  {
         warnx("Failed to notify tender about the data in shm\n");
     }
+#endif
 }
 
 static int handle_cmdarg(char *cmdarg)
@@ -470,7 +477,7 @@ static int configure_epoll()
     return 0;
 }
 
-static int configure_shmstream(struct hvt *hv)
+static int configure_shmstream(struct hvt *hvt)
 {
     uint64_t offset = 0x0;
     uint8_t *shm_mem;
@@ -509,7 +516,7 @@ static int configure_shmstream(struct hvt *hv)
         total_pagesize += X86_GUEST_PAGE_SIZE;
     } while(total_pagesize < total_shm_buf_size);
 
-    if ((hv->mem_size + total_shm_buf_size) > (X86_GUEST_PAGE_SIZE * 512)) {
+    if ((hvt->mem_size + total_shm_buf_size) > (X86_GUEST_PAGE_SIZE * 512)) {
         err(1, "guest memory size exceeds the max size %u bytes", X86_GUEST_PAGE_SIZE * 512);
         goto err;
     }
@@ -517,11 +524,11 @@ static int configure_shmstream(struct hvt *hv)
     /* RX ring buffer */
     struct kvm_userspace_memory_region rxring_region = {
         .slot = HVT_SHMSTREAM_RXRING_BUF_REGION,
-        .guest_phys_addr = hv->mem_size + offset,
+        .guest_phys_addr = hvt->mem_size + offset,
         .memory_size = (uint64_t)(rx_shm_size),
         .userspace_addr = (uint64_t)(shm_mem + offset),
     };
-    ret = ioctl(hv->b->vmfd, KVM_SET_USER_MEMORY_REGION, &rxring_region);
+    ret = ioctl(hvt->b->vmfd, KVM_SET_USER_MEMORY_REGION, &rxring_region);
     if (ret == -1) {
         err(1, "KVM: ioctl (SET_USER_MEMORY_REGION) failed: shmstream RX ring buffer");
         goto err;
@@ -532,11 +539,11 @@ static int configure_shmstream(struct hvt *hv)
     /* TX ring buffer */
     struct kvm_userspace_memory_region txring_region = {
         .slot = HVT_SHMSTREAM_TXRING_BUF_REGION,
-        .guest_phys_addr = hv->mem_size + offset,
+        .guest_phys_addr = hvt->mem_size + offset,
         .memory_size = (uint64_t)(tx_shm_size),
         .userspace_addr = (uint64_t)(shm_mem + offset),
     };
-    ret = ioctl(hv->b->vmfd, KVM_SET_USER_MEMORY_REGION, &txring_region);
+    ret = ioctl(hvt->b->vmfd, KVM_SET_USER_MEMORY_REGION, &txring_region);
     if (ret == -1) {
         err(1, "KVM: ioctl (SET_USER_MEMORY_REGION) failed: shmstream TX ring buffer");
         goto err;
@@ -551,7 +558,7 @@ static int configure_shmstream(struct hvt *hv)
     offset += txring_region.memory_size;
 
     printf("offset = 0x%"PRIx64", total_pagesize = 0x%"PRIx64"\n", offset, total_pagesize);
-    hvt_x86_add_pagetables(hv->mem, hv->mem_size, total_pagesize);
+    hvt_add_pagetables(hvt, total_pagesize);
     muen_channel_init_reader(&net_rdr, MUENNET_PROTO);
     if (use_shm_stream) {
         if (pthread_create(&tid, NULL, &io_event_loop, NULL) != 0) {

@@ -299,6 +299,12 @@ static void aarch64_setup_core_registers(struct hvt *hvt,
          err(1, "Set guest reset entry to PC failed!\n");
 }
 
+void hvt_add_pagetables(struct hvt *hvt, size_t mem_size)
+{
+    /* Not supported yet */
+    assert(0); 
+}
+
 void hvt_vcpu_init(struct hvt *hvt, hvt_gpa_t gpa_ep,
         hvt_gpa_t gpa_kend, char **cmdline)
 {

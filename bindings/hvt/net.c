@@ -23,27 +23,11 @@
 #include "sinfo.h"
 #include "reader.h"
 #include "writer.h"
-#include "bindings.h"
 
 struct muchannel *tx_channel;
 struct muchannel *rx_channel;
 struct muchannel_reader net_rdr;
 bool shm_enabled = false;
-
-static inline solo5_result_t shm_to_solo5_result(int shm_result)
-{
-    switch(shm_result) {
-    case SHM_NET_OK:
-    case SHM_NET_XON:
-        return SOLO5_R_OK;
-    case SHM_NET_AGAIN:
-    case SHM_NET_EPOCH_CHANGED:
-        return SOLO5_R_AGAIN;
-    default:
-        break;
-    }
-    return SOLO5_R_EUNSPEC;
-}
 
 solo5_result_t solo5_net_queue(const uint8_t *buf, size_t size)
 {
@@ -99,7 +83,6 @@ solo5_result_t solo5_net_read(uint8_t *buf, size_t size, size_t *read_size)
         rd.ret = 0;
 
         hvt_do_hypercall(HVT_HYPERCALL_NETREAD, &rd);
-
         *read_size = rd.len;
         return (rd.ret == 0) ? SOLO5_R_OK : SOLO5_R_AGAIN;
     }
@@ -119,7 +102,9 @@ void solo5_net_info(struct solo5_net_info *info)
 
 void net_init(void)
 {
-    volatile struct hvt_shm_info ni;
+    struct hvt_shm_info ni;
+
+    memset(&ni, 0, sizeof(ni));
     hvt_do_hypercall(HVT_HYPERCALL_SHMINFO, &ni);
 
     shm_enabled = ni.shm_enabled;

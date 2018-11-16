@@ -76,6 +76,11 @@ static struct kvm_segment sreg_to_kvm(const struct x86_sreg *sreg)
     return kvm;
 }
 
+void hvt_add_pagetables(struct hvt *hvt, size_t mem_size)
+{
+    hvt_x86_add_pagetables(hvt->mem, hvt->mem_size, mem_size);
+}
+
 void hvt_vcpu_init(struct hvt *hvt, hvt_gpa_t gpa_ep,
         hvt_gpa_t gpa_kend, char **cmdline)
 {

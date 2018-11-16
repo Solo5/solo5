@@ -89,6 +89,12 @@ static struct vcpu_segment_info sreg_to_vsi(const struct x86_sreg *sreg)
     return vsi;
 }
 
+void hvt_add_pagetables(struct hvt *hvt, size_t mem_size)
+{
+    /* Not supported yet */
+    assert(0); 
+}
+
 void hvt_mem_size(size_t *mem_size) {
     hvt_x86_mem_size(mem_size);
 }

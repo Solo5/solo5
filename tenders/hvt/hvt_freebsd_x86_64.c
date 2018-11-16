@@ -164,6 +164,12 @@ static void dump_vmx(struct vm_exit *vme)
     warnx("\tinst_error\t%d", vme->u.vmx.inst_error);
 }
 
+void hvt_add_pagetables(struct hvt *hvt, size_t mem_size)
+{
+    /* Not supported yet */
+    assert(0); 
+}
+
 int hvt_vcpu_loop(struct hvt *hvt)
 {
     struct hvt_b *hvb = hvt->b;

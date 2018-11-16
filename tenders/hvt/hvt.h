@@ -239,6 +239,7 @@ int hvt_gdb_add_breakpoint(struct hvt *hvt, gdb_breakpoint_type type,
 int hvt_gdb_remove_breakpoint(struct hvt *hvt, gdb_breakpoint_type type,
                                hvt_gpa_t addr, size_t len);
 
+void hvt_add_pagetables(struct hvt *hvt, size_t mem_size);
 /*
  * Canonical list of host memory regions mapped as the guest memory
  */
