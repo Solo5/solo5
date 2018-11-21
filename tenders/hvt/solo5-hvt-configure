@@ -113,7 +113,7 @@ case ${TARGET} in
         add_obj hvt_kvm.o hvt_kvm_x86_64.o hvt_cpu_x86_64.o
         add_header hvt_kvm.h hvt_cpu_x86_64.h
         ;;
-    x86_64-*freebsd1[12]*)
+    x86_64-*freebsd1[123]*)
         add_obj hvt_freebsd.o hvt_freebsd_x86_64.o hvt_cpu_x86_64.o
         add_header hvt_freebsd.h hvt_cpu_x86_64.h
         ;;
