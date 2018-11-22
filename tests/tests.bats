@@ -171,6 +171,18 @@ teardown() {
   [[ "$output" == *"ABORT"* ]]
 }
 
+@test "ssp hvt" {
+  run ${TIMEOUT} --foreground 30s test_ssp/solo5-hvt test_ssp/test_ssp.hvt
+  [ "$status" -eq 255 ]
+  [[ "$output" == *"ABORT"* ]]
+}
+
+@test "ssp virtio" {
+  run ${TIMEOUT} --foreground 30s ${VIRTIO} -- test_ssp/test_ssp.virtio
+  [ "$status" -eq 0 -o "$status" -eq 2 -o "$status" -eq 83 ]
+  [[ "$output" == *"ABORT"* ]]
+}
+
 @test "fpu hvt" {
   run ${TIMEOUT} --foreground 30s test_fpu/solo5-hvt test_fpu/test_fpu.hvt
   [ "$status" -eq 0 ]

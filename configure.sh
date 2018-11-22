@@ -19,8 +19,13 @@
 
 die()
 {
-    echo "$0: $@" 1>&2
+    echo "$0: ERROR: $@" 1>&2
     exit 1
+}
+
+warn()
+{
+    echo "$0: WARNING: $@" 1>&2
 }
 
 cc_maybe_gcc()
@@ -54,13 +59,13 @@ LD=${LD:-ld}
 
 TARGET=$(${CC} -dumpmachine)
 [ $? -ne 0 ] &&
-    die "Error running '${CC} -dumpmachine', is your compiler working?"
+    die "Could not run '${CC} -dumpmachine', is your compiler working?"
 case ${TARGET} in
     x86_64-*|amd64-*)
-	TARGET_ARCH=x86_64
+        TARGET_ARCH=x86_64
         ;;
     aarch64-*)
-	TARGET_ARCH=aarch64
+        TARGET_ARCH=aarch64
         ;;
     *)
         die "Unsupported compiler target: ${TARGET}"
@@ -88,9 +93,16 @@ case $(uname -s) in
         # to -fno-pie breaking the build of lib/dllmirage-solo5_bindings.so.
         # Keep this disabled until that is resolved.
         # cc_has_pie && HOST_CFLAGS="${HOST_CFLAGS} -fno-pie"
-        # Same for the stack protector, no robust way to detect if this is on by
-        # default so always disable it.
-        HOST_CFLAGS="${HOST_CFLAGS} -fno-stack-protector"
+
+        # Stack smashing protection:
+        #
+        # Any GCC configured for a Linux/x86_64 target (actually, any
+        # glibc-based target) will use a TLS slot to address __stack_chk_fail.
+        # Disable this behaviour and use an ordinary global variable instead.
+        if [ "${TARGET_ARCH}" = "x86_64" ]; then
+            HOST_CFLAGS="${HOST_CFLAGS} -mstack-protector-guard=global"
+        fi
+
         BUILD_HVT="yes"
         if [ "${TARGET_ARCH}" = "x86_64" ]; then
             BUILD_VIRTIO="yes"
@@ -125,6 +137,10 @@ case $(uname -s) in
         for f in ${SRCS_X86}; do cp -f ${INCDIR}/$f ${HOST_INCDIR}/x86; done
         for f in ${SRCS}; do cp -f ${INCDIR}/$f ${HOST_INCDIR}; done
 
+        # Stack smashing protection:
+        #
+        # FreeBSD toolchains use a global (non-TLS) __stack_chk_guard by
+        # default on x86_64, so there is nothing special we need to do here.
         HOST_CFLAGS="-nostdlibinc"
         BUILD_HVT="yes"
         BUILD_VIRTIO="yes"
@@ -140,7 +156,8 @@ case $(uname -s) in
             die "Only 'x86_64' is supported on OpenBSD"
         if ! ld_is_lld; then
             LD='/usr/bin/ld.lld'
-            echo "using GNU 'ld' is not supported on OpenBSD, falling back to 'ld.lld'"
+            warn "Using GNU 'ld' is not supported on OpenBSD"
+            warn "Falling back to 'ld.lld'"
             [ -e ${LD} ] || die "/usr/bin/ld.lld does not exist"
         fi
         INCDIR=/usr/include
@@ -156,7 +173,15 @@ case $(uname -s) in
         for f in ${SRCS_AMD64}; do cp -f ${INCDIR}/$f ${HOST_INCDIR}/amd64; done
         for f in ${SRCS}; do cp -f ${INCDIR}/$f ${HOST_INCDIR}; done
 
+        # Stack smashing protection:
+        #
+        # The OpenBSD toolchain has it's own idea of how SSP is implemented
+        # (see TargetLoweringBase::getIRStackGuard() in the LLVM source), which
+        # we don't support yet. Unfortunately LLVM does not support
+        # -mstack-protector-guard, so disable SSP on OpenBSD for the time
+        # being.
         HOST_CFLAGS="-fno-stack-protector -nostdlibinc"
+        warn "Stack protector (SSP) disabled on OpenBSD due to toolchain issues"
         HOST_LDFLAGS="-nopie"
         BUILD_HVT="yes"
         BUILD_VIRTIO="yes"

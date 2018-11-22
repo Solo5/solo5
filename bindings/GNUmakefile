@@ -22,6 +22,7 @@ COMMON_COBJS=\
 abort.o \
 cpu_${TARGET_ARCH}.o \
 cpu_vectors_${TARGET_ARCH}.o \
+crt.o \
 ee_printf.o \
 intr.o \
 lib.o \
@@ -106,15 +107,15 @@ endif
 
 virtio/solo5_virtio.o: $(VIRTIO_COBJS) virtio/solo5_virtio.lds
 	$(LD) -r $(LDFLAGS) -o $@ $(VIRTIO_COBJS)
-	$(OBJCOPY) -w -G solo5_\* -G _start\* $@ $@
+	$(OBJCOPY) -w -G solo5_\* -G _start\* -G __stack_chk_\* $@ $@
 
 hvt/solo5_hvt.o: $(HVT_COBJS) hvt/solo5_hvt.lds
 	$(LD) -r $(LDFLAGS) -o $@ $(HVT_COBJS)
-	$(OBJCOPY) -w -G solo5_\* -G _start\* $@ $@
+	$(OBJCOPY) -w -G solo5_\* -G _start\* -G __stack_chk_\* $@ $@
 
 muen/solo5_muen.o: $(MUEN_COBJS) muen/solo5_muen.lds
 	$(LD) -r $(LDFLAGS) -o $@ $(MUEN_COBJS)
-	$(OBJCOPY) -w -G solo5_\* -G _start\* $@ $@
+	$(OBJCOPY) -w -G solo5_\* -G _start\* -G __stack_chk_\* $@ $@
 
 genode/solo5.lib.so: $(GENODE_COBJS)
 	$(LD) $(GENODE_LIB_LDFLAGS) -o $@ $^

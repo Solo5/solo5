@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (c) 2015-2018 Contributors as noted in the AUTHORS file
  *
  * This file is part of Solo5, a sandboxed execution environment.
@@ -18,7 +18,22 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-__attribute__((always_inline)) inline void crt_init_early(void)
+extern uintptr_t __stack_chk_guard;
+
+#if defined(__x86_64__)
+#define READ_CPU_TICKS cpu_rdtsc
+#elif defined(__aarch64__)
+#define READ_CPU_TICKS cpu_cntvct
+#else
+#error Unsupported architecture
+#endif
+
+/*
+ * This function is responsible for performing early initialisation required by
+ * the "C runtime". It must be inlined as early as possible once in C code,
+ * before calling any other functions. The calling function must not return.
+ */
+__attribute__((always_inline)) static inline void crt_init_early(void)
 {
     /*
      * Explicitly disable any accidental use of TLS by zeroing the relevant
@@ -49,4 +64,10 @@ __attribute__((always_inline)) inline void crt_init_early(void)
 #else
 #error Unsupported architecture
 #endif
+
+    /*
+     * Initialise the stack canary value.
+     */
+    __stack_chk_guard = READ_CPU_TICKS() + (READ_CPU_TICKS() << 32UL);
+    __stack_chk_guard &= ~(uintptr_t)0xff00;
 }
