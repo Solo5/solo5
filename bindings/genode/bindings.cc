@@ -35,9 +35,12 @@
 #include <base/component.h>
 #include <base/sleep.h>
 
+/* Jitterentropy includes */
+#include <jitterentropy.h>
+
 /* Solo5 includes */
 extern "C" {
-#include "bindings.h"
+#include "../bindings.h"
 }
 
 
@@ -45,6 +48,54 @@ namespace Solo5 {
 	using namespace Genode;
 	struct Platform;
 };
+
+
+/**
+ * Naive SSP implementation
+ */
+extern "C" {
+	Genode::addr_t __stack_chk_guard;
+
+	extern "C" __attribute__((noreturn))
+	void __stack_chk_fail (void)
+	{
+		Genode::error("stack smashing detected");
+		solo5_abort();
+	}
+}
+
+/**
+ * Generate a random stack canary value from CPU jitter
+ */
+static Genode::addr_t generate_canary(Genode::Allocator &alloc)
+{
+	using namespace Genode;
+
+	auto die = [] (char const *msg)
+	{
+		error(msg);
+		throw Exception();
+	};
+
+	Genode::addr_t canary = 0;
+
+	jitterentropy_init(alloc);
+	if (jent_entropy_init())
+		die("jitterentropy library could not be initialized!");
+
+	struct rand_data *ec = jent_entropy_collector_alloc(0, 0);
+	if (!ec)
+		die("failed to allocate jitter entropy collector");
+
+	ssize_t n = jent_read_entropy(ec, (char*)&canary, sizeof(canary));
+	if (n != sizeof(canary) || !canary)
+		die("failed to generate stack canary");
+
+	jent_entropy_collector_free(ec);
+
+	/* inject a NULL byte to terminate C strings */
+	return canary & (~(Genode::addr_t)0xff00UL);
+}
 
 
 /**
@@ -406,13 +457,13 @@ extern "C" {
 
 void solo5_exit(int status)
 {
-    _platform->exit(status, nullptr);
+	_platform->exit(status, nullptr);
 }
 
 
 void solo5_abort(void)
 {
-    _platform->exit(SOLO5_EXIT_ABORT, nullptr);
+	_platform->exit(SOLO5_EXIT_ABORT, nullptr);
 }
 
 
@@ -499,12 +550,12 @@ solo5_result_t solo5_block_write(solo5_off_t offset,
 	return _platform->block_write(offset, buf, size);
 }
 
+
 solo5_result_t solo5_block_read(solo5_off_t offset,
                                 uint8_t *buf, size_t size)
 {
 	return _platform->block_read(offset, buf, size);
 }
-
 
 } // extern "C"
 
@@ -540,8 +591,17 @@ void Component::construct(Genode::Env &env)
 	/* attach into our address-space */
 	si.heap_start = env.rm().attach(heap_ds);
 
+	/*
+	 * set a new stack canary, this is possible
+	 * because this procedure never returns
+	 */
+	__stack_chk_guard = generate_canary(inst.heap);
+
 	/* block for application then exit */
 	env.parent().exit(solo5_app_main(&si));
+
+	/* deadlock */
+	Genode::sleep_forever();
 }
 
 
