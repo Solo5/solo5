@@ -99,6 +99,9 @@ ifeq ($(TARGET_ARCH), x86_64)
 MD_CFLAGS+=-mno-sse -mno-mmx -mno-aes -mno-avx
 endif
 
+genode/stubs.o: genode/stubs.c $(HEADERS)
+	$(CC) $(CFLAGS) -Wno-unused-parameter -c $< -o $@
+
 %.o: %.c $(HEADERS)
 	$(CC) $(CFLAGS) -c $< -o $@
 
