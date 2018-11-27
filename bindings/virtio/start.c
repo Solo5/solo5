@@ -19,12 +19,15 @@
  */
 
 #include "bindings.h"
+#include "../crt_init.h"
 
 extern void _newstack(uint64_t stack_start, void (*tramp)(void *), void *arg);
 static void _start2(void *arg) __attribute__((noreturn));
 
 void _start(void *arg)
 {
+    crt_init_early();
+
     volatile int gdb = 1;
 
     serial_init();

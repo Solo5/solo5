@@ -54,7 +54,7 @@ void mem_init(void)
 	PANIC("Not enough memory", NULL);
 
     log(INFO, "Solo5: Memory map: %lu MB addressable:\n", mem_size >> 20);
-    log(INFO, "Solo5:     unused @ (0x0 - 0x%lx)\n", _stext-1);
+    log(INFO, "Solo5:   reserved @ (0x0 - 0x%lx)\n", _stext-1);
     log(INFO, "Solo5:       text @ (0x%lx - 0x%lx)\n", _stext, _etext-1);
     log(INFO, "Solo5:     rodata @ (0x%lx - 0x%lx)\n", _etext, _erodata-1);
     log(INFO, "Solo5:       data @ (0x%lx - 0x%lx)\n", _erodata, _end-1);

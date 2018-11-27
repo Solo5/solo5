@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (c) 2015-2018 Contributors as noted in the AUTHORS file
  *
  * This file is part of Solo5, a sandboxed execution environment.
@@ -28,9 +28,14 @@ static void puts(const char *s)
 
 int solo5_app_main(const struct solo5_start_info *si __attribute__((unused)))
 {
-    puts("\n**** Solo5 standalone test_exception ****\n\n");
+    puts("\n**** Solo5 standalone test_zeropage ****\n\n");
 
-    uint64_t *addr_invalid = (uint64_t *)(2ULL << 33);
+    /*
+     * On aarch64, writing to an addr_invalid of "0" here appears to cause the
+     * compiler to generate code for a debug exception (brk instruction)?!
+     * Write to the next quadword, i.e. uint64_t at "8" instead.
+     */
+    uint64_t *addr_invalid = (uint64_t *)8;
     *addr_invalid = 1;
 
     return SOLO5_EXIT_FAILURE;

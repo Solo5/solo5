@@ -19,9 +19,12 @@
  */
 
 #include "bindings.h"
+#include "../crt_init.h"
 
 void _start(void *arg)
 {
+    crt_init_early();
+
     static struct solo5_start_info si;
 
     console_init();
