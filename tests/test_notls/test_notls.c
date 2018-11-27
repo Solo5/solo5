@@ -28,10 +28,18 @@ static void puts(const char *s)
 
 int solo5_app_main(const struct solo5_start_info *si __attribute__((unused)))
 {
-    puts("\n**** Solo5 standalone test_exception ****\n\n");
+    puts("\n**** Solo5 standalone test_notls ****\n\n");
 
-    uint64_t *addr_invalid = (uint64_t *)(2ULL << 33);
-    *addr_invalid = 1;
+#if defined(__x86_64__)
+    __asm__ __volatile("movq %%fs:0x28, %%rax" : : : "rax");
+#elif defined(__aarch64__)
+    __asm__ __volatile("mrs x0, tpidr_el0; "
+                       "add x0, x0, #0x10; "
+                       "ldr w1, [x0]"
+                       : : : "x0", "w1");
+#else
+#error Unsupported architecture
+#endif
 
     return SOLO5_EXIT_FAILURE;
 }

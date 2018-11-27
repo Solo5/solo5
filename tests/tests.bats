@@ -128,10 +128,45 @@ teardown() {
 @test "exception hvt" {
   run ${TIMEOUT} --foreground 30s test_exception/solo5-hvt test_exception/test_exception.hvt
   [ "$status" -eq 255 ]
+  [[ "$output" == *"ABORT"* ]]
 }
 
 @test "exception virtio" {
   run ${TIMEOUT} --foreground 30s ${VIRTIO} -- test_exception/test_exception.virtio
+  [ "$status" -eq 0 -o "$status" -eq 2 -o "$status" -eq 83 ]
+  [[ "$output" == *"ABORT"* ]]
+}
+
+@test "zeropage hvt" {
+  run ${TIMEOUT} --foreground 30s test_zeropage/solo5-hvt test_zeropage/test_zeropage.hvt
+  if [[ "${TEST_TARGET}" == "aarch64-"* ]]; then
+    if [ "$status" -eq 1 ]; then
+      skip "failure expected on aarch64"
+    fi
+  fi
+  [ "$status" -eq 255 ]
+  [[ "$output" == *"ABORT"* ]]
+}
+
+@test "zeropage virtio" {
+  run ${TIMEOUT} --foreground 30s ${VIRTIO} -- test_zeropage/test_zeropage.virtio
+  [ "$status" -eq 0 -o "$status" -eq 2 -o "$status" -eq 83 ]
+  [[ "$output" == *"ABORT"* ]]
+}
+
+@test "notls hvt" {
+  run ${TIMEOUT} --foreground 30s test_notls/solo5-hvt test_notls/test_notls.hvt
+  if [[ "${TEST_TARGET}" == "aarch64-"* ]]; then
+    if [ "$status" -eq 1 ]; then
+      skip "failure expected on aarch64"
+    fi
+  fi
+  [ "$status" -eq 255 ]
+  [[ "$output" == *"ABORT"* ]]
+}
+
+@test "notls virtio" {
+  run ${TIMEOUT} --foreground 30s ${VIRTIO} -- test_notls/test_notls.virtio
   [ "$status" -eq 0 -o "$status" -eq 2 -o "$status" -eq 83 ]
   [[ "$output" == *"ABORT"* ]]
 }
