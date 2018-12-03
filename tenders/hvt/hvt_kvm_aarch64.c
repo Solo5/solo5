@@ -242,7 +242,7 @@ static void aarch64_enable_guest_mmu(int vcpufd)
          err(1, "KVM: Translation Table Base Register 0 EL1 failed");
 
     /* Enable MMU and I/D Cache for EL1 */
-    data |= (_SCTLR_M | _SCTLR_C | _SCTLR_I);
+    data = (_SCTLR_M | _SCTLR_C | _SCTLR_I);
     ret = aarch64_set_one_register(vcpufd, SCTLR_EL1, data);
     if (ret == -1)
          err(1, "KVM: Setup System Control Register EL1 failed");
