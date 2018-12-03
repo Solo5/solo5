@@ -82,7 +82,7 @@ If you are looking for a high-level stack for deploying unikernels, one such
 project is [Albatross](https://hannes.nqsb.io/Posts/VMM).
 
 The following examples use the standalone
-[test\_ping\_serve](tests/test_ping_serve/test_ping_serve.c) unikernel which is
+[test\_ping\_serve](../tests/test_ping_serve/test_ping_serve.c) unikernel which is
 built as part of the normal Solo5 build process.
 
 The products of building a Solo5 unikernel are, depending on the _target_, one
@@ -144,14 +144,14 @@ Use `^C` to terminate the unikernel.
 
 ## _virtio_: Running with KVM/QEMU on Linux, or bhyve on FreeBSD
 
-The [solo5-run-virtio](tools/run/solo5-run-virtio.sh) script provides a wrapper
+The [solo5-virtio-run](../scripts/virtio-run/solo5-virtio-run.sh) script provides a wrapper
 to correctly launch `qemu-system-x86_64` or `bhyve` on the host system.  Using
 it is not required; by default it will print the commands used to setup and
 launch the guest VM. You can run these manually if desired.
 
 To launch the unikernel:
 
-    solo5-run-virtio -n tap100 -- test_ping_serve.virtio verbose
+    solo5-virtio-run.sh -n tap100 -- test_ping_serve.virtio verbose
 
 Use `^C` to terminate the unikernel.
 
@@ -162,9 +162,9 @@ protocol for booting. If your hypervisor can boot a multiboot-compliant
 kernel directly then this is the preferred method.
 
 If your hypervisor requires a full disk image to boot, you can use the
-[solo5-mkimage](tools/mkimage/solo5-mkimage.sh) tool to build one.
+[solo5-virtio-mkimage](../scripts/virtio-mkimage/solo5-virtio-mkimage.sh) tool to build one.
 
-`solo5-mkimage` supports the following image formats:
+`solo5-virtio-mkimage` supports the following image formats:
 
 * `raw`: A raw disk image, written out as a sparse file.
 * `tar`: A disk image suitable for [uploading to](https://cloud.google.com/compute/docs/tutorials/building-images#publishingimage) Google Compute Engine.
