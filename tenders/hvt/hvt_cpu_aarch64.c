@@ -31,10 +31,22 @@
 
 #include "hvt_cpu_aarch64.h"
 
+/*
+ * If we want support memory greater than 512GB, we should
+ * modify the following PAGE_TABLE_OFFSET at the same time.
+ */
+
 /* First page in AARCH64_PAGE_TABLE is used for PGD */
 #define PGT_PGD_START   0
+
 /* Second page in AARCH64_PAGE_TABLE is used for PUD */
 #define PGT_PUD_START   1
+
+/* Third page in AARCH64_PAGE_TABLE is used for PMD */
+#define PGT_PMD_START   2
+
+/* Fourth page in AARCH64_PAGE_TABLE is used for PTE */
+#define PGT_PTE_START   3
 
 #define PGT_PAGE(x)   (AARCH64_PAGE_TABLE + PAGE_SIZE * (x))
 
