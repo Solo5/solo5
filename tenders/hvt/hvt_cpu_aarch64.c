@@ -97,6 +97,42 @@ static uint64_t aarch64_create_pagetable(enum PGT_LEVEL level,
     return phys_table_addr;
 }
 
+static void aarch64_unmap_zero_page(uint8_t *va_addr)
+{
+    uint64_t *pentry, phys_table_addr;
+
+    /* Create PMD table for first 1GB */
+    phys_table_addr = aarch64_create_pagetable(L2_TABLE,
+                        va_addr, 0, PUD_SIZE,
+                        PROT_SECT_NORMAL_EXEC,
+                        PROT_SECT_DEVICE_nGnRE);
+
+    /* Locate the pud entry for first 1G */
+    pentry = (uint64_t *)(va_addr + PGT_PAGE_ADDR(PGT_PUD_START));
+
+    /* Update first 1GB mapping from block to table */
+    *pentry = phys_table_addr | PGT_DESC_TYPE_TABLE;
+
+    /* Create PTE table for first 2MB */
+    phys_table_addr = aarch64_create_pagetable(L3_TABLE,
+                        va_addr, 0, PMD_SIZE,
+                        PROT_PAGE_NORMAL_EXEC,
+                        PROT_PAGE_DEVICE_nGnRE);
+
+    /* Locate the pmd entry for first 2MB */
+    pentry = (uint64_t *)(va_addr + PGT_PAGE_ADDR(PGT_PMD_START));
+
+    /* Update first 2MB mapping from block to table */
+    *pentry = phys_table_addr | PGT_DESC_TYPE_TABLE;
+
+    /* Locate the pte entry for first 4KB */
+    pentry = (uint64_t *)(va_addr + PGT_PAGE_ADDR(PGT_PTE_START));
+
+    /* Unmap the first 4KB */
+    *pentry = 0;
+
+    return;
+}
 
 /*
  * We will do VA = PA mapping in page table. For simplicity, currently
@@ -138,6 +174,10 @@ void aarch64_setup_memory_mapping(uint8_t *va_addr, uint64_t ram_size,
         pentry[idx] = pud_table | PGT_DESC_TYPE_TABLE;
         phy_space_size -= map_size;
     }
+
+    /* Unmap the zero page for NULL */
+    aarch64_unmap_zero_page(va_addr);
+
 }
 
 void aarch64_mem_size(size_t *mem_size) {
