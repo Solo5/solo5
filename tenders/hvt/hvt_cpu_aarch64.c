@@ -48,7 +48,7 @@
 /* Fourth page in AARCH64_PAGE_TABLE is used for PTE */
 #define PGT_PTE_START   3
 
-#define PGT_PAGE(x)   (AARCH64_PAGE_TABLE + PAGE_SIZE * (x))
+#define PGT_PAGE_ADDR(x)   (AARCH64_PAGE_TABLE + PAGE_SIZE * (x))
 
 static uint64_t aarch64_mapping_virt_to_phys(uint8_t *va_addr,
                                 uint64_t start, uint64_t size)
@@ -61,7 +61,7 @@ static uint64_t aarch64_mapping_virt_to_phys(uint8_t *va_addr,
     size = PUD_SIZE * DIV_ROUND_UP(size, PUD_SIZE);
 
     /* Locate the page of PUD to do this translation */
-    phys_pud = PGT_PAGE(PGT_PUD_START + DIV_ROUND_UP(start, PGD_SIZE));
+    phys_pud = PGT_PAGE_ADDR(PGT_PUD_START + DIV_ROUND_UP(start, PGD_SIZE));
     pud = (struct pud*)(va_addr + phys_pud);
 
     /* Fill PUD entries */
@@ -103,7 +103,7 @@ void aarch64_setup_memory_mapping(uint8_t *va_addr, uint64_t ram_size,
             ram_size, AARCH64_MMIO_BASE);
 
     /* Allocate one page for PGD to support > 512GB address space */
-    pgd = (struct pgd*)(va_addr + PGT_PAGE(PGT_PGD_START));
+    pgd = (struct pgd*)(va_addr + PGT_PAGE_ADDR(PGT_PGD_START));
 
     /* Mapping whole physical space to virtual space */
     for (idx = 0; phy_space_size > 0; idx++) {
