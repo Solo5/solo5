@@ -135,13 +135,13 @@
  * PGD entry size: 512GB -- Translation Level 0
  * PUD entry size: 1GB   -- Translation Level 1
  * PMD entry size: 2MB   -- Translation Level 2
- * PTE entry size: 64KB  -- Translation Level 3
+ * PTE entry size: 4KB   -- Translation Level 3
  */
-#define PGD_SIZE    (_AC(1, UL) << 39)
+#define PGD_SIZE	(_AC(1, UL) << 39)
 #define PGD_MASK	(~(PGD_SIZE-1))
-#define PUD_SIZE    (_AC(1, UL) << 30)
+#define PUD_SIZE	(_AC(1, UL) << 30)
 #define PUD_MASK	(~(PUD_SIZE-1))
-#define PMD_SIZE    (_AC(1, UL) << 21)
+#define PMD_SIZE	(_AC(1, UL) << 21)
 #define PMD_MASK	(~(PMD_SIZE-1))
 
 #define DIV_ROUND_UP(n, d) (((n) + (d) - 1) / (d))
