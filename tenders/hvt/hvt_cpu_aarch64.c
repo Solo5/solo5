@@ -53,8 +53,8 @@
 static uint64_t aarch64_mapping_virt_to_phys(uint8_t *va_addr,
                                 uint64_t start, uint64_t size)
 {
-    struct pud *pud;
     uint32_t idx;
+    uint64_t *pentry;
     uint64_t phys_pud, out_address;
 
     /* The block size of each PUD entry is 1GB */
@@ -62,15 +62,15 @@ static uint64_t aarch64_mapping_virt_to_phys(uint8_t *va_addr,
 
     /* Locate the page of PUD to do this translation */
     phys_pud = PGT_PAGE_ADDR(PGT_PUD_START + DIV_ROUND_UP(start, PGD_SIZE));
-    pud = (struct pud*)(va_addr + phys_pud);
+    pentry = (uint64_t *)(va_addr + phys_pud);
 
     /* Fill PUD entries */
     for (idx = 0; size > 0; idx++) {
         out_address = start + PUD_SIZE * idx;
         if (out_address >= AARCH64_MMIO_BASE)
-            pud->entry[idx] = out_address | PROT_SECT_DEVICE_nGnRE;
+            pentry[idx] = out_address | PROT_SECT_DEVICE_nGnRE;
         else
-            pud->entry[idx] = out_address | PROT_SECT_NORMAL_EXEC;
+            pentry[idx] = out_address | PROT_SECT_NORMAL_EXEC;
 
         size -= PUD_SIZE;
     }
@@ -85,7 +85,7 @@ static uint64_t aarch64_mapping_virt_to_phys(uint8_t *va_addr,
 void aarch64_setup_memory_mapping(uint8_t *va_addr, uint64_t ram_size,
                               uint64_t phy_space_size)
 {
-    struct pgd *pgd;
+    uint64_t *pentry;
     uint32_t idx;
     uint64_t map_size, pud_table;
 
@@ -103,7 +103,7 @@ void aarch64_setup_memory_mapping(uint8_t *va_addr, uint64_t ram_size,
             ram_size, AARCH64_MMIO_BASE);
 
     /* Allocate one page for PGD to support > 512GB address space */
-    pgd = (struct pgd*)(va_addr + PGT_PAGE_ADDR(PGT_PGD_START));
+    pentry = (uint64_t *)(va_addr + PGT_PAGE_ADDR(PGT_PGD_START));
 
     /* Mapping whole physical space to virtual space */
     for (idx = 0; phy_space_size > 0; idx++) {
@@ -113,7 +113,7 @@ void aarch64_setup_memory_mapping(uint8_t *va_addr, uint64_t ram_size,
         /* Mapping VA <=> PA for RAM */
         pud_table = aarch64_mapping_virt_to_phys(va_addr, PGD_SIZE * idx, map_size);
 
-        pgd->entry[idx] = pud_table | PGT_DESC_TYPE_TABLE;
+        pentry[idx] = pud_table | PGT_DESC_TYPE_TABLE;
         phy_space_size -= map_size;
     }
 }
