@@ -50,33 +50,53 @@
 
 #define PGT_PAGE_ADDR(x)   (AARCH64_PAGE_TABLE + PAGE_SIZE * (x))
 
-static uint64_t aarch64_mapping_virt_to_phys(uint8_t *va_addr,
-                                uint64_t start, uint64_t size)
+enum PGT_LEVEL {
+    L1_TABLE = 1, // PUD
+    L2_TABLE = 2, // PMD
+    L3_TABLE = 3, // PTE
+};
+
+static uint64_t aarch64_create_pagetable(enum PGT_LEVEL level,
+                        uint8_t *va_addr, uint64_t start, uint64_t size,
+                        uint64_t attrs, uint64_t attrs_io)
 {
     uint32_t idx;
     uint64_t *pentry;
-    uint64_t phys_pud, out_address;
+    uint64_t phys_table_addr, block_size, out_address;
 
-    /* The block size of each PUD entry is 1GB */
-    size = PUD_SIZE * DIV_ROUND_UP(size, PUD_SIZE);
+    if (level == L1_TABLE) {
+        /* The block size of each PUD entry is 1GB */
+        block_size = PUD_SIZE;
+        /* Locate the page of PUD to do this translation */
+        phys_table_addr = PGT_PAGE_ADDR(PGT_PUD_START + DIV_ROUND_UP(start, PGD_SIZE));
+    } else if (level == L2_TABLE) {
+        /* The block size of each PMD entry is 2MB */
+        block_size = PMD_SIZE;
+        /* Locate the page of PMD to do this translation */
+        phys_table_addr = PGT_PAGE_ADDR(PGT_PMD_START + DIV_ROUND_UP(start, PUD_SIZE));
+    } else if (level == L3_TABLE) {
+        /* The block size of each PTE entry is 4KB */
+        block_size = PAGE_SIZE;
+        /* Locate the page of PTE to do this translation */
+        phys_table_addr = PGT_PAGE_ADDR(PGT_PTE_START + DIV_ROUND_UP(start, PMD_SIZE));
+    } else
+        err(1, "Unknown page table level: %d\n", level);
 
-    /* Locate the page of PUD to do this translation */
-    phys_pud = PGT_PAGE_ADDR(PGT_PUD_START + DIV_ROUND_UP(start, PGD_SIZE));
-    pentry = (uint64_t *)(va_addr + phys_pud);
-
-    /* Fill PUD entries */
+    /* Fill table entries */
+    pentry = (uint64_t *)(va_addr + phys_table_addr);
     for (idx = 0; size > 0; idx++) {
-        out_address = start + PUD_SIZE * idx;
+        out_address = start + block_size * idx;
         if (out_address >= AARCH64_MMIO_BASE)
-            pentry[idx] = out_address | PROT_SECT_DEVICE_nGnRE;
+            pentry[idx] = out_address | attrs_io;
         else
-            pentry[idx] = out_address | PROT_SECT_NORMAL_EXEC;
+            pentry[idx] = out_address | attrs;
 
-        size -= PUD_SIZE;
+        size -= block_size;
     }
 
-    return phys_pud;
+    return phys_table_addr;
 }
+
 
 /*
  * We will do VA = PA mapping in page table. For simplicity, currently
@@ -111,7 +131,9 @@ void aarch64_setup_memory_mapping(uint8_t *va_addr, uint64_t ram_size,
         map_size = (phy_space_size > PGD_SIZE) ? PGD_SIZE : phy_space_size;
 
         /* Mapping VA <=> PA for RAM */
-        pud_table = aarch64_mapping_virt_to_phys(va_addr, PGD_SIZE * idx, map_size);
+        pud_table = aarch64_create_pagetable(L1_TABLE, va_addr,
+		                            PGD_SIZE * idx, map_size,
+                                    PROT_SECT_NORMAL_EXEC, PROT_SECT_DEVICE_nGnRE);
 
         pentry[idx] = pud_table | PGT_DESC_TYPE_TABLE;
         phy_space_size -= map_size;
