@@ -150,16 +150,19 @@
  * PMD entry size: 2MB   -- Translation Level 2
  * PTE entry size: 4KB   -- Translation Level 3
  */
-#define PGD_SIZE	(_AC(1, UL) << 39)
+#define PGD_SHIFT	39
+#define PGD_SIZE	(_AC(1, UL) << PGD_SHIFT)
 #define PGD_MASK	(~(PGD_SIZE-1))
-#define PUD_SIZE	(_AC(1, UL) << 30)
+#define PUD_SHIFT	30
+#define PUD_SIZE	(_AC(1, UL) << PUD_SHIFT)
 #define PUD_MASK	(~(PUD_SIZE-1))
-#define PMD_SIZE	(_AC(1, UL) << 21)
+#define PMD_SHIFT	21
+#define PMD_SIZE	(_AC(1, UL) << PMD_SHIFT)
 #define PMD_MASK	(~(PMD_SIZE-1))
 
 #define DIV_ROUND_UP(n, d) (((n) + (d) - 1) / (d))
 
-void aarch64_setup_memory_mapping(uint8_t *mem, uint64_t mem_size, uint64_t space_size);
+void aarch64_setup_memory_mapping(uint8_t *mem, uint64_t mem_size);
 void aarch64_mem_size(size_t *mem_size);
 
 #endif /* HVT_CPU_AARCH64_H */
