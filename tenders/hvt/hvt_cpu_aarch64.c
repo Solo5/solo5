@@ -31,38 +31,18 @@
 
 #include "hvt_cpu_aarch64.h"
 
-/*
- * If we want support memory greater than 512GB, we should
- * modify the following PAGE_TABLE_OFFSET at the same time.
- */
-
-/* First page in AARCH64_PAGE_TABLE is used for PGD */
-#define PGT_PGD_START   0
-
-/* Second page in AARCH64_PAGE_TABLE is used for PUD */
-#define PGT_PUD_START   1
-
-/* Third page in AARCH64_PAGE_TABLE is used for PMD */
-#define PGT_PMD_START   2
-
-/* Fourth page in AARCH64_PAGE_TABLE is used for PTE */
-#define PGT_PTE_START   3
-
-#define PGT_PAGE_ADDR(x)   (AARCH64_PAGE_TABLE + PAGE_SIZE * (x))
-
 static uint64_t aarch64_mapping_virt_to_phys(uint8_t *mem,
                                 uint64_t start, uint64_t size)
 {
     uint32_t idx;
     uint64_t *pentry;
-    uint64_t phys_pud, out_address;
+    uint64_t out_address;
 
     /* The block size of each PUD entry is 1GB */
     size = PUD_SIZE * DIV_ROUND_UP(size, PUD_SIZE);
 
     /* Locate the page of PUD to do this translation */
-    phys_pud = PGT_PAGE_ADDR(PGT_PUD_START + DIV_ROUND_UP(start, PGD_SIZE));
-    pentry = (uint64_t *)(mem + phys_pud);
+    pentry = (uint64_t *)(mem + AARCH64_PUD_BASE);
 
     /* Fill PUD entries */
     for (idx = 0; size > 0; idx++) {
@@ -75,7 +55,7 @@ static uint64_t aarch64_mapping_virt_to_phys(uint8_t *mem,
         size -= PUD_SIZE;
     }
 
-    return phys_pud;
+    return AARCH64_PUD_BASE;
 }
 
 /*
@@ -103,7 +83,7 @@ void aarch64_setup_memory_mapping(uint8_t *mem, uint64_t mem_size,
             mem_size, AARCH64_MMIO_BASE);
 
     /* Allocate one page for PGD to support > 512GB address space */
-    pentry = (uint64_t *)(mem + PGT_PAGE_ADDR(PGT_PGD_START));
+    pentry = (uint64_t *)(mem + AARCH64_PGD_BASE);
 
     /* Mapping whole physical space to virtual space */
     for (idx = 0; phy_space_size > 0; idx++) {
