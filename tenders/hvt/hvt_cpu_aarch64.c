@@ -50,7 +50,7 @@
 
 #define PGT_PAGE_ADDR(x)   (AARCH64_PAGE_TABLE + PAGE_SIZE * (x))
 
-static uint64_t aarch64_mapping_virt_to_phys(uint8_t *va_addr,
+static uint64_t aarch64_mapping_virt_to_phys(uint8_t *mem,
                                 uint64_t start, uint64_t size)
 {
     uint32_t idx;
@@ -62,7 +62,7 @@ static uint64_t aarch64_mapping_virt_to_phys(uint8_t *va_addr,
 
     /* Locate the page of PUD to do this translation */
     phys_pud = PGT_PAGE_ADDR(PGT_PUD_START + DIV_ROUND_UP(start, PGD_SIZE));
-    pentry = (uint64_t *)(va_addr + phys_pud);
+    pentry = (uint64_t *)(mem + phys_pud);
 
     /* Fill PUD entries */
     for (idx = 0; size > 0; idx++) {
@@ -82,7 +82,7 @@ static uint64_t aarch64_mapping_virt_to_phys(uint8_t *va_addr,
  * We will do VA = PA mapping in page table. For simplicity, currently
  * we use minimal 2MB block size and 1 PUD table in page table.
  */
-void aarch64_setup_memory_mapping(uint8_t *va_addr, uint64_t ram_size,
+void aarch64_setup_memory_mapping(uint8_t *mem, uint64_t mem_size,
                               uint64_t phy_space_size)
 {
     uint64_t *pentry;
@@ -98,12 +98,12 @@ void aarch64_setup_memory_mapping(uint8_t *va_addr, uint64_t ram_size,
      * Address above 4GB is using for MMIO space now. This would be changed
      * easily if the design of hvt_hypercall would be changed in the future.
      */
-    if (ram_size > AARCH64_MMIO_BASE)
+    if (mem_size > AARCH64_MMIO_BASE)
         err(1, "The guest memory [0x%lx] exceeds the max size [0x%lx]\n",
-            ram_size, AARCH64_MMIO_BASE);
+            mem_size, AARCH64_MMIO_BASE);
 
     /* Allocate one page for PGD to support > 512GB address space */
-    pentry = (uint64_t *)(va_addr + PGT_PAGE_ADDR(PGT_PGD_START));
+    pentry = (uint64_t *)(mem + PGT_PAGE_ADDR(PGT_PGD_START));
 
     /* Mapping whole physical space to virtual space */
     for (idx = 0; phy_space_size > 0; idx++) {
@@ -111,7 +111,7 @@ void aarch64_setup_memory_mapping(uint8_t *va_addr, uint64_t ram_size,
         map_size = (phy_space_size > PGD_SIZE) ? PGD_SIZE : phy_space_size;
 
         /* Mapping VA <=> PA for RAM */
-        pud_table = aarch64_mapping_virt_to_phys(va_addr, PGD_SIZE * idx, map_size);
+        pud_table = aarch64_mapping_virt_to_phys(mem, PGD_SIZE * idx, map_size);
 
         pentry[idx] = pud_table | PGT_DESC_TYPE_TABLE;
         phy_space_size -= map_size;

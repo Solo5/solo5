@@ -146,7 +146,7 @@
 
 #define DIV_ROUND_UP(n, d) (((n) + (d) - 1) / (d))
 
-void aarch64_setup_memory_mapping(uint8_t *va_addr, uint64_t mem_size, uint64_t space_size);
+void aarch64_setup_memory_mapping(uint8_t *mem, uint64_t mem_size, uint64_t space_size);
 void aarch64_mem_size(size_t *mem_size);
 
 #endif /* HVT_CPU_AARCH64_H */
