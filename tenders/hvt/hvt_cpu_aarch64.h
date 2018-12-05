@@ -55,22 +55,35 @@
  * 0x0FFFFFFFF End of RAM space
  * 0x100000    loaded elf file (linker script dictates location)
  *   ...       unused ram
- * 0x012000    PMD
- * 0x011000    PUD
- * 0x010000    PGD, memory start for page table
- *   ...       command line arguments
- * 0x002000    hvt_boot_info
- * 0x001000    non-cacheable page
+ * 0x013000    command line arguments end
+ * 0x011000    command line arguments start
+ * 0x010000    hvt_boot_info
+ * 0x007000    PTE
+ * 0x006000    PMD3
+ * 0x005000    PMD2
+ * 0x004000    PMD1
+ * 0x003000    PMD0, 4 pages to cover max 4GB RAM
+ * 0x002000    PUD
+ * 0x001000    PGD, memory start for page table
  * 0x000000    unused ram
  */
-#define AARCH64_MMIO_BASE       _AC(0x100000000, UL)
-#define AARCH64_MMIO_SZ         _AC(0x40000000, UL)
-#define AARCH64_GUEST_MIN_BASE  _AC(0x100000, UL)
-#define AARCH64_PAGE_TABLE      _AC(0x10000, UL)
-#define AARCH64_CMDLINE_BASE    _AC(0xC000, UL)
-#define AARCH64_CMDLINE_SZ      (AARCH64_PAGE_TABLE - AARCH64_CMDLINE_BASE)
-#define AARCH64_BOOT_INFO       _AC(0x1000, UL)
-#define AARCH64_BOOT_INFO_SZ    (AARCH64_CMDLINE_BASE - AARCH64_BOOT_INFO)
+#define AARCH64_PGD_PGT_BASE     _AC(0x1000, UL)
+#define AARCH64_PGD_PGT_SIZE     _AC(0x1000, UL)
+#define AARCH64_PUD_PGT_BASE     _AC(0x2000, UL)
+#define AARCH64_PUD_PGT_SIZE     _AC(0x1000, UL)
+#define AARCH64_PMD_PGT_BASE     _AC(0x3000, UL)
+#define AARCH64_PMD_PGT_SIZE     _AC(0x4000, UL)
+#define AARCH64_PTE_PGT_BASE     _AC(0x7000, UL)
+#define AARCH64_PTE_PGT_SIZE     _AC(0x1000, UL)
+#define AARCH64_BOOT_INFO        _AC(0x10000, UL)
+#define AARCH64_BOOT_INFO_SZ     _AC(0x1000, UL)
+#define AARCH64_CMDLINE_BASE     _AC(0x11000, UL)
+#define AARCH64_CMDLINE_SZ       _AC(0x2000, UL)
+#define AARCH64_GUEST_MIN_BASE   _AC(0x100000, UL)
+#define AARCH64_MMIO_BASE        _AC(0x100000000, UL)
+#define AARCH64_MMIO_SZ          _AC(0x40000000, UL)
+#define AARCH64_GUEST_BLOCK_SIZE _AC(0x200000, UL)
+#define AARCH64_PGT_MAP_START	 AARCH64_BOOT_INFO
 
 #define GENMASK32(h, l) \
     (((~0U) << (l)) & (~0U >> (31 - (h))))

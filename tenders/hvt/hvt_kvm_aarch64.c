@@ -236,7 +236,7 @@ static void aarch64_enable_guest_mmu(int vcpufd)
      * Setup Translation Table Base Register 0 EL1. The translation range
      * doesn't exceed the 0 ~ 1^64. So the TTBR0_EL1 is enough.
      */
-    data = AARCH64_PAGE_TABLE;
+    data = AARCH64_PGD_BASE;
     ret = aarch64_set_one_register(vcpufd, TTBR0_EL1, data);
     if (ret == -1)
          err(1, "KVM: Translation Table Base Register 0 EL1 failed");
