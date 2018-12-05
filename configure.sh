@@ -48,6 +48,16 @@ cc_is_gcc()
     cc_maybe_gcc && ! cc_is_clang
 }
 
+gcc_check_option()
+{
+    ${CC} "$@" -x c -c -o /dev/null - <<EOM >/dev/null 2>&1
+int main(int argc, char *argv[])
+{
+    return 0;
+}
+EOM
+}
+
 ld_is_lld()
 {
     ${LD} --version 2>&1 | grep -q '^LLD'
@@ -97,9 +107,11 @@ case $(uname -s) in
         # Stack smashing protection:
         #
         # Any GCC configured for a Linux/x86_64 target (actually, any
-        # glibc-based target) will use a TLS slot to address __stack_chk_fail.
+        # glibc-based target) will use a TLS slot to address __stack_chk_guard.
         # Disable this behaviour and use an ordinary global variable instead.
         if [ "${TARGET_ARCH}" = "x86_64" ]; then
+            gcc_check_option -mstack-protector-guard=global || \
+                die "GCC 4.9.0 or newer is required for -mstack-protector-guard= support"
             HOST_CFLAGS="${HOST_CFLAGS} -mstack-protector-guard=global"
         fi
 
