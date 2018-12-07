@@ -35,10 +35,12 @@ void hvt_x86_mem_size(size_t *mem_size) {
     size_t mem;
     mem = (*mem_size / X86_GUEST_PAGE_SIZE) * X86_GUEST_PAGE_SIZE;
     assert (mem <= *mem_size);
-    if (mem < *mem_size)
+    if (mem == 0)
+        mem = X86_GUEST_PAGE_SIZE;
+    if (mem != *mem_size)
         warnx("adjusting memory to %zu bytes", mem);
     if (mem > X86_GUEST_PAGE_SIZE * 512)
-        err(1, "guest memory size %zu bytes exceeds the max size %u bytes",
+        errx(1, "guest memory size %zu bytes exceeds the max size %u bytes",
             mem, X86_GUEST_PAGE_SIZE * 512);
     *mem_size = mem;
 }

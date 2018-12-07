@@ -52,13 +52,9 @@ void aarch64_setup_memory_mapping(uint8_t *mem, uint64_t mem_size)
      * Address above 4GB is using for MMIO space now. This would be changed
      * easily if the design of hvt_hypercall would be changed in the future.
      */
-    if (mem_size > AARCH64_MMIO_BASE) {
-        err(1, "The guest memory [0x%lx] exceeds the max size [0x%lx]\n",
-            mem_size, AARCH64_MMIO_BASE);
-    } else if (mem_size < AARCH64_GUEST_BLOCK_SIZE) {
-        err(1, "The guest memory [0x%lx] less than [0x%lx]\n",
-            mem_size, AARCH64_GUEST_BLOCK_SIZE);
-    }
+    assert((mem_size & (AARCH64_GUEST_BLOCK_SIZE -1)) == 0);
+    assert(mem_size <= AARCH64_MMIO_BASE);
+    assert(mem_size >= AARCH64_GUEST_BLOCK_SIZE);
 
     /* Zero all page tables */
     memset(pgd, 0, AARCH64_PGD_PGT_SIZE);
@@ -113,12 +109,14 @@ void aarch64_setup_memory_mapping(uint8_t *mem, uint64_t mem_size)
 
 void aarch64_mem_size(size_t *mem_size) {
     size_t mem;
-    mem = (*mem_size / PMD_SIZE) * PMD_SIZE;
+    mem = (*mem_size / AARCH64_GUEST_BLOCK_SIZE) * AARCH64_GUEST_BLOCK_SIZE;
     assert (mem <= *mem_size);
+    if (mem == 0)
+        mem = AARCH64_GUEST_BLOCK_SIZE;
     if (mem < *mem_size)
         warnx("adjusting memory to %zu bytes", mem);
     if (mem > AARCH64_MMIO_BASE)
-        err(1, "guest memory size %zu bytes exceeds the max size %lu bytes",
+        errx(1, "guest memory size %zu bytes exceeds the max size %lu bytes",
             mem, AARCH64_MMIO_BASE);
     *mem_size = mem;
 }
