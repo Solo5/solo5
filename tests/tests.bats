@@ -139,11 +139,6 @@ teardown() {
 
 @test "zeropage hvt" {
   run ${TIMEOUT} --foreground 30s test_zeropage/solo5-hvt test_zeropage/test_zeropage.hvt
-  if [[ "${TEST_TARGET}" == "aarch64-"* ]]; then
-    if [ "$status" -eq 1 ]; then
-      skip "failure expected on aarch64"
-    fi
-  fi
   [ "$status" -eq 255 ]
   [[ "$output" == *"ABORT"* ]]
 }
@@ -156,11 +151,6 @@ teardown() {
 
 @test "notls hvt" {
   run ${TIMEOUT} --foreground 30s test_notls/solo5-hvt test_notls/test_notls.hvt
-  if [[ "${TEST_TARGET}" == "aarch64-"* ]]; then
-    if [ "$status" -eq 1 ]; then
-      skip "failure expected on aarch64"
-    fi
-  fi
   [ "$status" -eq 255 ]
   [[ "$output" == *"ABORT"* ]]
 }
