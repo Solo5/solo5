@@ -77,4 +77,4 @@ $(BINDINGS_DIR)/virtio/solo5_virtio.o:
 
 .PHONY: clean solo5-hvt-clean
 clean: solo5-hvt-clean
-	$(RM) *.o $(HVT_TARGETS) Makefile.solo5-hvt $(VIRTIO_TARGETS) $(MUEN_TARGETS)
+	$(RM) *.o $(HVT_TARGETS) Makefile.solo5-hvt $(VIRTIO_TARGETS) $(MUEN_TARGETS) $(GENODE_TARGETS)

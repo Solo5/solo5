@@ -28,46 +28,18 @@ static void puts(const char *s)
 
 int solo5_app_main(const struct solo5_start_info *si __attribute__((unused)))
 {
-    puts("\n**** Solo5 standalone test_fpu ****\n\n");
-
-    float a, b, c[4];
-
-    c[0] = 2.0;
-    c[1] = 5.0;
-    c[2] = 3.0;
-    c[3] = 8.0;
+    puts("\n**** Solo5 standalone test_notls ****\n\n");
 
 #if defined(__x86_64__)
-     __asm__ (
-         "movups %0,%%xmm1;"
-         "mulps %%xmm1, %%xmm1;"
-         "movups %%xmm1, %0"
-         : "=m" (c)
-         : "m" (c)
-         : "xmm1"
-    );
+    __asm__ __volatile("movq %%fs:0x28, %%rax" : : : "rax");
 #elif defined(__aarch64__)
-    __asm__(
-        "ldr q0, %0\n"
-        "ldr q1, %0\n"
-        "fmul v0.4s, v1.4s, v0.4s\n"
-        "str q0, %0\n"
-        : "=m" (c)
-        : "m" (c)
-        : "q0", "q1", "v0"
-    );
+    __asm__ __volatile("mrs x0, tpidr_el0; "
+                       "add x0, x0, #0x10; "
+                       "ldr w1, [x0]"
+                       : : : "x0", "w1");
 #else
 #error Unsupported architecture
 #endif
 
-    a = 1.5;
-    b = 5.0;
-    a *= b;
-
-    if (a == 7.5 && c[0] == 4.0 && c[1] == 25.0 && c[2] == 9.0 && c[3] == 64.0)
-        puts("SUCCESS\n");
-    else
-        return SOLO5_EXIT_FAILURE;
-
-    return SOLO5_EXIT_SUCCESS;
+    return SOLO5_EXIT_FAILURE;
 }

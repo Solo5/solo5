@@ -31,51 +31,17 @@
 
 #include "hvt_cpu_aarch64.h"
 
-/* First page in AARCH64_PAGE_TABLE is used for PGD */
-#define PGT_PGD_START   0
-/* Second page in AARCH64_PAGE_TABLE is used for PUD */
-#define PGT_PUD_START   1
-
-#define PGT_PAGE(x)   (AARCH64_PAGE_TABLE + PAGE_SIZE * (x))
-
-static uint64_t aarch64_mapping_virt_to_phys(uint8_t *va_addr,
-                                uint64_t start, uint64_t size)
-{
-    struct pud *pud;
-    uint32_t idx;
-    uint64_t phys_pud, out_address;
-
-    /* The block size of each PUD entry is 1GB */
-    size = PUD_SIZE * DIV_ROUND_UP(size, PUD_SIZE);
-
-    /* Locate the page of PUD to do this translation */
-    phys_pud = PGT_PAGE(PGT_PUD_START + DIV_ROUND_UP(start, PGD_SIZE));
-    pud = (struct pud*)(va_addr + phys_pud);
-
-    /* Fill PUD entries */
-    for (idx = 0; size > 0; idx++) {
-        out_address = start + PUD_SIZE * idx;
-        if (out_address >= AARCH64_MMIO_BASE)
-            pud->entry[idx] = out_address | PROT_SECT_DEVICE_nGnRE;
-        else
-            pud->entry[idx] = out_address | PROT_SECT_NORMAL_EXEC;
-
-        size -= PUD_SIZE;
-    }
-
-    return phys_pud;
-}
-
 /*
  * We will do VA = PA mapping in page table. For simplicity, currently
  * we use minimal 2MB block size and 1 PUD table in page table.
  */
-void aarch64_setup_memory_mapping(uint8_t *va_addr, uint64_t ram_size,
-                              uint64_t phy_space_size)
+void aarch64_setup_memory_mapping(uint8_t *mem, uint64_t mem_size)
 {
-    struct pgd *pgd;
-    uint32_t idx;
-    uint64_t map_size, pud_table;
+    uint64_t paddr;
+    uint64_t *pgd = (uint64_t *)(mem + AARCH64_PGD_PGT_BASE);
+    uint64_t *pud = (uint64_t *)(mem + AARCH64_PUD_PGT_BASE);
+    uint64_t *pmd = (uint64_t *)(mem + AARCH64_PMD_PGT_BASE);
+    uint64_t *pte = (uint64_t *)(mem + AARCH64_PTE_PGT_BASE);
 
     /*
      * In order to keep consistency with x86_64, we limit hvt_hypercall only
@@ -86,34 +52,71 @@ void aarch64_setup_memory_mapping(uint8_t *va_addr, uint64_t ram_size,
      * Address above 4GB is using for MMIO space now. This would be changed
      * easily if the design of hvt_hypercall would be changed in the future.
      */
-    if (ram_size > AARCH64_MMIO_BASE)
-        err(1, "The guest memory [0x%lx] exceeds the max size [0x%lx]\n",
-            ram_size, AARCH64_MMIO_BASE);
+    assert((mem_size & (AARCH64_GUEST_BLOCK_SIZE -1)) == 0);
+    assert(mem_size <= AARCH64_MMIO_BASE);
+    assert(mem_size >= AARCH64_GUEST_BLOCK_SIZE);
 
-    /* Allocate one page for PGD to support > 512GB address space */
-    pgd = (struct pgd*)(va_addr + PGT_PAGE(PGT_PGD_START));
+    /* Zero all page tables */
+    memset(pgd, 0, AARCH64_PGD_PGT_SIZE);
+    memset(pud, 0, AARCH64_PUD_PGT_SIZE);
+    memset(pmd, 0, AARCH64_PMD_PGT_SIZE);
+    memset(pte, 0, AARCH64_PTE_PGT_SIZE);
 
-    /* Mapping whole physical space to virtual space */
-    for (idx = 0; phy_space_size > 0; idx++) {
-        /* The translation size of each PUD table is 512GB (PGD_SIZE) */
-        map_size = (phy_space_size > PGD_SIZE) ? PGD_SIZE : phy_space_size;
+    /* Map first 2MB block in pte table */
+    for (paddr = 0; paddr < AARCH64_GUEST_BLOCK_SIZE;
+         paddr += PAGE_SIZE, pte++) {
+        /*
+         * Leave all pages below AARCH64_PGT_MAP_START unmapped in the guest.
+         * This includes the zero page and the guest's page tables.
+         */
+        if (paddr < AARCH64_PGT_MAP_START)
+            continue;
 
-        /* Mapping VA <=> PA for RAM */
-        pud_table = aarch64_mapping_virt_to_phys(va_addr, PGD_SIZE * idx, map_size);
-
-        pgd->entry[idx] = pud_table | PGT_DESC_TYPE_TABLE;
-        phy_space_size -= map_size;
+        /*
+         * Map the remainder of the pages below AARCH64_GUEST_MIN_BASE
+         * as read-only; these are used for input from hvt to the guest
+         * only, with the rest reserved for future use.
+         */
+        if (paddr < AARCH64_GUEST_MIN_BASE)
+            *pte = paddr | PROT_PAGE_NORMAL_RO;
+        else
+            *pte = paddr | PROT_PAGE_NORMAL_EXEC;
     }
+    assert(paddr == AARCH64_GUEST_BLOCK_SIZE);
+
+    /* Link pte table to pmd[0] */
+    *pmd++ = AARCH64_PTE_PGT_BASE | PGT_DESC_TYPE_TABLE;
+
+    /* Mapping left memory by 2MB block in pmd table */
+    for (; paddr < mem_size; paddr += PMD_SIZE, pmd++)
+        *pmd = paddr | PROT_SECT_NORMAL_EXEC;
+
+    /* Link pmd tables to pud[0..3] */
+    *pud++ = AARCH64_PMD_PGT_BASE | PGT_DESC_TYPE_TABLE;
+    *pud++ = (AARCH64_PMD_PGT_BASE + 0x1000) | PGT_DESC_TYPE_TABLE;
+    *pud++ = (AARCH64_PMD_PGT_BASE + 0x2000) | PGT_DESC_TYPE_TABLE;
+    *pud++ = (AARCH64_PMD_PGT_BASE + 0x3000) | PGT_DESC_TYPE_TABLE;
+
+    /* Mapping MMIO */
+    for (paddr = AARCH64_MMIO_BASE;
+         paddr < AARCH64_MMIO_BASE + AARCH64_MMIO_SZ;
+         paddr += PUD_SIZE, pud++)
+        *pud = paddr | PROT_SECT_DEVICE_nGnRE;
+
+    /* Link pud table to pgd[0] */
+    *pgd = AARCH64_PUD_PGT_BASE | PGT_DESC_TYPE_TABLE;
 }
 
 void aarch64_mem_size(size_t *mem_size) {
     size_t mem;
-    mem = (*mem_size / PMD_SIZE) * PMD_SIZE;
+    mem = (*mem_size / AARCH64_GUEST_BLOCK_SIZE) * AARCH64_GUEST_BLOCK_SIZE;
     assert (mem <= *mem_size);
+    if (mem == 0)
+        mem = AARCH64_GUEST_BLOCK_SIZE;
     if (mem < *mem_size)
         warnx("adjusting memory to %zu bytes", mem);
     if (mem > AARCH64_MMIO_BASE)
-        err(1, "guest memory size %zu bytes exceeds the max size %lu bytes",
+        errx(1, "guest memory size %zu bytes exceeds the max size %lu bytes",
             mem, AARCH64_MMIO_BASE);
     *mem_size = mem;
 }

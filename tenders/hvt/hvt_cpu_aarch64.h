@@ -55,22 +55,35 @@
  * 0x0FFFFFFFF End of RAM space
  * 0x100000    loaded elf file (linker script dictates location)
  *   ...       unused ram
- * 0x012000    PMD
- * 0x011000    PUD
- * 0x010000    PGD, memory start for page table
- *   ...       command line arguments
- * 0x002000    hvt_boot_info
- * 0x001000    non-cacheable page
+ * 0x013000    command line arguments end
+ * 0x011000    command line arguments start
+ * 0x010000    hvt_boot_info
+ * 0x007000    PTE
+ * 0x006000    PMD3
+ * 0x005000    PMD2
+ * 0x004000    PMD1
+ * 0x003000    PMD0, 4 pages to cover max 4GB RAM
+ * 0x002000    PUD
+ * 0x001000    PGD, memory start for page table
  * 0x000000    unused ram
  */
-#define AARCH64_MMIO_BASE       _AC(0x100000000, UL)
-#define AARCH64_MMIO_SZ         _AC(0x40000000, UL)
-#define AARCH64_GUEST_MIN_BASE  _AC(0x100000, UL)
-#define AARCH64_PAGE_TABLE      _AC(0x10000, UL)
-#define AARCH64_CMDLINE_BASE    _AC(0xC000, UL)
-#define AARCH64_CMDLINE_SZ      (AARCH64_PAGE_TABLE - AARCH64_CMDLINE_BASE)
-#define AARCH64_BOOT_INFO       _AC(0x1000, UL)
-#define AARCH64_BOOT_INFO_SZ    (AARCH64_CMDLINE_BASE - AARCH64_BOOT_INFO)
+#define AARCH64_PGD_PGT_BASE     _AC(0x1000, UL)
+#define AARCH64_PGD_PGT_SIZE     _AC(0x1000, UL)
+#define AARCH64_PUD_PGT_BASE     _AC(0x2000, UL)
+#define AARCH64_PUD_PGT_SIZE     _AC(0x1000, UL)
+#define AARCH64_PMD_PGT_BASE     _AC(0x3000, UL)
+#define AARCH64_PMD_PGT_SIZE     _AC(0x4000, UL)
+#define AARCH64_PTE_PGT_BASE     _AC(0x7000, UL)
+#define AARCH64_PTE_PGT_SIZE     _AC(0x1000, UL)
+#define AARCH64_BOOT_INFO        _AC(0x10000, UL)
+#define AARCH64_BOOT_INFO_SZ     _AC(0x1000, UL)
+#define AARCH64_CMDLINE_BASE     _AC(0x11000, UL)
+#define AARCH64_CMDLINE_SZ       _AC(0x2000, UL)
+#define AARCH64_GUEST_MIN_BASE   _AC(0x100000, UL)
+#define AARCH64_MMIO_BASE        _AC(0x100000000, UL)
+#define AARCH64_MMIO_SZ          _AC(0x40000000, UL)
+#define AARCH64_GUEST_BLOCK_SIZE _AC(0x200000, UL)
+#define AARCH64_PGT_MAP_START	 AARCH64_BOOT_INFO
 
 #define GENMASK32(h, l) \
     (((~0U) << (l)) & (~0U >> (31 - (h))))
@@ -88,6 +101,7 @@
  */
 #define PGT_DESC_TYPE_TABLE (_AC(3, UL) << 0)
 #define PGT_DESC_TYPE_SECT  (_AC(1, UL) << 0)
+#define PGT_DESC_TYPE_PAGE  (_AC(3, UL) << 0)
 
 /*
  * Bit definition for section type descriptor
@@ -115,40 +129,40 @@
 #define MT_NORMAL           4
 #define MT_NORMAL_WT        5
 
-#define PROT_SECT_DEFAULT       (PGT_DESC_TYPE_SECT | SECT_AF | SECT_S)
-#define PROT_SECT_NORMAL        (PROT_SECT_DEFAULT | SECT_PXN | SECT_UXN | ATTRINDX(MT_NORMAL))
-#define PROT_SECT_NORMAL_EXEC   (PROT_SECT_DEFAULT | SECT_UXN | ATTRINDX(MT_NORMAL))
-#define PROT_SECT_DEVICE_nGnRE  (PROT_SECT_DEFAULT | SECT_PXN | SECT_UXN | ATTRINDX(MT_DEVICE_nGnRE))
+#define PROT_SECT_DEFAULT       	(PGT_DESC_TYPE_SECT | SECT_AF | SECT_S)
+#define PROT_SECT_NORMAL        	(PROT_SECT_DEFAULT | SECT_PXN | SECT_UXN | ATTRINDX(MT_NORMAL))
+#define PROT_SECT_NORMAL_EXEC   	(PROT_SECT_DEFAULT | SECT_UXN | ATTRINDX(MT_NORMAL))
+#define PROT_SECT_DEVICE_nGnRE  	(PROT_SECT_DEFAULT | SECT_PXN | SECT_UXN | ATTRINDX(MT_DEVICE_nGnRE))
+
+#define PROT_PAGE_DEFAULT       	(PGT_DESC_TYPE_PAGE | SECT_AF | SECT_S)
+#define PROT_PAGE_DEFAULT_NORMAL  	(PROT_PAGE_DEFAULT | ATTRINDX(MT_NORMAL))
+#define PROT_PAGE_DEFAULT_DEVICE   	(PROT_PAGE_DEFAULT | ATTRINDX(MT_DEVICE_nGnRE))
+#define PROT_PAGE_NORMAL    		(PROT_PAGE_DEFAULT_NORMAL | SECT_PXN | SECT_UXN)
+#define PROT_PAGE_NORMAL_RO    		(PROT_PAGE_DEFAULT_NORMAL | SECT_PXN | SECT_UXN | SECT_RDONLY)
+#define PROT_PAGE_NORMAL_EXEC   	(PROT_PAGE_DEFAULT_NORMAL | SECT_UXN)
+#define PROT_PAGE_NORMAL_EXEC_RO    (PROT_PAGE_DEFAULT_NORMAL | SECT_UXN | SECT_RDONLY)
+#define PROT_PAGE_DEVICE_nGnRE  	(PROT_PAGE_DEFAULT_DEVICE | SECT_PXN | SECT_UXN)
 
 /*
  * Define the MMU transfer block size:
  * PGD entry size: 512GB -- Translation Level 0
  * PUD entry size: 1GB   -- Translation Level 1
  * PMD entry size: 2MB   -- Translation Level 2
- * PTE entry size: 64KB  -- Translation Level 3
+ * PTE entry size: 4KB   -- Translation Level 3
  */
-#define PGD_SIZE    (_AC(1, UL) << 39)
+#define PGD_SHIFT	39
+#define PGD_SIZE	(_AC(1, UL) << PGD_SHIFT)
 #define PGD_MASK	(~(PGD_SIZE-1))
-#define PUD_SIZE    (_AC(1, UL) << 30)
+#define PUD_SHIFT	30
+#define PUD_SIZE	(_AC(1, UL) << PUD_SHIFT)
 #define PUD_MASK	(~(PUD_SIZE-1))
-#define PMD_SIZE    (_AC(1, UL) << 21)
+#define PMD_SHIFT	21
+#define PMD_SIZE	(_AC(1, UL) << PMD_SHIFT)
 #define PMD_MASK	(~(PMD_SIZE-1))
 
 #define DIV_ROUND_UP(n, d) (((n) + (d) - 1) / (d))
 
-struct pmd {
-    uint64_t entry[1];
-};
-
-struct pud {
-    uint64_t entry[1];
-};
-
-struct pgd {
-    uint64_t entry[1];
-};
-
-void aarch64_setup_memory_mapping(uint8_t *va_addr, uint64_t mem_size, uint64_t space_size);
+void aarch64_setup_memory_mapping(uint8_t *mem, uint64_t mem_size);
 void aarch64_mem_size(size_t *mem_size);
 
 #endif /* HVT_CPU_AARCH64_H */

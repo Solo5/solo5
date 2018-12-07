@@ -236,13 +236,13 @@ static void aarch64_enable_guest_mmu(int vcpufd)
      * Setup Translation Table Base Register 0 EL1. The translation range
      * doesn't exceed the 0 ~ 1^64. So the TTBR0_EL1 is enough.
      */
-    data = AARCH64_PAGE_TABLE;
+    data = AARCH64_PGD_PGT_BASE;
     ret = aarch64_set_one_register(vcpufd, TTBR0_EL1, data);
     if (ret == -1)
          err(1, "KVM: Translation Table Base Register 0 EL1 failed");
 
     /* Enable MMU and I/D Cache for EL1 */
-    data |= (_SCTLR_M | _SCTLR_C | _SCTLR_I);
+    data = (_SCTLR_M | _SCTLR_C | _SCTLR_I);
     ret = aarch64_set_one_register(vcpufd, SCTLR_EL1, data);
     if (ret == -1)
          err(1, "KVM: Setup System Control Register EL1 failed");
@@ -303,15 +303,13 @@ void hvt_vcpu_init(struct hvt *hvt, hvt_gpa_t gpa_ep,
         hvt_gpa_t gpa_kend, char **cmdline)
 {
     struct hvt_b *hvb = hvt->b;
-    uint64_t phys_space_sz;
 
     /*
      * Setup aarch64 phys to virt mapping. Currently we only map 4GB for
      * RAM space and 1GB for MMIO space. Although the guest can use up
      * to 1TB address space which we configured in TCR_EL1.
      */
-    phys_space_sz = AARCH64_MMIO_BASE + AARCH64_MMIO_SZ;
-    aarch64_setup_memory_mapping(hvt->mem, hvt->mem_size, phys_space_sz);
+    aarch64_setup_memory_mapping(hvt->mem, hvt->mem_size);
 
     /* Select preferred target for guest */
     aarch64_setup_preferred_target(hvb->vmfd, hvb->vcpufd);

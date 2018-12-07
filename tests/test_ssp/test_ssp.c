@@ -28,46 +28,15 @@ static void puts(const char *s)
 
 int solo5_app_main(const struct solo5_start_info *si __attribute__((unused)))
 {
-    puts("\n**** Solo5 standalone test_fpu ****\n\n");
+    puts("\n**** Solo5 standalone test_ssp ****\n\n");
 
-    float a, b, c[4];
+    /*
+     * Now overwrite this functions canary, this will cause
+     * an ABORT via __stack_chk_fail().
+     */
+    char buffer[16];
+    strcpy (buffer, "1234567890123456789012345678901234567890\n");
+    puts(buffer);
 
-    c[0] = 2.0;
-    c[1] = 5.0;
-    c[2] = 3.0;
-    c[3] = 8.0;
-
-#if defined(__x86_64__)
-     __asm__ (
-         "movups %0,%%xmm1;"
-         "mulps %%xmm1, %%xmm1;"
-         "movups %%xmm1, %0"
-         : "=m" (c)
-         : "m" (c)
-         : "xmm1"
-    );
-#elif defined(__aarch64__)
-    __asm__(
-        "ldr q0, %0\n"
-        "ldr q1, %0\n"
-        "fmul v0.4s, v1.4s, v0.4s\n"
-        "str q0, %0\n"
-        : "=m" (c)
-        : "m" (c)
-        : "q0", "q1", "v0"
-    );
-#else
-#error Unsupported architecture
-#endif
-
-    a = 1.5;
-    b = 5.0;
-    a *= b;
-
-    if (a == 7.5 && c[0] == 4.0 && c[1] == 25.0 && c[2] == 9.0 && c[3] == 64.0)
-        puts("SUCCESS\n");
-    else
-        return SOLO5_EXIT_FAILURE;
-
-    return SOLO5_EXIT_SUCCESS;
+    return SOLO5_EXIT_FAILURE;
 }

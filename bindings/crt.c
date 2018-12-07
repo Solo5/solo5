@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (c) 2015-2018 Contributors as noted in the AUTHORS file
  *
  * This file is part of Solo5, a sandboxed execution environment.
@@ -18,20 +18,26 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include "solo5.h"
-#include "../../bindings/lib.c"
+#include "bindings.h"
 
-static void puts(const char *s)
+/*
+ * The stack canary value will be initialised to a pseudo-random value by
+ * crt_init_early(), keep an easily recognisable "terminator" value here to
+ * flag if that did not happen as expected.
+ */
+uintptr_t __stack_chk_guard = 0x00deadbeef0d0a00;
+
+/*
+ * Called by compiler-generated code when corruption of the canary value is
+ * detected. There is very little we can do here safely, so just print a
+ * message and abort, taking care to make minimal use of the stack.
+ */
+static const char
+stack_chk_fail_message[] = "Solo5: ABORT: Stack corruption detected\n";
+
+__attribute__((noreturn))
+void __stack_chk_fail(void)
 {
-    solo5_console_write(s, strlen(s));
-}
-
-int solo5_app_main(const struct solo5_start_info *si __attribute__((unused)))
-{
-    puts("\n**** Solo5 standalone test_exception ****\n\n");
-
-    uint64_t *addr_invalid = (uint64_t *)(2ULL << 33);
-    *addr_invalid = 1;
-
-    return SOLO5_EXIT_FAILURE;
+    platform_puts(stack_chk_fail_message, sizeof stack_chk_fail_message);
+    platform_exit(SOLO5_EXIT_ABORT, NULL);
 }

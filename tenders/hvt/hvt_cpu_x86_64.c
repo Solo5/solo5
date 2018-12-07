@@ -35,10 +35,12 @@ void hvt_x86_mem_size(size_t *mem_size) {
     size_t mem;
     mem = (*mem_size / X86_GUEST_PAGE_SIZE) * X86_GUEST_PAGE_SIZE;
     assert (mem <= *mem_size);
-    if (mem < *mem_size)
+    if (mem == 0)
+        mem = X86_GUEST_PAGE_SIZE;
+    if (mem != *mem_size)
         warnx("adjusting memory to %zu bytes", mem);
     if (mem > X86_GUEST_PAGE_SIZE * 512)
-        err(1, "guest memory size %zu bytes exceeds the max size %u bytes",
+        errx(1, "guest memory size %zu bytes exceeds the max size %u bytes",
             mem, X86_GUEST_PAGE_SIZE * 512);
     *mem_size = mem;
 }
@@ -48,23 +50,54 @@ void hvt_x86_setup_pagetables(uint8_t *mem, size_t mem_size)
     uint64_t *pml4 = (uint64_t *)(mem + X86_PML4_BASE);
     uint64_t *pdpte = (uint64_t *)(mem + X86_PDPTE_BASE);
     uint64_t *pde = (uint64_t *)(mem + X86_PDE_BASE);
+    uint64_t *pt0e = (uint64_t *)(mem + X86_PT0E_BASE);
     uint64_t paddr;
 
     /*
      * For simplicity we currently use 2MB pages and only a single
      * PML4/PDPTE/PDE.  Sanity check that the guest size is a multiple of the
-     * page size and will fit in a single PDE (512 entries).
+     * page size and will fit in a single PDE (512 entries). Additionally,
+     * check that the guest size is at least 2MB.
      */
     assert((mem_size & (X86_GUEST_PAGE_SIZE - 1)) == 0);
     assert(mem_size <= (X86_GUEST_PAGE_SIZE * 512));
+    assert(mem_size >= X86_GUEST_PAGE_SIZE);
 
     memset(pml4, 0, X86_PML4_SIZE);
     memset(pdpte, 0, X86_PDPTE_SIZE);
     memset(pde, 0, X86_PDE_SIZE);
+    memset(pt0e, 0, X86_PTE_SIZE);
 
     *pml4 = X86_PDPTE_BASE | (X86_PDPT_P | X86_PDPT_RW);
     *pdpte = X86_PDE_BASE | (X86_PDPT_P | X86_PDPT_RW);
-    for (paddr = 0; paddr < mem_size; paddr += X86_GUEST_PAGE_SIZE, pde++)
+
+    /*
+     * PDE[0] is special: use 4kB pages and PT0 for the first 2MB of address
+     * space.
+     */
+    *pde = X86_PT0E_BASE | (X86_PDPT_P | X86_PDPT_RW);
+    pde++;
+    for (paddr = 0; paddr < X86_GUEST_PAGE_SIZE; paddr += 0x1000, pt0e++) {
+        /*
+         * Leave all pages below X86_PT0_MAP_START not-present in the guest.
+         *
+         * This includes the zero page, boot GDT and the guest's page tables
+         * themselves.
+         */
+        if (paddr < X86_PT0_MAP_START)
+            continue;
+	/*
+	 * Map the remainder of the pages below X86_GUEST_MIN_BASE as read-only;
+	 * these are used for input from hvt to the guest only, with the rest
+	 * reserved for future use.
+	 */
+        if (paddr < X86_GUEST_MIN_BASE)
+            *pt0e = paddr | X86_PDPT_P;
+	else
+            *pt0e = paddr | (X86_PDPT_P | X86_PDPT_RW);
+    }
+    assert(paddr == X86_GUEST_PAGE_SIZE);
+    for (; paddr < mem_size; paddr += X86_GUEST_PAGE_SIZE, pde++)
         *pde = paddr | (X86_PDPT_P | X86_PDPT_RW | X86_PDPT_PS);
 }
 
