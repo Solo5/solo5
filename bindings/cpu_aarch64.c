@@ -19,6 +19,7 @@
  */
 
 #include "hvt/bindings.h"
+#include "cpu_aarch64.h"
 
 extern void *cpu_exception_vectors;
 
@@ -65,8 +66,18 @@ static void dump_registers(struct regs *regs)
 
 void cpu_trap_handler(struct regs *regs, int el, int mode, int is_valid)
 {
+    const uint32_t exception_cls = ESR_EC(regs->esr_el1);
+
     log(INFO, "Solo5: Trap: EL%d %s%s caught\n",
         el, is_valid ? "" : "Invalid ", exception_modes[mode], el);
+
+    if (exception_cls == ESR_EC_DABT_LOW ||
+        exception_cls == ESR_EC_DABT_CUR) {
+            uint64_t addr;
+            __asm__ __volatile__("mrs %0, FAR_EL1"
+                                 :"=&r"(addr) ::);
+            log(INFO, "Data Abort Address: 0x%016lx\n", addr);
+    }
 
     dump_registers(regs);
 
