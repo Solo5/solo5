@@ -66,7 +66,7 @@ void aarch64_setup_memory_mapping(uint8_t *mem, uint64_t mem_size)
     memset(pmd, 0, AARCH64_PMD_PGT_SIZE);
     memset(pte, 0, AARCH64_PTE_PGT_SIZE);
 
-   /* Map first 2MB block in pte table */
+    /* Map first 2MB block in pte table */
     for (paddr = 0; paddr < AARCH64_GUEST_BLOCK_SIZE;
          paddr += PAGE_SIZE, pte++) {
         /*
@@ -95,11 +95,13 @@ void aarch64_setup_memory_mapping(uint8_t *mem, uint64_t mem_size)
     for (; paddr < mem_size; paddr += PMD_SIZE, pmd++)
         *pmd = paddr | PROT_SECT_NORMAL_EXEC;
 
-    /* Link pmd table to pud[0] */
-    *pud = AARCH64_PMD_PGT_BASE | PGT_DESC_TYPE_TABLE;
+    /* Link pmd tables to pud[0..3] */
+    *pud++ = AARCH64_PMD_PGT_BASE | PGT_DESC_TYPE_TABLE;
+    *pud++ = (AARCH64_PMD_PGT_BASE + 0x1000) | PGT_DESC_TYPE_TABLE;
+    *pud++ = (AARCH64_PMD_PGT_BASE + 0x2000) | PGT_DESC_TYPE_TABLE;
+    *pud++ = (AARCH64_PMD_PGT_BASE + 0x3000) | PGT_DESC_TYPE_TABLE;
 
     /* Mapping MMIO */
-    pud += (AARCH64_MMIO_BASE >> PUD_SHIFT);
     for (paddr = AARCH64_MMIO_BASE;
          paddr < AARCH64_MMIO_BASE + AARCH64_MMIO_SZ;
          paddr += PUD_SIZE, pud++)
