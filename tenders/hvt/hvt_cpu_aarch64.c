@@ -37,7 +37,7 @@
  */
 void aarch64_setup_memory_mapping(uint8_t *mem, uint64_t mem_size)
 {
-    uint64_t paddr;
+    uint64_t paddr, pmd_paddr;
     uint64_t *pgd = (uint64_t *)(mem + AARCH64_PGD_PGT_BASE);
     uint64_t *pud = (uint64_t *)(mem + AARCH64_PUD_PGT_BASE);
     uint64_t *pmd = (uint64_t *)(mem + AARCH64_PMD_PGT_BASE);
@@ -91,13 +91,17 @@ void aarch64_setup_memory_mapping(uint8_t *mem, uint64_t mem_size)
     for (; paddr < mem_size; paddr += PMD_SIZE, pmd++)
         *pmd = paddr | PROT_SECT_NORMAL_EXEC;
 
-    /* Link pmd tables to pud[0..3] */
-    *pud++ = AARCH64_PMD_PGT_BASE | PGT_DESC_TYPE_TABLE;
-    *pud++ = (AARCH64_PMD_PGT_BASE + 0x1000) | PGT_DESC_TYPE_TABLE;
-    *pud++ = (AARCH64_PMD_PGT_BASE + 0x2000) | PGT_DESC_TYPE_TABLE;
-    *pud++ = (AARCH64_PMD_PGT_BASE + 0x3000) | PGT_DESC_TYPE_TABLE;
+    /* Link pmd tables (PMD0, PMD1, PMD2, PMD3) to pud[0] ~ pud[3] */
+    pmd_paddr = AARCH64_PMD_PGT_BASE;
+    for (paddr = 0; paddr < mem_size;
+         paddr += PUD_SIZE, pud++, pmd_paddr += PAGE_SIZE)
+        *pud = pmd_paddr | PGT_DESC_TYPE_TABLE;
 
+    /* RAM address should not exceed MMIO_BASE */
+    assert(paddr <= AARCH64_MMIO_BASE);
+    
     /* Mapping MMIO */
+    pud += ((AARCH64_MMIO_BASE - paddr) >> PUD_SHIFT);
     for (paddr = AARCH64_MMIO_BASE;
          paddr < AARCH64_MMIO_BASE + AARCH64_MMIO_SZ;
          paddr += PUD_SIZE, pud++)
