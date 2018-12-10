@@ -117,7 +117,7 @@ void aarch64_mem_size(size_t *mem_size) {
     assert (mem <= *mem_size);
     if (mem == 0)
         mem = AARCH64_GUEST_BLOCK_SIZE;
-    if (mem < *mem_size)
+    if (mem != *mem_size)
         warnx("adjusting memory to %zu bytes", mem);
     if (mem > AARCH64_MMIO_BASE)
         errx(1, "guest memory size %zu bytes exceeds the max size %lu bytes",
