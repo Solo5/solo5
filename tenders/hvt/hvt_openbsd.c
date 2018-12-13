@@ -141,7 +141,7 @@ void hvt_drop_privileges()
     if (pw == NULL)
         err(1, "can't get _vmd user");
     uid_t uid = pw->pw_uid;
-    git_t gid = pw->pw_gid;
+    gid_t gid = pw->pw_gid;
 
     if (chroot(pw->pw_dir) == -1)
         err(1, "chroot(%s)", pw->pw_dir);
