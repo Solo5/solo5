@@ -69,7 +69,7 @@ void cpu_trap_handler(struct regs *regs, int el, int mode, int is_valid)
     const uint32_t exception_cls = ESR_EC(regs->esr_el1);
 
     log(INFO, "Solo5: Trap: EL%d %s%s caught\n",
-        el, is_valid ? "" : "Invalid ", exception_modes[mode], el);
+        el, is_valid ? "" : "Invalid ", exception_modes[mode]);
 
     if (exception_cls == ESR_EC_DABT_LOW ||
         exception_cls == ESR_EC_DABT_CUR) {
