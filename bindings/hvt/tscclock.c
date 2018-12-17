@@ -97,7 +97,7 @@ int tscclock_init(uint64_t tsc_freq)
             tsc_shift--;
     } while (tsc_shift > 0 && tsc_mult == 0L);
     assert(tsc_mult != 0L);
-    log(DEBUG, "Solo5: tscclock_init(): tsc_freq=%lu tsc_mult=%lu tsc_shift=%u\n",
+    log(DEBUG, "Solo5: tscclock_init(): tsc_freq=%lu tsc_mult=%u tsc_shift=%u\n",
         tsc_freq, tsc_mult, tsc_shift);
 
     /*
