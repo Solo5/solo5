@@ -66,7 +66,7 @@ void intr_irq_handler(uint64_t irq)
     }
 
     if (!handled)
-        log(ERROR, "Solo5: unhandled irq %d\n", irq);
+        log(ERROR, "Solo5: unhandled irq %lu\n", irq);
     else
         /* Only ACK the IRQ if handled; we only need to know about an unhandled
          * IRQ the first time round. */

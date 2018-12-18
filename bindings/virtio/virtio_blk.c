@@ -159,7 +159,7 @@ void virtio_config_block(struct pci_config_info *pci)
     outl(pci->base + VIRTIO_PCI_GUEST_FEATURES, guest_features);
 
     virtio_blk_sectors = inq(pci->base + VIRTIO_PCI_CONFIG_OFF);
-    log(INFO, "Solo5: PCI:%02x:%02x: configured, capacity=%d sectors, "
+    log(INFO, "Solo5: PCI:%02x:%02x: configured, capacity=%lu sectors, "
         "features=0x%x\n",
         pci->bus, pci->dev, virtio_blk_sectors, host_features);
 
