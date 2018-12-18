@@ -88,7 +88,7 @@ int tscclock_init(uint64_t freq __attribute__((unused)))
     min_delta = (tsc_freq + (NSEC_PER_SEC - 1)) / NSEC_PER_SEC;
     time_base = 0;
     log(INFO, "Solo5: Clock source: Muen PV clock, TSC frequency %lu Hz\n",
-        (unsigned long long)tsc_freq);
+        tsc_freq);
     return 0;
 }
 
