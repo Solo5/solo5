@@ -17,6 +17,7 @@
 # CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 HVT_TARGETS=test_fpu.hvt solo5-hvt
+SPT_TARGETS=test_fpu.spt
 VIRTIO_TARGETS=test_fpu.virtio
 MUEN_TARGETS=test_fpu.muen
 GENODE_TARGETS=test_fpu.genode

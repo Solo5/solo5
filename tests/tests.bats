@@ -58,6 +58,10 @@ setup() {
     [ "${BUILD_VIRTIO}" = "no" ] && skip "virtio not built"
     VIRTIO=../scripts/virtio-run/solo5-virtio-run.sh
     ;;
+  *spt)
+    [ "${BUILD_SPT}" = "no" ] && skip "spt not built"
+    SPT_TENDER=../tenders/spt/solo5-spt
+    ;;
   esac
 
   NET=tap100
@@ -80,6 +84,11 @@ teardown() {
   run ${TIMEOUT} --foreground 30s ${VIRTIO} -- test_hello/test_hello.virtio Hello_Solo5
   [ "$status" -eq 0 -o "$status" -eq 2 -o "$status" -eq 83 ]
   [[ "$output" == *"SUCCESS"* ]]
+}
+
+@test "hello spt" {
+  run ${TIMEOUT} --foreground 30s ${SPT_TENDER} test_hello/test_hello.spt Hello_Solo5
+  [ "$status" -eq 0 ]
 }
 
 @test "quiet hvt" {
@@ -114,6 +123,13 @@ teardown() {
   esac
 }
 
+@test "quiet spt" {
+  run ${TIMEOUT} --foreground 30s ${SPT_TENDER} test_quiet/test_quiet.spt --solo5:quiet
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"SUCCESS"* ]]
+  [[ "$output" != *"Solo5:"* ]]
+}
+
 @test "globals hvt" {
   run ${TIMEOUT} --foreground 30s test_globals/solo5-hvt test_globals/test_globals.hvt
   [ "$status" -eq 0 ]
@@ -123,6 +139,11 @@ teardown() {
   run ${TIMEOUT} --foreground 30s ${VIRTIO} -- test_globals/test_globals.virtio
   [ "$status" -eq 0 -o "$status" -eq 2 -o "$status" -eq 83 ]
   [[ "$output" == *"SUCCESS"* ]]
+}
+
+@test "globals spt" {
+  run ${TIMEOUT} --foreground 30s ${SPT_TENDER} test_globals/test_globals.spt
+  [ "$status" -eq 0 ]
 }
 
 @test "exception hvt" {
@@ -137,6 +158,11 @@ teardown() {
   [[ "$output" == *"ABORT"* ]]
 }
 
+@test "exception spt" {
+  run ${TIMEOUT} --foreground 30s ${SPT_TENDER} test_exception/test_exception.spt
+  [ "$status" -eq 139 ] # SIGSEGV
+}
+
 @test "zeropage hvt" {
   run ${TIMEOUT} --foreground 30s test_zeropage/solo5-hvt test_zeropage/test_zeropage.hvt
   [ "$status" -eq 255 ]
@@ -147,6 +173,11 @@ teardown() {
   run ${TIMEOUT} --foreground 30s ${VIRTIO} -- test_zeropage/test_zeropage.virtio
   [ "$status" -eq 0 -o "$status" -eq 2 -o "$status" -eq 83 ]
   [[ "$output" == *"ABORT"* ]]
+}
+
+@test "zeropage spt" {
+  run ${TIMEOUT} --foreground 30s ${SPT_TENDER} test_zeropage/test_zeropage.spt
+  [ "$status" -eq 139 ] # SIGSEGV
 }
 
 @test "notls hvt" {
@@ -161,6 +192,12 @@ teardown() {
   [[ "$output" == *"ABORT"* ]]
 }
 
+@test "notls spt" {
+  skip "not supported on spt yet"
+  run ${TIMEOUT} --foreground 30s ${SPT_TENDER} test_notls/test_notls.spt
+  [ "$status" -eq 139 ]
+}
+
 @test "ssp hvt" {
   run ${TIMEOUT} --foreground 30s test_ssp/solo5-hvt test_ssp/test_ssp.hvt
   [ "$status" -eq 255 ]
@@ -170,6 +207,12 @@ teardown() {
 @test "ssp virtio" {
   run ${TIMEOUT} --foreground 30s ${VIRTIO} -- test_ssp/test_ssp.virtio
   [ "$status" -eq 0 -o "$status" -eq 2 -o "$status" -eq 83 ]
+  [[ "$output" == *"ABORT"* ]]
+}
+
+@test "ssp spt" {
+  run ${TIMEOUT} --foreground 30s ${SPT_TENDER} test_ssp/test_ssp.spt
+  [ "$status" -eq 255 ]
   [[ "$output" == *"ABORT"* ]]
 }
 
@@ -184,6 +227,11 @@ teardown() {
   [[ "$output" == *"SUCCESS"* ]]
 }
 
+@test "fpu spt" {
+  run ${TIMEOUT} --foreground 30s ${SPT_TENDER} test_fpu/test_fpu.spt
+  [ "$status" -eq 0 ]
+}
+
 @test "time hvt" {
   run ${TIMEOUT} --foreground 30s test_time/solo5-hvt test_time/test_time.hvt
   [ "$status" -eq 0 ]
@@ -195,6 +243,16 @@ teardown() {
   [[ "$output" == *"SUCCESS"* ]]
 }
 
+@test "time spt" {
+  run ${TIMEOUT} --foreground 30s ${SPT_TENDER} test_time/test_time.spt
+  [ "$status" -eq 0 ]
+}
+
+@test "seccomp spt" {
+  run ${TIMEOUT} --foreground 30s ${SPT_TENDER} test_seccomp/test_seccomp.spt
+  [ "$status" -eq 159 ] # SIGSYS
+}
+
 @test "blk hvt" {
   run ${TIMEOUT} --foreground 30s test_blk/solo5-hvt --disk=${DISK} test_blk/test_blk.hvt
   [ "$status" -eq 0 ]
@@ -204,6 +262,11 @@ teardown() {
   run ${TIMEOUT} --foreground 30s ${VIRTIO} -d ${DISK} -- test_blk/test_blk.virtio
   [ "$status" -eq 0 -o "$status" -eq 2 -o "$status" -eq 83 ]
   [[ "$output" == *"SUCCESS"* ]]
+}
+
+@test "blk spt" {
+  run ${TIMEOUT} --foreground 30s ${SPT_TENDER} --disk=${DISK} test_blk/test_blk.spt
+  [ "$status" -eq 0 ]
 }
 
 @test "ping-serve hvt" {
@@ -234,6 +297,20 @@ teardown() {
   run ${TIMEOUT} --foreground 30s ${VIRTIO} -n ${NET} -- $UNIKERNEL limit
   [ "$status" -eq 0 -o "$status" -eq 2 -o "$status" -eq 83 ]
   [[ "$output" == *"SUCCESS"* ]]
+}
+
+@test "ping-serve spt" {
+  UNIKERNEL=test_ping_serve/test_ping_serve.spt
+
+  [ $(id -u) -ne 0 ] && skip "Need root to run this test, for ping -f"
+
+  (
+    sleep 1
+    ${TIMEOUT} 30s ping -fq -c 100000 ${NET_IP} 
+  ) &
+
+  run ${TIMEOUT} --foreground 30s ${SPT_TENDER} --net=${NET} -- ${UNIKERNEL} limit
+  [ "$status" -eq 0 ]
 }
 
 @test "abort hvt" {

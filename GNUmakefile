@@ -22,7 +22,7 @@ $(TOP)/Makeconf:
 include Makefile.common
 
 .PHONY: all
-all: hvt virtio muen genode
+all: hvt spt virtio muen genode
 .DEFAULT_GOAL := all
 .NOTPARALLEL: hvt virtio muen genode
 
@@ -39,6 +39,14 @@ ifeq ($(BUILD_HVT), yes)
 	$(MAKE) -C bindings hvt
 	$(MAKE) -C tenders/hvt
 	$(MAKE) -C tests hvt
+endif
+
+.PHONY: spt
+spt:
+ifeq ($(BUILD_SPT), yes)
+	$(MAKE) -C bindings spt
+	$(MAKE) -C tenders/spt
+	$(MAKE) -C tests spt
 endif
 
 .PHONY: muen
@@ -60,6 +68,9 @@ clean:
 	$(MAKE) -C bindings clean
 ifeq ($(BUILD_HVT), yes)
 	$(MAKE) -C tenders/hvt clean
+endif
+ifeq ($(BUILD_SPT), yes)
+	$(MAKE) -C tenders/spt clean
 endif
 	$(MAKE) -C tests clean
 	$(RM) solo5-bindings-virtio.pc

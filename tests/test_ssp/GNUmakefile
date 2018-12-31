@@ -17,6 +17,7 @@
 # CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 HVT_TARGETS=test_ssp.hvt solo5-hvt
+SPT_TARGETS=test_ssp.spt
 VIRTIO_TARGETS=test_ssp.virtio
 MUEN_TARGETS=test_ssp.muen
 GENODE_TARGETS=test_ssp.genode
