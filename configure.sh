@@ -115,6 +115,15 @@ case $(uname -s) in
             HOST_CFLAGS="${HOST_CFLAGS} -mstack-protector-guard=global"
         fi
 
+        # If the host toolchain is NOT configured to build PIE exectuables by
+        # default, assume it has no support for that and apply a workaround by
+        # locating the spt tender starting at a virtual address of 1 GB.
+        if ! cc_has_pie; then
+            warn "Host toolchain does not build PIE executables, spt guest size will be limited to 1GB"
+            warn "Consider upgrading to a Linux distribution with PIE support"
+            SPT_EXTRA_LDFLAGS="-Wl,-Ttext-segment=0x40000000"
+        fi
+
         BUILD_HVT="yes"
         BUILD_SPT="yes"
         if [ "${TARGET_ARCH}" = "x86_64" ]; then
@@ -221,4 +230,5 @@ TEST_TARGET=${TARGET}
 TARGET_ARCH=${TARGET_ARCH}
 CC=${CC}
 LD=${LD}
+SPT_EXTRA_LDFLAGS=${SPT_EXTRA_LDFLAGS}
 EOM

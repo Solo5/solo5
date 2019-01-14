@@ -56,12 +56,52 @@ struct spt_module *spt_core_modules[] = {
  * TODO: Split up the functions in this module better, and introduce something
  * similar to hvt_gpa_t for clarity.
  */
+
+/*
+ * Defined by standard GNU ld linker scripts to the lowest address of the text
+ * segment.
+ */
+extern long __executable_start;
+
 struct spt *spt_init(size_t mem_size)
 {
     struct spt *spt = malloc(sizeof (struct spt));
     if (spt == NULL)
         err(1, "malloc");
     memset(spt, 0, sizeof (struct spt));
+
+#if defined(__PIE__)
+    /*
+     * On systems where we are built as a PIE executable:
+     *
+     * The kernel will apply ASLR and map the tender at a high virtual address
+     * (see ELF_ET_DYN_BASE in the kernel source for the arch-specific value,
+     * as we only support 64-bit architectures for now where this should always
+     * be >= 4 GB).
+     *
+     * Therefore, rather than mislead the user with an incorrect error message,
+     * assert that a) the tender has been loaded with a base address of at
+     * least 4GB and b) tender address space does not overlap with guest
+     * address space. We can re-visit this if it turns out that users run on
+     * systems where this does not hold (e.g. kernel ASLR is disabled).
+     */
+    assert((uint64_t)&__executable_start >= (1ULL << 32));
+    assert((uint64_t)(mem_size - 1) < (uint64_t)&__executable_start);
+#else
+    /*
+     * On systems where we are NOT built as a PIE executable, first assert that
+     * -Ttext-segment has been correctly passed at the link step (see
+     * configure.sh), and then check that guest memory size is within limits.
+     */
+    assert((uint64_t)&__executable_start >= (1ULL << 30));
+    if ((uint64_t)(mem_size - 1) >= (uint64_t)&__executable_start) {
+        uint64_t max_mem_size_mb = (uint64_t)&__executable_start >> 20;
+        warnx("Maximum guest memory size (%lu MB) exceeded.",
+                max_mem_size_mb);
+        errx(1, "Either decrease --mem-size, or recompile solo5-spt"
+                " as a PIE executable.");
+    }
+#endif
 
     /*
      * spt->mem is addressed starting at 0, however we cannot actually map it

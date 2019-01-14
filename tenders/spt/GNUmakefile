@@ -16,19 +16,23 @@
 # NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
 # CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-# XXX We can't use TARGET_ARCH here without re-defining implicit rules as
-# GNU make stupidly refers to it.
-ARCH=$(shell uname -m)
+TOP?=../..
+include $(TOP)/Makeconf
 
 .PHONY: all clean
 all: solo5-spt
 
-CC=cc
 CFLAGS=-Wall -Werror -std=c99 -O2 -g -I../../include/solo5
-LDFLAGS=
+LDFLAGS=$(SPT_EXTRA_LDFLAGS)
 LDLIBS=-lseccomp
 
-OBJS=spt_main.o spt_core.o spt_elf.o spt_launch_$(ARCH).o spt_module_net.o spt_module_block.o
+OBJS=spt_main.o spt_core.o spt_elf.o spt_launch_$(TARGET_ARCH).o \
+     spt_module_net.o spt_module_block.o
+
+# This needs to be re-defined manually, as GNU Make has the undocumented
+# "feature" of using $(TARGET_ARCH) in the default implicit rule for %.c.
+%.o: %.c
+	$(CC) -c $(CFLAGS) -o $@ $<
 
 solo5-spt: $(OBJS)
 	$(CC) $(LDFLAGS) -o $@ $(OBJS) $(LDLIBS)
