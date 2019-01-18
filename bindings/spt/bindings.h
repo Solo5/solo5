@@ -33,12 +33,12 @@
 
 #define SYS_STDOUT 1
 
-int sys_read(int fd, char *buf, size_t size);
-int sys_write(int fd, const char *buf, size_t size);
-int sys_pread64(int fd, char *buf, size_t size, long long pos);
-int sys_pwrite64(int fd, const char *buf, size_t size, long long pos);
+long sys_read(long fd, void *buf, long size);
+long sys_write(long fd, const void *buf, long size);
+long sys_pread64(long fd, void *buf, long size, long pos);
+long sys_pwrite64(long fd, const void *buf, long size, long pos);
 
-void sys_exit_group(int status) __attribute__((noreturn));
+void sys_exit_group(long status) __attribute__((noreturn));
 
 struct sys_timespec {
     uint64_t tv_sec;
@@ -48,7 +48,7 @@ struct sys_timespec {
 #define SYS_CLOCK_REALTIME 0
 #define SYS_CLOCK_MONOTONIC 1
 
-int sys_clock_gettime(const int which, struct sys_timespec *ts);
+long sys_clock_gettime(const long which, void *ts);
 
 struct sys_pollfd {
     int fd;
@@ -60,8 +60,7 @@ struct sys_pollfd {
 #define SYS_EINTR -4
 #define SYS_EAGAIN -11
 
-int sys_ppoll(struct sys_pollfd *fds, unsigned int nfds,
-        struct sys_timespec *ts);
+long sys_ppoll(void *fds, long nfds, void *ts);
 
 void block_init(struct spt_boot_info *arg);
 void net_init(struct spt_boot_info *arg);

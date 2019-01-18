@@ -21,8 +21,13 @@
 #include "bindings.h"
 
 /*
- * TODO: Argument types need a re-check against the kernel types.
- * We are most certainly missing clobbers in the syscall functions.
+ * The sys_ functions in this file are intentionally weakly typed as they only
+ * pass through values to/from the system call without interpretation. All
+ * integer values are passed as (long) and all pointer values are passed as
+ * (void *).
+ *
+ * TODO: This will need to be re-considered for 32-bit archs, and we should
+ * also consider explicitly inlining these functions.
  */
 
 #define SYS_read          63
@@ -33,12 +38,12 @@
 #define SYS_exit_group    94
 #define SYS_ppoll         73
 
-int sys_read(int fd, char *buf, size_t size)
+long sys_read(long fd, void *buf, long size)
 {
     register long x8 __asm__("x8") = SYS_read;
     register long x0 __asm__("x0") = fd;
     register long x1 __asm__("x1") = (long)buf;
-    register long x2 __asm__("x2") = (long)size;
+    register long x2 __asm__("x2") = size;
 
     __asm__ __volatile__ (
             "svc 0"
@@ -47,15 +52,15 @@ int sys_read(int fd, char *buf, size_t size)
             : "memory", "cc"
     );
 
-    return (int)x0;
+    return x0;
 }
 
-int sys_write(int fd, const char *buf, size_t size)
+long sys_write(long fd, const void *buf, long size)
 {
     register long x8 __asm__("x8") = SYS_write;
     register long x0 __asm__("x0") = fd;
     register long x1 __asm__("x1") = (long)buf;
-    register long x2 __asm__("x2") = (long)size;
+    register long x2 __asm__("x2") = size;
 
     __asm__ __volatile__ (
             "svc 0"
@@ -64,16 +69,16 @@ int sys_write(int fd, const char *buf, size_t size)
             : "memory", "cc"
     );
 
-    return (int)x0;
+    return x0;
 }
 
-int sys_pread64(int fd, char *buf, size_t size, long long pos)
+long sys_pread64(long fd, void *buf, long size, long pos)
 {
     register long x8 __asm__("x8") = SYS_pread64;
     register long x0 __asm__("x0") = fd;
     register long x1 __asm__("x1") = (long)buf;
-    register long x2 __asm__("x2") = (long)size;
-    register long x3 __asm__("x3") = (long)pos;
+    register long x2 __asm__("x2") = size;
+    register long x3 __asm__("x3") = pos;
 
     __asm__ __volatile__ (
             "svc 0"
@@ -82,16 +87,16 @@ int sys_pread64(int fd, char *buf, size_t size, long long pos)
             : "memory", "cc"
     );
 
-    return (int)x0;
+    return x0;
 }
 
-int sys_pwrite64(int fd, const char *buf, size_t size, long long pos)
+long sys_pwrite64(long fd, const void *buf, long size, long pos)
 {
     register long x8 __asm__("x8") = SYS_pwrite64;
     register long x0 __asm__("x0") = fd;
     register long x1 __asm__("x1") = (long)buf;
-    register long x2 __asm__("x2") = (long)size;
-    register long x3 __asm__("x3") = (long)pos;
+    register long x2 __asm__("x2") = size;
+    register long x3 __asm__("x3") = pos;
 
     __asm__ __volatile__ (
             "svc 0"
@@ -100,10 +105,10 @@ int sys_pwrite64(int fd, const char *buf, size_t size, long long pos)
             : "memory", "cc"
     );
 
-    return (int)x0;
+    return x0;
 }
 
-void sys_exit_group(int status)
+void sys_exit_group(long status)
 {
     register long x8 __asm__("x8") = SYS_exit_group;
     register long x0 __asm__("x0") = status;
@@ -118,7 +123,7 @@ void sys_exit_group(int status)
     for(;;);
 }
 
-int sys_clock_gettime(const int which, struct sys_timespec *ts)
+long sys_clock_gettime(const long which, void *ts)
 {
     register long x8 __asm__("x8") = SYS_clock_gettime;
     register long x0 __asm__("x0") = which;
@@ -131,15 +136,14 @@ int sys_clock_gettime(const int which, struct sys_timespec *ts)
             : "memory", "cc"
     );
 
-    return (int)x0;
+    return x0;
 }
 
-int sys_ppoll(struct sys_pollfd *fds, unsigned int nfds,
-        struct sys_timespec *ts)
+long sys_ppoll(void *fds, long nfds, void *ts)
 {
     register long x8 __asm__("x8") = SYS_ppoll;
     register long x0 __asm__("x0") = (long)fds;
-    register long x1 __asm__("x1") = (long)nfds;
+    register long x1 __asm__("x1") = nfds;
     register long x2 __asm__("x2") = (long)ts;
     register long x3 __asm__("x3") = 0; /* sigmask */
     register long x4 __asm__("x4") = 0; /* sigsetsize */
@@ -151,5 +155,5 @@ int sys_ppoll(struct sys_pollfd *fds, unsigned int nfds,
             : "memory", "cc"
     );
 
-    return (int)x0;
+    return x0;
 }

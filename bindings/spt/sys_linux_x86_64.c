@@ -21,8 +21,13 @@
 #include "bindings.h"
 
 /*
- * TODO: Argument types need a re-check against the kernel types.
- * We are most certainly missing clobbers in the syscall functions.
+ * The sys_ functions in this file are intentionally weakly typed as they only
+ * pass through values to/from the system call without interpretation. All
+ * integer values are passed as (long) and all pointer values are passed as
+ * (void *).
+ *
+ * TODO: This will need to be re-considered for 32-bit archs, and we should
+ * also consider explicitly inlining these functions.
  */
 
 #define SYS_read          0
@@ -33,9 +38,9 @@
 #define SYS_exit_group    231
 #define SYS_ppoll         271
 
-int sys_read(int fd, char *buf, size_t size)
+long sys_read(long fd, void *buf, long size)
 {
-    int ret;
+    long ret;
 
     __asm__ __volatile__ (
             "syscall"
@@ -47,9 +52,9 @@ int sys_read(int fd, char *buf, size_t size)
     return ret;
 }
 
-int sys_write(int fd, const char *buf, size_t size)
+long sys_write(long fd, const void *buf, long size)
 {
-    int ret;
+    long ret;
 
     __asm__ __volatile__ (
             "syscall"
@@ -61,10 +66,10 @@ int sys_write(int fd, const char *buf, size_t size)
     return ret;
 }
 
-int sys_pread64(int fd, char *buf, size_t size, long long pos)
+long sys_pread64(long fd, void *buf, long size, long pos)
 {
-    int ret;
-    register int64_t r10 asm("r10") = pos;
+    long ret;
+    register long r10 asm("r10") = pos;
 
     __asm__ __volatile__ (
             "syscall"
@@ -76,10 +81,10 @@ int sys_pread64(int fd, char *buf, size_t size, long long pos)
     return ret;
 }
 
-int sys_pwrite64(int fd, const char *buf, size_t size, long long pos)
+long sys_pwrite64(long fd, const void *buf, long size, long pos)
 {
-    int ret;
-    register int64_t r10 asm("r10") = pos;
+    long ret;
+    register long r10 asm("r10") = pos;
 
     __asm__ __volatile__ (
             "syscall"
@@ -91,7 +96,7 @@ int sys_pwrite64(int fd, const char *buf, size_t size, long long pos)
     return ret;
 }
 
-void sys_exit_group(int status)
+void sys_exit_group(long status)
 {
     __asm__ __volatile__ (
             "syscall"
@@ -103,7 +108,7 @@ void sys_exit_group(int status)
     for(;;);
 }
 
-int sys_clock_gettime(const int which, struct sys_timespec *ts)
+long sys_clock_gettime(const long which, void *ts)
 {
     int ret;
 
@@ -117,8 +122,7 @@ int sys_clock_gettime(const int which, struct sys_timespec *ts)
     return ret;
 }
 
-int sys_ppoll(struct sys_pollfd *fds, unsigned int nfds,
-        struct sys_timespec *ts)
+long sys_ppoll(void *fds, long nfds, void *ts)
 {
     int ret;
     register int64_t r10 asm("r10") = 0;
