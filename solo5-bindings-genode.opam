@@ -14,6 +14,7 @@ depends: "conf-pkg-config"
 conflicts: [
   "solo5-bindings-hvt"
   "solo5-bindings-muen"
+  "solo5-bindings-spt"
   "solo5-bindings-virtio"
 ]
 available: [
