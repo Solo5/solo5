@@ -43,7 +43,7 @@ solo5_result_t solo5_net_read(uint8_t *buf, size_t size, size_t *read_size)
 {
     assert(netfd >= 0);
     
-    int nbytes = sys_read(netfd, (char *)buf, size);
+    long nbytes = sys_read(netfd, (char *)buf, size);
     if (nbytes < 0) {
         if (nbytes == SYS_EAGAIN)
             return SOLO5_R_AGAIN;
@@ -59,7 +59,7 @@ solo5_result_t solo5_net_write(const uint8_t *buf, size_t size)
 {
     assert(netfd >= 0);
 
-    int nbytes = sys_write(netfd, (const char *)buf, size);
+    long nbytes = sys_write(netfd, (const char *)buf, size);
 
     return (nbytes == (int)size) ? SOLO5_R_OK : SOLO5_R_EUNSPEC;
 }
