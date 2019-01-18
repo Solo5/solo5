@@ -97,8 +97,8 @@ int tscclock_init(uint64_t tsc_freq)
             tsc_shift--;
     } while (tsc_shift > 0 && tsc_mult == 0L);
     assert(tsc_mult != 0L);
-    log(DEBUG, "Solo5: tscclock_init(): tsc_freq=%lu tsc_mult=%u tsc_shift=%u\n",
-        tsc_freq, tsc_mult, tsc_shift);
+    log(DEBUG, "Solo5: tscclock_init(): tsc_freq=%llu tsc_mult=%u tsc_shift=%u\n",
+        (unsigned long long)tsc_freq, tsc_mult, tsc_shift);
 
     /*
      * Monotonic time begins at tsc_base (first read of TSC before

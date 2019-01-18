@@ -84,6 +84,7 @@ void console_init(void)
     channel_out  = (struct muchannel *)(channel->data.mem.address);
     muen_channel_init_writer(channel_out, DEBUGLOG_PROTO, sizeof(struct log_msg),
                              channel->data.mem.size, epoch);
-    log(INFO, "Solo5: Console: Muen Channel @ 0x%lx, size 0x%lx, epoch 0x%lx\n",
-        channel->data.mem.address, channel->data.mem.size, epoch);
+    log(INFO, "Solo5: Console: Muen Channel @ 0x%llx, size 0x%llx, epoch 0x%llx\n",
+        (unsigned long long)channel->data.mem.address,
+        (unsigned long long)channel->data.mem.size, (unsigned long long)epoch);
 }
