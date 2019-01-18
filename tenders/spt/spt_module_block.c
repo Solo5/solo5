@@ -63,13 +63,29 @@ static int setup(struct spt *spt)
 
     int rc = -1;
 
-    rc = seccomp_rule_add(spt->sc_ctx, SCMP_ACT_ALLOW, SCMP_SYS(pread64), 1,
-            SCMP_A0(SCMP_CMP_EQ, diskfd));
+    /*
+     * When reading or writing to the file descriptor, enforce that the
+     * operation cannot be performed beyond the (detected) capacity, otherwise,
+     * when backed by a regular file, the guest could grow the file size
+     * arbitrarily.
+     *
+     * The Solo5 API mandates that reads/writes must be equal to block_size, so
+     * we implement the above by ensuring that (A2 == block_size) && (A3 <=
+     * (capacity - block_size) holds.
+     */
+    rc = seccomp_rule_add(spt->sc_ctx, SCMP_ACT_ALLOW, SCMP_SYS(pread64), 3,
+            SCMP_A0(SCMP_CMP_EQ, diskfd),
+            SCMP_A2(SCMP_CMP_EQ, spt->bi->blocki.block_size),
+            SCMP_A3(SCMP_CMP_LE,
+                (spt->bi->blocki.capacity - spt->bi->blocki.block_size)));
     if (rc != 0)
         errx(1, "seccomp_rule_add(pread64, fd=%d) failed: %s", diskfd,
                 strerror(-rc));
-    rc = seccomp_rule_add(spt->sc_ctx, SCMP_ACT_ALLOW, SCMP_SYS(pwrite64), 1,
-            SCMP_A0(SCMP_CMP_EQ, diskfd));
+    rc = seccomp_rule_add(spt->sc_ctx, SCMP_ACT_ALLOW, SCMP_SYS(pwrite64), 3,
+            SCMP_A0(SCMP_CMP_EQ, diskfd),
+            SCMP_A2(SCMP_CMP_EQ, spt->bi->blocki.block_size),
+            SCMP_A3(SCMP_CMP_LE,
+                (spt->bi->blocki.capacity - spt->bi->blocki.block_size)));
     if (rc != 0)
         errx(1, "seccomp_rule_add(pwrite64, fd=%d) failed: %s", diskfd,
                 strerror(-rc));

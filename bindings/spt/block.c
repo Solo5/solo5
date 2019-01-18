@@ -47,7 +47,10 @@ solo5_result_t solo5_block_read(solo5_off_t offset, uint8_t *buf, size_t size)
 {
     assert(block_fd >= 0);
 
-    /* XXX: These need hard checks on the tender/seccomp side? */
+    /*
+     * Note that writes beyond capacity are additionally enforced by the
+     * tender's seccomp policy.
+     */
     if(size != block_size)
         return SOLO5_R_EINVAL;
     if(offset & (block_size - 1))
@@ -65,7 +68,10 @@ solo5_result_t solo5_block_write(solo5_off_t offset, const uint8_t *buf,
 {
     assert(block_fd >= 0);
     
-    /* XXX: These need hard checks on the tender/seccomp side? */
+    /*
+     * Note that reads beyond capacity are additionally enforced by the
+     * tender's seccomp policy.
+     */
     if(size != block_size)
         return SOLO5_R_EINVAL;
     if(offset & (block_size - 1))

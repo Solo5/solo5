@@ -177,7 +177,8 @@ static int setup(struct spt *spt)
     rc = seccomp_rule_add(spt->sc_ctx, SCMP_ACT_ALLOW, SCMP_SYS(exit_group), 0);
     if (rc != 0)
         errx(1, "seccomp_rule_add(exit_group) failed: %s", strerror(-rc));
-    rc = seccomp_rule_add(spt->sc_ctx, SCMP_ACT_ALLOW, SCMP_SYS(ppoll), 0);
+    rc = seccomp_rule_add(spt->sc_ctx, SCMP_ACT_ALLOW, SCMP_SYS(ppoll), 1,
+            SCMP_A3(SCMP_CMP_EQ, 0));
     if (rc != 0)
         errx(1, "seccomp_rule_add(ppoll) failed: %s", strerror(-rc));
     rc = seccomp_rule_add(spt->sc_ctx, SCMP_ACT_ALLOW, SCMP_SYS(clock_gettime),
