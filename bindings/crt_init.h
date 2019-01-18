@@ -29,11 +29,17 @@ extern uintptr_t __stack_chk_guard;
 #endif
 
 /*
- * This function is responsible for performing early initialisation required by
- * the "C runtime". It must be inlined as early as possible once in C code,
- * before calling any other functions. The calling function must not return.
+ * These functions are responsible for performing early initialisation required
+ * by the "C runtime". They must be inlined as early as possible once in C
+ * code, before calling any other functions. The calling function must not
+ * return.
+ *
+ * As crt_init_tls() currently requires that the bindings are running in CPU
+ * Ring 0 or equivalent, this is split into a separate function so that
+ * bindings such as "spt" can omit the call.
  */
-__attribute__((always_inline)) static inline void crt_init_early(void)
+
+__attribute__((always_inline)) static inline void crt_init_tls(void)
 {
     /*
      * Explicitly disable any accidental use of TLS by zeroing the relevant
@@ -64,7 +70,10 @@ __attribute__((always_inline)) static inline void crt_init_early(void)
 #else
 #error Unsupported architecture
 #endif
+}
 
+__attribute__((always_inline)) static inline void crt_init_ssp(void)
+{
     /*
      * Initialise the stack canary value.
      */

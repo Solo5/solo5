@@ -19,15 +19,14 @@
  */
 
 #include "bindings.h"
+#include "../crt_init.h"
 
 void _start(void *arg)
 {
-    /* XXX TODO, needs TLS setup crt_init_early(); */
+    crt_init_ssp();
 
     static struct solo5_start_info si;
 
-    /* console_init(); */
-    /* cpu_init(); */
     platform_init(arg);
     si.cmdline = cmdline_parse(platform_cmdline());
 

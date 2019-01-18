@@ -23,7 +23,8 @@
 
 void _start(void *arg)
 {
-    crt_init_early();
+    crt_init_tls();
+    crt_init_ssp();
 
     static struct solo5_start_info si;
 
