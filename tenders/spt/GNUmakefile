@@ -23,7 +23,7 @@ include $(TOP)/Makeconf
 all: solo5-spt
 
 CFLAGS=-Wall -Werror -std=c99 -O2 -g -I../../include/solo5
-LDFLAGS=$(SPT_EXTRA_LDFLAGS)
+LDFLAGS=-Wl,-z -Wl,noexecstack $(SPT_EXTRA_LDFLAGS)
 LDLIBS=-lseccomp
 
 OBJS=spt_main.o spt_core.o spt_elf.o spt_launch_$(TARGET_ARCH).o \
