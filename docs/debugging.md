@@ -9,7 +9,7 @@ add the module to the `HVT_MODULES` variable. For other downstream build
 systems, consult the documentation of your unikernel project, and/or instruct
 your build system to add the module to the invocation of `solo5-hvt-configure`.
 
-## Live debugging
+## Live debugging of _hvt_ unikernels
 
 This feature is currently only supported on Linux/KVM on the x86\_64
 architecture. The `gdb` module must be included in your build of `solo5-hvt`.
@@ -49,7 +49,7 @@ Here is a typical gdb session:
     26	    solo5_console_write(s, strlen(s));
     (gdb)
 
-## Post-mortem debugging
+## Post-mortem debugging of _hvt_ unikernels
 
 This feature is currently only supported on Linux/KVM and FreeBSD vmm on the
 x86\_64 architecture. The `dumpcore` module must be included in your build of
@@ -83,6 +83,54 @@ You can then load the core file into GDB as follows (this example uses the
 Note that due to the generated core files being somewhat "unusual" from the
 point of view of the host system's toolchain, only recent (7.x or newer)
 versions of mainline GDB will load them correctly.
+
+## Live debugging of _spt_ unikernels
+
+Unikernels built for the _spt_ target can be debugged using a standard Linux
+GDB, keeping the following points in mind:
+
+1. You should launch GDB against the `solo5-spt` tender, not the unikernel binary.
+2. The guest unikernel will be loaded at `0x100000`. Use `add-symbol-file` to
+   instruct GDB to load symbols from the unikernel binary, with a load address
+   of `0x100000`.
+3. In order to set breakpoints in the guest unikernel, the binary must already
+   have been loaded into memory by the tender. The best way to accomplish this
+   is to first set a breakpoint on `spt_launch` in `solo5-spt`, continue
+   execution to it and only then set breakpoints in the unikernel.
+
+An example GDB session using this approach:
+
+    $ gdb -q --args tenders/spt/solo5-spt tests/test_hello/test_hello.spt
+    Reading symbols from tenders/spt/solo5-spt...done.
+    (gdb) b spt_launch
+    Breakpoint 1 at 0x20fa
+    (gdb) r
+    Starting program: /home/mato/projects/mirage-solo5/solo5/tenders/spt/solo5-spt tests/test_hello/test_hello.spt
+
+    Breakpoint 1, 0x00005555555560fa in spt_launch ()
+    (gdb) add-symbol-file tests/test_hello/test_hello.spt 0x100000
+    add symbol table from file "tests/test_hello/test_hello.spt" at
+            .text_addr = 0x100000
+    (y or n) y
+    Reading symbols from tests/test_hello/test_hello.spt...done.
+    (gdb) b solo5_app_main
+    Breakpoint 2 at 0x1022d0: file test_hello.c, line 30.
+    (gdb) c
+    Continuing.
+                |      ___|
+      __|  _ \  |  _ \ __ \
+    \__ \ (   | | (   |  ) |
+    ____/\___/ _|\___/____/
+    Solo5: Memory map: 512 MB addressable:
+    Solo5:   reserved @ (0x0 - 0xfffff)
+    Solo5:       text @ (0x100000 - 0x102fff)
+    Solo5:     rodata @ (0x103000 - 0x103fff)
+    Solo5:       data @ (0x104000 - 0x105fff)
+    Solo5:       heap >= 0x106000 < stack < 0x20000000
+
+    Breakpoint 2, solo5_app_main (si=si@entry=0x105040 <si>) at test_hello.c:30
+    30	{
+    (gdb)
 
 ----
 

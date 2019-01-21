@@ -14,14 +14,12 @@ hypervisors.
 
 Some of the unique features of Solo5:
 
-- a public [API](include/solo5/solo5.h) designed for ease of porting existing
-  and future unikernel-native applications,
-- a host to guest interface designed with isolation, a _minimal attack surface_
+- a public ("guest-facing") [API](include/solo5/solo5.h) designed for ease of
+  porting existing and future unikernel-native applications,
+- this aforementioned API facilitates the implementation of ("host-facing")
+  _bindings_ and _tenders_ designed with isolation, a _minimal attack surface_
   and ease of porting to different sandboxing technologies or
   [host systems](docs/building.md#supported-targets) in mind,
-- a minimal, modular _tender_ which [implements](tenders/hvt/) this interface
-  using hardware virtualization (several orders of magnitude smaller than
-  QEMU),
 - support for live and post-mortem [debugging](docs/debugging.md) of unikernels,
 - fast "boot" times (comparable to loading a standard user process), suitable
   for "function as a service" use-cases.
@@ -31,7 +29,8 @@ changed to better reflect the intended [architecture](docs/architecture.md) and
 long-term goals of the project.  What used to be referred to as a _monitor_ is
 now referred to as a _tender_. As part of this change, the _ukvm_ target and
 _monitor_ have been renamed to _hvt_ ("hardware virtualized _tender_") to
-reflect that they are no longer specific to the KVM hypervisor.
+reflect that they are no longer specific to the KVM hypervisor, and to allow
+for development of further _tenders_ such as _spt_.
 
 # Getting started
 
