@@ -32,18 +32,31 @@ properties:
 - ease of porting existing and future unikernels to run on top of the Solo5
   interface.
 
-Additionally, Solo5 introduces the concept of a _tender_, which is loosely the
-equivalent of QEMU in the standard KVM/QEMU setup. The [hvt](../tenders/hvt/)
-_tender_ is designed to be modular from the outset, and is several orders of
-magnitude smaller in code size than QEMU. (See the original ukvm
-[paper](https://www.usenix.org/system/files/conference/hotcloud16/hotcloud16_williams.pdf)
-from Hotcloud 2016 for a detailed comparison).
+Additionally, Solo5 introduces the concept of a _tender_, which, for _targets_
+that make use of one, is the component responsible for "tending to" the
+guest at load and/or run time:
 
-Note that both the hvt _tender_ and _target_ were formerly known as the "ukvm
+- In the case of _hvt_ ("hardware virtualized tender"): the _tender_ is loosely
+  equivalent to QEMU in a typical KVM/QEMU setup. The [solo5-hvt](../tenders/hvt/)
+  _tender_ is designed to be modular from the outset, and is several orders of
+  magnitude smaller in code size than QEMU. See the original ukvm
+  [paper](https://www.usenix.org/system/files/conference/hotcloud16/hotcloud16_williams.pdf)
+  from Hotcloud 2016 for a detailed comparison.
+
+- In the case of _spt_ ("sandboxed process tender"): the
+  [solo5-spt](../tenders/spt) _tender_ is responsible for loading the guest
+  into memory, installing a seccomp sandbox and passing control to the guest.
+  The seccomp filter installed by _spt_ is a _strict whitelist_ allowing access
+  to the minimal set of system calls required to run the guest (as of this
+  writing, 7 distinct system calls in total if all devices are configured). See
+  our SoCC'18 [paper](https://dl.acm.org/citation.cfm?id=3267845) for a
+  discussion of the security properties of the initial implementation of this
+  concept.
+
+_Note_: Both the hvt _tender_ and _target_ were formerly known as the "ukvm
 monitor", or just ukvm. As of the Solo5 0.4.0 release, these have been renamed
 to reflect that they are no longer specific to the Linux/KVM hypervisor, and to
-allow for development of further _tenders_ using different sandboxing
-technologies.
+allow for development of further _tenders_ such as _spt_.
 
 ## Goals
 
@@ -90,11 +103,14 @@ The main components of Solo5 are:
   [solo5.h](../include/solo5/solo5.h).
 - [tenders/hvt/](../tenders/hvt/): the tender implementation for the _hvt_
   target, with tender-internal interfaces defined in
-  [hvt.h](../tenders/hvt/hvt.h) and the internal isolation ("hypercall")
-  interface to Solo5 defined in [hvt\_abi.h](../include/solo5/hvt_abi.h). All
+  [hvt.h](../tenders/hvt/hvt.h) and the internal "hypercall" ABI
+  to Solo5 defined in [hvt\_abi.h](../include/solo5/hvt_abi.h). All
   non-core code is contained in optional modules, which are selected at
   unikernel build time by the
   [solo5-hvt-configure](../tenders/hvt/solo5-hvt-configure) script.
+- [tenders/spt](../tenders/spt/): the tender implementation for the _spt_
+  target. Tender-internal interfaces are defined in [spt.h](../tenders/spt/spt.h)
+  and internal Solo5-facing ABIs in [spt\_abi.h](../include/solo5/spt_abi.h).
 - [tests/](../tests/): self tests used as part of our CI system.
 - [scripts/](../scripts/): extra tooling and scripts (mainly to support the
   _virtio_ target).

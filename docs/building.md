@@ -55,6 +55,8 @@ Experimental:
   kernel and a 64-bit Linux distribution.
 * _hvt_: OpenBSD vmm, using `solo5-hvt` as a tender, on the x86\_64
   architecture.  OpenBSD 6.4 or later is required.
+* _spt_: Linux systems on the x86\_64 and aarch64 architectures, using
+  `solo5-spt` as a tender.
 * _muen_: The Muen Separation Kernel, on the x86\_64 architecture. Please see
   this [article](https://muen.sk/articles.html#mirageos-unikernels) for
   Muen-specific instructions.
@@ -120,10 +122,14 @@ To set up vmm and the `tap100` interface on OpenBSD, run (as root):
     ./MAKEDEV tap100
     ifconfig tap100 inet 10.0.0.1 netmask 255.255.255.0
 
-## _hvt_: Running on Linux, FreeBSD and OpenBSD
+## _hvt_: Running on Linux, FreeBSD and OpenBSD with hardware virtualization
+
+The _hvt_ ("hardware virtualized tender") target supports Linux, FreeBSD and
+OpenBSD systems and uses hardware virtualization to isolate the guest
+unikernel.
 
 A specialized _tender_ called `solo5-hvt` is generated as part of the
-build process, so the command line arguments may differ depending on
+unikernel's build process, so the command line arguments may differ depending on
 the needs of the unikernel.  To see the arguments, run `solo5-hvt` with
 no arguments or `--help`.
 
@@ -141,6 +147,19 @@ To launch the unikernel:
     ./solo5-hvt --net=tap100 -- test_ping_serve.hvt verbose
 
 Use `^C` to terminate the unikernel.
+
+## _spt_: Running on Linux with a strict seccomp sandbox
+
+The _spt_ ("sandboxed process tender") target currently supports Linux systems
+only, and uses a _strict_ (minimal whitelist) seccomp sandbox to isolate the
+guest unikernel, which runs as a user process on the host.
+
+The `solo5-spt` tender is built as part of Solo5, and does not require any
+special privileges to run.
+
+To launch the unikernel:
+
+    solo5-spt --net=tap100 -- test_ping_serve.spt verbose
 
 ## _virtio_: Running with KVM/QEMU on Linux, or bhyve on FreeBSD
 

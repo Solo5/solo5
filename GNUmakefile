@@ -22,7 +22,7 @@ $(TOP)/Makeconf:
 include Makefile.common
 
 .PHONY: all
-all: hvt virtio muen genode
+all: hvt spt virtio muen genode
 .DEFAULT_GOAL := all
 .NOTPARALLEL: hvt virtio muen genode
 
@@ -39,6 +39,14 @@ ifeq ($(BUILD_HVT), yes)
 	$(MAKE) -C bindings hvt
 	$(MAKE) -C tenders/hvt
 	$(MAKE) -C tests hvt
+endif
+
+.PHONY: spt
+spt:
+ifeq ($(BUILD_SPT), yes)
+	$(MAKE) -C bindings spt
+	$(MAKE) -C tenders/spt
+	$(MAKE) -C tests spt
 endif
 
 .PHONY: muen
@@ -61,6 +69,9 @@ clean:
 ifeq ($(BUILD_HVT), yes)
 	$(MAKE) -C tenders/hvt clean
 endif
+ifeq ($(BUILD_SPT), yes)
+	$(MAKE) -C tenders/spt clean
+endif
 	$(MAKE) -C tests clean
 	$(RM) solo5-bindings-virtio.pc
 	$(RM) solo5-bindings-hvt.pc
@@ -79,6 +90,8 @@ OPAM_MUEN_LIBDIR=$(PREFIX)/lib/solo5-bindings-muen
 OPAM_MUEN_INCDIR=$(PREFIX)/include/solo5-bindings-muen
 OPAM_GENODE_LIBDIR=$(PREFIX)/lib/solo5-bindings-genode
 OPAM_GENODE_INCDIR=$(PREFIX)/include/solo5-bindings-genode
+OPAM_SPT_LIBDIR=$(PREFIX)/lib/solo5-bindings-spt
+OPAM_SPT_INCDIR=$(PREFIX)/include/solo5-bindings-spt
 
 # We want the MD CFLAGS, LDFLAGS and LD in the .pc file, where they can be
 # picked up by the Mirage tool / other downstream consumers.
@@ -150,3 +163,19 @@ opam-genode-install: solo5-bindings-genode.pc genode
 opam-genode-uninstall:
 	$(RM) -r $(OPAM_GENODE_INCDIR) $(OPAM_GENODE_LIBDIR)
 	$(RM) $(PREFIX)/lib/pkgconfig/solo5-bindings-genode.pc
+
+.PHONY: opam-spt-install
+opam-spt-install: solo5-bindings-spt.pc spt
+	mkdir -p $(OPAM_SPT_INCDIR) $(OPAM_SPT_LIBDIR)
+	cp -R include/. $(OPAM_SPT_INCDIR)
+	cp bindings/spt/solo5_spt.o bindings/spt/solo5_spt.lds $(OPAM_SPT_LIBDIR)
+	mkdir -p $(PREFIX)/lib/pkgconfig
+	cp solo5-bindings-spt.pc $(PREFIX)/lib/pkgconfig
+	mkdir -p $(OPAM_BINDIR)
+	cp tenders/spt/solo5-spt ${OPAM_BINDIR}/solo5-spt
+
+.PHONY: opam-spt-uninstall
+opam-spt-uninstall:
+	$(RM) -r $(OPAM_SPT_INCDIR) $(OPAM_SPT_LIBDIR)
+	$(RM) $(PREFIX)/lib/pkgconfig/solo5-bindings-spt.pc
+	$(RM) ${OPAM_BINDIR}/solo5-spt

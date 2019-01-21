@@ -80,16 +80,33 @@ $(COMMON_COBJS)
 GENODE_COBJS=\
 genode/stubs.o
 
+SPT_COBJS=\
+abort.o \
+crt.o \
+ee_printf.o \
+lib.o \
+mem.o \
+exit.o \
+log.o \
+cmdline.o \
+spt/bindings.o \
+spt/block.o \
+spt/net.o \
+spt/platform.o \
+spt/start.o \
+spt/sys_linux_${TARGET_ARCH}.o
+
 HEADERS=\
 bindings.h
 
 all: virtio hvt
 
-.PHONY: virtio hvt muen genode
+.PHONY: virtio hvt muen genode spt
 virtio: virtio/solo5_virtio.o
 hvt: hvt/solo5_hvt.o
 muen: muen/solo5_muen.o
 genode: genode/solo5.lib.so
+spt: spt/solo5_spt.o
 
 CFLAGS+=-D__SOLO5_BINDINGS__
 
@@ -123,6 +140,10 @@ muen/solo5_muen.o: $(MUEN_COBJS) muen/solo5_muen.lds
 genode/solo5.lib.so: $(GENODE_COBJS)
 	$(LD) $(GENODE_LIB_LDFLAGS) -o $@ $^
 
+spt/solo5_spt.o: $(SPT_COBJS) spt/solo5_spt.lds
+	$(LD) -r $(LDFLAGS) -o $@ $(SPT_COBJS)
+	$(OBJCOPY) -w -G solo5_\* -G _start\* -G __stack_chk_\* $@ $@
+
 .PHONY: clean
 clean:
-	$(RM) *.o virtio/*.o hvt/*.o muen/*.o genode/*.o genode/*.lib.so
+	$(RM) *.o virtio/*.o hvt/*.o muen/*.o genode/*.o genode/*.lib.so spt/*.o

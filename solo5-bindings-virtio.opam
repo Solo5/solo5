@@ -17,6 +17,7 @@ conflicts: [
   "solo5-bindings-genode"
   "solo5-bindings-hvt"
   "solo5-bindings-muen"
+  "solo5-bindings-spt"
 ]
 available: [
   arch = "x86_64" &

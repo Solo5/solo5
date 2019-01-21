@@ -18,30 +18,41 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include "bindings.h"
-#include "../crt_init.h"
+#include "solo5.h"
+#include "../../bindings/lib.c"
 
-void _start(void *arg)
+static void puts(const char *s)
 {
-    crt_init_tls();
-    crt_init_ssp();
+    solo5_console_write(s, strlen(s));
+}
 
-    static struct solo5_start_info si;
+int solo5_app_main(const struct solo5_start_info *si __attribute__((unused)))
+{
+    puts("\n**** Solo5 standalone test_seccomp ****\n\n");
 
-    console_init();
-    cpu_init();
-    platform_init(arg);
-    si.cmdline = cmdline_parse(platform_cmdline());
+    /*
+     * Try to call SYS_dup(1), which is not in any seccomp policy we use.
+     */
+#if defined(__x86_64__)
+    int ret;
 
-    log(INFO, "            |      ___|\n");
-    log(INFO, "  __|  _ \\  |  _ \\ __ \\\n");
-    log(INFO, "\\__ \\ (   | | (   |  ) |\n");
-    log(INFO, "____/\\___/ _|\\___/____/\n");
+    __asm__ __volatile__ (
+            "syscall"
+            : "=a" (ret) : "a" (32), "D" (1) : "rcx", "r11", "memory"
+    );
+#elif defined(__aarch64__)
+    register long x8 __asm__("x8") = 23;
+    register long x0 __asm__("x0");
+    register long x1 __asm__("x1") = 1;
 
-    mem_init();
-    time_init(arg);
-    net_init();
+    __asm__ __volatile__ (
+            "svc 0"
+            : "=r" (x0) : "r" (x8), "r" (x1) : "cc", "memory"
+    );
+#else
+#error Unsupported architecture
+#endif
 
-    mem_lock_heap(&si.heap_start, &si.heap_size);
-    solo5_exit(solo5_app_main(&si));
+    puts("FAILURE\n");
+    return SOLO5_EXIT_FAILURE;
 }

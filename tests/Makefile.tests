@@ -22,6 +22,9 @@ include $(TOP)/Makefile.common
 .PHONY: hvt
 hvt: $(HVT_TARGETS)
 
+.PHONY: spt
+spt: $(SPT_TARGETS)
+
 .PHONY: virtio
 virtio:	$(VIRTIO_TARGETS)
 
@@ -53,6 +56,15 @@ $(BINDINGS_DIR)/hvt/solo5_hvt.o:
 	$(MAKE) -C $(BINDINGS_DIR) hvt
 endif
 
+ifeq ($(BUILD_SPT), yes)
+
+%.spt: %.o $(BINDINGS_DIR)/spt/solo5_spt.lds $(BINDINGS_DIR)/spt/solo5_spt.o
+	$(LD) -T $(BINDINGS_DIR)/spt/solo5_spt.lds $(LDFLAGS) -o $@ $(BINDINGS_DIR)/spt/solo5_spt.o $< $(LDLIBS)
+
+$(BINDINGS_DIR)/spt/solo5_spt.o: 
+	$(MAKE) -C $(BINDINGS_DIR) spt
+endif
+
 ifeq ($(BUILD_MUEN), yes)
 %.muen: %.o $(BINDINGS_DIR)/muen/solo5_muen.lds $(BINDINGS_DIR)/muen/solo5_muen.o
 	$(LD) -T $(BINDINGS_DIR)/muen/solo5_muen.lds $(LDFLAGS) -o $@ $(BINDINGS_DIR)/muen/solo5_muen.o $< $(LDLIBS)
@@ -77,4 +89,4 @@ $(BINDINGS_DIR)/virtio/solo5_virtio.o:
 
 .PHONY: clean solo5-hvt-clean
 clean: solo5-hvt-clean
-	$(RM) *.o $(HVT_TARGETS) Makefile.solo5-hvt $(VIRTIO_TARGETS) $(MUEN_TARGETS) $(GENODE_TARGETS)
+	$(RM) *.o $(HVT_TARGETS) Makefile.solo5-hvt $(SPT_TARGETS) $(VIRTIO_TARGETS) $(MUEN_TARGETS) $(GENODE_TARGETS)

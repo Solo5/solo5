@@ -18,17 +18,20 @@
 
 TESTDIRS=test_hello test_globals test_ping_serve test_blk \
          test_exception test_abort test_fpu test_time test_quiet \
-         test_zeropage test_notls test_ssp
+         test_zeropage test_notls test_ssp test_seccomp
 
 HVT_TESTS=$(subst test, _test_hvt, $(TESTDIRS))
+SPT_TESTS=$(subst test, _test_spt, $(TESTDIRS))
 VIRTIO_TESTS=$(subst test, _test_virtio, $(TESTDIRS))
 MUEN_TESTS=$(subst test, _test_muen, $(TESTDIRS))
 GENODE_TESTS=$(subst test, _test_genode, $(TESTDIRS))
 CLEANS=$(subst test, _clean, $(TESTDIRS))
 
-all: $(HVT_TESTS) $(VIRTIO_TESTS) $(MUEN_TESTS)
+all: $(HVT_TESTS) $(SPT_TESTS) $(VIRTIO_TESTS) $(MUEN_TESTS)
 
 hvt: $(HVT_TESTS)
+
+spt: $(SPT_TESTS)
 
 virtio: $(VIRTIO_TESTS)
 
@@ -42,6 +45,9 @@ clean: $(CLEANS)
 
 _test_hvt%: force_it
 	$(MAKE) -C $(subst _test_hvt, test, $@) hvt
+
+_test_spt%: force_it
+	$(MAKE) -C $(subst _test_spt, test, $@) spt
 
 _test_virtio%: force_it
 	$(MAKE) -C $(subst _test_virtio, test, $@) virtio

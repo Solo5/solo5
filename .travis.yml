@@ -4,4 +4,5 @@ addons:
     apt:
         packages:
             - qemu-system-x86
+            - libseccomp-dev
 script: make && tests/run-tests.sh

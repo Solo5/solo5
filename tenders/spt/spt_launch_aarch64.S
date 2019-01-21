@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (c) 2015-2018 Contributors as noted in the AUTHORS file
  *
  * This file is part of Solo5, a sandboxed execution environment.
@@ -18,30 +18,17 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include "bindings.h"
-#include "../crt_init.h"
+#define ENTRY(x) .text; .globl x; .type x,%function; x:
+#define END(x)   .size x, . - x
 
-void _start(void *arg)
-{
-    crt_init_tls();
-    crt_init_ssp();
+/* TODO/XXX: This calling convention is probably not 100% correct */
 
-    static struct solo5_start_info si;
+ENTRY(spt_launch)
+        mov  sp, x0
+        mov  x0, x2
+        mov  x30, xzr
 
-    console_init();
-    cpu_init();
-    platform_init(arg);
-    si.cmdline = cmdline_parse(platform_cmdline());
-
-    log(INFO, "            |      ___|\n");
-    log(INFO, "  __|  _ \\  |  _ \\ __ \\\n");
-    log(INFO, "\\__ \\ (   | | (   |  ) |\n");
-    log(INFO, "____/\\___/ _|\\___/____/\n");
-
-    mem_init();
-    time_init(arg);
-    net_init();
-
-    mem_lock_heap(&si.heap_start, &si.heap_size);
-    solo5_exit(solo5_app_main(&si));
-}
+        blr x1
+        
+        ret
+END(spt_launch)

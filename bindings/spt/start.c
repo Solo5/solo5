@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (c) 2015-2018 Contributors as noted in the AUTHORS file
  *
  * This file is part of Solo5, a sandboxed execution environment.
@@ -23,13 +23,10 @@
 
 void _start(void *arg)
 {
-    crt_init_tls();
     crt_init_ssp();
 
     static struct solo5_start_info si;
 
-    console_init();
-    cpu_init();
     platform_init(arg);
     si.cmdline = cmdline_parse(platform_cmdline());
 
@@ -39,8 +36,8 @@ void _start(void *arg)
     log(INFO, "____/\\___/ _|\\___/____/\n");
 
     mem_init();
-    time_init(arg);
-    net_init();
+    block_init(arg);
+    net_init(arg);
 
     mem_lock_heap(&si.heap_start, &si.heap_size);
     solo5_exit(solo5_app_main(&si));

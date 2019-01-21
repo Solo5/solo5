@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (c) 2015-2018 Contributors as noted in the AUTHORS file
  *
  * This file is part of Solo5, a sandboxed execution environment.
@@ -19,29 +19,30 @@
  */
 
 #include "bindings.h"
-#include "../crt_init.h"
 
-void _start(void *arg)
+void solo5_console_write(const char *buf, size_t size)
 {
-    crt_init_tls();
-    crt_init_ssp();
+    (void)sys_write(SYS_STDOUT, buf, size);
+}
 
-    static struct solo5_start_info si;
+/* solo5_exit is in exit.c */
 
-    console_init();
-    cpu_init();
-    platform_init(arg);
-    si.cmdline = cmdline_parse(platform_cmdline());
+/* solo5_abort is in abort.c */
 
-    log(INFO, "            |      ___|\n");
-    log(INFO, "  __|  _ \\  |  _ \\ __ \\\n");
-    log(INFO, "\\__ \\ (   | | (   |  ) |\n");
-    log(INFO, "____/\\___/ _|\\___/____/\n");
+solo5_time_t solo5_clock_monotonic(void)
+{
+    struct sys_timespec ts;
 
-    mem_init();
-    time_init(arg);
-    net_init();
+    int rc = sys_clock_gettime(SYS_CLOCK_MONOTONIC, &ts);
+    assert(rc == 0);
+    return (ts.tv_sec * NSEC_PER_SEC) + ts.tv_nsec;
+}
 
-    mem_lock_heap(&si.heap_start, &si.heap_size);
-    solo5_exit(solo5_app_main(&si));
+solo5_time_t solo5_clock_wall(void)
+{
+    struct sys_timespec ts;
+
+    int rc = sys_clock_gettime(SYS_CLOCK_REALTIME, &ts);
+    assert(rc == 0);
+    return (ts.tv_sec * NSEC_PER_SEC) + ts.tv_nsec;
 }
