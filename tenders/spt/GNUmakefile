@@ -22,7 +22,7 @@ include $(TOP)/Makeconf
 .PHONY: all clean
 all: solo5-spt
 
-CFLAGS=-Wall -Werror -std=c99 -O2 -g -I../../include/solo5
+CFLAGS=-Wall -Werror -std=c99 -O2 -g -I../../include/solo5 $(SPT_EXTRA_CFLAGS)
 LDFLAGS=-Wl,-z -Wl,noexecstack $(SPT_EXTRA_LDFLAGS)
 LDLIBS=-lseccomp
 
