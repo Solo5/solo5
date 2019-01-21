@@ -36,6 +36,10 @@
 
 #include "spt.h"
 
+#ifndef SPT_BLOCK_SIZE
+#define SPT_BLOCK_SIZE 512
+#endif
+
 static char *diskfile;
 static int diskfd = -1;
 
@@ -59,12 +63,12 @@ static int setup(struct spt *spt)
     off_t capacity = lseek(diskfd, 0, SEEK_END);
     if (capacity == -1)
         err(1, "%s: Could not determine capacity", diskfile);
-    if (capacity < 512)
+    if (capacity < SPT_BLOCK_SIZE)
         errx(1, "%s: Backing storage must be at least 1 block (512 bytes) "
                 "in size", diskfile);
 
     spt->bi->blocki.present = 1;
-    spt->bi->blocki.block_size = 512;
+    spt->bi->blocki.block_size = SPT_BLOCK_SIZE;
     spt->bi->blocki.capacity = capacity;
     spt->bi->blocki.hostfd = diskfd;
 
