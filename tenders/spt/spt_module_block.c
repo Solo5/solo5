@@ -23,12 +23,14 @@
  */
 
 #define _GNU_SOURCE
+#define _FILE_OFFSET_BITS 64
 #include <assert.h>
 #include <err.h>
 #include <fcntl.h>
 #include <limits.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/types.h>
 #include <unistd.h>
 #include <seccomp.h>
 
@@ -51,14 +53,19 @@ static int setup(struct spt *spt)
     if (diskfile == NULL)
         return 0; /* not present */
 
-    /* set up virtual disk */
     diskfd = open(diskfile, O_RDWR);
     if (diskfd == -1)
         err(1, "Could not open disk: %s", diskfile);
+    off_t capacity = lseek(diskfd, 0, SEEK_END);
+    if (capacity == -1)
+        err(1, "%s: Could not determine capacity", diskfile);
+    if (capacity < 512)
+        errx(1, "%s: Backing storage must be at least 1 block (512 bytes) "
+                "in size", diskfile);
 
     spt->bi->blocki.present = 1;
     spt->bi->blocki.block_size = 512;
-    spt->bi->blocki.capacity = lseek(diskfd, 0, SEEK_END);
+    spt->bi->blocki.capacity = capacity;
     spt->bi->blocki.hostfd = diskfd;
 
     int rc = -1;
