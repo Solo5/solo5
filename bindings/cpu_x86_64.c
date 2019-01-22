@@ -164,10 +164,11 @@ static char *traps[32] = {
 
 void cpu_trap_handler(uint64_t num, struct trap_regs *regs)
 {
-    log(INFO, "Solo5: trap: type=%s ec=0x%lx rip=0x%lx rsp=0x%lx rflags=0x%lx\n",
-        traps[num], regs->ec, regs->rip, regs->rsp, regs->rflags);
+    log(INFO, "Solo5: trap: type=%s ec=0x%llx rip=0x%llx rsp=0x%llx rflags=0x%llx\n",
+        traps[num], (unsigned long long)regs->ec, (unsigned long long)regs->rip,
+        (unsigned long long)regs->rsp, (unsigned long long)regs->rflags);
     if (num == 14)
-        log(INFO, "Solo5: trap: cr2=0x%lx\n", regs->cr2);
+        log(INFO, "Solo5: trap: cr2=0x%llx\n", (unsigned long long)regs->cr2);
     PANIC("Fatal trap", regs);
 }
 

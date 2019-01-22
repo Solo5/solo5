@@ -209,8 +209,8 @@ int tscclock_init(void) {
     tsc_base = cpu_rdtsc();
     i8254_delay(100000);
     tsc_freq = (cpu_rdtsc() - tsc_base) * 10;
-    log(INFO, "Solo5: Clock source: TSC, frequency estimate is %lu Hz\n",
-        tsc_freq);
+    log(INFO, "Solo5: Clock source: TSC, frequency estimate is %llu Hz\n",
+        (unsigned long long)tsc_freq);
 
     /*
      * Calculate TSC scaling multiplier.

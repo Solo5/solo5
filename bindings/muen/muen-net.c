@@ -132,8 +132,9 @@ void net_init(void)
                              chan_out->data.mem.size, epoch);
     log(INFO, "Solo5: Net: Muen shared memory stream, protocol 0x%llx\n",
         MUENNET_PROTO);
-    log(INFO, "Solo5: Net: Output channel @ 0x%lx, size 0x%lx, epoch 0x%lx\n",
-        chan_out->data.mem.address, chan_out->data.mem.size, epoch);
+    log(INFO, "Solo5: Net: Output channel @ 0x%llx, size 0x%llx, epoch 0x%llx\n",
+        (unsigned long long)chan_out->data.mem.address,
+        (unsigned long long)chan_out->data.mem.size, (unsigned long long)epoch);
 
     if (!chan_in) {
         log(WARN, "Solo5: Net: No input channel\n");
@@ -151,8 +152,9 @@ void net_init(void)
 
     net_in = (struct muchannel *)(chan_in->data.mem.address);
     muen_channel_init_reader(&net_rdr, MUENNET_PROTO);
-    log(INFO, "Solo5: Net: Input  channel @ 0x%lx, size 0x%lx\n",
-        chan_in->data.mem.address, chan_in->data.mem.size);
+    log(INFO, "Solo5: Net: Input  channel @ 0x%llx, size 0x%llx\n",
+        (unsigned long long)chan_in->data.mem.address,
+        (unsigned long long)chan_in->data.mem.size);
 
     generate_mac_addr(mac_addr);
     snprintf(mac_str, sizeof(mac_str), "%02x:%02x:%02x:%02x:%02x:%02x",
