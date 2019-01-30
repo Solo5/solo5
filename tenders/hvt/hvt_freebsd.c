@@ -47,26 +47,14 @@
 #include "hvt.h"
 #include "hvt_freebsd.h"
 
-/*
- * TODO: To ensure that the VM is correctly destroyed on shutdown (normal or
- * not) we currently install an atexit() handler. The top-level API will need
- * to be changed to accomodate this, e.g. by introducing a hvt_shutdown(),
- * however this is incompatible with the current "fail fast" approach to
- * internal error handling.
- */
 static struct hvt *cleanup_hvt;
-
-static void cleanup_vm(void)
-{
-    if (cleanup_hvt != NULL)
-        sysctlbyname("hw.vmm.destroy", NULL, NULL, cleanup_hvt->b->vmname,
-                strlen(cleanup_hvt->b->vmname));
-}
 
 static void cleanup_vmfd(void)
 {
-    if (cleanup_hvt != NULL && cleanup_hvt->b->vmfd != -1)
+    if (cleanup_hvt != NULL && cleanup_hvt->b->vmfd != -1) {
         close(cleanup_hvt->b->vmfd);
+        cleanup_hvt->b->vmfd = -1;
+    }
 }
 
 struct hvt *hvt_init(size_t mem_size)
@@ -87,17 +75,88 @@ struct hvt *hvt_init(size_t mem_size)
     int namelen = asprintf(&hvb->vmname, "solo5-%d", getpid());
     if (namelen == -1)
         err(1, "asprintf");
-    ret = sysctlbyname("hw.vmm.create", NULL, NULL, hvb->vmname, namelen);
-    if (ret == -1)
-        err(1, "Cannot create VM '%s'", hvb->vmname);
-    cleanup_hvt = hvt;
-    atexit(cleanup_vm);
 
     char *vmmdevname;
     namelen = asprintf(&vmmdevname, "/dev/vmm/%s", hvb->vmname);
     if (namelen == -1)
         err(1, "asprintf");
-    hvb->vmfd = open(vmmdevname, O_RDWR, 0);
+
+    /*
+     * The following code is responsible for cleaning up a VM which may have
+     * been leaked by a previous instance of solo5-hvt, whose PID has now been
+     * recycled, thus we have a conflict.
+     *
+     * We go to all this trouble due to the vmm API design being totally
+     * broken and treating a VM as a "global resource", which does not allow us
+     * to clean up after ourselves once we have dropped privileges in
+     * hvt_drop_privileges().
+     *
+     * Note that this only solves the case described in the first paragraph.
+     * Notably, the *current* solo5-hvt process will ALWAYS leak its VM on
+     * exit. If you want an immediate workaround for that, always run "bhyvectl
+     * destroy" after solo5-hvt has exited.
+     *
+     * Also note that this code assumes that Solo5 "owns" the /dev/vmm/solo5-%d
+     * "namespace".
+     */
+    int tmpvmfd;
+    tmpvmfd = open(vmmdevname, O_NONBLOCK | O_EXLOCK | O_RDWR, 0);
+
+    /*
+     * Case 1: Exclusive lock failed, so the previous solo5-hvt is still
+     * running.
+     */
+    if (tmpvmfd == -1 && errno == EAGAIN)
+      errx(1, "Cannot create VM '%s': Solo5 instance still running",
+              hvb->vmname);
+
+    /*
+     * Case 2: VM does not exist, we can proceed with creating it for real.
+     */
+    else if (tmpvmfd == -1 && errno == ENOENT)
+      ;
+
+    /*
+     * Case 3: Something else went wrong (e.g. we are not root).
+     */
+    else if (tmpvmfd == -1)
+      err(1, "Cannot destroy leaked VM '%s': open()", hvb->vmname);
+
+    /*
+     * Case 4: We have a lock: This means the VM was leaked, and its solo5-hvt
+     * is no longer around. Destroy it so that we can re-use the name.
+     */
+    else if (tmpvmfd > 0) {
+      ret = sysctlbyname("hw.vmm.destroy", NULL, NULL, hvb->vmname,
+                         strlen(hvb->vmname));
+      if (ret == -1)
+        err(1, "Cannot destroy leaked VM '%s'", hvb->vmname);
+      /*
+       * Experimental observation shows that close() on the vmfd after it has
+       * been destroyed always(?) returns ENXIO. Test for this and warn if it
+       * does NOT happen, as that may expose a change of the behaviour/a race
+       * on the vmm API side.
+       */
+      ret = close(tmpvmfd);
+      if (ret == 0)
+        warnx("warning: While destroying VM '%s': close() succeded",
+                hvb->vmname);
+      else if (ret == -1 && errno != ENXIO)
+        warn("warning: While destroying VM '%s': close()", hvb->vmname);
+    }
+
+    /*
+     * At this point we have destroyed the leaked VM, if any, and know that
+     * there is no other solo5-hvt using this VM name. Create the VM for real
+     * and obtain an exclusive lock on its file descriptor while opening it,
+     * thus allowing the above code^H^H^H^Hmess to do its job safely.
+     */
+    ret = sysctlbyname("hw.vmm.create", NULL, NULL, hvb->vmname, namelen);
+    if (ret == -1)
+        err(1, "Cannot create VM '%s'", hvb->vmname);
+    cleanup_hvt = hvt;
+
+    hvb->vmfd = open(vmmdevname, O_NONBLOCK | O_EXLOCK | O_RDWR, 0);
     if (hvb->vmfd == -1)
         err(1, "open(%s)", vmmdevname);
     atexit(cleanup_vmfd);
