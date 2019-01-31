@@ -87,14 +87,7 @@ void mem_init(void);
 void *mem_ialloc_pages(size_t num);
 void mem_lock_heap(uintptr_t *start, size_t *size);
 
-/* ee_printf.c: a third-party printf slightly modified and with
- *              snprintf added
- */
-int printf(const char *fmt, ...);
-int snprintf(char *str, size_t size, const char *format, ...);
-int vsnprintf(char *buf, size_t size, const char *fmt, va_list args);
-
-/* lib.c: expect this to grow... */
+/* lib.c: minimal bits of stdc we need */
 void *memset(void *dest, int c, size_t n);
 void *memcpy(void *restrict dest, const void *restrict src, size_t n);
 void *memmove(void *dest, const void *src, size_t n);
@@ -104,6 +97,9 @@ int strncmp(const char *l, const char *r, size_t n);
 char *strcpy(char *restrict dest, const char *restrict src);
 size_t strlen(const char *s);
 int isspace(int c);
+
+/* snprintf/vsnprint live in printf.c / printf.h */
+#include "printf.h"
 
 /* platform.c: specifics for hvt or virito platform */
 void platform_init(void *arg);
