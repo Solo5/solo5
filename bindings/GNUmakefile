@@ -23,7 +23,7 @@ abort.o \
 cpu_${TARGET_ARCH}.o \
 cpu_vectors_${TARGET_ARCH}.o \
 crt.o \
-ee_printf.o \
+printf.o \
 intr.o \
 lib.o \
 mem.o \
@@ -83,7 +83,7 @@ genode/stubs.o
 SPT_COBJS=\
 abort.o \
 crt.o \
-ee_printf.o \
+printf.o \
 lib.o \
 mem.o \
 exit.o \
