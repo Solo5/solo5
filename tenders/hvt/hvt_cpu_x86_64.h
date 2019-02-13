@@ -53,10 +53,12 @@
 #define X86_CR0_EM              _BITUL(X86_CR0_EM_BIT)
 #define X86_CR0_NE_BIT          5 /* Numeric Exception */
 #define X86_CR0_NE              _BITUL(X86_CR0_NE_BIT)
+#define X86_CR0_WP_BIT          16 /* Write Protect */
+#define X86_CR0_WP              _BITUL(X86_CR0_WP_BIT)
 #define X86_CR0_PG_BIT          31 /* Paging */
 #define X86_CR0_PG              _BITUL(X86_CR0_PG_BIT)
 
-#define X86_CR0_INIT            (X86_CR0_PE | X86_CR0_PG | X86_CR0_NE)
+#define X86_CR0_INIT            (X86_CR0_PE | X86_CR0_PG | X86_CR0_NE | X86_CR0_WP)
 
 /*
  * Intel CPU features in CR4
