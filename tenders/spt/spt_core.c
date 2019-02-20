@@ -30,6 +30,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <string.h>
 #include <sys/mman.h>
 #include <time.h>
@@ -63,6 +64,8 @@ struct spt_module *spt_core_modules[] = {
  * segment.
  */
 extern long __executable_start;
+
+static bool use_exec_heap = false;
 
 struct spt *spt_init(size_t mem_size)
 {
@@ -125,9 +128,9 @@ struct spt *spt_init(size_t mem_size)
      * spt_mem at SPT_HOST_MEM_BASE, adjusting the returned pointer and region
      * size appropriately.
      */
+    int prot = PROT_READ | PROT_WRITE | (use_exec_heap ? PROT_EXEC : 0);
     spt->mem = mmap((void *)SPT_HOST_MEM_BASE, mem_size - SPT_HOST_MEM_BASE,
-            PROT_READ | PROT_WRITE,
-            MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED, -1, 0);
+            prot, MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED, -1, 0);
     if (spt->mem == MAP_FAILED)
         err(1, "Error allocating guest memory");
     assert(spt->mem == (void *)SPT_HOST_MEM_BASE);
@@ -181,6 +184,17 @@ void spt_run(struct spt *spt, uint64_t p_entry)
     abort(); /* spt_launch() does not return */
 }
 
+static int handle_cmdarg(char *cmdarg)
+{
+    if (!strncmp("--x-exec-heap", cmdarg, 13)) {
+	warnx("WARNING: The use of --x-exec-heap is dangerous and not"
+              " recommended as it makes the heap and stack executable.");
+        use_exec_heap = true;
+        return 0;
+    }
+    return -1;
+}
+
 static int setup(struct spt *spt)
 {
     int rc = -1;
@@ -210,7 +224,16 @@ static int setup(struct spt *spt)
     return 0;
 }
 
+static char *usage(void)
+{
+    return "--x-exec-heap (make the heap executable)."
+	   " WARNING: This option is dangerous and not recommended as it"
+           " makes the heap and stack executable.";
+}
+
 struct spt_module spt_module_core = {
     .name = "core",
-    .setup = setup
+    .setup = setup,
+    .handle_cmdarg = handle_cmdarg,
+    .usage = usage
 };
