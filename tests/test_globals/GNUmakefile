@@ -16,11 +16,10 @@
 # NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
 # CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-HVT_TARGETS=test_globals.hvt solo5-hvt
+HVT_TARGETS=test_globals.hvt
 SPT_TARGETS=test_globals.spt
 VIRTIO_TARGETS=test_globals.virtio
 MUEN_TARGETS=test_globals.muen
 GENODE_TARGETS=test_globals.genode
-HVT_MODULES=
 
 include ../Makefile.tests

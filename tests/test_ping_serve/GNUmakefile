@@ -16,11 +16,10 @@
 # NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
 # CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-HVT_TARGETS=test_ping_serve.hvt solo5-hvt
+HVT_TARGETS=test_ping_serve.hvt
 SPT_TARGETS=test_ping_serve.spt
 VIRTIO_TARGETS=test_ping_serve.virtio
 MUEN_TARGETS=test_ping_serve.muen
 GENODE_TARGETS=test_ping_serve.genode
-HVT_MODULES=net
 
 include ../Makefile.tests

@@ -32,10 +32,15 @@ OBJS=spt_main.o spt_core.o spt_elf.o spt_launch_$(TARGET_ARCH).o \
 # This needs to be re-defined manually, as GNU Make has the undocumented
 # "feature" of using $(TARGET_ARCH) in the default implicit rule for %.c.
 %.o: %.c
+	@echo "CC $<"
 	$(CC) -c $(CFLAGS) -o $@ $<
 
 solo5-spt: $(OBJS)
+	@echo "LINK $@"
 	$(CC) $(LDFLAGS) -o $@ $(OBJS) $(LDLIBS)
 
 clean:
+	@echo "CLEAN"
 	$(RM) $(OBJS) solo5-spt
+
+$(V).SILENT:

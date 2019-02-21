@@ -40,16 +40,13 @@ SOLO5_HVT_SRC=$(TOP)/tenders/hvt
 CFLAGS+=-I$(BINDINGS_DIR)
 
 %.o: %.c $(HEADERS)
+	@echo "CC $<"
 	$(CC) $(CFLAGS) -c $< -o $@
 .PRECIOUS: %.o
 
 ifeq ($(BUILD_HVT), yes)
-Makefile.solo5-hvt: $(SOLO5_HVT_SRC)/solo5-hvt-configure
-	$(SOLO5_HVT_SRC)/solo5-hvt-configure $(SOLO5_HVT_SRC) $(HVT_MODULES)
-
--include Makefile.solo5-hvt
-
 %.hvt: %.o $(BINDINGS_DIR)/hvt/solo5_hvt.lds $(BINDINGS_DIR)/hvt/solo5_hvt.o
+	@echo "LD $@"
 	$(LD) -T $(BINDINGS_DIR)/hvt/solo5_hvt.lds $(LDFLAGS) -o $@ $(BINDINGS_DIR)/hvt/solo5_hvt.o $< $(LDLIBS)
 
 $(BINDINGS_DIR)/hvt/solo5_hvt.o: 
@@ -59,6 +56,7 @@ endif
 ifeq ($(BUILD_SPT), yes)
 
 %.spt: %.o $(BINDINGS_DIR)/spt/solo5_spt.lds $(BINDINGS_DIR)/spt/solo5_spt.o
+	@echo "LD $@"
 	$(LD) -T $(BINDINGS_DIR)/spt/solo5_spt.lds $(LDFLAGS) -o $@ $(BINDINGS_DIR)/spt/solo5_spt.o $< $(LDLIBS)
 
 $(BINDINGS_DIR)/spt/solo5_spt.o: 
@@ -67,6 +65,7 @@ endif
 
 ifeq ($(BUILD_MUEN), yes)
 %.muen: %.o $(BINDINGS_DIR)/muen/solo5_muen.lds $(BINDINGS_DIR)/muen/solo5_muen.o
+	@echo "LD $@"
 	$(LD) -T $(BINDINGS_DIR)/muen/solo5_muen.lds $(LDFLAGS) -o $@ $(BINDINGS_DIR)/muen/solo5_muen.o $< $(LDLIBS)
 
 $(BINDINGS_DIR)/muen/solo5_muen.o:
@@ -75,6 +74,7 @@ endif
 
 ifeq ($(BUILD_GENODE), yes)
 %.genode: %.o $(BINDINGS_DIR)/genode/genode_dyn.ld $(BINDINGS_DIR)/genode/solo5.lib.so
+	@echo "LD $@"
 	$(LD) -T $(BINDINGS_DIR)/genode/genode_dyn.ld $(GENODE_LDFLAGS) -o $@ $(BINDINGS_DIR)/genode/solo5.lib.so $< $(LDLIBS)
 
 $(BINDINGS_DIR)/genode/solo5.lib.so:
@@ -82,6 +82,7 @@ $(BINDINGS_DIR)/genode/solo5.lib.so:
 endif
 
 %.virtio: %.o $(BINDINGS_DIR)/virtio/solo5_virtio.lds $(BINDINGS_DIR)/virtio/solo5_virtio.o
+	@echo "LD $@"
 	$(LD) -T $(BINDINGS_DIR)/virtio/solo5_virtio.lds $(LDFLAGS) -o $@ $(BINDINGS_DIR)/virtio/solo5_virtio.o $< $(LDLIBS)
 
 $(BINDINGS_DIR)/virtio/solo5_virtio.o: 
@@ -90,3 +91,5 @@ $(BINDINGS_DIR)/virtio/solo5_virtio.o:
 .PHONY: clean solo5-hvt-clean
 clean: solo5-hvt-clean
 	$(RM) *.o $(HVT_TARGETS) Makefile.solo5-hvt $(SPT_TARGETS) $(VIRTIO_TARGETS) $(MUEN_TARGETS) $(GENODE_TARGETS)
+
+$(V).SILENT:

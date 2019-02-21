@@ -50,6 +50,7 @@ setup() {
       skip "Don't know how to run ${BATS_TEST_NAME} on ${TEST_TARGET}"
       ;;
     esac
+    HVT_TENDER=../tenders/hvt/solo5-hvt
     ;;
   *virtio)
     if [ "$(uname -s)" = "OpenBSD" ]; then
@@ -76,7 +77,7 @@ teardown() {
 }
 
 @test "hello hvt" {
-  run ${TIMEOUT} --foreground 30s test_hello/solo5-hvt test_hello/test_hello.hvt Hello_Solo5
+  run ${TIMEOUT} --foreground 30s ${HVT_TENDER} test_hello/test_hello.hvt Hello_Solo5
   [ "$status" -eq 0 ]
 }
 
@@ -92,7 +93,7 @@ teardown() {
 }
 
 @test "quiet hvt" {
-  run ${TIMEOUT} --foreground 30s test_quiet/solo5-hvt test_quiet/test_quiet.hvt --solo5:quiet
+  run ${TIMEOUT} --foreground 30s ${HVT_TENDER} test_quiet/test_quiet.hvt --solo5:quiet
   [ "$status" -eq 0 ]
   [[ "$output" == *"SUCCESS"* ]]
   [[ "$output" != *"Solo5:"* ]]
@@ -131,7 +132,7 @@ teardown() {
 }
 
 @test "globals hvt" {
-  run ${TIMEOUT} --foreground 30s test_globals/solo5-hvt test_globals/test_globals.hvt
+  run ${TIMEOUT} --foreground 30s ${HVT_TENDER} test_globals/test_globals.hvt
   [ "$status" -eq 0 ]
 }
 
@@ -147,7 +148,7 @@ teardown() {
 }
 
 @test "exception hvt" {
-  run ${TIMEOUT} --foreground 30s test_exception/solo5-hvt test_exception/test_exception.hvt
+  run ${TIMEOUT} --foreground 30s ${HVT_TENDER} test_exception/test_exception.hvt
   [ "$status" -eq 255 ]
   [[ "$output" == *"ABORT"* ]]
 }
@@ -164,7 +165,7 @@ teardown() {
 }
 
 @test "zeropage hvt" {
-  run ${TIMEOUT} --foreground 30s test_zeropage/solo5-hvt test_zeropage/test_zeropage.hvt
+  run ${TIMEOUT} --foreground 30s ${HVT_TENDER} test_zeropage/test_zeropage.hvt
   [ "$status" -eq 255 ]
   [[ "$output" == *"ABORT"* ]]
 }
@@ -181,7 +182,7 @@ teardown() {
 }
 
 @test "notls hvt" {
-  run ${TIMEOUT} --foreground 30s test_notls/solo5-hvt test_notls/test_notls.hvt
+  run ${TIMEOUT} --foreground 30s ${HVT_TENDER} test_notls/test_notls.hvt
   [ "$status" -eq 255 ]
   [[ "$output" == *"ABORT"* ]]
 }
@@ -199,7 +200,7 @@ teardown() {
 }
 
 @test "ssp hvt" {
-  run ${TIMEOUT} --foreground 30s test_ssp/solo5-hvt test_ssp/test_ssp.hvt
+  run ${TIMEOUT} --foreground 30s ${HVT_TENDER} test_ssp/test_ssp.hvt
   [ "$status" -eq 255 ]
   [[ "$output" == *"ABORT"* ]]
 }
@@ -217,7 +218,7 @@ teardown() {
 }
 
 @test "fpu hvt" {
-  run ${TIMEOUT} --foreground 30s test_fpu/solo5-hvt test_fpu/test_fpu.hvt
+  run ${TIMEOUT} --foreground 30s ${HVT_TENDER} test_fpu/test_fpu.hvt
   [ "$status" -eq 0 ]
 }
 
@@ -233,7 +234,7 @@ teardown() {
 }
 
 @test "time hvt" {
-  run ${TIMEOUT} --foreground 30s test_time/solo5-hvt test_time/test_time.hvt
+  run ${TIMEOUT} --foreground 30s ${HVT_TENDER} test_time/test_time.hvt
   [ "$status" -eq 0 ]
 }
 
@@ -254,7 +255,7 @@ teardown() {
 }
 
 @test "blk hvt" {
-  run ${TIMEOUT} --foreground 30s test_blk/solo5-hvt --disk=${DISK} test_blk/test_blk.hvt
+  run ${TIMEOUT} --foreground 30s ${HVT_TENDER} --disk=${DISK} test_blk/test_blk.hvt
   [ "$status" -eq 0 ]
 }
 
@@ -270,7 +271,7 @@ teardown() {
 }
 
 @test "ping-serve hvt" {
-  TENDER=test_ping_serve/solo5-hvt
+  TENDER=${HVT_TENDER}
   UNIKERNEL=test_ping_serve/test_ping_serve.hvt
 
   [ $(id -u) -ne 0 ] && skip "Need root to run this test, for ping -f"
@@ -321,7 +322,7 @@ teardown() {
       skip "not implemented for ${TEST_TARGET}"
       ;;
   esac
-  run ${TIMEOUT} --foreground 30s test_abort/solo5-hvt --dumpcore test_abort/test_abort.hvt
+  run ${TIMEOUT} --foreground 30s ${HVT_TENDER} --dumpcore test_abort/test_abort.hvt
   [ "$status" -eq 255 ]
   CORE=`echo "$output" | grep -o "core\.solo5-hvt\.[0-9]*$"`
   [ -f "$CORE" ]

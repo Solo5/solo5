@@ -117,33 +117,48 @@ MD_CFLAGS+=-mno-sse -mno-mmx -mno-aes -mno-avx
 endif
 
 genode/stubs.o: genode/stubs.c $(HEADERS)
+	@echo "STUBCC $<"
 	$(CC) $(CFLAGS) -Wno-unused-parameter -c $< -o $@
 
 %.o: %.c $(HEADERS)
+	@echo "CC $<"
 	$(CC) $(CFLAGS) -c $< -o $@
 
 %.o: %.S $(HEADERS)
+	@echo "AS $<"
 	$(CC) $(CFLAGS) -DASM_FILE -c $< -o $@
 
 virtio/solo5_virtio.o: $(VIRTIO_COBJS) virtio/solo5_virtio.lds
+	@echo "LD $@"
 	$(LD) -r $(LDFLAGS) -o $@ $(VIRTIO_COBJS)
+	@echo "OBJCOPY $@"
 	$(OBJCOPY) -w -G solo5_\* -G _start\* -G __stack_chk_\* $@ $@
 
 hvt/solo5_hvt.o: $(HVT_COBJS) hvt/solo5_hvt.lds
+	@echo "LD $@"
 	$(LD) -r $(LDFLAGS) -o $@ $(HVT_COBJS)
+	@echo "OBJCOPY $@"
 	$(OBJCOPY) -w -G solo5_\* -G _start\* -G __stack_chk_\* $@ $@
 
 muen/solo5_muen.o: $(MUEN_COBJS) muen/solo5_muen.lds
+	@echo "LD $@"
 	$(LD) -r $(LDFLAGS) -o $@ $(MUEN_COBJS)
+	@echo "OBJCOPY $@"
 	$(OBJCOPY) -w -G solo5_\* -G _start\* -G __stack_chk_\* $@ $@
 
 genode/solo5.lib.so: $(GENODE_COBJS)
+	@echo "LD $@"
 	$(LD) $(GENODE_LIB_LDFLAGS) -o $@ $^
 
 spt/solo5_spt.o: $(SPT_COBJS) spt/solo5_spt.lds
+	@echo "LD $@"
 	$(LD) -r $(LDFLAGS) -o $@ $(SPT_COBJS)
+	@echo "OBJCOPY $@"
 	$(OBJCOPY) -w -G solo5_\* -G _start\* -G __stack_chk_\* $@ $@
 
 .PHONY: clean
 clean:
+	@echo "CLEAN"
 	$(RM) *.o virtio/*.o hvt/*.o muen/*.o genode/*.o genode/*.lib.so spt/*.o
+
+$(V).SILENT:

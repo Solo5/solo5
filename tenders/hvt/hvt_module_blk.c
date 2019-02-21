@@ -109,7 +109,7 @@ static int handle_cmdarg(char *cmdarg)
 static int setup(struct hvt *hvt)
 {
     if (diskfile == NULL)
-        return -1;
+        return 0; /* Not present */
 
     /* set up virtual disk */
     diskfd = open(diskfile, O_RDWR);

@@ -253,7 +253,7 @@ static int handle_cmdarg(char *cmdarg)
 static int setup(struct hvt *hvt)
 {
     if (netiface == NULL)
-        return -1;
+        return 0; /* Not present */
 
     /* attach to requested tap interface */
     netfd = tap_attach(netiface);
