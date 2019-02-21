@@ -16,134 +16,139 @@
 # NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
 # CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-include $(TOP)/Makefile.common
+ifndef TOPDIR
+$(error TOPDIR must be set, run $(MAKE) from the top of the source tree or set it manually)
+endif
+include $(TOPDIR)/Makefile.common
 
-COMMON_COBJS=\
-abort.o \
-cpu_${TARGET_ARCH}.o \
-cpu_vectors_${TARGET_ARCH}.o \
-crt.o \
-printf.o \
-intr.o \
-lib.o \
-mem.o \
-exit.o \
-log.o \
-cmdline.o
+.PHONY: all
+all:
+all_TARGETS :=
 
-COMMON_HVT_COBJS=\
-hvt/start.o \
-hvt/platform.o \
-hvt/platform_intr.o \
-hvt/time.o
+.SUFFIXES:
+$(V).SILENT:
 
-HVT_COBJS=\
-$(COMMON_HVT_COBJS) \
-hvt/platform_lifecycle.o \
-hvt/yield.o \
-hvt/tscclock.o \
-hvt/console.o \
-hvt/net.o \
-hvt/block.o \
-$(COMMON_COBJS)
+common_SRCS := abort.c cpu_$(CONFIG_ARCH).c cpu_vectors_$(CONFIG_ARCH).S \
+    crt.c printf.c intr.c lib.c mem.c exit.c log.c cmdline.c
 
-VIRTIO_COBJS=\
-virtio/boot.o \
-virtio/start.o \
-virtio/platform.o \
-virtio/platform_intr.o \
-virtio/pci.o \
-virtio/serial.o \
-virtio/time.o \
-virtio/virtio_ring.o \
-virtio/virtio_net.o \
-virtio/virtio_blk.o \
-virtio/tscclock.o \
-virtio/clock_subr.o \
-virtio/pvclock.o \
-$(COMMON_COBJS)
+common_hvt_SRCS := hvt/start.c hvt/platform.c hvt/platform_intr.c hvt/time.c
 
-MUEN_COBJS=\
-$(COMMON_HVT_COBJS) \
-muen/channel.o \
-muen/reader.o \
-muen/writer.o \
-muen/muen-block.o \
-muen/muen-clock.o \
-muen/muen-console.o \
-muen/muen-net.o \
-muen/muen-platform_lifecycle.o \
-muen/muen-yield.o \
-muen/muen-sinfo.o \
-$(COMMON_COBJS)
+hvt_SRCS := $(common_SRCS) $(common_hvt_SRCS) \
+    hvt/platform_lifecycle.c hvt/yield.c hvt/tscclock.c hvt/console.c \
+    hvt/net.c hvt/block.c
 
-GENODE_COBJS=\
-genode/stubs.o
+spt_SRCS := abort.c crt.c printf.c lib.c mem.c exit.c log.c cmdline.c \
+    spt/bindings.c spt/block.c spt/net.c spt/platform.c spt/start.c \
+    spt/sys_linux_$(CONFIG_ARCH).c
 
-SPT_COBJS=\
-abort.o \
-crt.o \
-printf.o \
-lib.o \
-mem.o \
-exit.o \
-log.o \
-cmdline.o \
-spt/bindings.o \
-spt/block.o \
-spt/net.o \
-spt/platform.o \
-spt/start.o \
-spt/sys_linux_${TARGET_ARCH}.o
+virtio_SRCS := $(common_SRCS) \
+    virtio/boot.S virtio/start.c virtio/platform.c virtio/platform_intr.c \
+    virtio/pci.c virtio/serial.c virtio/time.c virtio/virtio_ring.c \
+    virtio/virtio_net.c virtio/virtio_blk.c virtio/tscclock.c \
+    virtio/clock_subr.c virtio/pvclock.c 
 
-HEADERS=\
-bindings.h
+muen_SRCS := $(common_SRCS) $(common_hvt_SRCS) \
+    muen/channel.c muen/reader.c muen/writer.c muen/muen-block.c \
+    muen/muen-clock.c muen/muen-console.c muen/muen-net.c \
+    muen/muen-platform_lifecycle.c muen/muen-yield.c muen/muen-sinfo.c
 
-all: virtio hvt
+genode_SRCS := genode/stubs.c
 
-.PHONY: virtio hvt muen genode spt
-virtio: virtio/solo5_virtio.o
-hvt: hvt/solo5_hvt.o
-muen: muen/solo5_muen.o
-genode: genode/solo5.lib.so
-spt: spt/solo5_spt.o
+CPPFLAGS+=-D__SOLO5_BINDINGS__
 
-CFLAGS+=-D__SOLO5_BINDINGS__
-
-ifeq ($(TARGET_ARCH), x86_64)
+ifeq ($(CONFIG_ARCH), x86_64)
 # Prevent the compiler from adding optimizations that use shared FPU state.
 # This is necessary for early boot code and trap handlers.
-MD_CFLAGS+=-mno-sse -mno-mmx -mno-aes -mno-avx
+CFLAGS+=-mno-sse -mno-mmx -mno-aes -mno-avx -mno-red-zone
 endif
 
-genode/stubs.o: genode/stubs.c $(HEADERS)
-	$(CC) $(CFLAGS) -Wno-unused-parameter -c $< -o $@
+%.o: %.c %.d
+	$(COMPILE.c)
 
-%.o: %.c $(HEADERS)
-	$(CC) $(CFLAGS) -c $< -o $@
+%.o: %.S %.d
+	$(COMPILE.S)
 
-%.o: %.S $(HEADERS)
-	$(CC) $(CFLAGS) -DASM_FILE -c $< -o $@
+%.d: ;
+.PRECIOUS: %.d
 
-virtio/solo5_virtio.o: $(VIRTIO_COBJS) virtio/solo5_virtio.lds
-	$(LD) -r $(LDFLAGS) -o $@ $(VIRTIO_COBJS)
+all_TARGETS :=
+all_OBJS :=
+all_SRCS :=
+
+define LINK.bindings
+	@echo "LD $@"
+	$(LD) -r $(LDFLAGS) $^ -o $@
+	@echo "OBJCOPY $@"
 	$(OBJCOPY) -w -G solo5_\* -G _start\* -G __stack_chk_\* $@ $@
+endef
 
-hvt/solo5_hvt.o: $(HVT_COBJS) hvt/solo5_hvt.lds
-	$(LD) -r $(LDFLAGS) -o $@ $(HVT_COBJS)
-	$(OBJCOPY) -w -G solo5_\* -G _start\* -G __stack_chk_\* $@ $@
+ifdef CONFIG_HVT
+    hvt_OBJS := $(patsubst %.c,%.o,$(patsubst %.S,%.o,$(hvt_SRCS)))
 
-muen/solo5_muen.o: $(MUEN_COBJS) muen/solo5_muen.lds
-	$(LD) -r $(LDFLAGS) -o $@ $(MUEN_COBJS)
-	$(OBJCOPY) -w -G solo5_\* -G _start\* -G __stack_chk_\* $@ $@
+hvt/solo5_hvt.o: $(hvt_OBJS)
+	$(LINK.bindings)
 
-genode/solo5.lib.so: $(GENODE_COBJS)
-	$(LD) $(GENODE_LIB_LDFLAGS) -o $@ $^
+    all_TARGETS += hvt/solo5_hvt.o
+    all_OBJS += $(hvt_OBJS)
+    all_SRCS += $(hvt_SRCS)
+endif
 
-spt/solo5_spt.o: $(SPT_COBJS) spt/solo5_spt.lds
-	$(LD) -r $(LDFLAGS) -o $@ $(SPT_COBJS)
-	$(OBJCOPY) -w -G solo5_\* -G _start\* -G __stack_chk_\* $@ $@
+ifdef CONFIG_SPT
+    spt_OBJS := $(patsubst %.c,%.o,$(patsubst %.S,%.o,$(spt_SRCS)))
+
+spt/solo5_spt.o: $(spt_OBJS)
+	$(LINK.bindings)
+
+    all_TARGETS += spt/solo5_spt.o
+    all_OBJS += $(spt_OBJS)
+    all_SRCS += $(spt_SRCS)
+endif
+
+ifdef CONFIG_VIRTIO
+    virtio_OBJS := $(patsubst %.c,%.o,$(patsubst %.S,%.o,$(virtio_SRCS)))
+
+virtio/solo5_virtio.o: $(virtio_OBJS)
+	$(LINK.bindings)
+
+    all_TARGETS += virtio/solo5_virtio.o
+    all_OBJS += $(virtio_OBJS)
+    all_SRCS += $(virtio_SRCS)
+endif
+
+ifdef CONFIG_MUEN
+    muen_OBJS := $(patsubst %.c,%.o,$(patsubst %.S,%.o,$(muen_SRCS)))
+
+muen/solo5_muen.o: $(muen_OBJS)
+	$(LINK.bindings)
+
+    all_TARGETS += muen/solo5_muen.o
+    all_OBJS += $(muen_OBJS)
+    all_SRCS += $(muen_SRCS)
+endif
+
+ifdef CONFIG_GENODE
+    genode_OBJS := $(patsubst %.c,%.o,$(patsubst %.S,%.o,$(genode_SRCS)))
+
+$(genode_OBJS): CFLAGS += -Wno-unused-parameter
+
+GENODE_LDFLAGS := -nostdlib -z max-page-size=0x1000 -shared -gc-sections \
+    --eh-frame-hdr --entry=0x0 -T genode/genode_rel.ld
+genode/solo5.lib.so: $(genode_OBJS)
+	@echo "LD $@"
+	$(LD) $(GENODE_LDFLAGS) $^ -o $@
+
+    all_TARGETS += genode/solo5.lib.so
+    all_OBJS += $(genode_OBJS)
+    all_SRCS += $(genode_SRCS)
+endif
+
+all: $(all_TARGETS)
+
+all_DEPS := $(patsubst %.o,%.d,$(all_OBJS))
 
 .PHONY: clean
 clean:
-	$(RM) *.o virtio/*.o hvt/*.o muen/*.o genode/*.o genode/*.lib.so spt/*.o
+	@echo "CLEAN bindings"
+	$(RM) $(all_TARGETS) $(all_OBJS) $(all_DEPS)
+
+include $(wildcard $(all_DEPS))

@@ -2,9 +2,9 @@ prefix=${pcfiledir}/../..
 exec_prefix=${prefix}
 includedir=${prefix}/include/solo5-bindings-virtio
 libdir=${exec_prefix}/lib/solo5-bindings-virtio
-ldflags=!LDFLAGS! -T ${libdir}/solo5_virtio.lds ${libdir}/solo5_virtio.o
+ldflags=!PC_LDFLAGS! -T ${libdir}/solo5_virtio.lds ${libdir}/solo5_virtio.o
 
 Name: solo5-bindings-virtio
 Version: 0.4.0
 Description: Solo5 sandboxed execution environment (virtio target)
-Cflags: !CFLAGS! -isystem ${includedir}/crt -I${includedir}/solo5
+Cflags: !PC_CFLAGS! -isystem ${includedir}/crt -I${includedir}/solo5

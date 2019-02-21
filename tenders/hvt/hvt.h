@@ -160,23 +160,26 @@ extern hvt_vmexit_fn_t hvt_core_vmexits[];
  * Module definition. (name) and (setup) are required, all other functions are
  * optional.
  */
-struct hvt_module {
-    const char *name;
+struct hvt_module_ops {
     int (*setup)(struct hvt *hvt);
     int (*handle_cmdarg)(char *cmdarg);
     char *(*usage)(void);
 };
 
-/*
- * Array of compiled-in modules. NULL terminated.
- */
-extern struct hvt_module *hvt_core_modules[];
+struct hvt_module {
+    const char *name;
+    struct hvt_module_ops ops;
+};
 
-extern struct hvt_module hvt_module_core;
-extern struct hvt_module hvt_module_blk;
-extern struct hvt_module hvt_module_net;
-extern struct hvt_module hvt_module_gdb;
-extern struct hvt_module hvt_module_dumpcore;
+
+#define BEGIN_REGISTER_MODULE(module_name) \
+    static struct hvt_module __module_ ##module_name \
+    __attribute((section("modules"))) \
+    __attribute((used)) = { \
+	.name = #module_name, \
+	.ops =
+	
+#define END_REGISTER_MODULE };
 
 /*
  * GDB specific functions to be implemented on all backends for all

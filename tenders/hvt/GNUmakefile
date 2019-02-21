@@ -16,16 +16,64 @@
 # NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
 # CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-# The purpose of this Makefile is to ensure that a solo5-hvt tender with ALL
-# modules configured compiles correctly.
+ifndef TOPDIR
+$(error TOPDIR must be set, run $(MAKE) from the top of the source tree or set it manually)
+endif
+include $(TOPDIR)/Makefile.common
 
-.PHONY: all clean
-all: solo5-hvt
+.PHONY: all
+all:
+all_TARGETS :=
 
-Makefile.solo5-hvt: solo5-hvt-configure
-	./solo5-hvt-configure . blk net gdb dumpcore
+.SUFFIXES:
+$(V).SILENT:	
 
--include Makefile.solo5-hvt
+ifdef CONFIG_HVT
 
-clean: solo5-hvt-clean
-	$(RM) Makefile.solo5-hvt
+hvt_SRCS := hvt_core.c hvt_elf.c hvt_main.c hvt_cpu_$(CONFIG_ARCH).c
+hvt_MODULES ?= blk net
+
+ifeq ($(CONFIG_HOST), Linux)
+    hvt_SRCS += hvt_kvm.c hvt_kvm_$(CONFIG_ARCH).c
+    hvt_debug_MODULES ?= gdb dumpcore
+    all_TARGETS += solo5-hvt solo5-hvt-debug
+else ifeq ($(CONFIG_HOST), FreeBSD)
+    hvt_SRCS += hvt_freebsd.c hvt_freebsd_$(CONFIG_ARCH).c
+    hvt_debug_MODULES ?= gdb dumpcore
+    all_TARGETS += solo5-hvt solo5-hvt-debug
+else ifeq ($(CONFIG_HOST), OpenBSD)
+    hvt_SRCS += hvt_openbsd.c hvt_openbsd_$(CONFIG_ARCH).c
+    all_TARGETS += solo5-hvt
+endif
+
+hvt_SRCS += $(patsubst %,hvt_module_%.c,$(hvt_MODULES))
+hvt_debug_SRCS += $(patsubst %,hvt_module_%.c,$(hvt_debug_MODULES))
+hvt_OBJS := $(patsubst %.c,%.o,$(hvt_SRCS))
+hvt_debug_OBJS := $(patsubst %.c,%.o,$(hvt_debug_SRCS))
+
+%.o: %.c %.d
+	$(HOSTCOMPILE.c)
+
+%.d: ;
+.PRECIOUS: %.d
+
+solo5-hvt: $(hvt_OBJS)
+	$(HOSTLINK)
+
+solo5-hvt-debug: $(hvt_OBJS) $(hvt_debug_OBJS)
+	$(HOSTLINK)
+
+endif # CONFIG_HVT
+
+all: $(all_TARGETS)
+
+all_OBJS := $(hvt_OBJS) $(hvt_debug_OBJS)
+all_DEPS := $(patsubst %.o,%.d,$(all_OBJS))
+
+.PHONY: clean
+
+clean:
+	@echo "CLEAN tenders/hvt"
+	$(RM) $(all_TARGETS) $(all_OBJS) $(all_DEPS)
+
+include $(wildcard $(all_DEPS))

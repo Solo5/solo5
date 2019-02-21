@@ -44,7 +44,8 @@ try()
 
 do_basic()
 {
-    message "Starting build: '${MAKE}'"
+    message "Starting build."
+    try ./configure.sh
     try ${MAKE}
     # Some CIs can now run tests, so do that.
     if [ -n "${SURF_RUN_TESTS}" ]; then
@@ -52,7 +53,7 @@ do_basic()
         # XXX grub-bhyve is unstable under nested virt, so don't run the
         # virtio tests on FreeBSD.
         if [ "$(uname -s)" = "FreeBSD" ]; then
-            echo BUILD_VIRTIO=no >>Makeconf
+            echo CONFIG_VIRTIO= >>Makeconf
         fi
         try ${SURF_SUDO} tests/setup-tests.sh
         try ${SURF_SUDO} tests/run-tests.sh

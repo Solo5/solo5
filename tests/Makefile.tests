@@ -16,77 +16,83 @@
 # NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
 # CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-TOP?=../..
-include $(TOP)/Makefile.common
+.SUFFIXES:
 
-.PHONY: hvt
-hvt: $(HVT_TARGETS)
+LDS.hvt := $(TOPDIR)/bindings/hvt/solo5_hvt.lds
+BINDINGS.hvt := $(TOPDIR)/bindings/hvt/solo5_hvt.o
+LDS.spt := $(TOPDIR)/bindings/spt/solo5_spt.lds
+BINDINGS.spt := $(TOPDIR)/bindings/spt/solo5_spt.o
+LDS.virtio := $(TOPDIR)/bindings/virtio/solo5_virtio.lds
+BINDINGS.virtio := $(TOPDIR)/bindings/virtio/solo5_virtio.o
+LDS.muen := $(TOPDIR)/bindings/muen/solo5_muen.lds
+BINDINGS.muen := $(TOPDIR)/bindings/muen/solo5_muen.o
+LDS.genode := $(TOPDIR)/bindings/genode/genode_dyn.ld
+BINDINGS.genode := $(TOPDIR)/bindings/genode/solo5.lib.so
 
-.PHONY: spt
-spt: $(SPT_TARGETS)
+# As a test is currently a single source file, we don't try to do any 
+# dependency auto-generation here, and just hard-code all expected dependencies
+# as pre-requisites below.
 
-.PHONY: virtio
-virtio:	$(VIRTIO_TARGETS)
+%.o: %.c ../../include/solo5/solo5.h
+	@echo "CC $<"
+	$(CC) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
 
-.PHONY: muen
-muen: $(MUEN_TARGETS)
+%.hvt: %.o $(LDS.hvt) $(BINDINGS.hvt)
+	@echo "LD $@"
+	$(LD) $(LDFLAGS) -T $(LDS.hvt) $(BINDINGS.hvt) $< -o $@
 
-.PHONY: genode
-genode: $(GENODE_TARGETS)
+%.spt: %.o $(LDS.spt) $(BINDINGS.spt)
+	@echo "LD $@"
+	$(LD) $(LDFLAGS) -T $(LDS.spt) $(BINDINGS.spt) $< -o $@
 
-BINDINGS_DIR=$(TOP)/bindings
-SOLO5_HVT_SRC=$(TOP)/tenders/hvt
+%.virtio: %.o $(LDS.virtio) $(BINDINGS.virtio)
+	@echo "LD $@"
+	$(LD) $(LDFLAGS) -T $(LDS.virtio) $(BINDINGS.virtio) $< -o $@
 
-CFLAGS+=-I$(BINDINGS_DIR)
+%.muen: %.o $(LDS.muen) $(BINDINGS.muen)
+	@echo "LD $@"
+	$(LD) $(LDFLAGS) -T $(LDS.muen) $(BINDINGS.muen) $< -o $@
 
-%.o: %.c $(HEADERS)
-	$(CC) $(CFLAGS) -c $< -o $@
-.PRECIOUS: %.o
+%.genode.o: %.c ../../include/solo5/solo5.h
+	@echo "GENODECC $<"
+	$(CC) $(GENODE_APP_CFLAGS) $(CPPFLAGS) -c $< -o $@
 
-ifeq ($(BUILD_HVT), yes)
-Makefile.solo5-hvt: $(SOLO5_HVT_SRC)/solo5-hvt-configure
-	$(SOLO5_HVT_SRC)/solo5-hvt-configure $(SOLO5_HVT_SRC) $(HVT_MODULES)
+%.genode: %.genode.o $(LDS.genode) $(BINDINGS.genode)
+	@echo "LD $@"
+	$(LD) $(GENODE_APP_LDFLAGS) -T $(LDS.genode) $< $(BINDINGS.genode) -o $@
 
--include Makefile.solo5-hvt
+test_TARGETS :=
 
-%.hvt: %.o $(BINDINGS_DIR)/hvt/solo5_hvt.lds $(BINDINGS_DIR)/hvt/solo5_hvt.o
-	$(LD) -T $(BINDINGS_DIR)/hvt/solo5_hvt.lds $(LDFLAGS) -o $@ $(BINDINGS_DIR)/hvt/solo5_hvt.o $< $(LDLIBS)
-
-$(BINDINGS_DIR)/hvt/solo5_hvt.o: 
-	$(MAKE) -C $(BINDINGS_DIR) hvt
+ifdef CONFIG_HVT
+    test_TARGETS += $(test_NAME).hvt
 endif
 
-ifeq ($(BUILD_SPT), yes)
-
-%.spt: %.o $(BINDINGS_DIR)/spt/solo5_spt.lds $(BINDINGS_DIR)/spt/solo5_spt.o
-	$(LD) -T $(BINDINGS_DIR)/spt/solo5_spt.lds $(LDFLAGS) -o $@ $(BINDINGS_DIR)/spt/solo5_spt.o $< $(LDLIBS)
-
-$(BINDINGS_DIR)/spt/solo5_spt.o: 
-	$(MAKE) -C $(BINDINGS_DIR) spt
+ifdef CONFIG_SPT
+    test_TARGETS += $(test_NAME).spt
 endif
 
-ifeq ($(BUILD_MUEN), yes)
-%.muen: %.o $(BINDINGS_DIR)/muen/solo5_muen.lds $(BINDINGS_DIR)/muen/solo5_muen.o
-	$(LD) -T $(BINDINGS_DIR)/muen/solo5_muen.lds $(LDFLAGS) -o $@ $(BINDINGS_DIR)/muen/solo5_muen.o $< $(LDLIBS)
-
-$(BINDINGS_DIR)/muen/solo5_muen.o:
-	$(MAKE) -C $(BINDINGS_DIR) muen
+ifdef CONFIG_VIRTIO
+    test_TARGETS += $(test_NAME).virtio
 endif
 
-ifeq ($(BUILD_GENODE), yes)
-%.genode: %.o $(BINDINGS_DIR)/genode/genode_dyn.ld $(BINDINGS_DIR)/genode/solo5.lib.so
-	$(LD) -T $(BINDINGS_DIR)/genode/genode_dyn.ld $(GENODE_LDFLAGS) -o $@ $(BINDINGS_DIR)/genode/solo5.lib.so $< $(LDLIBS)
-
-$(BINDINGS_DIR)/genode/solo5.lib.so:
-	$(MAKE) -C $(BINDINGS_DIR) genode
+ifdef CONFIG_MUEN
+    test_TARGETS += $(test_NAME).muen
 endif
 
-%.virtio: %.o $(BINDINGS_DIR)/virtio/solo5_virtio.lds $(BINDINGS_DIR)/virtio/solo5_virtio.o
-	$(LD) -T $(BINDINGS_DIR)/virtio/solo5_virtio.lds $(LDFLAGS) -o $@ $(BINDINGS_DIR)/virtio/solo5_virtio.o $< $(LDLIBS)
+ifdef CONFIG_GENODE
+    test_TARGETS += $(test_NAME).genode
+endif
 
-$(BINDINGS_DIR)/virtio/solo5_virtio.o: 
-	$(MAKE) -C $(BINDINGS_DIR) virtio
+.PRECIOUS: $(test_NAME).o $(test_NAME).genode.o
 
-.PHONY: clean solo5-hvt-clean
-clean: solo5-hvt-clean
-	$(RM) *.o $(HVT_TARGETS) Makefile.solo5-hvt $(SPT_TARGETS) $(VIRTIO_TARGETS) $(MUEN_TARGETS) $(GENODE_TARGETS)
+.PHONY: all
+
+all: $(test_TARGETS)
+
+.PHONY: clean
+
+clean:
+	@echo "CLEAN $(test_NAME)"
+	$(RM) $(test_NAME).o $(test_NAME).genode.o $(test_TARGETS)
+
+$(V).SILENT:

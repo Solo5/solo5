@@ -253,7 +253,7 @@ static int handle_cmdarg(char *cmdarg)
 static int setup(struct hvt *hvt)
 {
     if (netiface == NULL)
-        return -1;
+        return 0; /* Not present */
 
     /* attach to requested tap interface */
     netfd = tap_attach(netiface);
@@ -297,9 +297,9 @@ static char *usage(void)
         "    [ --net-mac=HWADDR ] (guest MAC address)";
 }
 
-struct hvt_module hvt_module_net = {
-    .name = "net",
+BEGIN_REGISTER_MODULE(net) {
     .setup = setup,
     .handle_cmdarg = handle_cmdarg,
     .usage = usage
-};
+}
+END_REGISTER_MODULE

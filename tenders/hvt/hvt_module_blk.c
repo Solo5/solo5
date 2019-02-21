@@ -109,7 +109,7 @@ static int handle_cmdarg(char *cmdarg)
 static int setup(struct hvt *hvt)
 {
     if (diskfile == NULL)
-        return -1;
+        return 0; /* Not present */
 
     /* set up virtual disk */
     diskfd = open(diskfile, O_RDWR);
@@ -135,9 +135,9 @@ static char *usage(void)
     return "--disk=IMAGE (file exposed to the unikernel as a raw block device)";
 }
 
-struct hvt_module hvt_module_blk = {
-    .name = "blk",
+BEGIN_REGISTER_MODULE(blk) {
     .setup = setup,
     .handle_cmdarg = handle_cmdarg,
     .usage = usage
-};
+}
+END_REGISTER_MODULE
