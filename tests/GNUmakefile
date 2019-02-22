@@ -16,47 +16,15 @@
 # NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
 # CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-TESTDIRS=test_hello test_globals test_ping_serve test_blk \
+TESTDIRS := test_hello test_globals test_ping_serve test_blk \
          test_exception test_abort test_fpu test_time test_quiet \
          test_zeropage test_notls test_ssp test_seccomp
 
-HVT_TESTS=$(subst test, _test_hvt, $(TESTDIRS))
-SPT_TESTS=$(subst test, _test_spt, $(TESTDIRS))
-VIRTIO_TESTS=$(subst test, _test_virtio, $(TESTDIRS))
-MUEN_TESTS=$(subst test, _test_muen, $(TESTDIRS))
-GENODE_TESTS=$(subst test, _test_genode, $(TESTDIRS))
-CLEANS=$(subst test, _clean, $(TESTDIRS))
+TOPTARGETS := all clean hvt spt muen virtio genode
 
-all: $(HVT_TESTS) $(SPT_TESTS) $(VIRTIO_TESTS) $(MUEN_TESTS)
+.PHONY: $(TOPTARGETS) $(TESTDIRS)
 
-hvt: $(HVT_TESTS)
+$(TOPTARGETS): $(TESTDIRS)
 
-spt: $(SPT_TESTS)
-
-virtio: $(VIRTIO_TESTS)
-
-muen: $(MUEN_TESTS)
-
-genode: $(GENODE_TESTS)
-
-clean: $(CLEANS)
-
-.PHONY: force_it
-
-_test_hvt%: force_it
-	$(MAKE) -C $(subst _test_hvt, test, $@) hvt
-
-_test_spt%: force_it
-	$(MAKE) -C $(subst _test_spt, test, $@) spt
-
-_test_virtio%: force_it
-	$(MAKE) -C $(subst _test_virtio, test, $@) virtio
-
-_test_muen%: force_it
-	$(MAKE) -C $(subst _test_muen, test, $@) muen
-
-_test_genode%: force_it
-	$(MAKE) -C $(subst _test_genode, test, $@) genode
-
-_clean_%: force_it
-	$(MAKE) -C $(subst _clean, test, $@) clean
+$(TESTDIRS):
+	$(MAKE) -C $@ $(MAKECMDGOALS)

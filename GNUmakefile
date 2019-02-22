@@ -21,58 +21,21 @@ $(TOP)/Makeconf:
 	./configure.sh
 include Makefile.common
 
-.PHONY: all
-all: hvt spt virtio muen genode
+SUBDIRS := bindings tenders/hvt tenders/spt tests
+
+tests: bindings
+
+.PHONY: $(SUBDIRS)
+
+.PHONY: all clean
+all: $(SUBDIRS)
 .DEFAULT_GOAL := all
-.NOTPARALLEL: hvt virtio muen genode
 
-.PHONY: virtio
-virtio:
-ifeq ($(BUILD_VIRTIO), yes)
-	$(MAKE) -C bindings virtio
-	$(MAKE) -C tests virtio
-endif
+$(SUBDIRS):
+	$(MAKE) -C $@ $(MAKECMDGOALS)
 
-.PHONY: hvt
-hvt:
-ifeq ($(BUILD_HVT), yes)
-	$(MAKE) -C bindings hvt
-	$(MAKE) -C tenders/hvt
-	$(MAKE) -C tests hvt
-endif
-
-.PHONY: spt
-spt:
-ifeq ($(BUILD_SPT), yes)
-	$(MAKE) -C bindings spt
-	$(MAKE) -C tenders/spt
-	$(MAKE) -C tests spt
-endif
-
-.PHONY: muen
-muen:
-ifeq ($(BUILD_MUEN), yes)
-	$(MAKE) -C bindings muen
-	$(MAKE) -C tests muen
-endif
-
-.PHONY: genode
-genode:
-ifeq ($(BUILD_GENODE), yes)
-	$(MAKE) -C bindings genode
-	$(MAKE) -C tests genode
-endif
-
-.PHONY: clean
-clean:
-	$(MAKE) -C bindings clean
-ifeq ($(BUILD_HVT), yes)
-	$(MAKE) -C tenders/hvt clean
-endif
-ifeq ($(BUILD_SPT), yes)
-	$(MAKE) -C tenders/spt clean
-endif
-	$(MAKE) -C tests clean
+.PHONY: clean-top
+clean: $(SUBDIRS)
 	$(RM) solo5-bindings-virtio.pc
 	$(RM) solo5-bindings-hvt.pc
 	$(RM) solo5-bindings-muen.pc
