@@ -16,7 +16,9 @@
 # NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
 # CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-.PHONY: all clean
+.PHONY: all
+
+all:
 
 TENDER_HOST=linux
 TENDER_ARCH=x86_64
@@ -38,7 +40,6 @@ else ifeq ($(TENDER_HOST), openbsd)
     hvt_SRCS += hvt_openbsd.c hvt_openbsd_$(TENDER_ARCH).c
 endif
 
-all: $(all_TARGETS)
 
 CC := cc
 CFLAGS := -Wall -Werror -std=c99 -O2 -g -I../../include/solo5
@@ -53,19 +54,17 @@ hvt_debug_SRCS := $(hvt_SRCS) $(patsubst %,hvt_module_%.c,$(hvt_debug_MODULES))
 hvt_debug_MODULES_u := $(shell echo $(hvt_debug_MODULES) | tr a-z A-Z)
 hvt_debug_MFLAGS := $(hvt_MFLAGS) $(patsubst %,-DHVT_MODULE_%,$(hvt_debug_MODULES_u))
 
-DEPDIR := .deps
-$(shell mkdir -p $(DEPDIR) >/dev/null)
-DEPFLAGS = -MT $@ -MMD -MP -MF $(DEPDIR)/$*.Td
-debug_DEPDIR := .deps_debug
-$(shell mkdir -p $(debug_DEPDIR) >/dev/null)
-debug_DEPFLAGS = -MT $@ -MMD -MP -MF $(debug_DEPDIR)/$*.Td
+DEPFLAGS = -MT $@ -MMD -MP -MF $(@D)/$*.Td
 
 .SUFFIXES:
 
-%.o: %.c $(DEPDIR)/%.d
+%.o: %.c %.d
 	@echo "CC $<"
 	$(CC) $(DEPFLAGS) $(CFLAGS) $(hvt_MFLAGS) -c $< -o $@
-	mv -f $(DEPDIR)/$*.Td $(DEPDIR)/$*.d && touch $@
+	mv -f $*.Td $*.d && touch $@
+
+%.d: ;
+.PRECIOUS: %.d
 
 solo5-hvt: $(hvt_OBJS)
 	@echo "LINK $@"
@@ -74,26 +73,31 @@ solo5-hvt: $(hvt_OBJS)
 _debug:
 	mkdir -p _debug
 
-_debug/%.o: %.c $(debug_DEPDIR)/%.d | _debug
+_debug/%.o: %.c _debug/%.d | _debug
 	@echo "CC [debug] $<"
-	$(CC) $(debug_DEPFLAGS) $(CFLAGS) $(hvt_debug_MFLAGS) -c $< -o $@
-	@mv -f $(debug_DEPDIR)/$*.Td $(debug_DEPDIR)/$*.d && touch $@
+	$(CC) $(DEPFLAGS) $(CFLAGS) $(hvt_debug_MFLAGS) -c $< -o $@
+	mv -f $(@D)/$*.Td $(@D)/$*.d && touch $@
+
+_debug/%.d: ;
+.PRECIOUS: _debug/%.d
 
 solo5-hvt-debug: $(hvt_debug_OBJS)
 	@echo "LINK $@"
 	$(CC) $(LDFLAGS) $^ $(LDLIBS) -o $@
 
-$(DEPDIR)/%.d: ;
-$(debug_DEPDIR)/%.d: ;
-.PRECIOUS: $(DEPDIR)/%.d
-.PRECIOUS: $(debug_DEPDIR)/%.d
+.PHONY: all
+
+all: $(all_TARGETS)
+
+all_OBJS := $(hvt_OBJS) $(hvt_debug_OBJS)
+all_DEPS := $(patsubst %.o,%.d,$(all_OBJS))
+
+.PHONY: clean
 
 clean:
 	@echo "CLEAN"
-	$(RM) solo5-hvt solo5-hvt-debug $(hvt_OBJS) $(hvt_debug_OBJS)
-	$(RM) -r $(DEPDIR) $(debug_DEPDIR) _debug/
+	$(RM) $(all_TARGETS) $(all_OBJS) $(all_DEPS)
 
 $(V).SILENT:
 
-include $(wildcard $(patsubst %,$(DEPDIR)/%.d,$(basename $(hvt_SRCS))))
-include $(wildcard $(patsubst %,$(debug_DEPDIR)/%.d,$(basename $(hvt_debug_SRCS))))
+include $(wildcard $(all_DEPS))

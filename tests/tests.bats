@@ -51,6 +51,7 @@ setup() {
       ;;
     esac
     HVT_TENDER=../tenders/hvt/solo5-hvt
+    HVT_TENDER_DEBUG=../tenders/hvt/solo5-hvt-debug
     ;;
   *virtio)
     if [ "$(uname -s)" = "OpenBSD" ]; then
@@ -322,15 +323,9 @@ teardown() {
       skip "not implemented for ${TEST_TARGET}"
       ;;
   esac
-  run ${TIMEOUT} --foreground 30s ${HVT_TENDER} --dumpcore test_abort/test_abort.hvt
+  run ${TIMEOUT} --foreground 30s ${HVT_TENDER_DEBUG} --dumpcore test_abort/test_abort.hvt
   [ "$status" -eq 255 ]
   CORE=`echo "$output" | grep -o "core\.solo5-hvt\.[0-9]*$"`
   [ -f "$CORE" ]
   [ -f "$CORE" ] && mv "$CORE" "$BATS_TMPDIR"
-}
-
-@test "abort virtio" {
-  run ${TIMEOUT} --foreground 30s ${VIRTIO} -- test_abort/test_abort.virtio
-  [ "$status" -eq 0 -o "$status" -eq 2 -o "$status" -eq 83 ]
-  [[ "$output" == *"solo5_abort() called"* ]]
 }

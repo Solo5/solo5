@@ -16,10 +16,8 @@
 # NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
 # CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-HVT_TARGETS=test_quiet.hvt
-SPT_TARGETS=test_quiet.spt
-VIRTIO_TARGETS=test_quiet.virtio
-MUEN_TARGETS=test_quiet.muen
-GENODE_TARGETS=test_quiet.genode
+include $(TOPDIR)/Makefile.common
+
+test_NAME := test_quiet
 
 include ../Makefile.tests

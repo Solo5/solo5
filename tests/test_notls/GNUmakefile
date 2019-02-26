@@ -16,10 +16,8 @@
 # NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
 # CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-HVT_TARGETS=test_notls.hvt
-SPT_TARGETS=test_notls.spt
-VIRTIO_TARGETS=test_notls.virtio
-MUEN_TARGETS=test_notls.muen
-GENODE_TARGETS=test_notls.genode
+include $(TOPDIR)/Makefile.common
+
+test_NAME := test_notls
 
 include ../Makefile.tests

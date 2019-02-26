@@ -16,8 +16,10 @@
 # NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
 # CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-export TOP=$(abspath .)
+export TOPDIR := $(abspath .)
+export TOP := $(abspath .)
 $(TOP)/Makeconf:
+	@echo CONFIGURE
 	./configure.sh
 include Makefile.common
 
@@ -32,10 +34,12 @@ all: $(SUBDIRS)
 .DEFAULT_GOAL := all
 
 $(SUBDIRS):
+	@echo "MAKE $@"
 	$(MAKE) -C $@ $(MAKECMDGOALS)
 
 .PHONY: clean-top
 clean: $(SUBDIRS)
+	@echo CLEAN
 	$(RM) solo5-bindings-virtio.pc
 	$(RM) solo5-bindings-hvt.pc
 	$(RM) solo5-bindings-muen.pc
@@ -142,3 +146,5 @@ opam-spt-uninstall:
 	$(RM) -r $(OPAM_SPT_INCDIR) $(OPAM_SPT_LIBDIR)
 	$(RM) $(PREFIX)/lib/pkgconfig/solo5-bindings-spt.pc
 	$(RM) ${OPAM_BINDIR}/solo5-spt
+
+$(V).SILENT:

@@ -16,15 +16,14 @@
 # NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
 # CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-TESTDIRS := test_hello test_globals test_ping_serve test_blk \
-         test_exception test_abort test_fpu test_time test_quiet \
-         test_zeropage test_notls test_ssp test_seccomp
+TESTDIRS := $(wildcard test_*)
 
-TOPTARGETS := all clean hvt spt muen virtio genode
+TOPTARGETS := all clean
 
 .PHONY: $(TOPTARGETS) $(TESTDIRS)
 
 $(TOPTARGETS): $(TESTDIRS)
 
 $(TESTDIRS):
+	@echo "MAKE $@"
 	$(MAKE) -C $@ $(MAKECMDGOALS)
