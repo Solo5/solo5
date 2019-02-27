@@ -17,8 +17,7 @@
 # CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 export TOPDIR := $(abspath .)
-export TOP := $(abspath .)
-$(TOP)/Makeconf:
+$(TOPDIR)/Makeconf:
 	@echo CONFIGURE
 	./configure.sh
 include Makefile.common
@@ -39,7 +38,7 @@ $(SUBDIRS):
 
 .PHONY: clean-top
 clean: $(SUBDIRS)
-	@echo CLEAN
+	@echo "CLEAN solo5"
 	$(RM) solo5-bindings-virtio.pc
 	$(RM) solo5-bindings-hvt.pc
 	$(RM) solo5-bindings-muen.pc

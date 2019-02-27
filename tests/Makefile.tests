@@ -88,6 +88,7 @@ all: $(test_TARGETS)
 .PHONY: clean
 
 clean:
+	@echo "CLEAN $(test_NAME)"
 	$(RM) $(test_NAME).o $(test_TARGETS)
 
 $(V).SILENT:

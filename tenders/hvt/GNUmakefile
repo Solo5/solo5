@@ -95,7 +95,7 @@ all_DEPS := $(patsubst %.o,%.d,$(all_OBJS))
 .PHONY: clean
 
 clean:
-	@echo "CLEAN"
+	@echo "CLEAN tenders/hvt"
 	$(RM) $(all_TARGETS) $(all_OBJS) $(all_DEPS)
 
 $(V).SILENT:

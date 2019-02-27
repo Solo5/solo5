@@ -16,8 +16,6 @@
 # NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
 # CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-export TOP ?= ..
-export TOPDIR ?= ..
 include $(TOPDIR)/Makefile.common
 
 .PHONY: all
@@ -157,7 +155,7 @@ all_DEPS := $(patsubst %.o,%.d,$(all_OBJS))
 
 .PHONY: clean
 clean:
-	@echo "CLEAN"
+	@echo "CLEAN bindings"
 	$(RM) $(all_TARGETS) $(all_OBJS) $(all_DEPS)
 
 $(V).SILENT:
