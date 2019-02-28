@@ -23,7 +23,8 @@ setup() {
   MAKECONF=../Makeconf
   [ ! -f ${MAKECONF} ] && skip "Can't find Makeconf, looked in ${MAKECONF}"
   eval $(grep -E ^BUILD_.+=.+ ${MAKECONF})
-  eval $(grep -E ^TEST_TARGET=.+ ${MAKECONF})
+  eval $(grep -E ^C_HOST=.+ ${MAKECONF})
+  eval $(grep -E ^C_ARCH=.+ ${MAKECONF})
 
   if [ -x "$(command -v timeout)" ]; then
     TIMEOUT=timeout
@@ -36,18 +37,15 @@ setup() {
   case "${BATS_TEST_NAME}" in
   *hvt)
     [ "${BUILD_HVT}" = "no" ] && skip "hvt not built"
-    case ${TEST_TARGET} in
-    *-linux-gnu)
+    case ${C_HOST} in
+    Linux)
       [ -c /dev/kvm -a -w /dev/kvm ] || skip "no access to /dev/kvm or not present"
       ;;
-    x86_64-*-freebsd*)
-      # TODO, just try and run the test anyway
-      ;;
-    amd64-unknown-openbsd*)
+    FreeBSD|OpenBSD)
       # TODO, just try and run the test anyway
       ;;
     *)
-      skip "Don't know how to run ${BATS_TEST_NAME} on ${TEST_TARGET}"
+      skip "Don't know how to run ${BATS_TEST_NAME} on ${C_HOST}"
       ;;
     esac
     HVT_TENDER=../tenders/hvt/solo5-hvt
@@ -316,11 +314,12 @@ teardown() {
 }
 
 @test "abort hvt" {
-  case ${TEST_TARGET} in
-    x86_64-linux-gnu|x86_64-*-freebsd*)
+  [ "${C_ARCH}" = "x86_64" ] || skip "not implemented for ${C_ARCH}"
+  case ${C_HOST} in
+    Linux|FreeBSD)
       ;;
     *)
-      skip "not implemented for ${TEST_TARGET}"
+      skip "not implemented for ${C_HOST}"
       ;;
   esac
   run ${TIMEOUT} --foreground 30s ${HVT_TENDER_DEBUG} --dumpcore test_abort/test_abort.hvt
