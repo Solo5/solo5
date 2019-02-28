@@ -26,6 +26,8 @@ all_TARGETS :=
 .SUFFIXES:
 $(V).SILENT:	
 
+ifdef BUILD_HVT
+
 hvt_SRCS := hvt_core.c hvt_elf.c hvt_main.c hvt_cpu_$(ARCH).c
 hvt_MODULES ?= blk net
 
@@ -58,6 +60,8 @@ solo5-hvt: $(hvt_OBJS)
 
 solo5-hvt-debug: $(hvt_OBJS) $(hvt_debug_OBJS)
 	$(HOSTLINK)
+
+endif # BUILD_HVT
 
 all: $(all_TARGETS)
 

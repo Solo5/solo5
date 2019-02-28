@@ -217,7 +217,7 @@ case "${HOST}" in
         BUILD_GENODE=1
         ;;
     *)
-        die "Unsupported build OS: $(uname -s)"
+        die "Unsupported build OS: ${HOST}"
         ;;
 esac
 

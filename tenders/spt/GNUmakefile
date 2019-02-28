@@ -26,6 +26,8 @@ all_TARGETS :=
 .SUFFIXES:
 $(V).SILENT:
 
+ifdef BUILD_SPT
+
 HOSTLDFLAGS += -Wl,-z -Wl,noexecstack $(SPT_EXTRA_LDFLAGS)
 HOSTLDLIBS += -lseccomp
 
@@ -47,6 +49,8 @@ solo5-spt: $(spt_OBJS)
 	$(HOSTLINK)
 
 all_TARGETS += solo5-spt
+
+endif # BUILD_SPT
 
 all: $(all_TARGETS)
 
