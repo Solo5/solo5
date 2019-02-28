@@ -668,9 +668,9 @@ static char *usage(void)
         "    [ --gdb-port=1234 ] (port to use) ";
 }
 
-struct hvt_module hvt_module_gdb = {
-    .name = "gdb",
+BEGIN_REGISTER_MODULE(gdb) {
     .setup = setup,
     .handle_cmdarg = handle_cmdarg,
     .usage = usage
-};
+}
+END_REGISTER_MODULE

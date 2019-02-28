@@ -297,9 +297,9 @@ static char *usage(void)
         "    [ --net-mac=HWADDR ] (guest MAC address)";
 }
 
-struct hvt_module hvt_module_net = {
-    .name = "net",
+BEGIN_REGISTER_MODULE(net) {
     .setup = setup,
     .handle_cmdarg = handle_cmdarg,
     .usage = usage
-};
+}
+END_REGISTER_MODULE

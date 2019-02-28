@@ -41,26 +41,6 @@
 
 #include "hvt.h"
 
-struct hvt_module hvt_module_core;
-
-struct hvt_module *hvt_core_modules[] = {
-    &hvt_module_core,
-#ifdef HVT_MODULE_DUMPCORE
-    &hvt_module_dumpcore,
-#endif
-#ifdef HVT_MODULE_BLK
-    &hvt_module_blk,
-#endif
-#ifdef HVT_MODULE_NET
-    &hvt_module_net,
-#endif
-#ifdef HVT_MODULE_GDB
-    &hvt_module_gdb,
-#endif
-    NULL,
-};
-#define NUM_MODULES ((sizeof hvt_core_modules / sizeof (struct hvt_module *)) - 1)
-
 hvt_hypercall_fn_t hvt_core_hypercalls[HVT_HYPERCALL_MAX] = { 0 };
 
 int hvt_core_register_hypercall(int nr, hvt_hypercall_fn_t fn)
@@ -114,6 +94,7 @@ int hvt_core_hypercall_halt(struct hvt *hvt, hvt_gpa_t gpa)
     return t->exit_status;
 }
 
+#define NUM_MODULES 8
 hvt_vmexit_fn_t hvt_core_vmexits[NUM_MODULES + 1] = { 0 };
 static int nvmexits = 0;
 
@@ -195,7 +176,7 @@ static int setup(struct hvt *hvt)
     return 0;
 }
 
-struct hvt_module hvt_module_core = {
-    .name = "core",
+BEGIN_REGISTER_MODULE(core) {
     .setup = setup
-};
+}
+END_REGISTER_MODULE

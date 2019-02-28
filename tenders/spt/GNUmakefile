@@ -16,49 +16,37 @@
 # NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
 # CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-include $(TOPDIR)/Makeconf
+TOPDIR ?= ../..
+include $(TOPDIR)/Makefile.common
 
 .PHONY: all
-
 all:
+all_TARGETS :=
 
-TENDER_ARCH=x86_64
+.SUFFIXES:
+$(V).SILENT:
 
-CFLAGS=-Wall -Werror -std=c99 -O2 -g -I../../include/solo5
-LDFLAGS=-Wl,-z -Wl,noexecstack $(SPT_EXTRA_LDFLAGS)
-LDLIBS=-lseccomp
+HOSTLDFLAGS += -Wl,-z -Wl,noexecstack $(SPT_EXTRA_LDFLAGS)
+HOSTLDLIBS += -lseccomp
 
-spt_SRCS := spt_main.c spt_core.c spt_elf.c spt_launch_$(TENDER_ARCH).S \
+spt_SRCS := spt_main.c spt_core.c spt_elf.c spt_launch_$(ARCH).S \
      spt_module_net.c spt_module_block.c
 
 spt_OBJS := $(patsubst %.c,%.o,$(patsubst %.S,%.o,$(spt_SRCS)))
 
-DEPFLAGS = -MT $@ -MMD -MP -MF $(@D)/$*.Td
-
-.SUFFIXES:
-
 %.o: %.c %.d
-	@echo "CC $<"
-	$(CC) $(DEPFLAGS) $(CFLAGS) -c $< -o $@
-	mv -f $*.Td $*.d && touch $@
+	$(HOSTCOMPILE.c)
 
 %.o: %.S %.d
-	@echo "AS $<"
-	$(CC) $(DEPFLAGS) $(CFLAGS) -DASM_FILE -c $< -o $@
-	mv -f $*.Td $*.d && touch $@
+	$(HOSTCOMPILE.S)
 
 %.d: ;
 .PRECIOUS: %.d
 
-all_TARGETS :=
-
 solo5-spt: $(spt_OBJS)
-	@echo "LINK $@"
-	$(CC) $(LDFLAGS) $^ $(LDLIBS) -o $@
+	$(HOSTLINK)
 
 all_TARGETS += solo5-spt
-
-.PHONY: all
 
 all: $(all_TARGETS)
 
@@ -68,9 +56,7 @@ all_DEPS := $(patsubst %.o,%.d,$(all_OBJS))
 .PHONY: clean
 
 clean:
-	@echo "CLEAN tenders/hvt"
+	@echo "CLEAN tenders/spt"
 	$(RM) $(all_TARGETS) $(all_OBJS) $(all_DEPS)
-
-$(V).SILENT:
 
 include $(wildcard $(all_DEPS))

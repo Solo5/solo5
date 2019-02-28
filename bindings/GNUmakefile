@@ -19,12 +19,13 @@
 include $(TOPDIR)/Makefile.common
 
 .PHONY: all
-
 all:
+all_TARGETS :=
 
-BINDINGS_ARCH=x86_64
+.SUFFIXES:
+$(V).SILENT:
 
-common_SRCS := abort.c cpu_$(BINDINGS_ARCH).c cpu_vectors_$(BINDINGS_ARCH).S \
+common_SRCS := abort.c cpu_$(ARCH).c cpu_vectors_$(ARCH).S \
     crt.c printf.c intr.c lib.c mem.c exit.c log.c cmdline.c
 
 common_hvt_SRCS := hvt/start.c hvt/platform.c hvt/platform_intr.c hvt/time.c
@@ -35,7 +36,7 @@ hvt_SRCS := $(common_SRCS) $(common_hvt_SRCS) \
 
 spt_SRCS := abort.c crt.c printf.c lib.c mem.c exit.c log.c cmdline.c \
     spt/bindings.c spt/block.c spt/net.c spt/platform.c spt/start.c \
-    spt/sys_linux_$(BINDINGS_ARCH).c
+    spt/sys_linux_$(ARCH).c
 
 virtio_SRCS := $(common_SRCS) \
     virtio/boot.S virtio/start.c virtio/platform.c virtio/platform_intr.c \
@@ -50,27 +51,19 @@ muen_SRCS := $(common_SRCS) $(common_hvt_SRCS) \
 
 genode_SRCS := genode/stubs.c
 
-CFLAGS+=-D__SOLO5_BINDINGS__
+CPPFLAGS+=-D__SOLO5_BINDINGS__
 
-ifeq ($(TARGET_ARCH), x86_64)
+ifeq ($(ARCH), x86_64)
 # Prevent the compiler from adding optimizations that use shared FPU state.
 # This is necessary for early boot code and trap handlers.
-MD_CFLAGS+=-mno-sse -mno-mmx -mno-aes -mno-avx
+CFLAGS+=-mno-sse -mno-mmx -mno-aes -mno-avx -mno-red-zone
 endif
 
-DEPFLAGS = -MT $@ -MMD -MP -MF $*.Td
-
-.SUFFIXES:
-
 %.o: %.c %.d
-	@echo "CC $<"
-	$(CC) $(DEPFLAGS) $(CFLAGS) -c $< -o $@
-	mv -f $*.Td $*.d && touch $@
+	$(COMPILE.c)
 
 %.o: %.S %.d
-	@echo "AS $<"
-	$(CC) $(DEPFLAGS) $(CFLAGS) -DASM_FILE -c $< -o $@
-	mv -f $*.Td $*.d && touch $@
+	$(COMPILE.S)
 
 %.d: ;
 .PRECIOUS: %.d
@@ -135,7 +128,7 @@ ifdef BUILD_GENODE
 
 $(genode_OBJS): %.o: %.c %.d
 	@echo "STUBCC $<"
-	$(CC) $(DEPFLAGS) $(CFLAGS) -Wno-unused-parameter -c $< -o $@
+	$(CC) $(DEPFLAGS) $(CFLAGS) $(CPPFLAGS) -Wno-unused-parameter -c $< -o $@
 	mv -f $*.Td $*.d && touch $@
 
 genode/solo5.lib.so: $(genode_OBJS)
@@ -147,8 +140,6 @@ genode/solo5.lib.so: $(genode_OBJS)
     all_SRCS += $(genode_SRCS)
 endif
 
-.PHONY: all
-
 all: $(all_TARGETS)
 
 all_DEPS := $(patsubst %.o,%.d,$(all_OBJS))
@@ -157,7 +148,5 @@ all_DEPS := $(patsubst %.o,%.d,$(all_OBJS))
 clean:
 	@echo "CLEAN bindings"
 	$(RM) $(all_TARGETS) $(all_OBJS) $(all_DEPS)
-
-$(V).SILENT:
 
 include $(wildcard $(all_DEPS))

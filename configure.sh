@@ -67,18 +67,25 @@ ld_is_lld()
 CC=${CC:-cc}
 LD=${LD:-ld}
 
-TARGET=$(${CC} -dumpmachine)
+CC_MACHINE=$(${CC} -dumpmachine)
 [ $? -ne 0 ] &&
     die "Could not run '${CC} -dumpmachine', is your compiler working?"
-case ${TARGET} in
-    x86_64-*|amd64-*)
-        TARGET_ARCH=x86_64
+# Determine HOST and ARCH based on what the toolchain reports.
+case ${CC_MACHINE} in
+    x86_64-linux*)
+        ARCH=x86_64 HOST=Linux
         ;;
-    aarch64-*)
-        TARGET_ARCH=aarch64
+    aarch64-linux*)
+        ARCH=aarch64 HOST=Linux
         ;;
+    amd64-*freebsd*)
+        ARCH=x86_64 HOST=FreeBSD
+	;;
+    amd64-*openbsd*)
+        ARCH=x86_64 HOST=OpenBSD
+	;;
     *)
-        die "Unsupported compiler target: ${TARGET}"
+        die "Unsupported toolchain target: ${CC_MACHINE}"
         ;;
 esac
 
@@ -87,7 +94,15 @@ esac
 # pkg-config.
 HOST_INCDIR=${PWD}/include/crt
 
-case $(uname -s) in
+BUILD_HVT=
+BUILD_SPT=
+BUILD_VIRTIO=
+BUILD_MUEN=
+BUILD_GENODE=
+C_CFLAGS=
+C_LDFLAGS=
+
+case "${HOST}" in
     Linux)
         # On Linux/gcc we use -nostdinc and copy all the gcc-provided headers.
         cc_is_gcc || die "Only 'gcc' 4.x+ is supported on Linux"
@@ -96,7 +111,7 @@ case $(uname -s) in
         mkdir -p ${HOST_INCDIR}
         cp -R ${CC_INCDIR}/. ${HOST_INCDIR}
 
-        HOST_CFLAGS="-nostdinc"
+        C_CFLAGS="-nostdinc"
         # Recent distributions now default to PIE enabled. Disable it explicitly
         # if that's the case here.
         # XXX: This breaks MirageOS in (at least) the build of mirage-solo5 due
@@ -109,10 +124,10 @@ case $(uname -s) in
         # Any GCC configured for a Linux/x86_64 target (actually, any
         # glibc-based target) will use a TLS slot to address __stack_chk_guard.
         # Disable this behaviour and use an ordinary global variable instead.
-        if [ "${TARGET_ARCH}" = "x86_64" ]; then
+        if [ "${ARCH}" = "x86_64" ]; then
             gcc_check_option -mstack-protector-guard=global || \
                 die "GCC 4.9.0 or newer is required for -mstack-protector-guard= support"
-            HOST_CFLAGS="${HOST_CFLAGS} -mstack-protector-guard=global"
+            C_CFLAGS="${C_CFLAGS} -mstack-protector-guard=global"
         fi
 
         # If the host toolchain is NOT configured to build PIE exectuables by
@@ -124,24 +139,16 @@ case $(uname -s) in
             SPT_EXTRA_LDFLAGS="-Wl,-Ttext-segment=0x40000000"
         fi
 
-        BUILD_HVT="yes"
-        BUILD_SPT="yes"
-        if [ "${TARGET_ARCH}" = "x86_64" ]; then
-            BUILD_VIRTIO="yes"
-            BUILD_MUEN="yes"
-            BUILD_GENODE="yes"
-        else
-            BUILD_VIRTIO="no"
-            BUILD_MUEN="no"
-            BUILD_GENODE="no"
-        fi
+        BUILD_HVT=1
+        BUILD_SPT=1
+        [ "${ARCH}" = "x86_64" ] && BUILD_VIRTIO=1 BUILD_MUEN=1 BUILD_GENODE=1
         ;;
     FreeBSD)
         # On FreeBSD/clang we use -nostdlibinc which gives us access to the
         # clang-provided headers for compiler instrinsics. We copy the rest
         # (std*.h, float.h and their dependencies) from the host.
         cc_is_clang || die "Only 'clang' is supported on FreeBSD"
-        [ "${TARGET_ARCH}" = "x86_64" ] ||
+        [ "${ARCH}" = "x86_64" ] ||
             die "Only 'x86_64' is supported on FreeBSD"
         INCDIR=/usr/include
         SRCS_MACH="machine/_stdint.h machine/_types.h machine/endian.h \
@@ -163,19 +170,17 @@ case $(uname -s) in
         #
         # FreeBSD toolchains use a global (non-TLS) __stack_chk_guard by
         # default on x86_64, so there is nothing special we need to do here.
-        HOST_CFLAGS="-nostdlibinc"
-        BUILD_HVT="yes"
-        BUILD_VIRTIO="yes"
-        BUILD_MUEN="yes"
-        BUILD_GENODE="yes"
-        BUILD_SPT="no"
+        C_CFLAGS="-nostdlibinc"
+
+        BUILD_HVT=1
+        [ "${ARCH}" = "x86_64" ] && BUILD_VIRTIO=1 BUILD_MUEN=1 BUILD_GENODE=1
         ;;
     OpenBSD)
         # On OpenBSD/clang we use -nostdlibinc which gives us access to the
         # clang-provided headers for compiler instrinsics. We copy the rest
         # (std*.h, cdefs.h and their dependencies) from the host.
         cc_is_clang || die "Only 'clang' is supported on OpenBSD"
-        [ "${TARGET_ARCH}" = "x86_64" ] ||
+        [ "${ARCH}" = "x86_64" ] ||
             die "Only 'x86_64' is supported on OpenBSD"
         if ! ld_is_lld; then
             LD='/usr/bin/ld.lld'
@@ -203,14 +208,13 @@ case $(uname -s) in
         # we don't support yet. Unfortunately LLVM does not support
         # -mstack-protector-guard, so disable SSP on OpenBSD for the time
         # being.
-        HOST_CFLAGS="-fno-stack-protector -nostdlibinc"
+        C_CFLAGS="-fno-stack-protector -nostdlibinc"
         warn "Stack protector (SSP) disabled on OpenBSD due to toolchain issues"
-        HOST_LDFLAGS="-nopie"
-        BUILD_HVT="yes"
-        BUILD_VIRTIO="yes"
-        BUILD_MUEN="yes"
-        BUILD_GENODE="yes"
-        BUILD_SPT="no"
+        C_LDFLAGS="-nopie"
+        BUILD_HVT=1
+        BUILD_VIRTIO=1
+        BUILD_MUEN=1
+        BUILD_GENODE=1
         ;;
     *)
         die "Unsupported build OS: $(uname -s)"
@@ -218,17 +222,17 @@ case $(uname -s) in
 esac
 
 cat <<EOM >Makeconf
-# Generated by configure.sh, using CC=${CC} for target ${TARGET}
+# Generated by configure.sh, using CC=${CC} for target ${CC_MACHINE}
 BUILD_HVT=${BUILD_HVT}
 BUILD_SPT=${BUILD_SPT}
 BUILD_VIRTIO=${BUILD_VIRTIO}
 BUILD_MUEN=${BUILD_MUEN}
 BUILD_GENODE=${BUILD_GENODE}
-HOST_CFLAGS=${HOST_CFLAGS}
-HOST_LDFLAGS=${HOST_LDFLAGS}
-TEST_TARGET=${TARGET}
-TARGET_ARCH=${TARGET_ARCH}
-CC=${CC}
-LD=${LD}
+C_CFLAGS=${HOST_CFLAGS}
+C_LDFLAGS=${HOST_LDFLAGS}
+C_ARCH=${ARCH}
+C_HOST=${HOST}
+C_CC=${CC}
+C_LD=${LD}
 SPT_EXTRA_LDFLAGS=${SPT_EXTRA_LDFLAGS}
 EOM
