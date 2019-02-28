@@ -75,242 +75,220 @@ teardown() {
   rm -f ${DISK}
 }
 
+hvt_run() {
+  run ${TIMEOUT} --foreground 30s ${HVT_TENDER} "$@"
+}
+
+spt_run() {
+  run ${TIMEOUT} --foreground 30s ${SPT_TENDER} "$@"
+}
+
+virtio_run() {
+  run ${TIMEOUT} --foreground 30s ${VIRTIO} "$@"
+}
+
+expect_success() {
+  [ "$status" -eq 0 ] && [[ "$output" == *"SUCCESS"* ]]
+}
+
+virtio_expect_success() {
+  [ "$status" -eq 0 -o "$status" -eq 2 -o "$status" -eq 83 ] && \
+    [[ "$output" == *"SUCCESS"* ]]
+}
+
+expect_abort() {
+  [ "$status" -eq 255 ] && [[ "$output" == *"ABORT"* ]]
+}
+
+virtio_expect_abort() {
+  [ "$status" -eq 0 -o "$status" -eq 2 -o "$status" -eq 83 ] && \
+    [[ "$output" == *"ABORT"* ]]
+}
+
+# ------------------------------------------------------------------------------
+# Tests start here
+# ------------------------------------------------------------------------------
+
 @test "hello hvt" {
-  run ${TIMEOUT} --foreground 30s ${HVT_TENDER} test_hello/test_hello.hvt Hello_Solo5
-  [ "$status" -eq 0 ]
+  hvt_run test_hello/test_hello.hvt Hello_Solo5
+  expect_success
 }
 
 @test "hello virtio" {
-  run ${TIMEOUT} --foreground 30s ${VIRTIO} -- test_hello/test_hello.virtio Hello_Solo5
-  [ "$status" -eq 0 -o "$status" -eq 2 -o "$status" -eq 83 ]
-  [[ "$output" == *"SUCCESS"* ]]
+  virtio_run test_hello/test_hello.virtio Hello_Solo5
+  virtio_expect_success
 }
 
 @test "hello spt" {
-  run ${TIMEOUT} --foreground 30s ${SPT_TENDER} test_hello/test_hello.spt Hello_Solo5
-  [ "$status" -eq 0 ]
+  spt_run test_hello/test_hello.spt Hello_Solo5
+  expect_success
 }
 
 @test "quiet hvt" {
-  run ${TIMEOUT} --foreground 30s ${HVT_TENDER} test_quiet/test_quiet.hvt --solo5:quiet
-  [ "$status" -eq 0 ]
-  [[ "$output" == *"SUCCESS"* ]]
+  hvt_run -- test_quiet/test_quiet.hvt --solo5:quiet
+  expect_success
   [[ "$output" != *"Solo5:"* ]]
 }
 
 @test "quiet virtio" {
-  run ${TIMEOUT} --foreground 30s ${VIRTIO} -- test_quiet/test_quiet.virtio --solo5:quiet
-  [ "$status" -eq 0 -o "$status" -eq 2 -o "$status" -eq 83 ]
-  OS="$(uname -s)"
-  case ${OS} in
-  Linux)
-    [[ "$output" == *"SUCCESS"* ]]
-    [[ "$output" != *"Solo5:"* ]]
-    ;;
-  FreeBSD)
-    [[ "${lines[3]}" == "**** Solo5 standalone test_verbose ****" ]]
-    [[ "${lines[4]}" == "SUCCESS" ]]
-    [[ "${lines[5]}" == "Solo5: Halted" ]]
-    ;;
-  OpenBSD)
-    [[ "${lines[3]}" == "**** Solo5 standalone test_verbose ****" ]]
-    [[ "${lines[4]}" == "SUCCESS" ]]
-    [[ "${lines[5]}" == "Solo5: Halted" ]]
-    ;;
-  *)
-    skip "Don't know how to run on ${OS}"
-    ;;
-  esac
+  virtio_run -- test_quiet/test_quiet.virtio --solo5:quiet
+  virtio_expect_success
+  # XXX "Solo5: Halted" might be printed (see old version), what to test for
+  # here?
 }
 
 @test "quiet spt" {
-  run ${TIMEOUT} --foreground 30s ${SPT_TENDER} test_quiet/test_quiet.spt --solo5:quiet
-  [ "$status" -eq 0 ]
-  [[ "$output" == *"SUCCESS"* ]]
+  spt_run -- test_quiet/test_quiet.spt --solo5:quiet
+  expect_success
   [[ "$output" != *"Solo5:"* ]]
 }
 
 @test "globals hvt" {
-  run ${TIMEOUT} --foreground 30s ${HVT_TENDER} test_globals/test_globals.hvt
-  [ "$status" -eq 0 ]
+  hvt_run test_globals/test_globals.hvt
+  expect_success
 }
 
 @test "globals virtio" {
-  run ${TIMEOUT} --foreground 30s ${VIRTIO} -- test_globals/test_globals.virtio
-  [ "$status" -eq 0 -o "$status" -eq 2 -o "$status" -eq 83 ]
-  [[ "$output" == *"SUCCESS"* ]]
+  virtio_run test_globals/test_globals.virtio
+  virtio_expect_success
 }
 
 @test "globals spt" {
-  run ${TIMEOUT} --foreground 30s ${SPT_TENDER} test_globals/test_globals.spt
-  [ "$status" -eq 0 ]
+  spt_run test_globals/test_globals.spt
+  expect_success
 }
 
 @test "exception hvt" {
-  run ${TIMEOUT} --foreground 30s ${HVT_TENDER} test_exception/test_exception.hvt
-  [ "$status" -eq 255 ]
-  [[ "$output" == *"ABORT"* ]]
+  hvt_run test_exception/test_exception.hvt
+  expect_abort
 }
 
 @test "exception virtio" {
-  run ${TIMEOUT} --foreground 30s ${VIRTIO} -- test_exception/test_exception.virtio
-  [ "$status" -eq 0 -o "$status" -eq 2 -o "$status" -eq 83 ]
-  [[ "$output" == *"ABORT"* ]]
+  virtio_run test_exception/test_exception.virtio
+  virtio_expect_abort
 }
 
 @test "exception spt" {
-  run ${TIMEOUT} --foreground 30s ${SPT_TENDER} test_exception/test_exception.spt
+  spt_run test_exception/test_exception.spt
   [ "$status" -eq 139 ] # SIGSEGV
 }
 
 @test "zeropage hvt" {
-  run ${TIMEOUT} --foreground 30s ${HVT_TENDER} test_zeropage/test_zeropage.hvt
-  [ "$status" -eq 255 ]
-  [[ "$output" == *"ABORT"* ]]
+  hvt_run test_zeropage/test_zeropage.hvt
+  expect_abort
 }
 
 @test "zeropage virtio" {
-  run ${TIMEOUT} --foreground 30s ${VIRTIO} -- test_zeropage/test_zeropage.virtio
-  [ "$status" -eq 0 -o "$status" -eq 2 -o "$status" -eq 83 ]
-  [[ "$output" == *"ABORT"* ]]
+  virtio_run test_zeropage/test_zeropage.virtio
+  virtio_expect_abort
 }
 
 @test "zeropage spt" {
-  run ${TIMEOUT} --foreground 30s ${SPT_TENDER} test_zeropage/test_zeropage.spt
+  spt_run test_zeropage/test_zeropage.spt
   [ "$status" -eq 139 ] # SIGSEGV
 }
 
 @test "notls hvt" {
-  run ${TIMEOUT} --foreground 30s ${HVT_TENDER} test_notls/test_notls.hvt
-  [ "$status" -eq 255 ]
-  [[ "$output" == *"ABORT"* ]]
+  hvt_run test_notls/test_notls.hvt
+  expect_abort
 }
 
 @test "notls virtio" {
-  run ${TIMEOUT} --foreground 30s ${VIRTIO} -- test_notls/test_notls.virtio
-  [ "$status" -eq 0 -o "$status" -eq 2 -o "$status" -eq 83 ]
-  [[ "$output" == *"ABORT"* ]]
+  virtio_run test_notls/test_notls.virtio
+  virtio_expect_abort
 }
 
 @test "notls spt" {
   skip "not supported on spt yet"
-  run ${TIMEOUT} --foreground 30s ${SPT_TENDER} test_notls/test_notls.spt
-  [ "$status" -eq 139 ]
 }
 
 @test "ssp hvt" {
-  run ${TIMEOUT} --foreground 30s ${HVT_TENDER} test_ssp/test_ssp.hvt
-  [ "$status" -eq 255 ]
-  [[ "$output" == *"ABORT"* ]]
+  hvt_run test_ssp/test_ssp.hvt
+  expect_abort
 }
 
 @test "ssp virtio" {
-  run ${TIMEOUT} --foreground 30s ${VIRTIO} -- test_ssp/test_ssp.virtio
-  [ "$status" -eq 0 -o "$status" -eq 2 -o "$status" -eq 83 ]
-  [[ "$output" == *"ABORT"* ]]
+  virtio_run test_ssp/test_ssp.virtio
+  virtio_expect_abort
 }
 
 @test "ssp spt" {
-  run ${TIMEOUT} --foreground 30s ${SPT_TENDER} test_ssp/test_ssp.spt
-  [ "$status" -eq 255 ]
-  [[ "$output" == *"ABORT"* ]]
+  spt_run test_ssp/test_ssp.spt
+  expect_abort
 }
 
 @test "fpu hvt" {
-  run ${TIMEOUT} --foreground 30s ${HVT_TENDER} test_fpu/test_fpu.hvt
-  [ "$status" -eq 0 ]
+  hvt_run test_fpu/test_fpu.hvt
+  expect_success
 }
 
 @test "fpu virtio" {
-  run ${TIMEOUT} --foreground 30s ${VIRTIO} -- test_fpu/test_fpu.virtio
-  [ "$status" -eq 0 -o "$status" -eq 2 -o "$status" -eq 83 ]
-  [[ "$output" == *"SUCCESS"* ]]
+  virtio_run test_fpu/test_fpu.virtio
+  virtio_expect_success
 }
 
 @test "fpu spt" {
-  run ${TIMEOUT} --foreground 30s ${SPT_TENDER} test_fpu/test_fpu.spt
-  [ "$status" -eq 0 ]
+  spt_run test_fpu/test_fpu.spt
+  expect_success
 }
 
 @test "time hvt" {
-  run ${TIMEOUT} --foreground 30s ${HVT_TENDER} test_time/test_time.hvt
-  [ "$status" -eq 0 ]
+  hvt_run test_time/test_time.hvt
+  expect_success
 }
 
 @test "time virtio" {
-  run ${TIMEOUT} --foreground 30s ${VIRTIO} -- test_time/test_time.virtio
-  [ "$status" -eq 0 -o "$status" -eq 2 -o "$status" -eq 83 ]
-  [[ "$output" == *"SUCCESS"* ]]
+  virtio_run test_time/test_time.virtio
+  virtio_expect_success
 }
 
 @test "time spt" {
-  run ${TIMEOUT} --foreground 30s ${SPT_TENDER} test_time/test_time.spt
-  [ "$status" -eq 0 ]
+  spt_run test_time/test_time.spt
+  expect_success
 }
 
 @test "seccomp spt" {
-  run ${TIMEOUT} --foreground 30s ${SPT_TENDER} test_seccomp/test_seccomp.spt
+  spt_run test_seccomp/test_seccomp.spt
   [ "$status" -eq 159 ] # SIGSYS
 }
 
 @test "blk hvt" {
-  run ${TIMEOUT} --foreground 30s ${HVT_TENDER} --disk=${DISK} test_blk/test_blk.hvt
-  [ "$status" -eq 0 ]
+  hvt_run --disk=${DISK} -- test_blk/test_blk.hvt
+  expect_success
 }
 
 @test "blk virtio" {
-  run ${TIMEOUT} --foreground 30s ${VIRTIO} -d ${DISK} -- test_blk/test_blk.virtio
-  [ "$status" -eq 0 -o "$status" -eq 2 -o "$status" -eq 83 ]
-  [[ "$output" == *"SUCCESS"* ]]
+  virtio_run -d ${DISK} -- test_blk/test_blk.virtio
+  virtio_expect_success
 }
 
 @test "blk spt" {
-  run ${TIMEOUT} --foreground 30s ${SPT_TENDER} --disk=${DISK} test_blk/test_blk.spt
-  [ "$status" -eq 0 ]
+  spt_run --disk=${DISK} -- test_blk/test_blk.spt
+  expect_success
 }
 
 @test "ping-serve hvt" {
-  TENDER=${HVT_TENDER}
-  UNIKERNEL=test_ping_serve/test_ping_serve.hvt
-
   [ $(id -u) -ne 0 ] && skip "Need root to run this test, for ping -f"
 
-  (
-    sleep 1
-    ${TIMEOUT} 30s ping -fq -c 100000 ${NET_IP} 
-  ) &
-
-  run ${TIMEOUT} --foreground 30s ${TENDER} --net=${NET} -- ${UNIKERNEL} limit
-  [ "$status" -eq 0 ]
+  ( sleep 1; ${TIMEOUT} 30s ping -fq -c 100000 ${NET_IP} ) &
+  hvt_run --net=${NET} -- test_ping_serve/test_ping_serve.hvt limit
+  expect_success
 }
 
 @test "ping-serve virtio" {
-  UNIKERNEL=test_ping_serve/test_ping_serve.virtio
-
   [ $(id -u) -ne 0 ] && skip "Need root to run this test, for ping -f"
 
-  (
-    sleep 1
-    ${TIMEOUT} 30s ping -fq -c 100000 ${NET_IP} 
-  ) &
-
-  run ${TIMEOUT} --foreground 30s ${VIRTIO} -n ${NET} -- $UNIKERNEL limit
-  [ "$status" -eq 0 -o "$status" -eq 2 -o "$status" -eq 83 ]
-  [[ "$output" == *"SUCCESS"* ]]
+  ( sleep 1; ${TIMEOUT} 30s ping -fq -c 100000 ${NET_IP} ) &
+  virtio_run -n ${NET} -- test_ping_serve/test_ping_serve.virtio limit
+  virtio_expect_success
 }
 
 @test "ping-serve spt" {
-  UNIKERNEL=test_ping_serve/test_ping_serve.spt
-
   [ $(id -u) -ne 0 ] && skip "Need root to run this test, for ping -f"
 
-  (
-    sleep 1
-    ${TIMEOUT} 30s ping -fq -c 100000 ${NET_IP} 
-  ) &
-
-  run ${TIMEOUT} --foreground 30s ${SPT_TENDER} --net=${NET} -- ${UNIKERNEL} limit
-  [ "$status" -eq 0 ]
+  ( sleep 1; ${TIMEOUT} 30s ping -fq -c 100000 ${NET_IP} ) &
+  spt_run --net=${NET} -- test_ping_serve/test_ping_serve.spt limit
+  expect_success
 }
 
 @test "abort hvt" {
@@ -322,7 +300,9 @@ teardown() {
       skip "not implemented for ${C_HOST}"
       ;;
   esac
-  run ${TIMEOUT} --foreground 30s ${HVT_TENDER_DEBUG} --dumpcore test_abort/test_abort.hvt
+
+  run ${TIMEOUT} --foreground 30s ${HVT_TENDER_DEBUG} \
+      --dumpcore test_abort/test_abort.hvt
   [ "$status" -eq 255 ]
   CORE=`echo "$output" | grep -o "core\.solo5-hvt\.[0-9]*$"`
   [ -f "$CORE" ]
