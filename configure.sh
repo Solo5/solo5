@@ -117,7 +117,7 @@ case "${HOST}" in
         # XXX: This breaks MirageOS in (at least) the build of mirage-solo5 due
         # to -fno-pie breaking the build of lib/dllmirage-solo5_bindings.so.
         # Keep this disabled until that is resolved.
-        # cc_has_pie && HOST_CFLAGS="${HOST_CFLAGS} -fno-pie"
+        # cc_has_pie && C_CFLAGS="${C_CFLAGS} -fno-pie"
 
         # Stack smashing protection:
         #
@@ -228,8 +228,8 @@ BUILD_SPT=${BUILD_SPT}
 BUILD_VIRTIO=${BUILD_VIRTIO}
 BUILD_MUEN=${BUILD_MUEN}
 BUILD_GENODE=${BUILD_GENODE}
-C_CFLAGS=${HOST_CFLAGS}
-C_LDFLAGS=${HOST_LDFLAGS}
+C_CFLAGS=${C_CFLAGS}
+C_LDFLAGS=${C_LDFLAGS}
 C_ARCH=${ARCH}
 C_HOST=${HOST}
 C_CC=${CC}

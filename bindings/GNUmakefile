@@ -126,14 +126,13 @@ endif
 ifdef BUILD_GENODE
     genode_OBJS := $(patsubst %.c,%.o,$(patsubst %.S,%.o,$(genode_SRCS)))
 
-$(genode_OBJS): %.o: %.c %.d
-	@echo "STUBCC $<"
-	$(CC) $(DEPFLAGS) $(CFLAGS) $(CPPFLAGS) -Wno-unused-parameter -c $< -o $@
-	mv -f $*.Td $*.d && touch $@
+$(genode_OBJS): CFLAGS += -Wno-unused-parameter
 
+GENODE_LDFLAGS := -nostdlib -z max-page-size=0x1000 -shared -gc-sections \
+    --eh-frame-hdr --entry=0x0 -T genode/genode_rel.ld
 genode/solo5.lib.so: $(genode_OBJS)
 	@echo "LD $@"
-	$(LD) $(GENODE_LIB_LDFLAGS) $^ -o $@
+	$(LD) $(GENODE_LDFLAGS) $^ -o $@
 
     all_TARGETS += genode/solo5.lib.so
     all_OBJS += $(genode_OBJS)

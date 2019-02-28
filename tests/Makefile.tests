@@ -35,7 +35,7 @@ BINDINGS.genode := $(TOPDIR)/bindings/genode/solo5.lib.so
 
 %.o: %.c ../../include/solo5/solo5.h
 	@echo "CC $<"
-	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
 
 %.hvt: %.o $(LDS.hvt) $(BINDINGS.hvt)
 	@echo "LD $@"
@@ -53,9 +53,13 @@ BINDINGS.genode := $(TOPDIR)/bindings/genode/solo5.lib.so
 	@echo "LD $@"
 	$(LD) $(LDFLAGS) -T $(LDS.muen) $(BINDINGS.muen) $< -o $@
 
-%.genode: %.o $(LDS.genode) $(BINDINGS.genode)
+%.genode.o: %.c ../../include/solo5/solo5.h
+	@echo "GENODECC $<"
+	$(CC) $(GENODE_APP_CFLAGS) $(CPPFLAGS) -c $< -o $@
+
+%.genode: %.genode.o $(LDS.genode) $(BINDINGS.genode)
 	@echo "LD $@"
-	$(LD) $(GENODE_LDFLAGS) -T $(LDS.genode) $< $(BINDINGS.genode) -o $@
+	$(LD) $(GENODE_APP_LDFLAGS) -T $(LDS.genode) $< $(BINDINGS.genode) -o $@
 
 test_TARGETS :=
 
@@ -79,7 +83,7 @@ ifdef BUILD_GENODE
     test_TARGETS += $(test_NAME).genode
 endif
 
-.PRECIOUS: $(test_NAME).o
+.PRECIOUS: $(test_NAME).o $(test_NAME).genode.o
 
 .PHONY: all
 
@@ -89,6 +93,6 @@ all: $(test_TARGETS)
 
 clean:
 	@echo "CLEAN $(test_NAME)"
-	$(RM) $(test_NAME).o $(test_TARGETS)
+	$(RM) $(test_NAME).o $(test_NAME).genode.o $(test_TARGETS)
 
 $(V).SILENT:

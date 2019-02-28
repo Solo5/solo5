@@ -30,10 +30,19 @@ HOST := $(C_HOST)
 
 DEPFLAGS = -MT $@ -MMD -MP -MF $*.Td
 
+#
+# The following set of variables and recipes apply to building bindings and
+# applications/tests.
+#
 CFLAGS := -std=gnu99 -Wall -Wextra -Werror -O2 -g
 CFLAGS += -ffreestanding -fstack-protector-strong $(C_CFLAGS)
 CPPFLAGS := -isystem $(TOPDIR)/include/crt -I$(TOPDIR)/include/solo5
 LDFLAGS := -nostdlib -z max-page-size=0x1000 -static $(C_LDFLAGS)
+
+# Genode application compiling and linking is a special case
+GENODE_APP_CFLAGS := $(CFLAGS) -fPIC
+GENODE_APP_LDFLAGS := -nostdlib -z max-page-size=0x1000 -shared -gc-sections \
+    --eh-frame-hdr -Ttext=0x01000000 --dynamic-linker=ld.lib.so -rpath-link=.
 
 define COMPILE.c
 	@echo "CC $<"
@@ -47,12 +56,10 @@ define COMPILE.S
 	mv -f $*.Td $*.d && touch $@
 endef
 
-# Genode linking is a special case
-GENODE_COMMON_LDFLAGS = $(COMMON_LDFLAGS) -shared -gc-sections --eh-frame-hdr
-GENODE_LIB_LDFLAGS=$(GENODE_COMMON_LDFLAGS) --entry=0x0 -T $(TOPDIR)/bindings/genode/genode_rel.ld
-GENODE_APP_LDFLAGS=$(GENODE_COMMON_LDFLAGS) -Ttext=0x01000000 --dynamic-linker=ld.lib.so -rpath-link=.
-
-
+#
+# The following set of variables and recpies apply to building tenders, i.e.
+# artifacts built for the (Solo5) *host*.
+#
 HOSTCC := cc
 HOSTCFLAGS := -Wall -Werror -std=c99 -O2 -g
 HOSTCPPFLAGS := -I$(TOPDIR)/include/solo5
