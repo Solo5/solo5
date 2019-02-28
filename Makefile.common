@@ -31,8 +31,8 @@ HOST := $(C_HOST)
 DEPFLAGS = -MT $@ -MMD -MP -MF $*.Td
 
 #
-# The following set of variables and recipes apply to building bindings and
-# applications/tests.
+# The following variables and recipes apply to building bindings and
+# tests (applications).
 #
 CFLAGS := -std=gnu99 -Wall -Wextra -Werror -O2 -g
 CFLAGS += -ffreestanding -fstack-protector-strong $(C_CFLAGS)
@@ -57,10 +57,10 @@ define COMPILE.S
 endef
 
 #
-# The following set of variables and recpies apply to building tenders, i.e.
-# artifacts built for the (Solo5) *host*.
+# The following variables and recpies apply to building tenders, i.e.
+# artifacts built to run on the (Solo5) *host*.
 #
-HOSTCC := cc
+HOSTCC := $(C_CC)
 HOSTCFLAGS := -Wall -Werror -std=c99 -O2 -g
 HOSTCPPFLAGS := -I$(TOPDIR)/include/solo5
 HOSTLDFLAGS :=
