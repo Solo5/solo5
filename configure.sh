@@ -58,6 +58,16 @@ int main(int argc, char *argv[])
 EOM
 }
 
+gcc_check_lib()
+{
+    ${CC} -x c -o /dev/null - "$@" <<EOM >/dev/null 2>&1
+int main(int argc, char *argv[])
+{
+    return 0;
+}
+EOM
+}
+
 ld_is_lld()
 {
     ${LD} --version 2>&1 | grep -q '^LLD'
@@ -101,6 +111,7 @@ BUILD_MUEN=
 BUILD_GENODE=
 C_CFLAGS=
 C_LDFLAGS=
+C_HOSTLDFLAGS_SPT=
 
 case "${HOST}" in
     Linux)
@@ -136,11 +147,15 @@ case "${HOST}" in
         if ! cc_has_pie; then
             warn "Host toolchain does not build PIE executables, spt guest size will be limited to 1GB"
             warn "Consider upgrading to a Linux distribution with PIE support"
-            SPT_EXTRA_LDFLAGS="-Wl,-Ttext-segment=0x40000000"
+            C_HOSTLDFLAGS_SPT="-Wl,-Ttext-segment=0x40000000"
         fi
 
         BUILD_HVT=1
-        BUILD_SPT=1
+	if gcc_check_lib -lseccomp; then
+	    BUILD_SPT=1
+	else
+	    warn "Could not link with -lseccomp, not building spt"
+	fi
         [ "${ARCH}" = "x86_64" ] && BUILD_VIRTIO=1 BUILD_MUEN=1 BUILD_GENODE=1
         ;;
     FreeBSD)
@@ -212,9 +227,7 @@ case "${HOST}" in
         warn "Stack protector (SSP) disabled on OpenBSD due to toolchain issues"
         C_LDFLAGS="-nopie"
         BUILD_HVT=1
-        BUILD_VIRTIO=1
-        BUILD_MUEN=1
-        BUILD_GENODE=1
+        [ "${ARCH}" = "x86_64" ] && BUILD_VIRTIO=1 BUILD_MUEN=1 BUILD_GENODE=1
         ;;
     *)
         die "Unsupported build OS: ${HOST}"
@@ -234,5 +247,5 @@ C_ARCH=${ARCH}
 C_HOST=${HOST}
 C_CC=${CC}
 C_LD=${LD}
-SPT_EXTRA_LDFLAGS=${SPT_EXTRA_LDFLAGS}
+C_HOSTLDFLAGS_SPT=${C_HOSTLDFLAGS_SPT}
 EOM

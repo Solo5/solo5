@@ -28,16 +28,20 @@ tests: bindings
 
 .PHONY: $(SUBDIRS)
 
-.PHONY: all clean
+.PHONY: all
 all: $(SUBDIRS)
 .DEFAULT_GOAL := all
 
 $(SUBDIRS):
 	@echo "MAKE $@"
-	$(MAKE) -C $@ $(MAKECMDGOALS)
+	$(MAKE) -C $@ $(MAKECMDGOALS) $(SUBOVERRIDE)
 
-.PHONY: clean-top
-clean: $(SUBDIRS)
+.PHONY: clean before-clean
+# Ensure that a top-level "make clean" always cleans *all* possible build
+# products and not some subset dependent on the setting of $(BUILD_*).
+before-clean:
+	$(eval export SUBOVERRIDE := BUILD_HVT=1 BUILD_SPT=1 BUILD_VIRTIO=1 BUILD_MUEN=1 BUILD_GENODE=1)
+clean: before-clean $(SUBDIRS)
 	@echo "CLEAN solo5"
 	$(RM) solo5-bindings-virtio.pc
 	$(RM) solo5-bindings-hvt.pc

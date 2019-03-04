@@ -28,7 +28,7 @@ $(V).SILENT:
 
 ifdef BUILD_SPT
 
-HOSTLDFLAGS += -Wl,-z -Wl,noexecstack $(SPT_EXTRA_LDFLAGS)
+HOSTLDFLAGS += -Wl,-z -Wl,noexecstack $(HOSTLDFLAGS_SPT)
 HOSTLDLIBS += -lseccomp
 
 spt_SRCS := spt_main.c spt_core.c spt_elf.c spt_launch_$(ARCH).S \
