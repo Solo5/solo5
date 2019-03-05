@@ -81,3 +81,20 @@ define HOSTLINK
 	@echo "HOSTLINK $@"
 	$(HOSTCC) $(HOSTLDFLAGS) $^ $(HOSTLDLIBS) -o $@
 endef
+
+PC_CFLAGS := -ffreestanding -fstack-protector-strong $(C_CFLAGS)
+PC_GENODE_CFLAGS := $(GENODE_APP_CFLAGS)
+PC_LD := $(C_LD)
+PC_LDFLAGS := $(LDFLAGS)
+PC_GENODE_LDFLAGS := $(GENODE_APP_LDFLAGS)
+
+%.pc: %.pc.in
+	@echo SUBST $@
+	sed <$< > $@ \
+	    -e 's#!PC_CFLAGS!#$(PC_CFLAGS)#g;' \
+	    -e 's#!PC_GENODE_CFLAGS!#$(PC_GENODE_CFLAGS)#g;' \
+	    -e 's#!PC_LD!#$(PC_LD)#g;' \
+	    -e 's#!PC_LDFLAGS!#$(PC_LDFLAGS)#g;' \
+	    -e 's#!PC_GENODE_LDFLAGS!#$(PC_GENODE_LDFLAGS)#g;' \
+
+.PRECIOUS: %.pc

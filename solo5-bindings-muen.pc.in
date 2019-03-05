@@ -2,9 +2,9 @@ prefix=${pcfiledir}/../..
 exec_prefix=${prefix}
 includedir=${prefix}/include/solo5-bindings-muen
 libdir=${exec_prefix}/lib/solo5-bindings-muen
-ldflags=!LDFLAGS! -T ${libdir}/solo5_muen.lds ${libdir}/solo5_muen.o
+ldflags=!PC_LDFLAGS! -T ${libdir}/solo5_muen.lds ${libdir}/solo5_muen.o
 
 Name: solo5-bindings-muen
 Version: 0.4.0
 Description: Solo5 sandboxed execution environment (Muen target)
-Cflags: !CFLAGS! -isystem ${includedir}/crt -I${includedir}/solo5
+Cflags: !PC_CFLAGS! -isystem ${includedir}/crt -I${includedir}/solo5

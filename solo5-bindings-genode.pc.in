@@ -2,9 +2,10 @@ prefix=${pcfiledir}/../..
 exec_prefix=${prefix}
 includedir=${prefix}/include/solo5-bindings-genode
 libdir=${exec_prefix}/lib/solo5-bindings-genode
+ld=!PC_LD!
+ldflags=!PC_GENODE_LDFLAGS! -T ${libdir}/genode_dyn.ld ${libdir}/solo5.lib.so
 
 Name: solo5-bindings-genode
 Version: 0.4.0
 Description: Solo5 sandboxed execution environment (Genode target)
-Cflags: !CFLAGS! -fPIC -isystem ${includedir}/crt -I${includedir}/solo5
-Libs: !GENODE_APP_LDFLAGS! -T ${libdir}/genode_dyn.ld ${libdir}/solo5.lib.so
+Cflags: !PC_GENODE_CFLAGS! -isystem ${includedir}/crt -I${includedir}/solo5

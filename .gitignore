@@ -1,10 +1,8 @@
 *.o
 *.d
 *.lib.so
-*.swp
-*.pcap
+*.pc
 Makeconf
-cscope.*
 tags
 include/crt
 tests/*/*.hvt
