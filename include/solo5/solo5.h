@@ -256,6 +256,15 @@ struct solo5_block_info {
 void solo5_block_info(struct solo5_block_info *info);
 
 /*
+ * Discards data of (size) bytes on the block device,
+ * starting at byte (offset).  This is not atomic.
+ * offset and size must be aligned to the block_size.
+ * If the current backend or backing device doesn't support it,
+ * SOLO5_R_EOPNOTSUPP is returned and the data is unchanged.
+ */
+solo5_result_t solo5_block_discard(solo5_off_t offset, size_t size);
+
+/*
  * Writes data of (size) bytes from the buffer (*buf) to the block device,
  * starting at byte (offset). Data is either written in it's entirety or not at
  * all ("short writes" are not possible).
