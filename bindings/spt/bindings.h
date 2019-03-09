@@ -38,6 +38,11 @@ long sys_write(long fd, const void *buf, long size);
 long sys_pread64(long fd, void *buf, long size, long pos);
 long sys_pwrite64(long fd, const void *buf, long size, long pos);
 
+#define FALLOC_FL_KEEP_SIZE     0x01 /* default is extend size */
+#define FALLOC_FL_PUNCH_HOLE    0x02 /* de-allocates range */
+
+long sys_fallocate(long fd, long mode, long size, long pos);
+
 void sys_exit_group(long status) __attribute__((noreturn));
 
 struct sys_timespec {
@@ -59,6 +64,7 @@ struct sys_pollfd {
 #define SYS_POLLIN 1
 #define SYS_EINTR -4
 #define SYS_EAGAIN -11
+#define SYS_EOPNOTSUPP -95
 
 long sys_ppoll(void *fds, long nfds, void *ts);
 

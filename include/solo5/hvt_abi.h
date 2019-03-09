@@ -170,6 +170,7 @@ enum hvt_hypercall {
     HVT_HYPERCALL_NETWRITE,
     HVT_HYPERCALL_NETREAD,
     HVT_HYPERCALL_HALT,
+    HVT_HYPERCALL_BLKDISCARD,
     HVT_HYPERCALL_MAX
 };
 
@@ -282,6 +283,17 @@ struct hvt_halt {
 
     /* IN */
     int exit_status;
+};
+
+struct hvt_blkdiscard {
+    /* IN */
+    size_t sector;
+
+    /* IN */
+    size_t len_sectors;
+
+    /* OUT */
+    int ret;
 };
 
 #endif /* HVT_GUEST_H */

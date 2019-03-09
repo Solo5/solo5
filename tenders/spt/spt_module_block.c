@@ -96,6 +96,15 @@ static int setup(struct spt *spt)
     if (rc != 0)
         errx(1, "seccomp_rule_add(pwrite64, fd=%d) failed: %s", diskfd,
                 strerror(-rc));
+    rc = seccomp_rule_add(spt->sc_ctx, SCMP_ACT_ALLOW, SCMP_SYS(fallocate), 3,
+            SCMP_A0(SCMP_CMP_EQ, diskfd),
+            SCMP_A1(SCMP_CMP_EQ, FALLOC_FL_PUNCH_HOLE | FALLOC_FL_KEEP_SIZE),
+            SCMP_A2(SCMP_CMP_LE,
+                (spt->bi->blocki.capacity - spt->bi->blocki.block_size)),
+            SCMP_A3(SCMP_CMP_GE, spt->bi->blocki.block_size));
+    if (rc != 0)
+        errx(1, "seccomp_rule_add(fallocate, fd=%d) failed: %s", diskfd,
+                strerror(-rc));
 
     return 0;
 }

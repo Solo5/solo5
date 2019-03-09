@@ -37,6 +37,7 @@
 #define SYS_clock_gettime 228
 #define SYS_exit_group    231
 #define SYS_ppoll         271
+#define SYS_fallocate     285
 
 long sys_read(long fd, void *buf, long size)
 {
@@ -90,6 +91,21 @@ long sys_pwrite64(long fd, const void *buf, long size, long pos)
             "syscall"
             : "=a" (ret)
             : "a" (SYS_pwrite64), "D" (fd), "S" (buf), "d" (size), "r" (r10)
+            : "rcx", "r11", "memory"
+    );
+
+    return ret;
+}
+
+long sys_fallocate(long fd, long mode, long size, long pos)
+{
+    long ret;
+    register long r10 asm("r10") = pos;
+
+    __asm__ __volatile__ (
+            "syscall"
+            : "=a" (ret)
+            : "a" (SYS_fallocate), "D" (fd), "S" (mode), "d" (size), "r" (r10)
             : "rcx", "r11", "memory"
     );
 

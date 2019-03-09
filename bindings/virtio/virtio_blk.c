@@ -30,13 +30,19 @@
 #define VIRTIO_BLK_T_FLUSH        4
 #define VIRTIO_BLK_T_FLUSH_OUT    5
 #define VIRTIO_BLK_T_GET_ID       8
+#define VIRTIO_BLK_T_DISCARD      11
+#define VIRTIO_BLK_T_WRITE_ZEROES 13
 #define VIRTIO_BLK_T_BARRIER      0x80000000
 
 #define VIRTIO_BLK_S_OK     0
 #define VIRTIO_BLK_S_IOERR  1
 #define VIRTIO_BLK_S_UNSUPP 2
 
+#define VIRTIO_BLK_F_DISCARD 13
+#define VIRTIO_BLK_F_WRITE_ZEROES 14
+
 static uint64_t virtio_blk_sectors;
+static uint32_t guest_features;
 
 #define VIRTIO_BLK_SECTOR_SIZE    512
 
@@ -147,18 +153,19 @@ static int virtio_blk_op_sync(uint32_t type,
 void virtio_config_block(struct pci_config_info *pci)
 {
     uint8_t ready_for_init = VIRTIO_PCI_STATUS_ACK | VIRTIO_PCI_STATUS_DRIVER;
-    uint32_t host_features, guest_features;
+    uint32_t host_features;
     size_t pgs;
 
     outb(pci->base + VIRTIO_PCI_STATUS, ready_for_init);
 
     host_features = inl(pci->base + VIRTIO_PCI_HOST_FEATURES);
 
-    /* don't negotiate anything for now */
-    guest_features = 0;
+    /* negociate enough for discard */
+    guest_features = host_features & (VIRTIO_BLK_F_DISCARD | VIRTIO_BLK_F_WRITE_ZEROES);
     outl(pci->base + VIRTIO_PCI_GUEST_FEATURES, guest_features);
 
     virtio_blk_sectors = inq(pci->base + VIRTIO_PCI_CONFIG_OFF);
+
     log(INFO, "Solo5: PCI:%02x:%02x: configured, capacity=%llu sectors, "
         "features=0x%x\n",
         pci->bus, pci->dev, (unsigned long long)virtio_blk_sectors,
@@ -207,6 +214,26 @@ solo5_result_t solo5_block_write(solo5_off_t offset, const uint8_t *buf,
      */
     int rv = virtio_blk_op_sync(VIRTIO_BLK_T_OUT, sector, (uint8_t *)buf, size);
     return (rv == 0) ? SOLO5_R_OK : SOLO5_R_EUNSPEC;
+}
+
+solo5_result_t solo5_block_discard(solo5_off_t offset, size_t size)
+{
+    assert(blk_configured);
+
+    uint64_t sector = offset / VIRTIO_BLK_SECTOR_SIZE;
+    uint64_t size_sectors = size / VIRTIO_BLK_SECTOR_SIZE;
+    if ((offset % VIRTIO_BLK_SECTOR_SIZE != 0) ||
+        (size % VIRTIO_BLK_SECTOR_SIZE != 0) ||
+        (sector >= virtio_blk_sectors) ||
+        (sector + size_sectors < sector) ||
+        (sector + size_sectors > virtio_blk_sectors))
+        return SOLO5_R_EINVAL;
+
+    if (! (guest_features & VIRTIO_BLK_F_WRITE_ZEROES))
+    {
+        return SOLO5_R_EOPNOTSUPP;
+    }
+    return SOLO5_R_EOPNOTSUPP;
 }
 
 solo5_result_t solo5_block_read(solo5_off_t offset, uint8_t *buf, size_t size)

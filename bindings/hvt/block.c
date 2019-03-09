@@ -90,6 +90,28 @@ solo5_result_t solo5_block_read(solo5_off_t offset, uint8_t *buf, size_t size)
     return (rd.ret == 0 && rd.len == size) ? SOLO5_R_OK : SOLO5_R_EUNSPEC;
 }
 
+solo5_result_t solo5_block_discard(solo5_off_t offset, size_t size)
+{
+    if (!block_info.capacity)
+        init_block_info();
+
+    if ((offset % block_info.block_size != 0) ||
+        (size % block_info.block_size != 0) ||
+        (offset >= block_info.capacity) ||
+        (offset + size < offset) || /* checks for overflow */
+        (offset + size > block_info.capacity))
+        return SOLO5_R_EINVAL;
+
+    volatile struct hvt_blkdiscard di;
+    di.sector = offset / block_info.block_size;
+    di.len_sectors = size / block_info.block_size;
+    di.ret = 0;
+
+    hvt_do_hypercall(HVT_HYPERCALL_BLKDISCARD, &di);
+
+    return (di.ret == 0) ? SOLO5_R_OK : (di.ret == -2) ? SOLO5_R_EOPNOTSUPP : SOLO5_R_EUNSPEC;
+}
+
 void solo5_block_info(struct solo5_block_info *info)
 {
     if (!block_info.capacity)

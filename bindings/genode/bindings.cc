@@ -402,6 +402,11 @@ struct Solo5::Platform
 		return pkt.succeeded() ? SOLO5_R_OK : SOLO5_R_EUNSPEC;
 	}
 
+    solo5_result_t block_discard(solo5_off_t, offset, size_t size)
+    {
+        return SOLO5_R_EOPNOTSUPP;
+    }
+
 	solo5_result_t block_read(solo5_off_t offset, uint8_t *buf, size_t size)
 	{
 		if ((offset|size) % blk_size)

@@ -25,6 +25,7 @@
 #define _GNU_SOURCE
 #include <assert.h>
 #include <err.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
 #include <stdio.h>
@@ -70,6 +71,39 @@ static void hypercall_blkwrite(struct hvt *hvt, hvt_gpa_t gpa)
             pos);
     assert(ret == wr->len);
     wr->ret = 0;
+}
+
+static void hypercall_blkdiscard(struct hvt *hvt, hvt_gpa_t gpa)
+{
+    struct hvt_blkdiscard *di =
+        HVT_CHECKED_GPA_P(hvt, gpa, sizeof (struct hvt_blkdiscard));
+    ssize_t ret;
+    off_t pos, len, end;
+
+    if (di->sector >= blkinfo.num_sectors) {
+        di->ret = -1;
+        return;
+    }
+    pos = (off_t)blkinfo.sector_size * (off_t)di->sector;
+    len = (off_t)blkinfo.sector_size * (off_t)di->len_sectors;
+    if (add_overflow(pos, len, end)
+            || (end > blkinfo.num_sectors * blkinfo.sector_size))
+    {
+        di->ret = -1;
+        return;
+    }
+
+    ret = fallocate(
+            diskfd, FALLOC_FL_PUNCH_HOLE | FALLOC_FL_KEEP_SIZE, pos, len);
+    if (ret != 0)
+    {
+	    if (ret == -1 && errno == EOPNOTSUPP)
+            di->ret = -2;
+        else
+            di->ret = -1;
+    } else {
+        di->ret = 0;
+    }
 }
 
 static void hypercall_blkread(struct hvt *hvt, hvt_gpa_t gpa)
@@ -126,6 +160,8 @@ static int setup(struct hvt *hvt)
                 hypercall_blkwrite) == 0);
     assert(hvt_core_register_hypercall(HVT_HYPERCALL_BLKREAD,
                 hypercall_blkread) == 0);
+    assert(hvt_core_register_hypercall(HVT_HYPERCALL_BLKDISCARD,
+                hypercall_blkdiscard) == 0);
 
     return 0;
 }
