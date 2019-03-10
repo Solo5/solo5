@@ -76,7 +76,12 @@ typedef enum {
     /*
      * The operation failed due to an unspecified error.
      */
-    SOLO5_R_EUNSPEC
+    SOLO5_R_EUNSPEC,
+    /*
+     * The operation failed because the backing device does
+     * not support it.  Retrying will not succeed.
+     */
+    SOLO5_R_EOPNOTSUPP
 } solo5_result_t;
 
 /*
