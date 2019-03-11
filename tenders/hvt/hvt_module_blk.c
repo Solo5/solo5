@@ -77,7 +77,6 @@ static void hypercall_blkdiscard(struct hvt *hvt, hvt_gpa_t gpa)
 {
     struct hvt_blkdiscard *di =
         HVT_CHECKED_GPA_P(hvt, gpa, sizeof (struct hvt_blkdiscard));
-    ssize_t ret;
     off_t pos, len, end;
 
     if (di->sector >= blkinfo.num_sectors) {
@@ -93,6 +92,8 @@ static void hypercall_blkdiscard(struct hvt *hvt, hvt_gpa_t gpa)
         return;
     }
 
+#if defined(__linux__)
+    ssize_t ret;
     ret = fallocate(
             diskfd, FALLOC_FL_PUNCH_HOLE | FALLOC_FL_KEEP_SIZE, pos, len);
     if (ret != 0)
@@ -104,6 +105,9 @@ static void hypercall_blkdiscard(struct hvt *hvt, hvt_gpa_t gpa)
     } else {
         di->ret = 0;
     }
+#else
+    di->ret = -2;
+#endif
 }
 
 static void hypercall_blkread(struct hvt *hvt, hvt_gpa_t gpa)
