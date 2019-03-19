@@ -71,6 +71,8 @@ install-opam-%: all solo5-bindings-%.pc force-install
 	cp solo5-bindings-$*.pc $(PREFIX)/lib/pkgconfig
 ifdef BUILD_HVT
 	cp tenders/hvt/solo5-hvt tenders/hvt/solo5-hvt-debug $(PREFIX)/bin
+	[ -f tenders/hvt/solo5-hvt-debug ] && \
+	    cp tenders/hvt/solo5-hvt-debug $(PREFIX)/bin
 endif
 ifdef BUILD_SPT
 	cp tenders/spt/solo5-spt $(PREFIX)/bin
@@ -104,16 +106,5 @@ ifdef BUILD_VIRTIO
 	$(RM) $(PREFIX)/bin/solo5-virtio-mkimage
 	$(RM) $(PREFIX)/bin/solo5-virtio-run
 endif
-
-# We want the MD CFLAGS, LDFLAGS and LD in the .pc file, where they can be
-# picked up by the Mirage tool / other downstream consumers.
-%.pc: %.pc.in
-	sed <$< > $@ \
-	    -e 's#!CFLAGS!#$(MD_CFLAGS)#g;' \
-	    -e 's#!LDFLAGS!#$(LDFLAGS)#g;' \
-	    -e 's#!GENODE_APP_LDFLAGS!#$(GENODE_APP_LDFLAGS)#g;' \
-	    -e 's#!LD!#$(LD)#g;' \
-
-.PRECIOUS: %.pc
 
 $(V).SILENT:
