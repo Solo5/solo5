@@ -62,12 +62,21 @@ do_basic()
 do_e2e()
 {
     message "Starting E2E tests."
+    (
     # Force the package universe used by the E2E tests to use this
     # checked out copy of Solo5.
     u_SOLO5=./tests/e2e-mirage-solo5/universe/solo5-bindings-hvt
+    set -xe
     rm -f ${u_SOLO5}/local ${u_SOLO5}/master ${u_SOLO5}/release
-    ln -sf ${PWD} ${u_SOLO5}/local
-    cd ./tests/e2e-mirage-solo5 # XXX
+    ln -s $(readlink -f .) ${u_SOLO5}/local
+    # Hack around the fact that OPAM switches are not relocatable by running out
+    # of the fixed path '/tmp/e2e'. This allows us to make use of the base
+    # switch cache which has been pre-populated on the CI VM.
+    ln -s $(readlink -f ./tests/e2e-mirage-solo5) /tmp/e2e
+    mkdir -p /tmp/e2e/run/switch
+    ln -s /home/build/cache/switch.tar.gz /tmp/e2e/run/switch.tar.gz
+    ) || exit 1
+    cd /tmp/e2e
     try $(opam env) dune exec bin/main.exe
 }
 
