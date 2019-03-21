@@ -62,6 +62,7 @@ do_basic()
 do_e2e()
 {
     message "Would run E2E here"
+    :
 }
 
 do_info
