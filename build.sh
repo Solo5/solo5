@@ -68,7 +68,7 @@ do_e2e()
     rm -f ${u_SOLO5}/local ${u_SOLO5}/master ${u_SOLO5}/release
     ln -sf ${PWD} ${u_SOLO5}/local
     cd ./tests/e2e-mirage-solo5 # XXX
-    try dune exec bin/main.exe
+    try $(opam env) dune exec bin/main.exe
 }
 
 do_info
