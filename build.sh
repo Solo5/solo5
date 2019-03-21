@@ -59,8 +59,25 @@ do_basic()
     fi
 }
 
+do_e2e()
+{
+    message "Would run E2E here"
+}
+
 do_info
-do_basic
+case "${SURF_BUILD_TYPE}" in
+    basic)
+        do_basic
+        ;;
+    e2e)
+        do_e2e
+        ;;
+    *)
+        echo "WARNING: SURF_BUILD_TYPE not set, assuming 'basic'"
+        do_basic
+        ;;
+esac
+
 message "Success!"
 # NOTE: Failure exit status is returned in try(), if we got here then the build
 # NOTE: completed.
