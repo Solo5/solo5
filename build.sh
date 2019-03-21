@@ -72,7 +72,9 @@ do_e2e()
     # Hack around the fact that OPAM switches are not relocatable by running out
     # of the fixed path '/tmp/e2e'. This allows us to make use of the base
     # switch cache which has been pre-populated on the CI VM.
-    ln -s $(readlink -f ./tests/e2e-mirage-solo5) /tmp/e2e
+    mkdir -p /tmp/e2e
+    # /tmp/e2e can't be a symlink for ... various reasons...
+    ${SURF_SUDO} mount --bind $(readlink -f ./tests/e2e-mirage-solo5) /tmp/e2e
     mkdir -p /tmp/e2e/run/switch
     ln -s /home/build/cache/switch.tar.gz /tmp/e2e/run/switch.tar.gz
     ) || exit 1
