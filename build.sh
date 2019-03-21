@@ -15,19 +15,20 @@ if [ -z "${SURF_SUDO}" ]; then
     SURF_SUDO=sudo
 fi
 
-sepa()
+message()
 {
-    printf %80s | tr " " "\*"
+    printf %80s\\n | tr " " "\*"
+    echo "$@"
+    printf %80s\\n | tr " " "\*"
 }
 
 do_info()
 {
-    sepa
-    echo "System information:"
+    message "System information:"
     uname -a
-    echo "Compiler:"
+    echo "Compiler version:"
     cc --version
-    echo
+    echo "Compiler version detail:"
     cc -v
 }
 
@@ -43,13 +44,11 @@ try()
 
 do_basic()
 {
-    sepa
-    echo "Starting build: '${MAKE}'"
+    message "Starting build: '${MAKE}'"
     try ${MAKE}
     # Some CIs can now run tests, so do that.
     if [ -n "${SURF_RUN_TESTS}" ]; then
-        sepa
-        echo "Running tests:"
+        message "Running tests:"
         # XXX grub-bhyve is unstable under nested virt, so don't run the
         # virtio tests on FreeBSD.
         if [ "$(uname -s)" = "FreeBSD" ]; then
@@ -62,6 +61,6 @@ do_basic()
 
 do_info
 do_basic
-sepa
+message "Success!"
 # NOTE: Failure exit status is returned in try(), if we got here then the build
 # NOTE: completed.
