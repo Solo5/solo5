@@ -1,0 +1,17 @@
+.mirage.config
+Makefile
+Makefile.solo5-hvt
+_build-solo5-hvt/
+_build/
+disk.img
+key_gen.ml
+main.ml
+*.opam
+*.install
+myocamlbuild.ml
+solo5-hvt
+*.hvt
+*.spt
+*.virtio
+*.muen
+*.genode
