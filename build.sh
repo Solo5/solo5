@@ -61,8 +61,14 @@ do_basic()
 
 do_e2e()
 {
-    message "Would run E2E here"
-    :
+    message "Starting E2E tests."
+    # Force the package universe used by the E2E tests to use this
+    # checked out copy of Solo5.
+    u_SOLO5=./tests/e2e-mirage-solo5/universe/solo5-bindings-hvt
+    rm -f ${u_SOLO5}/local ${u_SOLO5}/master ${u_SOLO5}/release
+    ln -sf ${PWD} ${u_SOLO5}/local
+    cd ./tests/e2e-mirage-solo5 # XXX
+    try dune exec bin/main.exe
 }
 
 do_info
