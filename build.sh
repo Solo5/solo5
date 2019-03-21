@@ -33,7 +33,12 @@ do_info()
 
 try()
 {
-    eval ( "$@" ) || echo "FAILURE: "'$@'" failed: Status: $?" && exit 1
+    if ( eval "$@" ); then
+        :
+    else
+        echo "FAILURE: '$@' failed: Status: $?"
+        exit 1
+    fi
 }
 
 do_basic()
