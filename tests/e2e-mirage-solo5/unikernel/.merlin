@@ -1,0 +1,3 @@
+PKG lwt mirage mirage-types mirage-types-lwt functoria-runtime tcpip yojson cstruct mirage-solo5 mirage-block-solo5 mirage-bootvar-solo5 mirage-console-solo5 mirage-net-solo5
+S .
+B _build
