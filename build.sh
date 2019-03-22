@@ -80,7 +80,6 @@ do_e2e()
     ) || exit 1
     cd /tmp/e2e
     try $(opam env) dune exec bin/main.exe
-    # dummy
 }
 
 do_info
