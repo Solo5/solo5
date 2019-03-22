@@ -86,12 +86,13 @@ typedef enum {
  * (struct solo5_start_info) with start of day information; any data in this
  * structure should be treated as read-only.
  *
- * The application receives the (info->heap_start, info->heap_size) of a
- * single, contiguous, non-executable, read/write memory region it may use for
- * heap or stack(s) as it sees fit.  At entry, the application is provided with
- * an initial stack growing down from (info->heap_start + info->heap_size).
+ * At entry, the application is provided with an initial stack growing down
+ * from (info->stack_start + info->stack_size) to info->stack_start.
  *
- * The application MUST NOT make any further assumptions about memory layout,
+ * Heap memory can be allocated in pages of size info->mem_page.
+ * The number of available pages is given by info->mem_avail.
+ * Memory up to the given amount can be allocated by the solo5_mem_alloc call.
+ * The application MUST NOT make any assumptions about memory layout,
  * including where executable code or static data are located in memory.
  *
  * Returning from this function is equivalent to calling solo5_exit(<return
@@ -99,11 +100,28 @@ typedef enum {
  */
 struct solo5_start_info {
     const char *cmdline;
-    uintptr_t heap_start;
-    size_t heap_size;
+    uintptr_t stack_start;
+    size_t stack_size;
+    size_t mem_avail;
+    size_t mem_page;
 };
 
 int solo5_app_main(const struct solo5_start_info *info);
+
+/*
+ * Allocate a number of memory pages from the heap.
+ * This call will abort if more than info->mem_avail pages have been allocated
+ * or if the memory layout has been locked.
+ * The memory block will be aligned by info->mem_page.
+ * The caller should not make any assumptions about the location of the memory blocks.
+ */
+void* solo5_mem_alloc(size_t num);
+
+/*
+ * After allocating the memory blocks the memory layout MUST be locked
+ * by calling solo5_mem_lock.
+ */
+void solo5_mem_lock(void);
 
 /*
  * Exit the application, returning (status) to the host if possible.

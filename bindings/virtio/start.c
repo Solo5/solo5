@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (c) 2015-2018 Contributors as noted in the AUTHORS file
  *
  * This file is part of Solo5, a sandboxed execution environment.
@@ -63,6 +63,6 @@ static void _start2(void *arg __attribute__((unused)))
     pci_enumerate();
     cpu_intr_enable();
 
-    mem_lock_heap(&si.heap_start, &si.heap_size);
+    mem_info(&si);
     solo5_exit(solo5_app_main(&si));
 }

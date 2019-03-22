@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (c) 2015-2018 Contributors as noted in the AUTHORS file
  *
  * This file is part of Solo5, a sandboxed execution environment.
@@ -82,10 +82,9 @@ extern int cpu_intr_depth;
 void intr_register_irq(unsigned irq, int (*handler)(void *), void *arg);
 void intr_irq_handler(uint64_t irq);
 
-/* mem.c: low-level page alloc routines */
+/* mem.c: memory initialization */
 void mem_init(void);
-void *mem_ialloc_pages(size_t num);
-void mem_lock_heap(uintptr_t *start, size_t *size);
+void mem_info(struct solo5_start_info*);
 
 /* lib.c: minimal bits of stdc we need */
 void *memset(void *dest, int c, size_t n);
@@ -120,8 +119,8 @@ char *cmdline_parse(const char *cmdline);
 /* log.c: */
 typedef enum {
     ERROR=0,
-    WARN, 
-    INFO, 
+    WARN,
+    INFO,
     DEBUG,
 } log_level_t;
 int log(log_level_t level, const char *fmt, ...)

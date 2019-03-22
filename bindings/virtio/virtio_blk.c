@@ -167,7 +167,7 @@ void virtio_config_block(struct pci_config_info *pci)
     virtq_init_rings(pci->base, &blkq, 0);
 
     pgs = (((blkq.num * sizeof (struct io_buffer)) - 1) >> PAGE_SHIFT) + 1;
-    blkq.bufs = mem_ialloc_pages(pgs);
+    blkq.bufs = solo5_mem_alloc(pgs);
     assert(blkq.bufs);
     memset(blkq.bufs, 0, pgs << PAGE_SHIFT);
 

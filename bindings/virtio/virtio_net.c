@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (c) 2015-2018 Contributors as noted in the AUTHORS file
  *
  * This file is part of Solo5, a sandboxed execution environment.
@@ -139,7 +139,7 @@ void virtio_config_network(struct pci_config_info *pci)
 
     /*
      * 2. Set the ACKNOWLEDGE status bit: the guest OS has notice the device.
-     * 3. Set the DRIVER status bit: the guest OS knows how to drive the device. 
+     * 3. Set the DRIVER status bit: the guest OS knows how to drive the device.
      */
 
     outb(pci->base + VIRTIO_PCI_STATUS, VIRTIO_PCI_STATUS_ACK);
@@ -149,7 +149,7 @@ void virtio_config_network(struct pci_config_info *pci)
      * 4. Read device feature bits, and write the subset of feature bits
      * understood by the OS and driver to the device. During this step the
      * driver MAY read (but MUST NOT write) the device-specific configuration
-     * fields to check that it can support the device before accepting it. 
+     * fields to check that it can support the device before accepting it.
      */
 
     host_features = inl(pci->base + VIRTIO_PCI_HOST_FEATURES);
@@ -184,12 +184,12 @@ void virtio_config_network(struct pci_config_info *pci)
     virtq_init_rings(pci->base, &xmitq, VIRTQ_XMIT);
 
     pgs = (((recvq.num * sizeof (struct io_buffer)) - 1) >> PAGE_SHIFT) + 1;
-    recvq.bufs = mem_ialloc_pages(pgs);
+    recvq.bufs = solo5_mem_alloc(pgs);
     assert(recvq.bufs);
     memset(recvq.bufs, 0, pgs << PAGE_SHIFT);
 
     pgs = (((recvq.num * sizeof (struct io_buffer)) - 1) >> PAGE_SHIFT) + 1;
-    xmitq.bufs = mem_ialloc_pages(pgs);
+    xmitq.bufs = solo5_mem_alloc(pgs);
     assert(xmitq.bufs);
     memset(xmitq.bufs, 0, pgs << PAGE_SHIFT);
 

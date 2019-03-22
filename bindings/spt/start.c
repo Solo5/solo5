@@ -39,6 +39,6 @@ void _start(void *arg)
     block_init(arg);
     net_init(arg);
 
-    mem_lock_heap(&si.heap_start, &si.heap_size);
+    mem_info(&si);
     solo5_exit(solo5_app_main(&si));
 }
