@@ -44,7 +44,8 @@ try()
 
 do_basic()
 {
-    message "Starting build: '${MAKE}'"
+    message "Starting build."
+    try ./configure.sh
     try ${MAKE}
     # Some CIs can now run tests, so do that.
     if [ -n "${SURF_RUN_TESTS}" ]; then
