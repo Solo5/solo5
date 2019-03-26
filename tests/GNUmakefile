@@ -16,6 +16,10 @@
 # NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
 # CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
+ifndef TOPDIR
+$(error TOPDIR must be set, run $(MAKE) from the top of the source tree or set it manually)
+endif
+
 .SUFFIXES:
 $(V).SILENT:
 

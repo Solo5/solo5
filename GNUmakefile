@@ -18,8 +18,7 @@
 
 export TOPDIR := $(abspath .)
 $(TOPDIR)/Makeconf:
-	@echo CONFIGURE
-	./configure.sh
+	$(error Makeconf not found, please run ./configure.sh)
 include Makefile.common
 
 SUBDIRS := bindings tenders/hvt tenders/spt tests
@@ -48,10 +47,10 @@ clean: before-clean $(SUBDIRS)
 	$(RM) solo5-bindings-muen.pc
 	$(RM) solo5-bindings-genode.pc
 
-.PHONY: clobber
-clobber: MAKECMDGOALS := clean
-clobber: clean
-	@echo CLOBBER solo5
+.PHONY: distclean
+distclean: MAKECMDGOALS := clean
+distclean: clean
+	@echo DISTCLEAN solo5
 	-[ -d include/crt ] && $(RM) -r include/crt
 	$(RM) Makeconf
 
