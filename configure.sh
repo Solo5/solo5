@@ -157,7 +157,7 @@ case "${CONFIG_HOST}" in
 	    warn "Could not link with -lseccomp, not building spt"
 	fi
 	[ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_VIRTIO=1
-	CONFIG_MUEN=1
+	[ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_MUEN=1
 	CONFIG_GENODE=1
         ;;
     FreeBSD)
@@ -192,7 +192,7 @@ case "${CONFIG_HOST}" in
         CONFIG_HVT=1
 	CONFIG_SPT=
 	[ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_VIRTIO=1
-	CONFIG_MUEN=1
+	[ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_MUEN=1
 	CONFIG_GENODE=1
         ;;
     OpenBSD)
@@ -235,7 +235,7 @@ case "${CONFIG_HOST}" in
         CONFIG_HVT=1
 	CONFIG_SPT=
 	[ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_VIRTIO=1
-	CONFIG_MUEN=1
+	[ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_MUEN=1
 	CONFIG_GENODE=1
         ;;
     *)
