@@ -158,7 +158,7 @@ case "${CONFIG_HOST}" in
 	fi
 	[ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_VIRTIO=1
 	[ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_MUEN=1
-	CONFIG_GENODE=1
+	[ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_GENODE=1
         ;;
     FreeBSD)
         # On FreeBSD/clang we use -nostdlibinc which gives us access to the
@@ -193,7 +193,7 @@ case "${CONFIG_HOST}" in
 	CONFIG_SPT=
 	[ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_VIRTIO=1
 	[ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_MUEN=1
-	CONFIG_GENODE=1
+	[ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_GENODE=1
         ;;
     OpenBSD)
         # On OpenBSD/clang we use -nostdlibinc which gives us access to the
@@ -236,7 +236,7 @@ case "${CONFIG_HOST}" in
 	CONFIG_SPT=
 	[ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_VIRTIO=1
 	[ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_MUEN=1
-	CONFIG_GENODE=1
+	[ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_GENODE=1
         ;;
     *)
         die "Unsupported build OS: ${CONFIG_HOST}"
