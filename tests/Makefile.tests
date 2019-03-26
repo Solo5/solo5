@@ -63,23 +63,23 @@ BINDINGS.genode := $(TOPDIR)/bindings/genode/solo5.lib.so
 
 test_TARGETS :=
 
-ifdef BUILD_HVT
+ifdef CONFIG_HVT
     test_TARGETS += $(test_NAME).hvt
 endif
 
-ifdef BUILD_SPT
+ifdef CONFIG_SPT
     test_TARGETS += $(test_NAME).spt
 endif
 
-ifdef BUILD_VIRTIO
+ifdef CONFIG_VIRTIO
     test_TARGETS += $(test_NAME).virtio
 endif
 
-ifdef BUILD_MUEN
+ifdef CONFIG_MUEN
     test_TARGETS += $(test_NAME).muen
 endif
 
-ifdef BUILD_GENODE
+ifdef CONFIG_GENODE
     test_TARGETS += $(test_NAME).genode
 endif
 

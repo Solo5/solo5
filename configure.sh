@@ -83,16 +83,16 @@ CC_MACHINE=$(${CC} -dumpmachine)
 # Determine HOST and ARCH based on what the toolchain reports.
 case ${CC_MACHINE} in
     x86_64-linux*)
-        ARCH=x86_64 HOST=Linux
+        CONFIG_ARCH=x86_64 CONFIG_HOST=Linux
         ;;
     aarch64-linux*)
-        ARCH=aarch64 HOST=Linux
+        CONFIG_ARCH=aarch64 CONFIG_HOST=Linux
         ;;
     amd64-*freebsd*)
-        ARCH=x86_64 HOST=FreeBSD
+        CONFIG_ARCH=x86_64 CONFIG_HOST=FreeBSD
 	;;
     amd64-*openbsd*)
-        ARCH=x86_64 HOST=OpenBSD
+        CONFIG_ARCH=x86_64 CONFIG_HOST=OpenBSD
 	;;
     *)
         die "Unsupported toolchain target: ${CC_MACHINE}"
@@ -104,16 +104,16 @@ esac
 # pkg-config.
 HOST_INCDIR=${PWD}/include/crt
 
-BUILD_HVT=
-BUILD_SPT=
-BUILD_VIRTIO=
-BUILD_MUEN=
-BUILD_GENODE=
-C_CFLAGS=
-C_LDFLAGS=
-C_HOSTLDFLAGS_SPT=
+CONFIG_HVT=
+CONFIG_SPT=
+CONFIG_VIRTIO=
+CONFIG_MUEN=
+CONFIG_GENODE=
+MAKECONF_CFLAGS=
+MAKECONF_LDFLAGS=
+CONFIG_SPT_NO_PIE=
 
-case "${HOST}" in
+case "${CONFIG_HOST}" in
     Linux)
         # On Linux/gcc we use -nostdinc and copy all the gcc-provided headers.
         cc_is_gcc || die "Only 'gcc' 4.x+ is supported on Linux"
@@ -122,23 +122,23 @@ case "${HOST}" in
         mkdir -p ${HOST_INCDIR}
         cp -R ${CC_INCDIR}/. ${HOST_INCDIR}
 
-        C_CFLAGS="-nostdinc"
+        MAKECONF_CFLAGS="-nostdinc"
         # Recent distributions now default to PIE enabled. Disable it explicitly
         # if that's the case here.
         # XXX: This breaks MirageOS in (at least) the build of mirage-solo5 due
         # to -fno-pie breaking the build of lib/dllmirage-solo5_bindings.so.
         # Keep this disabled until that is resolved.
-        # cc_has_pie && C_CFLAGS="${C_CFLAGS} -fno-pie"
+        # cc_has_pie && MAKECONF_CFLAGS="${MAKECONF_CFLAGS} -fno-pie"
 
         # Stack smashing protection:
         #
         # Any GCC configured for a Linux/x86_64 target (actually, any
         # glibc-based target) will use a TLS slot to address __stack_chk_guard.
         # Disable this behaviour and use an ordinary global variable instead.
-        if [ "${ARCH}" = "x86_64" ]; then
+        if [ "${CONFIG_ARCH}" = "x86_64" ]; then
             gcc_check_option -mstack-protector-guard=global || \
                 die "GCC 4.9.0 or newer is required for -mstack-protector-guard= support"
-            C_CFLAGS="${C_CFLAGS} -mstack-protector-guard=global"
+            MAKECONF_CFLAGS="${MAKECONF_CFLAGS} -mstack-protector-guard=global"
         fi
 
         # If the host toolchain is NOT configured to build PIE exectuables by
@@ -147,23 +147,25 @@ case "${HOST}" in
         if ! cc_has_pie; then
             warn "Host toolchain does not build PIE executables, spt guest size will be limited to 1GB"
             warn "Consider upgrading to a Linux distribution with PIE support"
-            C_HOSTLDFLAGS_SPT="-Wl,-Ttext-segment=0x40000000"
+            CONFIG_SPT_NO_PIE=1
         fi
 
-        BUILD_HVT=1
+        CONFIG_HVT=1
 	if gcc_check_lib -lseccomp; then
-	    BUILD_SPT=1
+	    CONFIG_SPT=1
 	else
 	    warn "Could not link with -lseccomp, not building spt"
 	fi
-        [ "${ARCH}" = "x86_64" ] && BUILD_VIRTIO=1 BUILD_MUEN=1 BUILD_GENODE=1
+        CONFIG_VIRTIO=1
+	CONFIG_MUEN=1
+	CONFIG_GENODE=1
         ;;
     FreeBSD)
         # On FreeBSD/clang we use -nostdlibinc which gives us access to the
         # clang-provided headers for compiler instrinsics. We copy the rest
         # (std*.h, float.h and their dependencies) from the host.
         cc_is_clang || die "Only 'clang' is supported on FreeBSD"
-        [ "${ARCH}" = "x86_64" ] ||
+        [ "${CONFIG_ARCH}" = "x86_64" ] ||
             die "Only 'x86_64' is supported on FreeBSD"
         INCDIR=/usr/include
         SRCS_MACH="machine/_stdint.h machine/_types.h machine/endian.h \
@@ -185,17 +187,19 @@ case "${HOST}" in
         #
         # FreeBSD toolchains use a global (non-TLS) __stack_chk_guard by
         # default on x86_64, so there is nothing special we need to do here.
-        C_CFLAGS="-nostdlibinc"
+        MAKECONF_CFLAGS="-nostdlibinc"
 
-        BUILD_HVT=1
-        [ "${ARCH}" = "x86_64" ] && BUILD_VIRTIO=1 BUILD_MUEN=1 BUILD_GENODE=1
+        CONFIG_HVT=1
+        CONFIG_VIRTIO=1
+	CONFIG_MUEN=1
+	CONFIG_GENODE=1
         ;;
     OpenBSD)
         # On OpenBSD/clang we use -nostdlibinc which gives us access to the
         # clang-provided headers for compiler instrinsics. We copy the rest
         # (std*.h, cdefs.h and their dependencies) from the host.
         cc_is_clang || die "Only 'clang' is supported on OpenBSD"
-        [ "${ARCH}" = "x86_64" ] ||
+	[ "${CONFIG_ARCH}" = "x86_64" ] ||
             die "Only 'x86_64' is supported on OpenBSD"
         if ! ld_is_lld; then
             LD='/usr/bin/ld.lld'
@@ -223,29 +227,49 @@ case "${HOST}" in
         # we don't support yet. Unfortunately LLVM does not support
         # -mstack-protector-guard, so disable SSP on OpenBSD for the time
         # being.
-        C_CFLAGS="-fno-stack-protector -nostdlibinc"
+        MAKECONF_CFLAGS="-fno-stack-protector -nostdlibinc"
         warn "Stack protector (SSP) disabled on OpenBSD due to toolchain issues"
-        C_LDFLAGS="-nopie"
-        BUILD_HVT=1
-        [ "${ARCH}" = "x86_64" ] && BUILD_VIRTIO=1 BUILD_MUEN=1 BUILD_GENODE=1
+        MAKECONF_LDFLAGS="-nopie"
+
+        CONFIG_HVT=1
+        CONFIG_VIRTIO=1
+	CONFIG_MUEN=1
+	CONFIG_GENODE=1
         ;;
     *)
-        die "Unsupported build OS: ${HOST}"
+        die "Unsupported build OS: ${CONFIG_HOST}"
         ;;
 esac
 
+# WARNING:
+#
+# The generated Makeconf is dual-use! It is both sourced by GNU make, and by
+# the test suite. As such, a subset of this file must parse in both shell *and*
+# GNU make. Given the differences in quoting rules between the two
+# (unable to sensibly use VAR="VALUE"), our convention is as follows:
+#
+# 1. GNU make parses the entire file, i.e. all variables defined below are 
+#    available to Makefiles.
+#
+# 2. Shell scripts parse the subset of *lines* starting with "CONFIG_". I.e.
+#    only variables named "CONFIG_..." are available. When adding new variables
+#    to this group you must ensure that they do not contain more than a single
+#    "word".
+#
+# Please do NOT add variable names with new prefixes without asking first.
+#
 cat <<EOM >Makeconf
 # Generated by configure.sh, using CC=${CC} for target ${CC_MACHINE}
-BUILD_HVT=${BUILD_HVT}
-BUILD_SPT=${BUILD_SPT}
-BUILD_VIRTIO=${BUILD_VIRTIO}
-BUILD_MUEN=${BUILD_MUEN}
-BUILD_GENODE=${BUILD_GENODE}
-C_CFLAGS=${C_CFLAGS}
-C_LDFLAGS=${C_LDFLAGS}
-C_ARCH=${ARCH}
-C_HOST=${HOST}
-C_CC=${CC}
-C_LD=${LD}
-C_HOSTLDFLAGS_SPT=${C_HOSTLDFLAGS_SPT}
+CONFIG_HVT=${CONFIG_HVT}
+CONFIG_SPT=${CONFIG_SPT}
+CONFIG_VIRTIO=${CONFIG_VIRTIO}
+CONFIG_MUEN=${CONFIG_MUEN}
+CONFIG_GENODE=${CONFIG_GENODE}
+MAKECONF_CFLAGS=${MAKECONF_CFLAGS}
+MAKECONF_LDFLAGS=${MAKECONF_LDFLAGS}
+CONFIG_ARCH=${CONFIG_ARCH}
+CONFIG_HOST=${CONFIG_HOST}
+MAKECONF_CC=${CC}
+MAKECONF_LD=${LD}
+CONFIG_SPT_NO_PIE=${CONFIG_SPT_NO_PIE}
 EOM

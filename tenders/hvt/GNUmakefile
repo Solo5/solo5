@@ -26,21 +26,21 @@ all_TARGETS :=
 .SUFFIXES:
 $(V).SILENT:	
 
-ifdef BUILD_HVT
+ifdef CONFIG_HVT
 
-hvt_SRCS := hvt_core.c hvt_elf.c hvt_main.c hvt_cpu_$(ARCH).c
+hvt_SRCS := hvt_core.c hvt_elf.c hvt_main.c hvt_cpu_$(CONFIG_ARCH).c
 hvt_MODULES ?= blk net
 
-ifeq ($(HOST), Linux)
-    hvt_SRCS += hvt_kvm.c hvt_kvm_$(ARCH).c
+ifeq ($(CONFIG_HOST), Linux)
+    hvt_SRCS += hvt_kvm.c hvt_kvm_$(CONFIG_ARCH).c
     hvt_debug_MODULES ?= gdb dumpcore
     all_TARGETS += solo5-hvt solo5-hvt-debug
-else ifeq ($(HOST), FreeBSD)
-    hvt_SRCS += hvt_freebsd.c hvt_freebsd_$(ARCH).c
+else ifeq ($(CONFIG_HOST), FreeBSD)
+    hvt_SRCS += hvt_freebsd.c hvt_freebsd_$(CONFIG_ARCH).c
     hvt_debug_MODULES ?= gdb dumpcore
     all_TARGETS += solo5-hvt solo5-hvt-debug
-else ifeq ($(HOST), OpenBSD)
-    hvt_SRCS += hvt_openbsd.c hvt_openbsd_$(ARCH).c
+else ifeq ($(CONFIG_HOST), OpenBSD)
+    hvt_SRCS += hvt_openbsd.c hvt_openbsd_$(CONFIG_ARCH).c
     all_TARGETS += solo5-hvt
 endif
 
@@ -61,7 +61,7 @@ solo5-hvt: $(hvt_OBJS)
 solo5-hvt-debug: $(hvt_OBJS) $(hvt_debug_OBJS)
 	$(HOSTLINK)
 
-endif # BUILD_HVT
+endif # CONFIG_HVT
 
 all: $(all_TARGETS)
 

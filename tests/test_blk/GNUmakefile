@@ -20,6 +20,6 @@ include $(TOPDIR)/Makefile.common
 
 test_NAME := test_blk
 
-BUILD_MUEN := 
+CONFIG_MUEN := 
 
 include ../Makefile.tests

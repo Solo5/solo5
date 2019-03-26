@@ -20,9 +20,9 @@ include $(TOPDIR)/Makefile.common
 
 test_NAME := test_seccomp
 
-BUILD_HVT :=
-BUILD_VIRTIO :=
-BUILD_MUEN :=
-BUILD_GENODE :=
+CONFIG_HVT :=
+CONFIG_VIRTIO :=
+CONFIG_MUEN :=
+CONFIG_GENODE :=
 
 include ../Makefile.tests

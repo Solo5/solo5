@@ -7,7 +7,7 @@ homepage: "https://github.com/solo5/solo5"
 bug-reports: "https://github.com/solo5/solo5/issues"
 license: "ISC"
 dev-repo: "git+https://github.com/solo5/solo5.git"
-build: [make "V=1" "BUILD_HVT=" "BUILD_SPT= "BUILD_VIRTIO=" "BUILD_MUEN="]
+build: [make "V=1" "CONFIG_HVT=" "CONFIG_SPT= "CONFIG_VIRTIO=" "CONFIG_MUEN="]
 install: [make "V=1" "install-opam-genode" "PREFIX=%{prefix}%"]
 remove: [make "V=1" "uninstall-opam-genode" "PREFIX=%{prefix}%"]
 depends: "conf-pkg-config"

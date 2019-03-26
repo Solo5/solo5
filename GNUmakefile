@@ -40,7 +40,7 @@ $(SUBDIRS):
 # Ensure that a top-level "make clean" always cleans *all* possible build
 # products and not some subset dependent on the setting of $(BUILD_*).
 before-clean:
-	$(eval export SUBOVERRIDE := BUILD_HVT=1 BUILD_SPT=1 BUILD_VIRTIO=1 BUILD_MUEN=1 BUILD_GENODE=1)
+	$(eval export SUBOVERRIDE := CONFIG_HVT=1 CONFIG_SPT=1 CONFIG_VIRTIO=1 CONFIG_MUEN=1 CONFIG_GENODE=1)
 clean: before-clean $(SUBDIRS)
 	@echo "CLEAN solo5"
 	$(RM) solo5-bindings-virtio.pc
@@ -69,15 +69,15 @@ install-opam-%: all solo5-bindings-%.pc force-install
 	cp bindings/$*/solo5_$*.o bindings/$*/solo5_$*.lds \
 	    $(PREFIX)/lib/solo5-bindings-$*
 	cp solo5-bindings-$*.pc $(PREFIX)/lib/pkgconfig
-ifdef BUILD_HVT
+ifdef CONFIG_HVT
 	cp tenders/hvt/solo5-hvt tenders/hvt/solo5-hvt-configure $(PREFIX)/bin
 	[ -f tenders/hvt/solo5-hvt-debug ] && \
 	    cp tenders/hvt/solo5-hvt-debug $(PREFIX)/bin
 endif
-ifdef BUILD_SPT
+ifdef CONFIG_SPT
 	cp tenders/spt/solo5-spt $(PREFIX)/bin
 endif
-ifdef BUILD_VIRTIO
+ifdef CONFIG_VIRTIO
 	cp scripts/virtio-mkimage/solo5-virtio-mkimage.sh \
 	    $(PREFIX)/bin/solo5-virtio-mkimage
 	cp scripts/virtio-run/solo5-virtio-run.sh \
@@ -96,16 +96,29 @@ uninstall-opam-%: force-uninstall
 	$(RM) $(PREFIX)/lib/solo5-bindings-$*/solo5_$*.o \
 	    $(PREFIX)/lib/solo5-bindings-$*/solo5_$*.lds
 	$(RM) $(PREFIX)/lib/pkgconfig/solo5-bindings-$*.pc
-ifdef BUILD_HVT
+ifdef CONFIG_HVT
 	$(RM) $(PREFIX)/bin/solo5-hvt $(PREFIX)/bin/solo5-hvt-debug \
 	    $(PREFIX)/bin/solo5-hvt-configure
 endif
-ifdef BUILD_SPT
+ifdef CONFIG_SPT
 	$(RM) $(PREFIX)/bin/solo5-spt
 endif
-ifdef BUILD_VIRTIO
+ifdef CONFIG_VIRTIO
 	$(RM) $(PREFIX)/bin/solo5-virtio-mkimage
 	$(RM) $(PREFIX)/bin/solo5-virtio-run
 endif
+
+# The following targets are kept for backwards compatibility, as otherwise
+# upgrading existing OPAM switches will fail. They should be removed at some
+# point, along with the dummy solo5-hvt-configure.
+opam-hvt-uninstall: uninstall-opam-hvt ;
+	
+opam-spt-uninstall: uninstall-opam-spt ;
+
+opam-virtio-uninstall: uninstall-opam-virtio ;
+
+opam-muen-uninstall: uninstall-opam-muen ;
+
+opam-genode-uninstall: uninstall-opam-genode ;
 
 $(V).SILENT:

@@ -25,7 +25,7 @@ all_TARGETS :=
 .SUFFIXES:
 $(V).SILENT:
 
-common_SRCS := abort.c cpu_$(ARCH).c cpu_vectors_$(ARCH).S \
+common_SRCS := abort.c cpu_$(CONFIG_ARCH).c cpu_vectors_$(CONFIG_ARCH).S \
     crt.c printf.c intr.c lib.c mem.c exit.c log.c cmdline.c
 
 common_hvt_SRCS := hvt/start.c hvt/platform.c hvt/platform_intr.c hvt/time.c
@@ -36,7 +36,7 @@ hvt_SRCS := $(common_SRCS) $(common_hvt_SRCS) \
 
 spt_SRCS := abort.c crt.c printf.c lib.c mem.c exit.c log.c cmdline.c \
     spt/bindings.c spt/block.c spt/net.c spt/platform.c spt/start.c \
-    spt/sys_linux_$(ARCH).c
+    spt/sys_linux_$(CONFIG_ARCH).c
 
 virtio_SRCS := $(common_SRCS) \
     virtio/boot.S virtio/start.c virtio/platform.c virtio/platform_intr.c \
@@ -53,7 +53,7 @@ genode_SRCS := genode/stubs.c
 
 CPPFLAGS+=-D__SOLO5_BINDINGS__
 
-ifeq ($(ARCH), x86_64)
+ifeq ($(CONFIG_ARCH), x86_64)
 # Prevent the compiler from adding optimizations that use shared FPU state.
 # This is necessary for early boot code and trap handlers.
 CFLAGS+=-mno-sse -mno-mmx -mno-aes -mno-avx -mno-red-zone
@@ -79,7 +79,7 @@ define LINK.bindings
 	$(OBJCOPY) -w -G solo5_\* -G _start\* -G __stack_chk_\* $@ $@
 endef
 
-ifdef BUILD_HVT
+ifdef CONFIG_HVT
     hvt_OBJS := $(patsubst %.c,%.o,$(patsubst %.S,%.o,$(hvt_SRCS)))
 
 hvt/solo5_hvt.o: $(hvt_OBJS)
@@ -90,7 +90,7 @@ hvt/solo5_hvt.o: $(hvt_OBJS)
     all_SRCS += $(hvt_SRCS)
 endif
 
-ifdef BUILD_SPT
+ifdef CONFIG_SPT
     spt_OBJS := $(patsubst %.c,%.o,$(patsubst %.S,%.o,$(spt_SRCS)))
 
 spt/solo5_spt.o: $(spt_OBJS)
@@ -101,7 +101,7 @@ spt/solo5_spt.o: $(spt_OBJS)
     all_SRCS += $(spt_SRCS)
 endif
 
-ifdef BUILD_VIRTIO
+ifdef CONFIG_VIRTIO
     virtio_OBJS := $(patsubst %.c,%.o,$(patsubst %.S,%.o,$(virtio_SRCS)))
 
 virtio/solo5_virtio.o: $(virtio_OBJS)
@@ -112,7 +112,7 @@ virtio/solo5_virtio.o: $(virtio_OBJS)
     all_SRCS += $(virtio_SRCS)
 endif
 
-ifdef BUILD_MUEN
+ifdef CONFIG_MUEN
     muen_OBJS := $(patsubst %.c,%.o,$(patsubst %.S,%.o,$(muen_SRCS)))
 
 muen/solo5_muen.o: $(muen_OBJS)
@@ -123,7 +123,7 @@ muen/solo5_muen.o: $(muen_OBJS)
     all_SRCS += $(muen_SRCS)
 endif
 
-ifdef BUILD_GENODE
+ifdef CONFIG_GENODE
     genode_OBJS := $(patsubst %.c,%.o,$(patsubst %.S,%.o,$(genode_SRCS)))
 
 $(genode_OBJS): CFLAGS += -Wno-unused-parameter

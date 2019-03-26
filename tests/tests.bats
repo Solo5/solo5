@@ -22,9 +22,8 @@ setup() {
 
   MAKECONF=../Makeconf
   [ ! -f ${MAKECONF} ] && skip "Can't find Makeconf, looked in ${MAKECONF}"
-  eval $(grep -E ^BUILD_.+=.+ ${MAKECONF})
-  eval $(grep -E ^C_HOST=.+ ${MAKECONF})
-  eval $(grep -E ^C_ARCH=.+ ${MAKECONF})
+  # This is subtle; see the comments in configure.sh.
+  eval $(grep -E ^CONFIG_ ${MAKECONF})
 
   if [ -x "$(command -v timeout)" ]; then
     TIMEOUT=timeout
@@ -36,8 +35,8 @@ setup() {
 
   case "${BATS_TEST_NAME}" in
   *hvt)
-    [ "${BUILD_HVT}" = "no" ] && skip "hvt not built"
-    case ${C_HOST} in
+    [ -z "${CONFIG_HVT}" ] && skip "hvt not configured"
+    case "${CONFIG_HOST}" in
     Linux)
       [ -c /dev/kvm -a -w /dev/kvm ] || skip "no access to /dev/kvm or not present"
       ;;
@@ -45,7 +44,7 @@ setup() {
       # TODO, just try and run the test anyway
       ;;
     *)
-      skip "Don't know how to run ${BATS_TEST_NAME} on ${C_HOST}"
+      skip "Don't know how to run ${BATS_TEST_NAME} on ${CONFIG_HOST}"
       ;;
     esac
     HVT_TENDER=../tenders/hvt/solo5-hvt
@@ -55,11 +54,11 @@ setup() {
     if [ "$(uname -s)" = "OpenBSD" ]; then
       skip "virtio tests not run for OpenBSD"
     fi
-    [ "${BUILD_VIRTIO}" = "no" ] && skip "virtio not built"
+    [ -z "${CONFIG_VIRTIO}" ] && skip "virtio not configured"
     VIRTIO=../scripts/virtio-run/solo5-virtio-run.sh
     ;;
   *spt)
-    [ "${BUILD_SPT}" = "no" ] && skip "spt not built"
+    [ -z "${CONFIG_SPT}" ] && skip "spt not configured"
     SPT_TENDER=../tenders/spt/solo5-spt
     ;;
   esac
@@ -292,12 +291,12 @@ virtio_expect_abort() {
 }
 
 @test "abort hvt" {
-  [ "${C_ARCH}" = "x86_64" ] || skip "not implemented for ${C_ARCH}"
-  case ${C_HOST} in
+  [ "${CONFIG_ARCH}" = "x86_64" ] || skip "not implemented for ${CONFIG_ARCH}"
+  case "${CONFIG_HOST}" in
     Linux|FreeBSD)
       ;;
     *)
-      skip "not implemented for ${C_HOST}"
+      skip "not implemented for ${CONFIG_HOST}"
       ;;
   esac
 

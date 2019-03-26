@@ -26,12 +26,19 @@ all_TARGETS :=
 .SUFFIXES:
 $(V).SILENT:
 
-ifdef BUILD_SPT
+ifdef CONFIG_SPT
 
-HOSTLDFLAGS += -Wl,-z -Wl,noexecstack $(HOSTLDFLAGS_SPT)
+HOSTLDFLAGS += -Wl,-z -Wl,noexecstack
+
+ifdef CONFIG_SPT_NO_PIE
+
+HOSTLDFLAGS += -Wl,-Ttext-segment=0x40000000
+
+endif
+
 HOSTLDLIBS += -lseccomp
 
-spt_SRCS := spt_main.c spt_core.c spt_elf.c spt_launch_$(ARCH).S \
+spt_SRCS := spt_main.c spt_core.c spt_elf.c spt_launch_$(CONFIG_ARCH).S \
      spt_module_net.c spt_module_block.c
 
 spt_OBJS := $(patsubst %.c,%.o,$(patsubst %.S,%.o,$(spt_SRCS)))
@@ -50,7 +57,7 @@ solo5-spt: $(spt_OBJS)
 
 all_TARGETS += solo5-spt
 
-endif # BUILD_SPT
+endif # CONFIG_SPT
 
 all: $(all_TARGETS)
 
