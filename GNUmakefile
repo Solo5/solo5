@@ -180,4 +180,4 @@ opam-spt-uninstall:
 	$(RM) $(PREFIX)/lib/pkgconfig/solo5-bindings-spt.pc
 	$(RM) ${OPAM_BINDIR}/solo5-spt
 
-# XXXX
+# XXXXX
