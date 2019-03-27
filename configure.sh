@@ -230,7 +230,7 @@ case "${CONFIG_HOST}" in
         # we don't support yet. Unfortunately LLVM does not support
         # -mstack-protector-guard, so disable SSP on OpenBSD for the time
         # being.
-        MAKECONF_CFLAGS="-fno-stack-protector -nostdlibinc"
+        MAKECONF_CFLAGS="-fno-stack-protector -mno-retpoline -nostdlibinc"
         warn "Stack protector (SSP) disabled on OpenBSD due to toolchain issues"
         MAKECONF_LDFLAGS="-nopie"
 
