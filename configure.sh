@@ -91,7 +91,7 @@ case ${CC_MACHINE} in
     x86_64-*freebsd*)
         CONFIG_ARCH=x86_64 CONFIG_HOST=FreeBSD
 	;;
-    x86_64-*openbsd*)
+    amd64-*openbsd*)
         CONFIG_ARCH=x86_64 CONFIG_HOST=OpenBSD
 	;;
     *)
