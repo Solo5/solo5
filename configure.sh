@@ -17,15 +17,17 @@
 # NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
 # CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
+prog_NAME="$(basename $0)"
+
 die()
 {
-    echo "$0: ERROR: $@" 1>&2
+    echo "${prog_NAME}: ERROR: $@" 1>&2
     exit 1
 }
 
 warn()
 {
-    echo "$0: WARNING: $@" 1>&2
+    echo "${prog_NAME}: WARNING: $@" 1>&2
 }
 
 cc_maybe_gcc()
@@ -193,7 +195,7 @@ case "${CONFIG_HOST}" in
 	CONFIG_SPT=
 	[ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_VIRTIO=1
 	[ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_MUEN=1
-	[ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_GENODE=1
+	CONFIG_GENODE=
         ;;
     OpenBSD)
         # On OpenBSD/clang we use -nostdlibinc which gives us access to the
@@ -236,7 +238,7 @@ case "${CONFIG_HOST}" in
 	CONFIG_SPT=
 	[ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_VIRTIO=1
 	[ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_MUEN=1
-	[ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_GENODE=1
+	CONFIG_GENODE=
         ;;
     *)
         die "Unsupported build OS: ${CONFIG_HOST}"
@@ -275,3 +277,12 @@ MAKECONF_CC=${CC}
 MAKECONF_LD=${LD}
 CONFIG_SPT_NO_PIE=${CONFIG_SPT_NO_PIE}
 EOM
+
+echo "${prog_NAME}: Configured for ${CC_MACHINE}."
+echo -n "${prog_NAME}: Enabled targets:"
+[ -n "${CONFIG_HVT}" ]    && echo -n " hvt"
+[ -n "${CONFIG_SPT}" ]    && echo -n " spt"
+[ -n "${CONFIG_VIRTIO}" ] && echo -n " virtio"
+[ -n "${CONFIG_MUEN}" ]   && echo -n " muen"
+[ -n "${CONFIG_GENODE}" ] && echo -n " genode"
+echo "."
