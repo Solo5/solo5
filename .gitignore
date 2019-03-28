@@ -1,9 +1,8 @@
 *.o
+*.d
 *.lib.so
-*.swp
-*.pcap
+*.pc
 Makeconf
-cscope.*
 tags
 include/crt
 tests/*/*.hvt
@@ -11,9 +10,6 @@ tests/*/*.spt
 tests/*/*.virtio
 tests/*/*.muen
 tests/*/*.genode
-tests/*/solo5-hvt
-tests/*/Makefile.solo5-hvt
-tenders/hvt/Makefile.solo5-hvt
-tenders/hvt/_build-solo5-hvt/
 tenders/hvt/solo5-hvt
+tenders/hvt/solo5-hvt-debug
 tenders/spt/solo5-spt

@@ -16,26 +16,60 @@
 # NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
 # CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-TOP?=../..
-include $(TOP)/Makeconf
+ifndef TOPDIR
+$(error TOPDIR must be set, run $(MAKE) from the top of the source tree or set it manually)
+endif
+include $(TOPDIR)/Makefile.common
 
-.PHONY: all clean
-all: solo5-spt
+.PHONY: all
+all:
+all_TARGETS :=
 
-CFLAGS=-Wall -Werror -std=c99 -O2 -g -I../../include/solo5
-LDFLAGS=-Wl,-z -Wl,noexecstack $(SPT_EXTRA_LDFLAGS)
-LDLIBS=-lseccomp
+.SUFFIXES:
+$(V).SILENT:
 
-OBJS=spt_main.o spt_core.o spt_elf.o spt_launch_$(TARGET_ARCH).o \
-     spt_module_net.o spt_module_block.o
+ifdef CONFIG_SPT
 
-# This needs to be re-defined manually, as GNU Make has the undocumented
-# "feature" of using $(TARGET_ARCH) in the default implicit rule for %.c.
-%.o: %.c
-	$(CC) -c $(CFLAGS) -o $@ $<
+HOSTLDFLAGS += -Wl,-z -Wl,noexecstack
 
-solo5-spt: $(OBJS)
-	$(CC) $(LDFLAGS) -o $@ $(OBJS) $(LDLIBS)
+ifdef CONFIG_SPT_NO_PIE
+
+HOSTLDFLAGS += -Wl,-Ttext-segment=0x40000000
+
+endif
+
+HOSTLDLIBS += -lseccomp
+
+spt_SRCS := spt_main.c spt_core.c spt_elf.c spt_launch_$(CONFIG_ARCH).S \
+     spt_module_net.c spt_module_block.c
+
+spt_OBJS := $(patsubst %.c,%.o,$(patsubst %.S,%.o,$(spt_SRCS)))
+
+%.o: %.c %.d
+	$(HOSTCOMPILE.c)
+
+%.o: %.S %.d
+	$(HOSTCOMPILE.S)
+
+%.d: ;
+.PRECIOUS: %.d
+
+solo5-spt: $(spt_OBJS)
+	$(HOSTLINK)
+
+all_TARGETS += solo5-spt
+
+endif # CONFIG_SPT
+
+all: $(all_TARGETS)
+
+all_OBJS := $(spt_OBJS)
+all_DEPS := $(patsubst %.o,%.d,$(all_OBJS))
+
+.PHONY: clean
 
 clean:
-	$(RM) $(OBJS) solo5-spt
+	@echo "CLEAN tenders/spt"
+	$(RM) $(all_TARGETS) $(all_OBJS) $(all_DEPS)
+
+include $(wildcard $(all_DEPS))

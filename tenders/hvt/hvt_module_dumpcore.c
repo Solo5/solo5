@@ -254,9 +254,9 @@ static int setup(struct hvt *hvt)
     return 0;
 }
 
-struct hvt_module hvt_module_dumpcore = {
-    .name = "dumpcore",
+BEGIN_REGISTER_MODULE(dumpcore) {
     .setup = setup,
     .handle_cmdarg = handle_cmdarg,
     .usage = usage
-};
+}
+END_REGISTER_MODULE

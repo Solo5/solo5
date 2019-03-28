@@ -17,15 +17,17 @@
 # NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
 # CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
+prog_NAME="$(basename $0)"
+
 die()
 {
-    echo "$0: ERROR: $@" 1>&2
+    echo "${prog_NAME}: ERROR: $@" 1>&2
     exit 1
 }
 
 warn()
 {
-    echo "$0: WARNING: $@" 1>&2
+    echo "${prog_NAME}: WARNING: $@" 1>&2
 }
 
 cc_maybe_gcc()
@@ -58,6 +60,16 @@ int main(int argc, char *argv[])
 EOM
 }
 
+gcc_check_lib()
+{
+    ${CC} -x c -o /dev/null - "$@" <<EOM >/dev/null 2>&1
+int main(int argc, char *argv[])
+{
+    return 0;
+}
+EOM
+}
+
 ld_is_lld()
 {
     ${LD} --version 2>&1 | grep -q '^LLD'
@@ -67,18 +79,25 @@ ld_is_lld()
 CC=${CC:-cc}
 LD=${LD:-ld}
 
-TARGET=$(${CC} -dumpmachine)
+CC_MACHINE=$(${CC} -dumpmachine)
 [ $? -ne 0 ] &&
     die "Could not run '${CC} -dumpmachine', is your compiler working?"
-case ${TARGET} in
-    x86_64-*|amd64-*)
-        TARGET_ARCH=x86_64
+# Determine HOST and ARCH based on what the toolchain reports.
+case ${CC_MACHINE} in
+    x86_64-*linux*)
+        CONFIG_ARCH=x86_64 CONFIG_HOST=Linux
         ;;
-    aarch64-*)
-        TARGET_ARCH=aarch64
+    aarch64-*linux*)
+        CONFIG_ARCH=aarch64 CONFIG_HOST=Linux
         ;;
+    x86_64-*freebsd*)
+        CONFIG_ARCH=x86_64 CONFIG_HOST=FreeBSD
+	;;
+    amd64-*openbsd*)
+        CONFIG_ARCH=x86_64 CONFIG_HOST=OpenBSD
+	;;
     *)
-        die "Unsupported compiler target: ${TARGET}"
+        die "Unsupported toolchain target: ${CC_MACHINE}"
         ;;
 esac
 
@@ -87,7 +106,16 @@ esac
 # pkg-config.
 HOST_INCDIR=${PWD}/include/crt
 
-case $(uname -s) in
+CONFIG_HVT=
+CONFIG_SPT=
+CONFIG_VIRTIO=
+CONFIG_MUEN=
+CONFIG_GENODE=
+MAKECONF_CFLAGS=
+MAKECONF_LDFLAGS=
+CONFIG_SPT_NO_PIE=
+
+case "${CONFIG_HOST}" in
     Linux)
         # On Linux/gcc we use -nostdinc and copy all the gcc-provided headers.
         cc_is_gcc || die "Only 'gcc' 4.x+ is supported on Linux"
@@ -96,23 +124,23 @@ case $(uname -s) in
         mkdir -p ${HOST_INCDIR}
         cp -R ${CC_INCDIR}/. ${HOST_INCDIR}
 
-        HOST_CFLAGS="-nostdinc"
+        MAKECONF_CFLAGS="-nostdinc"
         # Recent distributions now default to PIE enabled. Disable it explicitly
         # if that's the case here.
         # XXX: This breaks MirageOS in (at least) the build of mirage-solo5 due
         # to -fno-pie breaking the build of lib/dllmirage-solo5_bindings.so.
         # Keep this disabled until that is resolved.
-        # cc_has_pie && HOST_CFLAGS="${HOST_CFLAGS} -fno-pie"
+        # cc_has_pie && MAKECONF_CFLAGS="${MAKECONF_CFLAGS} -fno-pie"
 
         # Stack smashing protection:
         #
         # Any GCC configured for a Linux/x86_64 target (actually, any
         # glibc-based target) will use a TLS slot to address __stack_chk_guard.
         # Disable this behaviour and use an ordinary global variable instead.
-        if [ "${TARGET_ARCH}" = "x86_64" ]; then
+        if [ "${CONFIG_ARCH}" = "x86_64" ]; then
             gcc_check_option -mstack-protector-guard=global || \
                 die "GCC 4.9.0 or newer is required for -mstack-protector-guard= support"
-            HOST_CFLAGS="${HOST_CFLAGS} -mstack-protector-guard=global"
+            MAKECONF_CFLAGS="${MAKECONF_CFLAGS} -mstack-protector-guard=global"
         fi
 
         # If the host toolchain is NOT configured to build PIE exectuables by
@@ -121,27 +149,25 @@ case $(uname -s) in
         if ! cc_has_pie; then
             warn "Host toolchain does not build PIE executables, spt guest size will be limited to 1GB"
             warn "Consider upgrading to a Linux distribution with PIE support"
-            SPT_EXTRA_LDFLAGS="-Wl,-Ttext-segment=0x40000000"
+            CONFIG_SPT_NO_PIE=1
         fi
 
-        BUILD_HVT="yes"
-        BUILD_SPT="yes"
-        if [ "${TARGET_ARCH}" = "x86_64" ]; then
-            BUILD_VIRTIO="yes"
-            BUILD_MUEN="yes"
-            BUILD_GENODE="yes"
-        else
-            BUILD_VIRTIO="no"
-            BUILD_MUEN="no"
-            BUILD_GENODE="no"
-        fi
+        CONFIG_HVT=1
+	if gcc_check_lib -lseccomp; then
+	    CONFIG_SPT=1
+	else
+	    warn "Could not link with -lseccomp, not building spt"
+	fi
+	[ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_VIRTIO=1
+	[ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_MUEN=1
+	[ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_GENODE=1
         ;;
     FreeBSD)
         # On FreeBSD/clang we use -nostdlibinc which gives us access to the
         # clang-provided headers for compiler instrinsics. We copy the rest
         # (std*.h, float.h and their dependencies) from the host.
         cc_is_clang || die "Only 'clang' is supported on FreeBSD"
-        [ "${TARGET_ARCH}" = "x86_64" ] ||
+        [ "${CONFIG_ARCH}" = "x86_64" ] ||
             die "Only 'x86_64' is supported on FreeBSD"
         INCDIR=/usr/include
         SRCS_MACH="machine/_stdint.h machine/_types.h machine/endian.h \
@@ -163,19 +189,20 @@ case $(uname -s) in
         #
         # FreeBSD toolchains use a global (non-TLS) __stack_chk_guard by
         # default on x86_64, so there is nothing special we need to do here.
-        HOST_CFLAGS="-nostdlibinc"
-        BUILD_HVT="yes"
-        BUILD_VIRTIO="yes"
-        BUILD_MUEN="yes"
-        BUILD_GENODE="yes"
-        BUILD_SPT="no"
+        MAKECONF_CFLAGS="-nostdlibinc"
+
+        CONFIG_HVT=1
+	CONFIG_SPT=
+	[ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_VIRTIO=1
+	[ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_MUEN=1
+	CONFIG_GENODE=
         ;;
     OpenBSD)
         # On OpenBSD/clang we use -nostdlibinc which gives us access to the
         # clang-provided headers for compiler instrinsics. We copy the rest
         # (std*.h, cdefs.h and their dependencies) from the host.
         cc_is_clang || die "Only 'clang' is supported on OpenBSD"
-        [ "${TARGET_ARCH}" = "x86_64" ] ||
+	[ "${CONFIG_ARCH}" = "x86_64" ] ||
             die "Only 'x86_64' is supported on OpenBSD"
         if ! ld_is_lld; then
             LD='/usr/bin/ld.lld'
@@ -203,32 +230,59 @@ case $(uname -s) in
         # we don't support yet. Unfortunately LLVM does not support
         # -mstack-protector-guard, so disable SSP on OpenBSD for the time
         # being.
-        HOST_CFLAGS="-fno-stack-protector -nostdlibinc"
+        MAKECONF_CFLAGS="-fno-stack-protector -mno-retpoline -nostdlibinc"
         warn "Stack protector (SSP) disabled on OpenBSD due to toolchain issues"
-        HOST_LDFLAGS="-nopie"
-        BUILD_HVT="yes"
-        BUILD_VIRTIO="yes"
-        BUILD_MUEN="yes"
-        BUILD_GENODE="yes"
-        BUILD_SPT="no"
+        MAKECONF_LDFLAGS="-nopie"
+
+        CONFIG_HVT=1
+	CONFIG_SPT=
+	[ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_VIRTIO=1
+	[ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_MUEN=1
+	CONFIG_GENODE=
         ;;
     *)
-        die "Unsupported build OS: $(uname -s)"
+        die "Unsupported build OS: ${CONFIG_HOST}"
         ;;
 esac
 
+# WARNING:
+#
+# The generated Makeconf is dual-use! It is both sourced by GNU make, and by
+# the test suite. As such, a subset of this file must parse in both shell *and*
+# GNU make. Given the differences in quoting rules between the two
+# (unable to sensibly use VAR="VALUE"), our convention is as follows:
+#
+# 1. GNU make parses the entire file, i.e. all variables defined below are 
+#    available to Makefiles.
+#
+# 2. Shell scripts parse the subset of *lines* starting with "CONFIG_". I.e.
+#    only variables named "CONFIG_..." are available. When adding new variables
+#    to this group you must ensure that they do not contain more than a single
+#    "word".
+#
+# Please do NOT add variable names with new prefixes without asking first.
+#
 cat <<EOM >Makeconf
-# Generated by configure.sh, using CC=${CC} for target ${TARGET}
-BUILD_HVT=${BUILD_HVT}
-BUILD_SPT=${BUILD_SPT}
-BUILD_VIRTIO=${BUILD_VIRTIO}
-BUILD_MUEN=${BUILD_MUEN}
-BUILD_GENODE=${BUILD_GENODE}
-HOST_CFLAGS=${HOST_CFLAGS}
-HOST_LDFLAGS=${HOST_LDFLAGS}
-TEST_TARGET=${TARGET}
-TARGET_ARCH=${TARGET_ARCH}
-CC=${CC}
-LD=${LD}
-SPT_EXTRA_LDFLAGS=${SPT_EXTRA_LDFLAGS}
+# Generated by configure.sh, using CC=${CC} for target ${CC_MACHINE}
+CONFIG_HVT=${CONFIG_HVT}
+CONFIG_SPT=${CONFIG_SPT}
+CONFIG_VIRTIO=${CONFIG_VIRTIO}
+CONFIG_MUEN=${CONFIG_MUEN}
+CONFIG_GENODE=${CONFIG_GENODE}
+MAKECONF_CFLAGS=${MAKECONF_CFLAGS}
+MAKECONF_LDFLAGS=${MAKECONF_LDFLAGS}
+CONFIG_ARCH=${CONFIG_ARCH}
+CONFIG_HOST=${CONFIG_HOST}
+MAKECONF_CC=${CC}
+MAKECONF_LD=${LD}
+CONFIG_SPT_NO_PIE=${CONFIG_SPT_NO_PIE}
 EOM
+
+echo "${prog_NAME}: Configured for ${CC_MACHINE}."
+echo -n "${prog_NAME}: Enabled targets:"
+[ -n "${CONFIG_HVT}" ]    && echo -n " hvt"
+[ -n "${CONFIG_SPT}" ]    && echo -n " spt"
+[ -n "${CONFIG_VIRTIO}" ] && echo -n " virtio"
+[ -n "${CONFIG_MUEN}" ]   && echo -n " muen"
+[ -n "${CONFIG_GENODE}" ] && echo -n " genode"
+echo "."

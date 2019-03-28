@@ -54,15 +54,18 @@ static void setup_cmdline(char *cmdline, int argc, char **argv)
     }
 }
 
+extern struct hvt_module __start_modules;
+extern struct hvt_module __stop_modules;
+
 static void setup_modules(struct hvt *hvt)
 {
-    for (struct hvt_module **m = hvt_core_modules; *m; m++) {
-        assert((*m)->setup);
-        if ((*m)->setup(hvt)) {
-            warnx("Module `%s' setup failed", (*m)->name);
-            if ((*m)->usage) {
+    for (struct hvt_module *m = &__start_modules; m < &__stop_modules; m++) {
+        assert(m->ops.setup);
+        if (m->ops.setup(hvt)) {
+            warnx("Module `%s' setup failed", m->name);
+            if (m->ops.usage) {
                 warnx("Please check you have correctly specified:\n    %s",
-                       (*m)->usage());
+                       m->ops.usage());
             }
             exit(1);
         }
@@ -71,9 +74,9 @@ static void setup_modules(struct hvt *hvt)
 
 static int handle_cmdarg(char *cmdarg)
 {
-    for (struct hvt_module **m = hvt_core_modules; *m; m++) {
-        if ((*m)->handle_cmdarg) {
-            if ((*m)->handle_cmdarg(cmdarg) == 0) {
+    for (struct hvt_module *m = &__start_modules; m < &__stop_modules; m++) {
+        if (m->ops.handle_cmdarg) {
+            if (m->ops.handle_cmdarg(cmdarg) == 0) {
                 return 0;
             }
         }
@@ -107,16 +110,16 @@ static void usage(const char *prog)
     fprintf(stderr, "  [ --mem=512 ] (guest memory in MB)\n");
     fprintf(stderr, "    --help (display this help)\n");
     fprintf(stderr, "Compiled-in modules: ");
-    for (struct hvt_module **m = hvt_core_modules; *m; m++) {
-        assert((*m)->name);
-        fprintf(stderr, "%s ", (*m)->name);
+    for (struct hvt_module *m = &__start_modules; m < &__stop_modules; m++) {
+        assert(m->name);
+        fprintf(stderr, "%s ", m->name);
     }
     fprintf(stderr, "\n");
     fprintf(stderr, "Compiled-in module options:\n");
     int nm = 0;
-    for (struct hvt_module **m = hvt_core_modules; *m; m++) {
-        if ((*m)->usage) {
-            fprintf(stderr, "    %s\n", (*m)->usage());
+    for (struct hvt_module *m = &__start_modules; m < &__stop_modules; m++) {
+        if (m->ops.usage) {
+            fprintf(stderr, "    %s\n", m->ops.usage());
             nm++;
         }
     }
