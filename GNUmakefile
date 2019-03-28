@@ -70,7 +70,7 @@ install-opam-%: all solo5-bindings-%.pc force-install
 	cp solo5-bindings-$*.pc $(PREFIX)/lib/pkgconfig
 ifdef CONFIG_HVT
 	cp tenders/hvt/solo5-hvt tenders/hvt/solo5-hvt-configure $(PREFIX)/bin
-	[ -f tenders/hvt/solo5-hvt-debug ] && \
+	- [ -f tenders/hvt/solo5-hvt-debug ] && \
 	    cp tenders/hvt/solo5-hvt-debug $(PREFIX)/bin
 endif
 ifdef CONFIG_SPT
