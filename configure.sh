@@ -84,10 +84,10 @@ CC_MACHINE=$(${CC} -dumpmachine)
     die "Could not run '${CC} -dumpmachine', is your compiler working?"
 # Determine HOST and ARCH based on what the toolchain reports.
 case ${CC_MACHINE} in
-    x86_64-linux*)
+    x86_64-*linux*)
         CONFIG_ARCH=x86_64 CONFIG_HOST=Linux
         ;;
-    aarch64-linux*)
+    aarch64-*linux*)
         CONFIG_ARCH=aarch64 CONFIG_HOST=Linux
         ;;
     x86_64-*freebsd*)
