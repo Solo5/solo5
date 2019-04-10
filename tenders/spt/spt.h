@@ -36,7 +36,6 @@ struct spt {
     uint8_t *mem;
     size_t mem_size;
     struct spt_boot_info *bi;
-    int seccomp_netfd;
 };
 
 struct spt *spt_init(size_t mem_size);

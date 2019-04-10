@@ -35,6 +35,7 @@
 #include <sys/mman.h>
 #include <time.h>
 #include <sys/personality.h>
+#include <sys/prctl.h>
 
 #include "spt.h"
 
@@ -150,9 +151,54 @@ void spt_bi_init(struct spt *spt, uint64_t p_end, char **cmdline)
     *cmdline = (char *)spt->mem + SPT_CMDLINE_BASE;
 }
 
-static int setup_seccomp(struct spt *spt)
+static void setup_seccomp(struct spt *spt)
 {
-    return 0;
+    struct sys_bpf_insn {
+        uint16_t code;
+        uint8_t  jt;
+        uint8_t  jf;
+        uint32_t k;
+    };
+    struct sys_bpf_prog {
+        uint16_t len;
+        struct sys_bpf_insn *insn;
+    };
+#if defined(__x86_64__)
+#  define AUDIT_ARCH 0xc000003e
+#  define SYS_read          0
+#  define SYS_write         1
+#  define SYS_pread64       17
+#  define SYS_pwrite64      18
+#  define SYS_clock_gettime 228
+#  define SYS_exit_group    231
+#  define SYS_ppoll         271
+#else
+#  define AUDIT_ARCH 0xc00000b7
+#  define SYS_read          63
+#  define SYS_write         64
+#  define SYS_pread64       67
+#  define SYS_pwrite64      68
+#  define SYS_clock_gettime 113
+#  define SYS_exit_group    94
+#  define SYS_ppoll         73
+#endif
+#define BPF_BLOCK_MIN   spt->bi->blocki.hostfd
+#define BPF_BLOCK_MAX   spt->bi->blocki.hostfd+1
+#define BPF_BLOCK_FD(i) spt->bi->blocki.hostfd
+#define BPF_BLOCK_LO(i) (uint32_t)(spt->bi->blocki.capacity & 0xFFFFFFFF)
+#define BPF_BLOCK_HI(i) (uint32_t)(spt->bi->blocki.capacity >> 32)
+#define BPF_BLOCK_MASK  (spt->bi->blocki.block_size - 1)
+#define BPF_PPOLL_COUNT (spt->bi->neti.hostfd > 0 ? 1 : 0)
+#define read_fd_mask    (1U << spt->bi->neti.hostfd)
+#define write_fd_mask   ((1U << spt->bi->neti.hostfd) | (1U << 1))
+    struct sys_bpf_insn insn[] = {
+#include "seccomp_filter.h"
+    };
+#define SECCOMP_MODE_FILTER 2
+    struct sys_bpf_prog prog = { .len = sizeof(insn) / sizeof(insn[0]), .insn = insn };
+    if (prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0)
+        || prctl(PR_SET_SECCOMP, SECCOMP_MODE_FILTER, (long)&prog, 0, 0))
+        err(1, "configuring seccomp failed");
 }
 
 /*
