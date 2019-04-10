@@ -34,7 +34,6 @@
 #include <string.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
-#include <seccomp.h>
 
 #include "spt.h"
 
@@ -247,19 +246,6 @@ static int setup(struct spt *spt)
     memcpy(spt->bi->neti.mac_address, guest_mac,
             sizeof spt->bi->neti.mac_address);
     spt->bi->neti.hostfd = netfd;
-
-    int rc = -1;
-
-    rc = seccomp_rule_add(spt->sc_ctx, SCMP_ACT_ALLOW, SCMP_SYS(read), 1,
-            SCMP_A0(SCMP_CMP_EQ, netfd));
-    if (rc != 0)
-        errx(1, "seccomp_rule_add(read, fd=%d) failed: %s", netfd,
-                strerror(-rc));
-    rc = seccomp_rule_add(spt->sc_ctx, SCMP_ACT_ALLOW, SCMP_SYS(write), 1,
-            SCMP_A0(SCMP_CMP_EQ, netfd));
-    if (rc != 0)
-        errx(1, "seccomp_rule_add(write, fd=%d) failed: %s", netfd,
-                strerror(-rc));
 
     return 0;
 }

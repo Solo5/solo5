@@ -38,8 +38,6 @@ HOSTLDFLAGS += -Wl,-Ttext-segment=0x40000000
 
 endif
 
-HOSTLDLIBS += -lseccomp
-
 spt_SRCS := spt_main.c spt_core.c spt_elf.c spt_launch_$(CONFIG_ARCH).S \
      spt_module_net.c spt_module_block.c
 

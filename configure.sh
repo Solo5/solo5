@@ -153,11 +153,7 @@ case "${CONFIG_HOST}" in
         fi
 
         CONFIG_HVT=1
-	if gcc_check_lib -lseccomp; then
-	    CONFIG_SPT=1
-	else
-	    warn "Could not link with -lseccomp, not building spt"
-	fi
+	CONFIG_SPT=1
 	[ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_VIRTIO=1
 	[ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_MUEN=1
 	[ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_GENODE=1
@@ -244,7 +240,7 @@ esac
 # GNU make. Given the differences in quoting rules between the two
 # (unable to sensibly use VAR="VALUE"), our convention is as follows:
 #
-# 1. GNU make parses the entire file, i.e. all variables defined below are 
+# 1. GNU make parses the entire file, i.e. all variables defined below are
 #    available to Makefiles.
 #
 # 2. Shell scripts parse the subset of *lines* starting with "CONFIG_". I.e.
