@@ -75,15 +75,15 @@ teardown() {
 }
 
 hvt_run() {
-  run ${TIMEOUT} --foreground 30s ${HVT_TENDER} "$@"
+  run ${TIMEOUT} --foreground 60s ${HVT_TENDER} "$@"
 }
 
 spt_run() {
-  run ${TIMEOUT} --foreground 30s ${SPT_TENDER} "$@"
+  run ${TIMEOUT} --foreground 60s ${SPT_TENDER} "$@"
 }
 
 virtio_run() {
-  run ${TIMEOUT} --foreground 30s ${VIRTIO} "$@"
+  run ${TIMEOUT} --foreground 60s ${VIRTIO} "$@"
 }
 
 expect_success() {
@@ -269,7 +269,7 @@ virtio_expect_abort() {
 @test "ping-serve hvt" {
   [ $(id -u) -ne 0 ] && skip "Need root to run this test, for ping -f"
 
-  ( sleep 1; ${TIMEOUT} 30s ping -fq -c 100000 ${NET_IP} ) &
+  ( sleep 1; ${TIMEOUT} 60s ping -fq -c 100000 ${NET_IP} ) &
   hvt_run --net=${NET} -- test_ping_serve/test_ping_serve.hvt limit
   expect_success
 }
@@ -277,7 +277,7 @@ virtio_expect_abort() {
 @test "ping-serve virtio" {
   [ $(id -u) -ne 0 ] && skip "Need root to run this test, for ping -f"
 
-  ( sleep 1; ${TIMEOUT} 30s ping -fq -c 100000 ${NET_IP} ) &
+  ( sleep 3; ${TIMEOUT} 60s ping -fq -c 100000 ${NET_IP} ) &
   virtio_run -n ${NET} -- test_ping_serve/test_ping_serve.virtio limit
   virtio_expect_success
 }
@@ -285,7 +285,7 @@ virtio_expect_abort() {
 @test "ping-serve spt" {
   [ $(id -u) -ne 0 ] && skip "Need root to run this test, for ping -f"
 
-  ( sleep 1; ${TIMEOUT} 30s ping -fq -c 100000 ${NET_IP} ) &
+  ( sleep 1; ${TIMEOUT} 60s ping -fq -c 100000 ${NET_IP} ) &
   spt_run --net=${NET} -- test_ping_serve/test_ping_serve.spt limit
   expect_success
 }
@@ -300,7 +300,7 @@ virtio_expect_abort() {
       ;;
   esac
 
-  run ${TIMEOUT} --foreground 30s ${HVT_TENDER_DEBUG} \
+  run ${TIMEOUT} --foreground 60s ${HVT_TENDER_DEBUG} \
       --dumpcore test_abort/test_abort.hvt
   [ "$status" -eq 255 ]
   CORE=`echo "$output" | grep -o "core\.solo5-hvt\.[0-9]*$"`
