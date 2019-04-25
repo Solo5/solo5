@@ -18,7 +18,7 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-extern uintptr_t __stack_chk_guard;
+extern uintptr_t SSP_GUARD;
 
 #if defined(__x86_64__)
 #define READ_CPU_TICKS cpu_rdtsc
@@ -77,6 +77,6 @@ __attribute__((always_inline)) static inline void crt_init_ssp(void)
     /*
      * Initialise the stack canary value.
      */
-    __stack_chk_guard = READ_CPU_TICKS() + (READ_CPU_TICKS() << 32UL);
-    __stack_chk_guard &= ~(uintptr_t)0xff00;
+    SSP_GUARD = READ_CPU_TICKS() + (READ_CPU_TICKS() << 32UL);
+    SSP_GUARD &= ~(uintptr_t)0xff00;
 }

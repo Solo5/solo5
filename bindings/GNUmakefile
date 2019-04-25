@@ -75,11 +75,18 @@ all_TARGETS :=
 all_OBJS :=
 all_SRCS :=
 
+ifeq ($(CONFIG_HOST), OpenBSD)
+SSP_GUARD=__guard_local
+SSP_FAIL=__stack_smash_handler
+else
+SSP_GUARD=__stack_chk_guard
+SSP_FAIL=__stack_chk_fail
+endif
 define LINK.bindings
 	@echo "LD $@"
 	$(LD) -r $(LDFLAGS) $^ -o $@
 	@echo "OBJCOPY $@"
-	$(OBJCOPY) -w -G solo5_\* -G _start\* -G __stack_chk_\* $@ $@
+	$(OBJCOPY) -w -G solo5_\* -G _start\* -G $(SSP_GUARD) -G $(SSP_FAIL) $@ $@
 endef
 
 ifdef CONFIG_HVT
