@@ -54,10 +54,10 @@ namespace Solo5 {
  * Naive SSP implementation
  */
 extern "C" {
-	Genode::addr_t __stack_chk_guard;
+	Genode::addr_t SSP_GUARD;
 
 	extern "C" __attribute__((noreturn))
-	void __stack_chk_fail (void)
+	void SSP_FAIL (void)
 	{
 		Genode::error("stack smashing detected");
 		solo5_abort();
@@ -595,7 +595,7 @@ void Component::construct(Genode::Env &env)
 	 * set a new stack canary, this is possible
 	 * because this procedure never returns
 	 */
-	__stack_chk_guard = generate_canary(inst.heap);
+	SSP_GUARD = generate_canary(inst.heap);
 
 	/* block for application then exit */
 	env.parent().exit(solo5_app_main(&si));

@@ -202,7 +202,7 @@ case "${CONFIG_HOST}" in
         # clang-provided headers for compiler instrinsics. We copy the rest
         # (std*.h, cdefs.h and their dependencies) from the host.
         cc_is_clang || die "Only 'clang' is supported on OpenBSD"
-	[ "${CONFIG_ARCH}" = "x86_64" ] ||
+        [ "${CONFIG_ARCH}" = "x86_64" ] ||
             die "Only 'x86_64' is supported on OpenBSD"
         if ! ld_is_lld; then
             LD='/usr/bin/ld.lld'
@@ -223,22 +223,14 @@ case "${CONFIG_HOST}" in
         for f in ${SRCS_AMD64}; do cp -f ${INCDIR}/$f ${HOST_INCDIR}/amd64; done
         for f in ${SRCS}; do cp -f ${INCDIR}/$f ${HOST_INCDIR}; done
 
-        # Stack smashing protection:
-        #
-        # The OpenBSD toolchain has it's own idea of how SSP is implemented
-        # (see TargetLoweringBase::getIRStackGuard() in the LLVM source), which
-        # we don't support yet. Unfortunately LLVM does not support
-        # -mstack-protector-guard, so disable SSP on OpenBSD for the time
-        # being.
-        MAKECONF_CFLAGS="-fno-stack-protector -mno-retpoline -nostdlibinc"
-        warn "Stack protector (SSP) disabled on OpenBSD due to toolchain issues"
+        MAKECONF_CFLAGS="-mno-retpoline -fno-ret-protector -nostdlibinc"
         MAKECONF_LDFLAGS="-nopie"
 
         CONFIG_HVT=1
-	CONFIG_SPT=
-	[ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_VIRTIO=1
-	[ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_MUEN=1
-	CONFIG_GENODE=
+        CONFIG_SPT=
+        [ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_VIRTIO=1
+        [ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_MUEN=1
+        CONFIG_GENODE=
         ;;
     *)
         die "Unsupported build OS: ${CONFIG_HOST}"

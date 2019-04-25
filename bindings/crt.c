@@ -25,7 +25,7 @@
  * crt_init_early(), keep an easily recognisable "terminator" value here to
  * flag if that did not happen as expected.
  */
-uintptr_t __stack_chk_guard = 0x00deadbeef0d0a00;
+uintptr_t SSP_GUARD = 0x00deadbeef0d0a00;
 
 /*
  * Called by compiler-generated code when corruption of the canary value is
@@ -36,7 +36,7 @@ static const char
 stack_chk_fail_message[] = "Solo5: ABORT: Stack corruption detected\n";
 
 __attribute__((noreturn))
-void __stack_chk_fail(void)
+void SSP_FAIL(void)
 {
     platform_puts(stack_chk_fail_message, sizeof stack_chk_fail_message);
     platform_exit(SOLO5_EXIT_ABORT, NULL);
