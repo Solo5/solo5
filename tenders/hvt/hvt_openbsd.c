@@ -56,16 +56,18 @@ static struct hvt *cleanup_hvt;
 
 static void cleanup_vmd_fd(void)
 {
-    if (cleanup_hvt != NULL && cleanup_hvt->b->vmd_fd != -1)
-        close(cleanup_hvt->b->vmd_fd);
+    if (cleanup_hvt != NULL && cleanup_hvt->b->vmd_fd != -1) {
+        if(close(cleanup_hvt->b->vmd_fd) == -1)
+            warn("close vmd_fd failed - still exiting");
+    }
 }
 
 static void cleanup_vm(void)
 {
     if (cleanup_hvt != NULL && cleanup_hvt->b->vcp_id != -1) {
-        struct vm_terminate_params vtp = { .vtp_vm_id = cleanup_hvt->b->vcp_id };
-        if (ioctl(cleanup_hvt->b->vmd_fd, VMM_IOC_TERM, &vtp) < 0)
-            err(1, "terminate vmm ioctl failed - still exiting");
+        struct vm_terminate_params vtp = {.vtp_vm_id = cleanup_hvt->b->vcp_id};
+        if (ioctl(cleanup_hvt->b->vmd_fd, VMM_IOC_TERM, &vtp) == -1)
+            warn("terminate vmm ioctl failed - still exiting");
     }
 }
 
