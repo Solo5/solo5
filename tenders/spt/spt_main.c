@@ -98,7 +98,7 @@ static void usage(const char *prog)
     fprintf(stderr, "KERNEL is the filename of the unikernel to run.\n");
     fprintf(stderr, "ARGS are optional arguments passed to the unikernel.\n");
     fprintf(stderr, "Core options:\n");
-    fprintf(stderr, "  [ --mem=512 ] (guest memory in MB)\n");
+    fprintf(stderr, "  [ --mem=512 ] (guest memory in MB, default: 32MB)\n");
     fprintf(stderr, "    --help (display this help)\n");
     fprintf(stderr, "Compiled-in modules: ");
     for (struct spt_module **m = spt_core_modules; *m; m++) {
@@ -121,7 +121,7 @@ static void usage(const char *prog)
 
 int main(int argc, char **argv)
 {
-    size_t mem_size = 0x20000000;
+    size_t mem_size = 0x2000000;
     uint64_t p_entry, p_end;
     const char *prog;
     const char *elffile;
