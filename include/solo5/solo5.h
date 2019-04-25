@@ -76,7 +76,12 @@ typedef enum {
     /*
      * The operation failed due to an unspecified error.
      */
-    SOLO5_R_EUNSPEC
+    SOLO5_R_EUNSPEC,
+    /*
+     * The operation failed because the backing device does
+     * not support it.  Retrying will not succeed.
+     */
+    SOLO5_R_EOPNOTSUPP
 } solo5_result_t;
 
 /*
@@ -249,6 +254,15 @@ struct solo5_block_info {
  * struct solo5_block_info in (info).
  */
 void solo5_block_info(struct solo5_block_info *info);
+
+/*
+ * Discards data of (size) bytes on the block device,
+ * starting at byte (offset).  This is not atomic.
+ * offset and size must be aligned to the block_size.
+ * If the current backend or backing device doesn't support it,
+ * SOLO5_R_EOPNOTSUPP is returned and the data is unchanged.
+ */
+solo5_result_t solo5_block_discard(solo5_off_t offset, size_t size);
 
 /*
  * Writes data of (size) bytes from the buffer (*buf) to the block device,

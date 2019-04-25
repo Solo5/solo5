@@ -51,6 +51,32 @@ bool check_one_block(solo5_off_t offset, size_t block_size)
     return true;
 }
 
+bool check_one_block_discard(solo5_off_t offset, size_t block_size)
+{
+    size_t i;
+    uint8_t rbuf[block_size];
+
+    for (i = 0; i < block_size; i++) {
+        rbuf[i] = '0' + i % 10;
+    }
+
+    solo5_result_t rv = solo5_block_discard(offset, block_size);
+    if (rv == SOLO5_R_EOPNOTSUPP)
+        return true;
+    if (rv != SOLO5_R_OK)
+        return false;
+    if (solo5_block_read(offset, rbuf, block_size) != SOLO5_R_OK)
+        return false;
+
+    for (i = 0; i < block_size; i++) {
+        if (rbuf[i] != 0)
+            /* Check failed */
+            return false;
+    }
+
+    return true;
+}
+
 int solo5_app_main(const struct solo5_start_info *si __attribute__((unused)))
 {
     puts("\n**** Solo5 standalone test_blk ****\n\n");
@@ -66,9 +92,14 @@ int solo5_app_main(const struct solo5_start_info *si __attribute__((unused)))
         if (!check_one_block(offset, bi.block_size))
             /* Check failed */
             return 1;
+        if (!check_one_block_discard(offset, bi.block_size))
+            /* Check failed */
+            return 12;
     }
 
     uint8_t buf[bi.block_size * 2];
+
+    solo5_result_t rv;
 
     /*
      * Check edge case: read/write of last sector on the device.
@@ -78,6 +109,9 @@ int solo5_app_main(const struct solo5_start_info *si __attribute__((unused)))
         return 2;
     if (solo5_block_read(last_block, buf, bi.block_size) != SOLO5_R_OK)
         return 3;
+    rv = solo5_block_discard(last_block, bi.block_size);
+    if ((rv != SOLO5_R_OK) && (rv != SOLO5_R_EOPNOTSUPP))
+        return 13;
 
     /*
      * Check edge cases: should not be able to read or write beyond end
@@ -90,6 +124,8 @@ int solo5_app_main(const struct solo5_start_info *si __attribute__((unused)))
         return 4;
     if (solo5_block_read(bi.capacity, buf, bi.block_size) == SOLO5_R_OK)
         return 5;
+    if (solo5_block_discard(bi.capacity, bi.block_size) != SOLO5_R_EINVAL)
+        return 14;
 
     /*
      * Check invalid arguments: Should not be able to read or write less than
@@ -102,10 +138,14 @@ int solo5_app_main(const struct solo5_start_info *si __attribute__((unused)))
         return 6;
     if (solo5_block_read(0, buf, bi.block_size - 1) == SOLO5_R_OK)
         return 7;
+    if (solo5_block_discard(0, bi.block_size - 1) != SOLO5_R_EINVAL)
+        return 15;
     if (solo5_block_write(0, buf, bi.block_size + 1) == SOLO5_R_OK)
         return 8;
     if (solo5_block_read(0, buf, bi.block_size + 1) == SOLO5_R_OK)
         return 9;
+    if (solo5_block_discard(0, bi.block_size + 1) != SOLO5_R_EINVAL)
+        return 16;
 
     /*
      * Check invalid arguments: Should not be able to read or write at offsets
@@ -118,6 +158,8 @@ int solo5_app_main(const struct solo5_start_info *si __attribute__((unused)))
         return 10;
     if (solo5_block_read(bi.block_size - 1, buf, bi.block_size) == SOLO5_R_OK)
         return 11;
+    if (solo5_block_discard(bi.block_size - 1, bi.block_size) != SOLO5_R_EINVAL)
+        return 17;
 
     puts("SUCCESS\n");
 

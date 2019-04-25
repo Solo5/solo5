@@ -63,6 +63,27 @@ solo5_result_t solo5_block_read(solo5_off_t offset, uint8_t *buf, size_t size)
     return (nbytes == (int)size) ? SOLO5_R_OK : SOLO5_R_EUNSPEC;
 }
 
+solo5_result_t solo5_block_discard(solo5_off_t offset, size_t size) {
+    if(size % block_size != 0)
+        return SOLO5_R_EINVAL;
+    if(offset % block_size != 0)
+        return SOLO5_R_EINVAL;
+    if(offset + size < offset)
+        return SOLO5_R_EINVAL;
+    if(offset >= block_capacity)
+        return SOLO5_R_EINVAL;
+    if(offset + size > block_capacity)
+        return SOLO5_R_EINVAL;
+
+    if(size == 0)
+	    return SOLO5_R_OK;
+
+    int rv = sys_fallocate(block_fd, FALLOC_FL_PUNCH_HOLE | FALLOC_FL_KEEP_SIZE, offset, size);
+    if(rv == SYS_EOPNOTSUPP)
+	    return SOLO5_R_EOPNOTSUPP;
+    return rv == 0 ? SOLO5_R_OK : SOLO5_R_EUNSPEC;
+}
+
 solo5_result_t solo5_block_write(solo5_off_t offset, const uint8_t *buf,
         size_t size)
 {

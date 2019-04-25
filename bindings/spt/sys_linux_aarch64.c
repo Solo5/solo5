@@ -30,6 +30,7 @@
  * also consider explicitly inlining these functions.
  */
 
+#define SYS_fallocate     47
 #define SYS_read          63
 #define SYS_write         64
 #define SYS_pread64       67
@@ -95,6 +96,24 @@ long sys_pwrite64(long fd, const void *buf, long size, long pos)
     register long x8 __asm__("x8") = SYS_pwrite64;
     register long x0 __asm__("x0") = fd;
     register long x1 __asm__("x1") = (long)buf;
+    register long x2 __asm__("x2") = size;
+    register long x3 __asm__("x3") = pos;
+
+    __asm__ __volatile__ (
+            "svc 0"
+            : "=r" (x0)
+            : "r" (x8), "r" (x0), "r" (x1), "r" (x2), "r" (x3)
+            : "memory", "cc"
+    );
+
+    return x0;
+}
+
+long sys_fallocate(long fd, long mode, long size, long pos)
+{
+    register long x8 __asm__("x8") = SYS_fallocate;
+    register long x0 __asm__("x0") = fd;
+    register long x1 __asm__("x1") = mode;
     register long x2 __asm__("x2") = size;
     register long x3 __asm__("x3") = pos;
 
