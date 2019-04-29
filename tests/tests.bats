@@ -290,7 +290,7 @@ virtio_expect_abort() {
   expect_success
 }
 
-@test "abort hvt" {
+@test "dumpcore hvt" {
   [ "${CONFIG_ARCH}" = "x86_64" ] || skip "not implemented for ${CONFIG_ARCH}"
   case "${CONFIG_HOST}" in
     Linux|FreeBSD)
@@ -301,7 +301,7 @@ virtio_expect_abort() {
   esac
 
   run ${TIMEOUT} --foreground 60s ${HVT_TENDER_DEBUG} \
-      --dumpcore test_abort/test_abort.hvt
+      --dumpcore test_dumpcore/test_dumpcore.hvt
   [ "$status" -eq 255 ]
   CORE=`echo "$output" | grep -o "core\.solo5-hvt\.[0-9]*$"`
   [ -f "$CORE" ]
