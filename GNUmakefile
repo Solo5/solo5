@@ -84,6 +84,8 @@ ifdef CONFIG_VIRTIO
 	    $(PREFIX)/bin/solo5-virtio-run
 endif
 
+# uninstall-opam-% may not have a Makeconf available, so should always uninstall
+# all build products from all solo5-bindings variants regardless.
 .PHONY: force-uninstall
 uninstall-opam-%: force-uninstall
 	@echo UNINSTALL solo5
@@ -96,17 +98,14 @@ uninstall-opam-%: force-uninstall
 	$(RM) $(PREFIX)/lib/solo5-bindings-$*/solo5_$*.o \
 	    $(PREFIX)/lib/solo5-bindings-$*/solo5_$*.lds
 	$(RM) $(PREFIX)/lib/pkgconfig/solo5-bindings-$*.pc
-ifdef CONFIG_HVT
+# CONFIG_HVT
 	$(RM) $(PREFIX)/bin/solo5-hvt $(PREFIX)/bin/solo5-hvt-debug \
 	    $(PREFIX)/bin/solo5-hvt-configure
-endif
-ifdef CONFIG_SPT
+# CONFIG_SPT
 	$(RM) $(PREFIX)/bin/solo5-spt
-endif
-ifdef CONFIG_VIRTIO
+# CONFIG_VIRTIO
 	$(RM) $(PREFIX)/bin/solo5-virtio-mkimage
 	$(RM) $(PREFIX)/bin/solo5-virtio-run
-endif
 
 # The following targets are kept for backwards compatibility, as otherwise
 # upgrading existing OPAM switches will fail. They should be removed at some
