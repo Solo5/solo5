@@ -1,5 +1,5 @@
 #!/bin/sh
-# Copyright (c) 2015-2018 Contributors as noted in the AUTHORS file
+# Copyright (c) 2015-2019 Contributors as noted in the AUTHORS file
 #
 # This file is part of Solo5, a sandboxed execution environment.
 #
@@ -92,10 +92,10 @@ case ${CC_MACHINE} in
         ;;
     x86_64-*freebsd*)
         CONFIG_ARCH=x86_64 CONFIG_HOST=FreeBSD
-	;;
+        ;;
     amd64-*openbsd*)
         CONFIG_ARCH=x86_64 CONFIG_HOST=OpenBSD
-	;;
+        ;;
     *)
         die "Unsupported toolchain target: ${CC_MACHINE}"
         ;;
@@ -153,14 +153,14 @@ case "${CONFIG_HOST}" in
         fi
 
         CONFIG_HVT=1
-	if gcc_check_lib -lseccomp; then
-	    CONFIG_SPT=1
-	else
-	    warn "Could not link with -lseccomp, not building spt"
-	fi
-	[ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_VIRTIO=1
-	[ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_MUEN=1
-	[ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_GENODE=1
+        if gcc_check_lib -lseccomp; then
+            CONFIG_SPT=1
+        else
+            warn "Could not link with -lseccomp, not building spt"
+        fi
+        [ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_VIRTIO=1
+        [ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_MUEN=1
+        [ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_GENODE=1
         ;;
     FreeBSD)
         # On FreeBSD/clang we use -nostdlibinc which gives us access to the
@@ -192,10 +192,10 @@ case "${CONFIG_HOST}" in
         MAKECONF_CFLAGS="-nostdlibinc"
 
         CONFIG_HVT=1
-	CONFIG_SPT=
-	[ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_VIRTIO=1
-	[ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_MUEN=1
-	CONFIG_GENODE=
+        CONFIG_SPT=
+        [ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_VIRTIO=1
+        [ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_MUEN=1
+        CONFIG_GENODE=
         ;;
     OpenBSD)
         # On OpenBSD/clang we use -nostdlibinc which gives us access to the
