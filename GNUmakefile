@@ -42,10 +42,11 @@ before-clean:
 	$(eval export SUBOVERRIDE := CONFIG_HVT=1 CONFIG_SPT=1 CONFIG_VIRTIO=1 CONFIG_MUEN=1 CONFIG_GENODE=1)
 clean: before-clean $(SUBDIRS)
 	@echo "CLEAN solo5"
-	$(RM) solo5-bindings-virtio.pc
-	$(RM) solo5-bindings-hvt.pc
-	$(RM) solo5-bindings-muen.pc
-	$(RM) solo5-bindings-genode.pc
+	$(RM) opam/solo5-bindings-hvt.pc
+	$(RM) opam/solo5-bindings-spt.pc
+	$(RM) opam/solo5-bindings-virtio.pc
+	$(RM) opam/solo5-bindings-muen.pc
+	$(RM) opam/solo5-bindings-genode.pc
 
 .PHONY: distclean
 distclean: MAKECMDGOALS := clean
@@ -56,7 +57,7 @@ distclean: clean
 
 .PHONY: force-install
 install-opam-%: MAKECMDGOALS :=
-install-opam-%: all solo5-bindings-%.pc force-install
+install-opam-%: all opam/solo5-bindings-%.pc force-install
 	@echo INSTALL solo5
 	@[ -d "$(PREFIX)" -a -d "$(PREFIX)/bin" ] || \
 	    (echo "error: PREFIX not set or incorrect"; false)
@@ -67,7 +68,7 @@ install-opam-%: all solo5-bindings-%.pc force-install
 	cp -R include/solo5/ include/crt/ $(PREFIX)/include/solo5-bindings-$*
 	cp bindings/$*/solo5_$*.o bindings/$*/solo5_$*.lds \
 	    $(PREFIX)/lib/solo5-bindings-$*
-	cp solo5-bindings-$*.pc $(PREFIX)/lib/pkgconfig
+	cp opam/solo5-bindings-$*.pc $(PREFIX)/lib/pkgconfig
 ifdef CONFIG_HVT
 	cp tenders/hvt/solo5-hvt tenders/hvt/solo5-hvt-configure $(PREFIX)/bin
 	- [ -f tenders/hvt/solo5-hvt-debug ] && \
