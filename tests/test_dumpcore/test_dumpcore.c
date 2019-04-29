@@ -28,7 +28,7 @@ static void puts(const char *s)
 
 int solo5_app_main(const struct solo5_start_info *si __attribute__((unused)))
 {
-    puts("\n**** Solo5 standalone test_abort ****\n\n");
+    puts("\n**** Solo5 standalone test_dumpcore ****\n\n");
     solo5_abort();
     return SOLO5_EXIT_SUCCESS;
 }

@@ -18,6 +18,6 @@
 
 include $(TOPDIR)/Makefile.common
 
-test_NAME := test_abort
+test_NAME := test_dumpcore
 
 include ../Makefile.tests
