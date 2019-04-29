@@ -1,5 +1,5 @@
 #!/bin/sh
-# Copyright (c) 2015-2018 Contributors as noted in the AUTHORS file
+# Copyright (c) 2015-2019 Contributors as noted in the AUTHORS file
 #
 # This file is part of Solo5, a sandboxed execution environment.
 #

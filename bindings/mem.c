@@ -1,5 +1,5 @@
-/* 
- * Copyright (c) 2015-2018 Contributors as noted in the AUTHORS file
+/*
+ * Copyright (c) 2015-2019 Contributors as noted in the AUTHORS file
  *
  * This file is part of Solo5, a sandboxed execution environment.
  *
@@ -22,7 +22,7 @@
 
 static uint64_t heap_start;
 
-/* 
+/*
  * Locks the memory layout (by disabling mem_ialloc_pages()). Must be called
  * before passing control to the application via solo5_app_main().
  *
@@ -46,12 +46,12 @@ void mem_init(void)
 
     mem_size = platform_mem_size();
     heap_start = ((uint64_t)&_end + PAGE_SIZE - 1) & PAGE_MASK;
-    
+
     /*
      * Cowardly refuse to run with less than 512KB of free memory.
      */
     if (heap_start + 0x80000 > mem_size)
-	PANIC("Not enough memory", NULL);
+        PANIC("Not enough memory", NULL);
 
     log(INFO, "Solo5: Memory map: %llu MB addressable:\n",
             (unsigned long long)mem_size >> 20);
@@ -67,7 +67,7 @@ void mem_init(void)
             (unsigned long long)heap_start, (unsigned long long)mem_size);
 }
 
-/* 
+/*
  * Allocate pages on the heap.  Should only be called on
  * initialization (before solo5_app_main).
  */
