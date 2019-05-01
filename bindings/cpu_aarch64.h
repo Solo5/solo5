@@ -69,4 +69,9 @@ static inline uint64_t mul64_32(uint64_t a, uint32_t b, uint8_t s)
 }
 #endif /* !ASM_FILE */
 
+static inline void cpu_set_tls_base(uint64_t base)
+{
+    __asm__ __volatile("msr tpidr_el0, %0" :: "r"(base));
+}
+
 #endif /* __CPU_AARCH64_H__ */

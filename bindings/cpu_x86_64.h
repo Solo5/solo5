@@ -225,4 +225,13 @@ static inline uint64_t inq(uint16_t port_lo)
     return ((uint64_t)lo) | ((uint64_t)hi << 32);
 }
 
+static inline void cpu_set_tls_base(uint64_t base)
+{
+     __asm__ __volatile("wrmsr" ::
+         "c" (0xc0000100), /* IA32_FS_BASE */
+         "a" ((uint32_t)(base)),
+         "d" ((uint32_t)(base >> 32))
+     );
+}
+
 #endif /* !ASM_FILE */
