@@ -557,6 +557,11 @@ solo5_result_t solo5_block_read(solo5_off_t offset,
 	return _platform->block_read(offset, buf, size);
 }
 
+solo5_result_t solo5_set_arch_tls_base(uint64_t base)
+{
+    return SOLO5_R_EUNSPEC;
+}
+
 } // extern "C"
 
 
