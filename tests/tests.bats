@@ -99,6 +99,10 @@ expect_abort() {
   [ "$status" -eq 255 ] && [[ "$output" == *"ABORT"* ]]
 }
 
+expect_segfault() {
+  [ "$status" -eq 139 ]
+}
+
 virtio_expect_abort() {
   [ "$status" -eq 0 -o "$status" -eq 2 -o "$status" -eq 83 ] && \
     [[ "$output" == *"ABORT"* ]]
@@ -198,7 +202,8 @@ virtio_expect_abort() {
 }
 
 @test "notls spt" {
-  skip "not supported on spt yet"
+  spt_run test_notls/test_notls.spt
+  expect_segfault
 }
 
 @test "ssp hvt" {
