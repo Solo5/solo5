@@ -140,7 +140,7 @@ long sys_ppoll(void *fds, long nfds, void *ts)
     return ret;
 }
 
-int sys_arch_prctl(int code, unsigned long addr)
+long sys_arch_prctl(long code, long addr)
 {
     int ret;
 

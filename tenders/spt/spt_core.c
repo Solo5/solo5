@@ -39,7 +39,6 @@
 
 #if defined(__x86_64__)
 #include <asm/prctl.h>
-#include <sys/prctl.h>
 #endif
 
 #include "spt.h"
@@ -225,16 +224,11 @@ static int setup(struct spt *spt)
     if (rc != 0)
         errx(1, "seccomp_rule_add(clock_gettime, CLOCK_REALTIME) failed: %s",
                 strerror(-rc));
-
-    /*
-     * The TLS register in aarch64 can be set in user space. So, we only need
-     * to open a hole for x86_64.
-     */
 #if defined(__x86_64__)
     rc = seccomp_rule_add(spt->sc_ctx, SCMP_ACT_ALLOW, SCMP_SYS(arch_prctl),
             1, SCMP_A0(SCMP_CMP_EQ, ARCH_SET_FS));
     if (rc != 0)
-        errx(1, "seccomp_rule_add(clock_gettime, CLOCK_REALTIME) failed: %s",
+        errx(1, "seccomp_rule_add(arch_prctl, ARCH_SET_FS) failed: %s",
                 strerror(-rc));
 #endif
 

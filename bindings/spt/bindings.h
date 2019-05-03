@@ -62,10 +62,9 @@ struct sys_pollfd {
 
 long sys_ppoll(void *fds, long nfds, void *ts);
 
-#define ARCH_SET_GS		0x1001
-#define ARCH_SET_FS		0x1002
+#define SYS_ARCH_SET_FS		0x1002
 
-int sys_arch_prctl(int code, unsigned long addr);
+long sys_arch_prctl(long code, long addr);
 
 void block_init(struct spt_boot_info *arg);
 void net_init(struct spt_boot_info *arg);

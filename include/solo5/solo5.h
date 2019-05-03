@@ -278,13 +278,12 @@ solo5_result_t solo5_block_write(solo5_off_t offset, const uint8_t *buf,
 solo5_result_t solo5_block_read(solo5_off_t offset, uint8_t *buf, size_t size);
 
 /*
- * Set the TLS base register. This sets the %fs segment register in
- * x86_64 or the TPIDR_EL0 register in aarch64.
+ * Set the TLS base register. This sets the %fs segment register on
+ * x86_64 or the TPIDR_EL0 register on aarch64.
  *
- * This function fails in "spt" with SOLO5_R_EINVAL when "base"
- * points to an invalid address. Virtio and hvt always return
- * SOLO5_R_OK.
+ * Solo5 implementations may return SOLO5_R_EINVAL if the (base) does not
+ * satisfy arch-specific requirements.
  */
-solo5_result_t solo5_set_arch_tls_base(uint64_t base);
+solo5_result_t solo5_set_tls_base(uintptr_t base);
 
 #endif

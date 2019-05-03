@@ -46,17 +46,19 @@ int solo5_app_main(const struct solo5_start_info *si __attribute__((unused)))
 {
     puts("\n**** Solo5 standalone test_tls ****\n\n");
 
-    solo5_set_arch_tls_base((uint64_t)&data_thread_1);
+    if (solo5_set_tls_base((uintptr_t)&data_thread_1) != SOLO5_R_OK)
+        return 1;
     tls_store_long(-12345);
 
-    solo5_set_arch_tls_base((uint64_t)&data_thread_2);
+    if (solo5_set_tls_base((uintptr_t)&data_thread_2) != SOLO5_R_OK)
+        return 2;
     tls_store_long(56789);
 
     if (data_thread_1 != -12345)
-        return SOLO5_EXIT_FAILURE;
+        return 3;
 
     if (data_thread_2 != 56789)
-        return SOLO5_EXIT_FAILURE;
+        return 4;
 
     puts("SUCCESS\n");
     return SOLO5_EXIT_SUCCESS;

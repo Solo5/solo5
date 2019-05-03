@@ -41,7 +41,7 @@ uint64_t platform_mem_size(void)
     return mem_size;
 }
 
-solo5_result_t solo5_set_arch_tls_base(uint64_t base)
+solo5_result_t solo5_set_tls_base(uintptr_t base)
 {
     cpu_set_tls_base(base);
     return SOLO5_R_OK;
