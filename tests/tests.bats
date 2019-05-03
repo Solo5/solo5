@@ -206,6 +206,21 @@ virtio_expect_abort() {
   expect_segfault
 }
 
+@test "tls hvt" {
+  hvt_run test_tls/test_tls.hvt
+  expect_success
+}
+
+@test "tls virtio" {
+  virtio_run test_tls/test_tls.virtio
+  virtio_expect_success
+}
+
+@test "tls spt" {
+  spt_run test_tls/test_tls.spt
+  expect_success
+}
+
 @test "ssp hvt" {
   hvt_run test_ssp/test_ssp.hvt
   expect_abort
