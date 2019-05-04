@@ -49,6 +49,6 @@ solo5_time_t solo5_clock_wall(void)
 
 solo5_result_t solo5_set_tls_base(uintptr_t base)
 {
-    int rc = platform_set_arch_tls_base(base);
+    int rc = platform_set_tls_base(base);
     return (rc == 0) ? SOLO5_R_OK : SOLO5_R_EINVAL;
 }

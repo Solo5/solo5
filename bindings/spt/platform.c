@@ -52,7 +52,7 @@ int platform_puts(const char *buf, int n)
     return n;
 }
 
-int platform_set_arch_tls_base(uint64_t base)
+int platform_set_tls_base(uint64_t base)
 {
 #if defined(__x86_64__)
     /* In x86 we need to ask the host kernel to change %fs for us. */
@@ -67,6 +67,6 @@ int platform_set_arch_tls_base(uint64_t base)
 
 void platform_init_tls(void)
 {
-    int rc = platform_set_arch_tls_base(0);
+    int rc = platform_set_tls_base(0);
     assert(rc == 0);
 }
