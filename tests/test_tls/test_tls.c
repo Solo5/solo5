@@ -25,12 +25,12 @@ __thread volatile uint64_t data;
 
 
 #if defined(__x86_64__)
-struct tcb {
+struct __attribute__((aligned(8),packed))  tcb {
     volatile uint64_t data;
     void *tp;
 };
 #elif defined(__aarch64__)
-struct tcb {
+struct __attribute__((aligned(8),packed))  tcb {
     void *tp;
     void *pad;
     volatile uint64_t data;
@@ -50,6 +50,17 @@ static void puts(const char *s)
 int solo5_app_main(const struct solo5_start_info *si __attribute__((unused)))
 {
     puts("\n**** Solo5 standalone test_tls ****\n\n");
+
+    memset(&tcb1, sizeof(tcb1), 0);
+    memset(&tcb2, sizeof(tcb2), 0);
+
+#if defined(__x86_64__)
+    if (sizeof(struct tcb) != (8 * 2))
+        return 7;
+#else
+    if (sizeof(struct tcb) != (8 * 3))
+        return 8;
+#endif
 
     tcb1.data = 1;
     solo5_set_tls_base((uint64_t)&tcb1.tp);
