@@ -21,21 +21,19 @@
 #include "solo5.h"
 #include "../../bindings/lib.c"
 
-volatile long data_thread_1 = 0;
-volatile long data_thread_2 = 0;
+__thread volatile uint64_t data;
 
-static void tls_store_long(long data)
-{
 #if defined(__x86_64__)
-    __asm__ __volatile("mov %0, %%fs:0x0" : : "r" (data));
+	#define TLS_OFFSET sizeof(uint64_t)
 #elif defined(__aarch64__)
-    __asm__ __volatile("mrs x0, tpidr_el0; "
-                       "str %0, [x0]"
-                       : : "r" (data) : "x0");
+	#define TLS_OFFSET (0 - 2*sizeof(void *))
 #else
 #error Unsupported architecture
 #endif
-}
+
+volatile uint64_t data_thread_1 = 1;
+volatile uint64_t data_thread_2 = 2;
+volatile uint64_t data_thread_3 = 3;
 
 static void puts(const char *s)
 {
@@ -46,19 +44,32 @@ int solo5_app_main(const struct solo5_start_info *si __attribute__((unused)))
 {
     puts("\n**** Solo5 standalone test_tls ****\n\n");
 
-    if (solo5_set_tls_base((uintptr_t)&data_thread_1) != SOLO5_R_OK)
+    solo5_set_tls_base((uint64_t)&data_thread_1 + TLS_OFFSET);
+    if (data != 1)
         return 1;
-    tls_store_long(-12345);
 
-    if (solo5_set_tls_base((uintptr_t)&data_thread_2) != SOLO5_R_OK)
+    solo5_set_tls_base((uint64_t)&data_thread_2 + TLS_OFFSET);
+    if (data != 2)
         return 2;
-    tls_store_long(56789);
 
-    if (data_thread_1 != -12345)
+    solo5_set_tls_base((uint64_t)&data_thread_3 + TLS_OFFSET);
+    if (data != 3)
         return 3;
 
-    if (data_thread_2 != 56789)
+    solo5_set_tls_base((uint64_t)&data_thread_1 + TLS_OFFSET);
+    data = 4;
+    if (data_thread_1 != 4)
         return 4;
+
+    solo5_set_tls_base((uint64_t)&data_thread_2 + TLS_OFFSET);
+    data = 5;
+    if (data_thread_2 != 5)
+        return 5;
+
+    solo5_set_tls_base((uint64_t)&data_thread_3 + TLS_OFFSET);
+    data = 6;
+    if (data_thread_3 != 6)
+        return 6;
 
     puts("SUCCESS\n");
     return SOLO5_EXIT_SUCCESS;
