@@ -23,17 +23,24 @@
 
 __thread volatile uint64_t data;
 
+
 #if defined(__x86_64__)
-	#define TLS_OFFSET sizeof(uint64_t)
+struct tcb {
+    volatile uint64_t data;
+    void *tp;
+};
 #elif defined(__aarch64__)
-	#define TLS_OFFSET (0 - 2*sizeof(void *))
+struct tcb {
+    void *tp;
+    void *pad;
+    volatile uint64_t data;
+};
 #else
 #error Unsupported architecture
 #endif
 
-volatile uint64_t data_thread_1 = 1;
-volatile uint64_t data_thread_2 = 2;
-volatile uint64_t data_thread_3 = 3;
+struct tcb tcb1;
+struct tcb tcb2;
 
 static void puts(const char *s)
 {
@@ -44,32 +51,25 @@ int solo5_app_main(const struct solo5_start_info *si __attribute__((unused)))
 {
     puts("\n**** Solo5 standalone test_tls ****\n\n");
 
-    solo5_set_tls_base((uint64_t)&data_thread_1 + TLS_OFFSET);
+    tcb1.data = 1;
+    solo5_set_tls_base((uint64_t)&tcb1.tp);
     if (data != 1)
         return 1;
 
-    solo5_set_tls_base((uint64_t)&data_thread_2 + TLS_OFFSET);
+    tcb2.data = 2;
+    solo5_set_tls_base((uint64_t)&tcb2.tp);
     if (data != 2)
         return 2;
 
-    solo5_set_tls_base((uint64_t)&data_thread_3 + TLS_OFFSET);
-    if (data != 3)
-        return 3;
-
-    solo5_set_tls_base((uint64_t)&data_thread_1 + TLS_OFFSET);
+    solo5_set_tls_base((uint64_t)&tcb1.tp);
     data = 4;
-    if (data_thread_1 != 4)
+    if (tcb1.data != 4)
         return 4;
 
-    solo5_set_tls_base((uint64_t)&data_thread_2 + TLS_OFFSET);
+    solo5_set_tls_base((uint64_t)&tcb2.tp);
     data = 5;
-    if (data_thread_2 != 5)
+    if (tcb2.data != 5)
         return 5;
-
-    solo5_set_tls_base((uint64_t)&data_thread_3 + TLS_OFFSET);
-    data = 6;
-    if (data_thread_3 != 6)
-        return 6;
 
     puts("SUCCESS\n");
     return SOLO5_EXIT_SUCCESS;
