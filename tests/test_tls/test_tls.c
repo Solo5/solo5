@@ -46,12 +46,12 @@ static void puts(const char *s)
 
 __thread volatile uint64_t _data;
 
-uint64_t get_data()
+uint64_t __attribute__ ((noinline)) get_data()
 {
     return _data;
 }
 
-void set_data(uint64_t data)
+void __attribute__ ((noinline)) set_data(uint64_t data)
 {
     _data = data;
 }
