@@ -21,19 +21,16 @@
 #include "solo5.h"
 #include "../../bindings/lib.c"
 
-__thread volatile uint64_t data;
-
-
 #if defined(__x86_64__)
 struct __attribute__((aligned(8),packed))  tcb {
-    volatile uint64_t data;
-    void *tp;
+    volatile uint64_t _data;
+    volatile void *tp;
 };
 #elif defined(__aarch64__)
 struct __attribute__((aligned(8),packed))  tcb {
-    void *tp;
+    volatile void *tp;
     void *pad;
-    volatile uint64_t data;
+    volatile uint64_t _data;
 };
 #else
 #error Unsupported architecture
@@ -47,40 +44,35 @@ static void puts(const char *s)
     solo5_console_write(s, strlen(s));
 }
 
+__thread volatile uint64_t _data;
+
+uint64_t get_data()
+{
+    return _data;
+}
+
+void set_data(uint64_t data)
+{
+    _data = data;
+}
+
 int solo5_app_main(const struct solo5_start_info *si __attribute__((unused)))
 {
     puts("\n**** Solo5 standalone test_tls ****\n\n");
 
-    memset(&tcb1, sizeof(tcb1), 0);
-    memset(&tcb2, sizeof(tcb2), 0);
-
-#if defined(__x86_64__)
-    if (sizeof(struct tcb) != (8 * 2))
-        return 7;
-#else
-    if (sizeof(struct tcb) != (8 * 3))
-        return 8;
-#endif
-
-    tcb1.data = 1;
     solo5_set_tls_base((uint64_t)&tcb1.tp);
-    if (data != 1)
+    set_data(1);
+
+    solo5_set_tls_base((uint64_t)&tcb2.tp);
+    set_data(2);
+
+    solo5_set_tls_base((uint64_t)&tcb1.tp);
+    if (get_data() != 1)
         return 1;
 
-    tcb2.data = 2;
     solo5_set_tls_base((uint64_t)&tcb2.tp);
-    if (data != 2)
+    if (get_data() != 2)
         return 2;
-
-    solo5_set_tls_base((uint64_t)&tcb1.tp);
-    data = 4;
-    if (tcb1.data != 4)
-        return 4;
-
-    solo5_set_tls_base((uint64_t)&tcb2.tp);
-    data = 5;
-    if (tcb2.data != 5)
-        return 5;
 
     puts("SUCCESS\n");
     return SOLO5_EXIT_SUCCESS;
