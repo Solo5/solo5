@@ -142,7 +142,7 @@ long sys_ppoll(void *fds, long nfds, void *ts)
 
 long sys_arch_prctl(long code, long addr)
 {
-    int ret;
+    long ret;
 
     __asm__ __volatile__ (
             "syscall"
