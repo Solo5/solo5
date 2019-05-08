@@ -22,13 +22,13 @@
 #include "../../bindings/lib.c"
 
 #if defined(__x86_64__)
-struct __attribute__((aligned(8),packed))  tcb {
+struct tcb {
     volatile uint64_t _data;
-    volatile void *tp;
+    void *tp;
 };
 #elif defined(__aarch64__)
-struct __attribute__((aligned(8),packed))  tcb {
-    volatile void *tp;
+struct tcb {
+    void *tp;
     void *pad;
     volatile uint64_t _data;
 };
@@ -60,17 +60,20 @@ int solo5_app_main(const struct solo5_start_info *si __attribute__((unused)))
 {
     puts("\n**** Solo5 standalone test_tls ****\n\n");
 
-    solo5_set_tls_base((uint64_t)&tcb1.tp);
+    tcb1.tp = &tcb1.tp;
+    tcb2.tp = &tcb2.tp;
+
+    solo5_set_tls_base((uint64_t)tcb1.tp);
     set_data(1);
 
-    solo5_set_tls_base((uint64_t)&tcb2.tp);
+    solo5_set_tls_base((uint64_t)tcb2.tp);
     set_data(2);
 
-    solo5_set_tls_base((uint64_t)&tcb1.tp);
+    solo5_set_tls_base((uint64_t)tcb1.tp);
     if (get_data() != 1)
         return 1;
 
-    solo5_set_tls_base((uint64_t)&tcb2.tp);
+    solo5_set_tls_base((uint64_t)tcb2.tp);
     if (get_data() != 2)
         return 2;
 
