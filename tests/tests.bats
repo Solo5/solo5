@@ -207,16 +207,28 @@ virtio_expect_abort() {
 }
 
 @test "tls hvt" {
+  if [ "$(uname -s)" = "OpenBSD" ]; then
+    skip "tls tests not run for OpenBSD"
+  fi
+
   hvt_run test_tls/test_tls.hvt
   expect_success
 }
 
 @test "tls virtio" {
+  if [ "$(uname -s)" = "OpenBSD" ]; then
+    skip "tls tests not run for OpenBSD"
+  fi
+
   virtio_run test_tls/test_tls.virtio
   virtio_expect_success
 }
 
 @test "tls spt" {
+  if [ "$(uname -s)" = "OpenBSD" ]; then
+    skip "tls tests not run for OpenBSD"
+  fi
+
   spt_run test_tls/test_tls.spt
   expect_success
 }

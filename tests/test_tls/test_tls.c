@@ -22,11 +22,13 @@
 #include "../../bindings/lib.c"
 
 #if defined(__x86_64__)
+/* Variant II */
 struct tcb {
     volatile uint64_t _data;
     void *tp;
 };
 #elif defined(__aarch64__)
+/* Variant I */
 struct tcb {
     void *tp;
     void *pad;
@@ -44,7 +46,12 @@ static void puts(const char *s)
     solo5_console_write(s, strlen(s));
 }
 
+#if defined(__OpenBSD__)
+/* __thread is not supported in OpenBSD (this test fails on it). */
+volatile uint64_t _data;
+#else
 __thread volatile uint64_t _data;
+#endif
 
 uint64_t __attribute__ ((noinline)) get_data()
 {
