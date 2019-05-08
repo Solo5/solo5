@@ -70,19 +70,23 @@ int solo5_app_main(const struct solo5_start_info *si __attribute__((unused)))
     tcb1.tp = &tcb1.tp;
     tcb2.tp = &tcb2.tp;
 
-    solo5_set_tls_base((uint64_t)tcb1.tp);
+    if (solo5_set_tls_base((uintptr_t)tcb1.tp) != SOLO5_R_OK)
+        return 1;
     set_data(1);
 
-    solo5_set_tls_base((uint64_t)tcb2.tp);
+    if (solo5_set_tls_base((uintptr_t)tcb2.tp) != SOLO5_R_OK)
+        return 2;
     set_data(2);
 
-    solo5_set_tls_base((uint64_t)tcb1.tp);
+    if (solo5_set_tls_base((uintptr_t)tcb1.tp) != SOLO5_R_OK)
+        return 3;
     if (get_data() != 1)
-        return 1;
+        return 4;
 
-    solo5_set_tls_base((uint64_t)tcb2.tp);
+    if (solo5_set_tls_base((uintptr_t)tcb2.tp) != SOLO5_R_OK)
+        return 5;
     if (get_data() != 2)
-        return 2;
+        return 6;
 
     puts("SUCCESS\n");
     return SOLO5_EXIT_SUCCESS;
