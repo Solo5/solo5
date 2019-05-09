@@ -42,10 +42,11 @@ before-clean:
 	$(eval export SUBOVERRIDE := CONFIG_HVT=1 CONFIG_SPT=1 CONFIG_VIRTIO=1 CONFIG_MUEN=1 CONFIG_GENODE=1)
 clean: before-clean $(SUBDIRS)
 	@echo "CLEAN solo5"
-	$(RM) solo5-bindings-virtio.pc
-	$(RM) solo5-bindings-hvt.pc
-	$(RM) solo5-bindings-muen.pc
-	$(RM) solo5-bindings-genode.pc
+	$(RM) opam/solo5-bindings-hvt.pc
+	$(RM) opam/solo5-bindings-spt.pc
+	$(RM) opam/solo5-bindings-virtio.pc
+	$(RM) opam/solo5-bindings-muen.pc
+	$(RM) opam/solo5-bindings-genode.pc
 
 .PHONY: distclean
 distclean: MAKECMDGOALS := clean
@@ -56,7 +57,7 @@ distclean: clean
 
 .PHONY: force-install
 install-opam-%: MAKECMDGOALS :=
-install-opam-%: all solo5-bindings-%.pc force-install
+install-opam-%: all opam/solo5-bindings-%.pc force-install
 	@echo INSTALL solo5
 	@[ -d "$(PREFIX)" -a -d "$(PREFIX)/bin" ] || \
 	    (echo "error: PREFIX not set or incorrect"; false)
@@ -67,7 +68,7 @@ install-opam-%: all solo5-bindings-%.pc force-install
 	cp -R include/solo5/ include/crt/ $(PREFIX)/include/solo5-bindings-$*
 	cp bindings/$*/solo5_$*.o bindings/$*/solo5_$*.lds \
 	    $(PREFIX)/lib/solo5-bindings-$*
-	cp solo5-bindings-$*.pc $(PREFIX)/lib/pkgconfig
+	cp opam/solo5-bindings-$*.pc $(PREFIX)/lib/pkgconfig
 ifdef CONFIG_HVT
 	cp tenders/hvt/solo5-hvt tenders/hvt/solo5-hvt-configure $(PREFIX)/bin
 	- [ -f tenders/hvt/solo5-hvt-debug ] && \
@@ -83,6 +84,8 @@ ifdef CONFIG_VIRTIO
 	    $(PREFIX)/bin/solo5-virtio-run
 endif
 
+# uninstall-opam-% may not have a Makeconf available, so should always uninstall
+# all build products from all solo5-bindings variants regardless.
 .PHONY: force-uninstall
 uninstall-opam-%: force-uninstall
 	@echo UNINSTALL solo5
@@ -95,17 +98,14 @@ uninstall-opam-%: force-uninstall
 	$(RM) $(PREFIX)/lib/solo5-bindings-$*/solo5_$*.o \
 	    $(PREFIX)/lib/solo5-bindings-$*/solo5_$*.lds
 	$(RM) $(PREFIX)/lib/pkgconfig/solo5-bindings-$*.pc
-ifdef CONFIG_HVT
+# CONFIG_HVT
 	$(RM) $(PREFIX)/bin/solo5-hvt $(PREFIX)/bin/solo5-hvt-debug \
 	    $(PREFIX)/bin/solo5-hvt-configure
-endif
-ifdef CONFIG_SPT
+# CONFIG_SPT
 	$(RM) $(PREFIX)/bin/solo5-spt
-endif
-ifdef CONFIG_VIRTIO
+# CONFIG_VIRTIO
 	$(RM) $(PREFIX)/bin/solo5-virtio-mkimage
 	$(RM) $(PREFIX)/bin/solo5-virtio-run
-endif
 
 # The following targets are kept for backwards compatibility, as otherwise
 # upgrading existing OPAM switches will fail. They should be removed at some
