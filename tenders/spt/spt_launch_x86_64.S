@@ -27,10 +27,5 @@ ENTRY(spt_launch)
 	movq %rdi, %rsp
 	movq %rdx, %rdi
 
-	pushq $0x0
-	pushq $0x0
-
-	call *%rsi
-
-        ret
+	jmp *%rsi
 END(spt_launch)
