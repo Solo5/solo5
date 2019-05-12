@@ -39,9 +39,9 @@ int solo5_app_main(const struct solo5_start_info *si __attribute__((unused)))
 
 #if defined(__x86_64__)
      __asm__ (
-         "movups %0,%%xmm1;"
+         "movaps %0,%%xmm1;"
          "mulps %%xmm1, %%xmm1;"
-         "movups %%xmm1, %0"
+         "movaps %%xmm1, %0"
          : "=m" (c)
          : "m" (c)
          : "xmm1"
