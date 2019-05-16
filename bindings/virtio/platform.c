@@ -129,3 +129,9 @@ void solo5_console_write(const char *buf, size_t size)
 {
     (void)platform_puts(buf, size);
 }
+
+int platform_set_tls_base(uint64_t base)
+{
+    cpu_set_tls_base(base);
+    return 0;
+}

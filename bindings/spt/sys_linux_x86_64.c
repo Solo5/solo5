@@ -34,6 +34,7 @@
 #define SYS_write         1
 #define SYS_pread64       17
 #define SYS_pwrite64      18
+#define SYS_arch_prctl    158
 #define SYS_clock_gettime 228
 #define SYS_exit_group    231
 #define SYS_ppoll         271
@@ -133,6 +134,20 @@ long sys_ppoll(void *fds, long nfds, void *ts)
             : "=a" (ret)
             : "a" (SYS_ppoll), "D" (fds), "S" (nfds), "d" (ts),
               "r" (r10) /* sigmask */, "r" (r8) /* sigsetsize */
+            : "rcx", "r11", "memory"
+    );
+
+    return ret;
+}
+
+long sys_arch_prctl(long code, long addr)
+{
+    long ret;
+
+    __asm__ __volatile__ (
+            "syscall"
+            : "=a" (ret)
+            : "a" (SYS_arch_prctl), "D" (code), "S" (addr)
             : "rcx", "r11", "memory"
     );
 

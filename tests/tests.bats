@@ -99,6 +99,10 @@ expect_abort() {
   [ "$status" -eq 255 ] && [[ "$output" == *"ABORT"* ]]
 }
 
+expect_segfault() {
+  [ "$status" -eq 139 ]
+}
+
 virtio_expect_abort() {
   [ "$status" -eq 0 -o "$status" -eq 2 -o "$status" -eq 83 ] && \
     [[ "$output" == *"ABORT"* ]]
@@ -198,7 +202,35 @@ virtio_expect_abort() {
 }
 
 @test "notls spt" {
-  skip "not supported on spt yet"
+  spt_run test_notls/test_notls.spt
+  expect_segfault
+}
+
+@test "tls hvt" {
+  if [ "$(uname -s)" = "OpenBSD" ]; then
+    skip "tls tests not run for OpenBSD"
+  fi
+
+  hvt_run test_tls/test_tls.hvt
+  expect_success
+}
+
+@test "tls virtio" {
+  if [ "$(uname -s)" = "OpenBSD" ]; then
+    skip "tls tests not run for OpenBSD"
+  fi
+
+  virtio_run test_tls/test_tls.virtio
+  virtio_expect_success
+}
+
+@test "tls spt" {
+  if [ "$(uname -s)" = "OpenBSD" ]; then
+    skip "tls tests not run for OpenBSD"
+  fi
+
+  spt_run test_tls/test_tls.spt
+  expect_success
 }
 
 @test "ssp hvt" {

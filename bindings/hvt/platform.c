@@ -40,3 +40,9 @@ uint64_t platform_mem_size(void)
 {
     return mem_size;
 }
+
+int platform_set_tls_base(uint64_t base)
+{
+    cpu_set_tls_base(base);
+    return 0;
+}
