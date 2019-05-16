@@ -19,29 +19,9 @@
  */
 
 #include "bindings.h"
-#include "../crt_init.h"
 
-void _start(void *arg)
+solo5_result_t solo5_set_tls_base(uintptr_t base)
 {
-    crt_init_ssp();
-    crt_init_tls();
-
-    static struct solo5_start_info si;
-
-    console_init();
-    cpu_init();
-    platform_init(arg);
-    si.cmdline = cmdline_parse(platform_cmdline());
-
-    log(INFO, "            |      ___|\n");
-    log(INFO, "  __|  _ \\  |  _ \\ __ \\\n");
-    log(INFO, "\\__ \\ (   | | (   |  ) |\n");
-    log(INFO, "____/\\___/ _|\\___/____/\n");
-
-    mem_init();
-    time_init(arg);
-    net_init();
-
-    mem_lock_heap(&si.heap_start, &si.heap_size);
-    solo5_exit(solo5_app_main(&si));
+    int rc = platform_set_tls_base(base);
+    return (rc == 0) ? SOLO5_R_OK : SOLO5_R_EINVAL;
 }

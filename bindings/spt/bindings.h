@@ -69,7 +69,4 @@ long sys_arch_prctl(long code, long addr);
 void block_init(struct spt_boot_info *arg);
 void net_init(struct spt_boot_info *arg);
 
-int platform_set_tls_base(uint64_t base);
-void platform_init_tls(void);
-
 #endif /* __SPT_BINDINGS_H__ */

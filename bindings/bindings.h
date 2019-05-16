@@ -115,6 +115,7 @@ const char *platform_cmdline(void);
 uint64_t platform_mem_size(void);
 void platform_exit(int status, void *cookie) __attribute__((noreturn));
 int platform_puts(const char *buf, int n);
+int platform_set_tls_base(uint64_t base);
 
 /* platform_intr.c: platform-specific interrupt handling */
 void platform_intr_init(void);

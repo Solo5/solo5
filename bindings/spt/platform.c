@@ -64,9 +64,3 @@ int platform_set_tls_base(uint64_t base)
 #error Unsupported architecture
 #endif
 }
-
-void platform_init_tls(void)
-{
-    int rc = platform_set_tls_base(0);
-    assert(rc == 0);
-}
