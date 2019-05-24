@@ -177,7 +177,7 @@ int main(int argc, char **argv)
 
     struct spt *spt = spt_init(mem_size);
 
-    spt_elf_load(elffile, spt->mem, spt->mem_size, &p_entry, &p_end);
+    elf_load(elffile, spt->mem, spt->mem_size, &p_entry, &p_end);
 
     char *cmdline;
     spt_bi_init(spt, p_end, &cmdline);

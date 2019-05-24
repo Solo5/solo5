@@ -19,50 +19,17 @@
  */
 
 /*
- * spt.h: spt tender internal API definitions.
- *
+ * elf.h: ELF loader APIs.
  */
 
-#ifndef SPT_H
-#define SPT_H
-
-#include <inttypes.h>
-#include <err.h>
-
-#include "../common/cc.h"
-#include "../common/elf.h"
-#include "spt_abi.h"
-
-struct spt {
-    uint8_t *mem;
-    size_t mem_size;
-    struct spt_boot_info *bi;
-    void *sc_ctx;
-};
-
-struct spt *spt_init(size_t mem_size);
-
-void spt_bi_init(struct spt *spt, uint64_t p_end, char **cmdline);
-
-void spt_run(struct spt *spt, uint64_t p_entry);
+#ifndef COMMON_ELF_H
+#define COMMON_ELF_H
 
 /*
- * Module definition. (name) and (setup) are required, all other functions are
- * optional.
+ * Load an ELF binary from (file) into (mem_size) bytes of (mem), returning
+ * the entry point (gpa_ep) and last byte used by the binary (gpa_kend).
  */
-struct spt_module {
-    const char *name;
-    int (*setup)(struct spt *spt);
-    int (*handle_cmdarg)(char *cmdarg);
-    char *(*usage)(void);
-};
+void elf_load(const char *file, uint8_t *mem, size_t mem_size,
+        uint64_t *p_entry, uint64_t *p_end);
 
-extern struct spt_module spt_module_net;
-extern struct spt_module spt_module_block;
-
-/*
- * Array of compiled-in modules. NULL terminated.
- */
-extern struct spt_module *spt_core_modules[];
-
-#endif /* SPT_H */
+#endif /* COMMON_ELF_H */

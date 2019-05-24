@@ -19,50 +19,20 @@
  */
 
 /*
- * spt.h: spt tender internal API definitions.
- *
+ * block_attach.h: Common functions for attaching to block devices.
  */
 
-#ifndef SPT_H
-#define SPT_H
+#ifndef COMMON_BLOCK_ATTACH_H
+#define COMMON_BLOCK_ATTACH_H
 
-#include <inttypes.h>
-#include <err.h>
-
-#include "../common/cc.h"
-#include "../common/elf.h"
-#include "spt_abi.h"
-
-struct spt {
-    uint8_t *mem;
-    size_t mem_size;
-    struct spt_boot_info *bi;
-    void *sc_ctx;
-};
-
-struct spt *spt_init(size_t mem_size);
-
-void spt_bi_init(struct spt *spt, uint64_t p_end, char **cmdline);
-
-void spt_run(struct spt *spt, uint64_t p_entry);
+#define _GNU_SOURCE
+#define _FILE_OFFSET_BITS 64
+#include <sys/types.h>
 
 /*
- * Module definition. (name) and (setup) are required, all other functions are
- * optional.
+ * Attach to the block device specified by (path). Returns the file descriptor
+ * and device capacity in * bytes in (*capacity).
  */
-struct spt_module {
-    const char *name;
-    int (*setup)(struct spt *spt);
-    int (*handle_cmdarg)(char *cmdarg);
-    char *(*usage)(void);
-};
+int block_attach(const char *path, off_t *capacity_);
 
-extern struct spt_module spt_module_net;
-extern struct spt_module spt_module_block;
-
-/*
- * Array of compiled-in modules. NULL terminated.
- */
-extern struct spt_module *spt_core_modules[];
-
-#endif /* SPT_H */
+#endif /* COMMON_BLOCK_ATTACH_H */
