@@ -4,6 +4,7 @@
 *.lib.so
 *.pc
 Makeconf
+bindings/spt/solo5_spt.lds
 tags
 include/crt
 tests/*/*.hvt

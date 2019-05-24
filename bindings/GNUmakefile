@@ -103,7 +103,10 @@ endif
 ifdef CONFIG_SPT
     spt_OBJS := $(patsubst %.c,%.o,$(patsubst %.S,%.o,$(spt_SRCS)))
 
-spt/solo5_spt.o: $(spt_OBJS)
+spt/solo5_spt.lds: spt/solo5_spt.lds.in
+	$(CC) -E - < $< | sed '/^#/d' > $@
+
+spt/solo5_spt.o: $(spt_OBJS) spt/solo5_spt.lds
 	$(LINK.bindings)
 
     all_TARGETS += spt/solo5_spt.o
@@ -156,6 +159,6 @@ all_DEPS := $(patsubst %.o,%.d,$(all_OBJS))
 .PHONY: clean
 clean:
 	@echo "CLEAN bindings"
-	$(RM) $(all_TARGETS) $(all_OBJS) $(all_DEPS)
+	$(RM) $(all_TARGETS) $(all_OBJS) $(all_DEPS) spt/solo5_spt.lds
 
 include $(wildcard $(all_DEPS))
