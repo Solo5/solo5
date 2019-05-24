@@ -51,7 +51,7 @@ setup() {
     HVT_TENDER_DEBUG=../tenders/hvt/solo5-hvt-debug
     ;;
   *virtio)
-    if [ "$(uname -s)" = "OpenBSD" ]; then
+    if [ "${CONFIG_HOST}" = "OpenBSD" ]; then
       skip "virtio tests not run for OpenBSD"
     fi
     [ -z "${CONFIG_VIRTIO}" ] && skip "virtio not configured"
@@ -191,6 +191,30 @@ virtio_expect_abort() {
   [ "$status" -eq 139 ] # SIGSEGV
 }
 
+@test "xnow hvt" {
+  if [ "${CONFIG_HOST}" != "Linux" ]; then
+    skip "not supported on ${CONFIG_HOST}"
+  fi
+  hvt_run test_xnow/test_xnow.hvt
+  [ "$status" -eq 1 ] && [[ "$output" == *"host/guest translation fault"* ]]
+}
+
+@test "xnow spt" {
+  spt_run test_xnow/test_xnow.spt
+  [ "$status" -eq 139 ] # SIGSEGV
+}
+
+@test "wnox hvt" {
+  skip "not supported on ${CONFIG_HOST}"
+  hvt_run test_wnox/test_wnox.hvt
+  expect_abort
+}
+
+@test "wnox spt" {
+  spt_run test_wnox/test_wnox.spt
+  [ "$status" -eq 139 ] # SIGSEGV
+}
+
 @test "notls hvt" {
   hvt_run test_notls/test_notls.hvt
   expect_abort
@@ -207,7 +231,7 @@ virtio_expect_abort() {
 }
 
 @test "tls hvt" {
-  if [ "$(uname -s)" = "OpenBSD" ]; then
+  if [ "${CONFIG_HOST}" = "OpenBSD" ]; then
     skip "tls tests not run for OpenBSD"
   fi
 
@@ -216,7 +240,7 @@ virtio_expect_abort() {
 }
 
 @test "tls virtio" {
-  if [ "$(uname -s)" = "OpenBSD" ]; then
+  if [ "${CONFIG_HOST}" = "OpenBSD" ]; then
     skip "tls tests not run for OpenBSD"
   fi
 
@@ -225,7 +249,7 @@ virtio_expect_abort() {
 }
 
 @test "tls spt" {
-  if [ "$(uname -s)" = "OpenBSD" ]; then
+  if [ "${CONFIG_HOST}" = "OpenBSD" ]; then
     skip "tls tests not run for OpenBSD"
   fi
 
