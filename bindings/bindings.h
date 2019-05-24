@@ -40,6 +40,8 @@
 #include "cpu_x86_64.h"
 #elif defined(__aarch64__)
 #include "cpu_aarch64.h"
+#elif defined(__powerpc64__)
+#include "cpu_ppc64.h"
 #else
 #error Unsupported architecture
 #endif
@@ -110,7 +112,7 @@ int isspace(int c);
 #include "printf.h"
 
 /* platform.c: specifics for hvt or virito platform */
-void platform_init(void *arg);
+void platform_init(void *arg, uint64_t *tls_base);
 const char *platform_cmdline(void);
 uint64_t platform_mem_size(void);
 void platform_exit(int status, void *cookie) __attribute__((noreturn));

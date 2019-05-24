@@ -132,6 +132,8 @@ void spt_elf_load(const char *file, uint8_t *mem, size_t mem_size,
             || hdr.e_machine != EM_X86_64
 #elif defined(__aarch64__)
             || hdr.e_machine != EM_AARCH64
+#elif defined(__powerpc64__)
+            || hdr.e_machine != EM_PPC64
 #else
 #error Unsupported target
 #endif

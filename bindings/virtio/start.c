@@ -26,8 +26,9 @@ static void _start2(void *arg) __attribute__((noreturn));
 
 void _start(void *arg)
 {
+    uint64_t tls_base;
+
     crt_init_ssp();
-    crt_init_tls(0);
 
     volatile int gdb = 1;
 
@@ -39,7 +40,8 @@ void _start(void *arg)
         ;
 
     cpu_init();
-    platform_init(arg);
+    platform_init(arg, &tls_base);
+    crt_init_tls(tls_base);
 
     /*
      * Switch away from the bootstrap stack (in boot.S) as early as possible.

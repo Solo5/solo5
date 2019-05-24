@@ -174,6 +174,8 @@ void spt_run(struct spt *spt, uint64_t p_entry)
     uint64_t sp = spt->mem_size - 0x8;
 #elif defined(__aarch64__)
     uint64_t sp = spt->mem_size - 0x10;
+#elif defined(__powerpc64__)
+    uint64_t sp = spt->mem_size - 0x10;
 #else
 #error Unsupported architecture
 #endif

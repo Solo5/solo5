@@ -26,10 +26,11 @@ void fpu_init(void)
     __asm__ __volatile__("ldmxcsr %0" : : "m"(default_mxcsr));
 }
 
-void platform_init(void *arg)
+void platform_init(void *arg, uint64_t *tls_base)
 {
     process_bootinfo(arg);
     fpu_init();
+    *tls_base = 0;
 }
 
 void platform_exit(int status __attribute__((unused)),

@@ -23,14 +23,16 @@
 
 void _start(void *arg)
 {
+    uint64_t tls_base;
+
     crt_init_ssp();
-    crt_init_tls(0);
 
     static struct solo5_start_info si;
 
     console_init();
     cpu_init();
-    platform_init(arg);
+    platform_init(arg, &tls_base);
+    crt_init_tls(tls_base);
     si.cmdline = cmdline_parse(platform_cmdline());
 
     log(INFO, "            |      ___|\n");

@@ -37,6 +37,8 @@ int solo5_app_main(const struct solo5_start_info *si __attribute__((unused)))
                        "add x0, x0, #0x10; "
                        "ldr w1, [x0]"
                        : : : "x0", "w1");
+#elif defined(__powerpc64__)
+    /* we always need a valid TLS, so this test cannot work on ppc64 */
 #else
 #error Unsupported architecture
 #endif

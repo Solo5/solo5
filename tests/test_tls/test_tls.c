@@ -34,6 +34,12 @@ struct tcb {
     void *pad;
     volatile uint64_t _data;
 };
+#elif defined(__powerpc64__)
+struct tcb {
+    unsigned char pad[0x1000];
+    volatile uint64_t _data;
+    void *tp;
+};
 #else
 #error Unsupported architecture
 #endif
@@ -67,8 +73,13 @@ int solo5_app_main(const struct solo5_start_info *si __attribute__((unused)))
 {
     puts("\n**** Solo5 standalone test_tls ****\n\n");
 
+#if defined (__powerpc64__)
+    tcb1.tp = &tcb1.pad;
+    tcb2.tp = &tcb2.pad;
+#else
     tcb1.tp = &tcb1.tp;
     tcb2.tp = &tcb2.tp;
+#endif
 
     if (solo5_set_tls_base((uintptr_t)tcb1.tp) != SOLO5_R_OK)
         return 1;

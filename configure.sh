@@ -96,6 +96,9 @@ case ${CC_MACHINE} in
     amd64-*openbsd*)
         CONFIG_ARCH=x86_64 CONFIG_HOST=OpenBSD
         ;;
+    powerpc64le-*linux*)
+        CONFIG_ARCH=ppc64le CONFIG_HOST=Linux
+        ;;
     *)
         die "Unsupported toolchain target: ${CC_MACHINE}"
         ;;
@@ -161,6 +164,7 @@ case "${CONFIG_HOST}" in
         [ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_VIRTIO=1
         [ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_MUEN=1
         [ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_GENODE=1
+        [ "${CONFIG_ARCH}" = "ppc64le" ] && CONFIG_HVT=
         ;;
     FreeBSD)
         # On FreeBSD/clang we use -nostdlibinc which gives us access to the

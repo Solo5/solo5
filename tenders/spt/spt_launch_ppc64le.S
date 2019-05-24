@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2019 Contributors as noted in the AUTHORS file
+ * Copyright (c) 2019 Contributors as noted in the AUTHORS file
  *
  * This file is part of Solo5, a sandboxed execution environment.
  *
@@ -18,21 +18,21 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include "bindings.h"
+#define ENTRY(x) .text; .globl x; .type x,%function; x:
+#define END(x)   .size x, . - x
 
-void platform_init(void *arg, uint64_t *tls_base)
-{
-    process_bootinfo(arg);
-    *tls_base = 0;
-}
+/* TODO/XXX: This calling convention is probably not 100% correct */
 
-void platform_exit(int status, void *cookie)
-{
-    struct hvt_halt h;
-
-    h.exit_status = status;
-    h.cookie = cookie;
-
-    hvt_do_hypercall(HVT_HYPERCALL_HALT, &h);
-    for(;;);
-}
+/*
+ * r3: stack pointer to use (0x1ffffff0)
+ * r4: function to call     (0x102dd0)
+ * r5: argument to pass to function (0x11000)
+ */
+ENTRY(spt_launch)
+	mr %r1, %r3       // load stack pointer
+	stdu %r1,-16(%r1) // adjust stack pointer a little more...
+	mr %r3, %r5
+	mtlr %r4          // move address of function to call into link register
+	blr               // call function via link register
+	nop
+END(spt_launch)

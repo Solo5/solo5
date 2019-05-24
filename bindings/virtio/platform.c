@@ -27,8 +27,9 @@ static char cmdline[8192];
 
 static uint64_t mem_size;
 
-void platform_init(void *arg)
+void platform_init(void *arg, uint64_t *tls_base)
 {
+    *tls_base = 0;
     /*
      * The multiboot structures may be anywhere in memory, so take a copy of
      * the command line before we initialise memory allocation.
