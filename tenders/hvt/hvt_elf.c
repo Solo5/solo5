@@ -90,7 +90,7 @@ static ssize_t pread_in_full(int fd, void *buf, size_t count, off_t offset)
 void hvt_elf_load(const char *file, uint8_t *mem, size_t mem_size,
        hvt_gpa_t *p_entry, hvt_gpa_t *p_end)
 {
-    int fd_kernel;
+    int fd_kernel = -1;
     ssize_t numb;
     size_t buflen;
     Elf64_Off ph_off;
@@ -207,9 +207,11 @@ void hvt_elf_load(const char *file, uint8_t *mem, size_t mem_size,
             prot |= PROT_WRITE;
         if (phdr[ph_i].p_flags & PF_X)
             prot |= PROT_EXEC;
-        if (prot & PROT_WRITE && prot & PROT_EXEC)
-            warnx("%s: Warning: phdr[%u] requests WRITE and EXEC permissions",
+        if (prot & PROT_WRITE && prot & PROT_EXEC) {
+            warnx("%s: Error: phdr[%u] requests WRITE and EXEC permissions",
                   file, ph_i);
+            goto out_invalid;
+        }
         if (mprotect(daddr, _end - paddr, prot) == -1)
             goto out_error;
     }
@@ -220,8 +222,16 @@ void hvt_elf_load(const char *file, uint8_t *mem, size_t mem_size,
     return;
 
 out_error:
-    err(1, "%s", file);
+    warn("%s", file);
+    free (phdr);
+    if (fd_kernel != -1)
+        close (fd_kernel);
+    exit(1);
 
 out_invalid:
-    errx(1, "%s: Exec format error", file);
+    warnx("%s: Exec format error", file);
+    free (phdr);
+    if (fd_kernel != -1)
+        close (fd_kernel);
+    exit(1);
 }
