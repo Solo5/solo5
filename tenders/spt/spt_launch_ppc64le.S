@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2019 Contributors as noted in the AUTHORS file
+ * Copyright (c) 2019 Contributors as noted in the AUTHORS file
  *
  * This file is part of Solo5, a sandboxed execution environment.
  *
@@ -18,30 +18,17 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include "solo5.h"
-#include "../../bindings/lib.c"
+#define ENTRY(x) .text; .globl x; .type x,%function; x:
+#define END(x)   .size x, . - x
 
-static void puts(const char *s)
-{
-    solo5_console_write(s, strlen(s));
-}
-
-int solo5_app_main(const struct solo5_start_info *si __attribute__((unused)))
-{
-    puts("\n**** Solo5 standalone test_notls ****\n\n");
-
-#if defined(__x86_64__)
-    __asm__ __volatile("movq %%fs:0x28, %%rax" : : : "rax");
-#elif defined(__aarch64__)
-    __asm__ __volatile("mrs x0, tpidr_el0; "
-                       "add x0, x0, #0x10; "
-                       "ldr w1, [x0]"
-                       : : : "x0", "w1");
-#elif defined(__powerpc64__)
-    __asm__ __volatile("ld 3,-28672(13)" : : : "r3", "r13");
-#else
-#error Unsupported architecture
-#endif
-
-    return SOLO5_EXIT_FAILURE;
-}
+/*
+ * r3: stack pointer to use
+ * r4: function to call
+ * r5: argument to pass to function
+ */
+ENTRY(spt_launch)
+	mr %r1, %r3       // load stack pointer
+	mr %r3, %r5       // parameter to pass to function goes into r3
+	mtlr %r4          // move address of function to call into link register
+	blr               // call function via link register
+END(spt_launch)

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2019 Contributors as noted in the AUTHORS file
+ * Copyright (c) 2019 Contributors as noted in the AUTHORS file
  *
  * This file is part of Solo5, a sandboxed execution environment.
  *
@@ -17,31 +17,41 @@
  * NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
+#ifndef __CPU_PPC64_H__
+#define __CPU_PPC64_H__
 
-#include "solo5.h"
-#include "../../bindings/lib.c"
+/* memory defines */
+#define PAGE_SIZE   (64 * 1024)
+#define PAGE_SHIFT  16
+#define PAGE_MASK   ~(0xffff)
 
-static void puts(const char *s)
+#ifndef ASM_FILE
+
+/*
+ * The remainder of this file is used only from C.
+ */
+static inline uint64_t cpu_cntvct(void)
 {
-    solo5_console_write(s, strlen(s));
+    uint64_t val;
+
+    __asm__ __volatile__(
+        "mfspr %0, 268\n"
+        : "=r" (val)
+        :
+        :);
+
+    return val;
 }
 
-int solo5_app_main(const struct solo5_start_info *si __attribute__((unused)))
+static inline void cpu_set_tls_base(uint64_t base)
 {
-    puts("\n**** Solo5 standalone test_notls ****\n\n");
-
-#if defined(__x86_64__)
-    __asm__ __volatile("movq %%fs:0x28, %%rax" : : : "rax");
-#elif defined(__aarch64__)
-    __asm__ __volatile("mrs x0, tpidr_el0; "
-                       "add x0, x0, #0x10; "
-                       "ldr w1, [x0]"
-                       : : : "x0", "w1");
-#elif defined(__powerpc64__)
-    __asm__ __volatile("ld 3,-28672(13)" : : : "r3", "r13");
-#else
-#error Unsupported architecture
-#endif
-
-    return SOLO5_EXIT_FAILURE;
+    __asm__ __volatile(
+        "mr 13, %0\n"
+        :
+        : "a" (base)
+        : "r13");
 }
+
+#endif /* !ASM_FILE */
+
+#endif /* __CPU_PPC64_H__ */

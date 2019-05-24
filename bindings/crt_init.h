@@ -24,6 +24,8 @@ extern uintptr_t SSP_GUARD;
 #define READ_CPU_TICKS cpu_rdtsc
 #elif defined(__aarch64__)
 #define READ_CPU_TICKS cpu_cntvct
+#elif defined(__powerpc64__)
+#define READ_CPU_TICKS cpu_cntvct
 #else
 #error Unsupported architecture
 #endif

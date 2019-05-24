@@ -60,6 +60,9 @@ int platform_set_tls_base(uint64_t base)
 #elif defined(__aarch64__)
     cpu_set_tls_base(base);
     return 0;
+#elif defined(__powerpc64__)
+    cpu_set_tls_base(base);
+    return 0;
 #else
 #error Unsupported architecture
 #endif

@@ -203,6 +203,11 @@ void spt_run(struct spt *spt, uint64_t p_entry)
     uint64_t sp = spt->mem_size - 0x8;
 #elif defined(__aarch64__)
     uint64_t sp = spt->mem_size - 0x10;
+#elif defined(__powerpc64__)
+    /*
+     * Stack alignment on PPC64 is 0x10, minimum stack frame size is 112 bytes.
+     */
+    uint64_t sp = spt->mem_size - 112;
 #else
 #error Unsupported architecture
 #endif

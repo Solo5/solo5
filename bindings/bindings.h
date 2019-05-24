@@ -41,6 +41,8 @@
 #include "cpu_x86_64.h"
 #elif defined(__aarch64__)
 #include "cpu_aarch64.h"
+#elif defined(__powerpc64__)
+#include "cpu_ppc64.h"
 #else
 #error Unsupported architecture
 #endif

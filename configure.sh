@@ -92,6 +92,10 @@ case ${CC_MACHINE} in
         CONFIG_ARCH=aarch64 CONFIG_HOST=Linux
         CONFIG_GUEST_PAGE_SIZE=0x1000
         ;;
+    powerpc64le-*linux*)
+        CONFIG_ARCH=ppc64le CONFIG_HOST=Linux
+        CONFIG_GUEST_PAGE_SIZE=0x10000
+        ;;
     x86_64-*freebsd*)
         CONFIG_ARCH=x86_64 CONFIG_HOST=FreeBSD
         CONFIG_GUEST_PAGE_SIZE=0x1000
@@ -141,7 +145,7 @@ case "${CONFIG_HOST}" in
         # Any GCC configured for a Linux/x86_64 target (actually, any
         # glibc-based target) will use a TLS slot to address __stack_chk_guard.
         # Disable this behaviour and use an ordinary global variable instead.
-        if [ "${CONFIG_ARCH}" = "x86_64" ]; then
+        if [ "${CONFIG_ARCH}" = "x86_64" ] || [ "${CONFIG_ARCH}" = "ppc64le" ]; then
             gcc_check_option -mstack-protector-guard=global || \
                 die "GCC 4.9.0 or newer is required for -mstack-protector-guard= support"
             MAKECONF_CFLAGS="${MAKECONF_CFLAGS} -mstack-protector-guard=global"
@@ -165,6 +169,7 @@ case "${CONFIG_HOST}" in
         [ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_VIRTIO=1
         [ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_MUEN=1
         [ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_GENODE=1
+        [ "${CONFIG_ARCH}" = "ppc64le" ] && CONFIG_HVT=
         ;;
     FreeBSD)
         # On FreeBSD/clang we use -nostdlibinc which gives us access to the
