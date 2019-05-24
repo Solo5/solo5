@@ -66,6 +66,7 @@ HOSTCFLAGS := -Wall -Werror -std=c99 -O2 -g
 HOSTCPPFLAGS := -I$(TOPDIR)/include/solo5
 HOSTLDFLAGS :=
 HOSTLDLIBS :=
+HOSTAR := ar
 
 define HOSTCOMPILE.c
 	@echo "HOSTCC $<"

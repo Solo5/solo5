@@ -19,50 +19,33 @@
  */
 
 /*
- * spt.h: spt tender internal API definitions.
- *
+ * block_attach.c: Common functions for attaching to block devices.
  */
 
-#ifndef SPT_H
-#define SPT_H
-
-#include <inttypes.h>
+#define _GNU_SOURCE
+#define _FILE_OFFSET_BITS 64
 #include <err.h>
-
-#include "../common/cc.h"
-#include "../common/elf.h"
-#include "spt_abi.h"
-
-struct spt {
-    uint8_t *mem;
-    size_t mem_size;
-    struct spt_boot_info *bi;
-    void *sc_ctx;
-};
-
-struct spt *spt_init(size_t mem_size);
-
-void spt_bi_init(struct spt *spt, uint64_t p_end, char **cmdline);
-
-void spt_run(struct spt *spt, uint64_t p_entry);
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <fcntl.h>
+#include <unistd.h>
 
 /*
- * Module definition. (name) and (setup) are required, all other functions are
- * optional.
+ * Attach to the block device specified by (path), returning its capacity in
+ * bytes in (*capacity).
  */
-struct spt_module {
-    const char *name;
-    int (*setup)(struct spt *spt);
-    int (*handle_cmdarg)(char *cmdarg);
-    char *(*usage)(void);
-};
+int block_attach(const char *path, off_t *capacity_)
+{
+    int fd = open(path, O_RDWR);
+    if (fd == -1)
+        err(1, "Could not open block device: %s", path);
+    off_t capacity = lseek(fd, 0, SEEK_END);
+    if (capacity == -1)
+        err(1, "%s: Could not determine capacity", path);
+    if (capacity < 512)
+        errx(1, "%s: Backing storage must be at least 1 block (512 bytes) "
+                "in size", path);
 
-extern struct spt_module spt_module_net;
-extern struct spt_module spt_module_block;
-
-/*
- * Array of compiled-in modules. NULL terminated.
- */
-extern struct spt_module *spt_core_modules[];
-
-#endif /* SPT_H */
+    *capacity_ = capacity;
+    return fd;
+}

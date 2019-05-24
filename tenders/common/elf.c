@@ -39,7 +39,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include "hvt.h"
+#include "cc.h"
 
 static ssize_t pread_in_full(int fd, void *buf, size_t count, off_t offset)
 {
@@ -87,8 +87,8 @@ static ssize_t pread_in_full(int fd, void *buf, size_t count, off_t offset)
  *   |             |  [PROT_EXEC|READ]  |                |
  *
  */
-void hvt_elf_load(const char *file, uint8_t *mem, size_t mem_size,
-       hvt_gpa_t *p_entry, hvt_gpa_t *p_end)
+void elf_load(const char *file, uint8_t *mem, size_t mem_size,
+       uint64_t *p_entry, uint64_t *p_end)
 {
     int fd_kernel = -1;
     ssize_t numb;

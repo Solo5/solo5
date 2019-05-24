@@ -31,7 +31,8 @@
 #include <inttypes.h>
 #include <err.h>
 
-#include "cc.h"
+#include "../common/cc.h"
+#include "../common/elf.h"
 #define HVT_HOST
 #include "hvt_abi.h"
 #include "hvt_gdb.h"
@@ -55,13 +56,6 @@ struct hvt {
     size_t mem_size;
     struct hvt_b *b;
 };
-
-/*
- * Load an ELF binary from (file) into (mem_size) bytes of (mem), returning
- * the entry point (gpa_ep) and last byte used by the binary (gpa_kend).
- */
-void hvt_elf_load(const char *file, uint8_t *mem, size_t mem_size,
-        hvt_gpa_t *p_entry, hvt_gpa_t *p_end);
 
 /*
  * Check that (gpa) and (gpa + sz) are within guest memory. Returns a host-side

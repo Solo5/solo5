@@ -19,50 +19,25 @@
  */
 
 /*
- * spt.h: spt tender internal API definitions.
+ * tap_attach.h: Common functions for attaching to TAP interfaces.
+ */
+
+#ifndef COMMON_TAP_ATTACH_H
+#define COMMON_TAP_ATTACH_H
+
+/*
+ * Attach to an existing TAP interface named (ifname). If ifname is "@<num>",
+ * assume that a pre-existing TAP interface is open as file descriptor <num>.
  *
+ * Returns -1 and an appropriate errno on failure (ENOENT if the interface does
+ * not exist), and the tap device file descriptor on success.
  */
-
-#ifndef SPT_H
-#define SPT_H
-
-#include <inttypes.h>
-#include <err.h>
-
-#include "../common/cc.h"
-#include "../common/elf.h"
-#include "spt_abi.h"
-
-struct spt {
-    uint8_t *mem;
-    size_t mem_size;
-    struct spt_boot_info *bi;
-    void *sc_ctx;
-};
-
-struct spt *spt_init(size_t mem_size);
-
-void spt_bi_init(struct spt *spt, uint64_t p_end, char **cmdline);
-
-void spt_run(struct spt *spt, uint64_t p_entry);
+int tap_attach(const char *ifname);
 
 /*
- * Module definition. (name) and (setup) are required, all other functions are
- * optional.
+ * Generate a random, locally-administered and unicast MAC address, and store it
+ * in (*mac), which must be an uint8_t[6].
  */
-struct spt_module {
-    const char *name;
-    int (*setup)(struct spt *spt);
-    int (*handle_cmdarg)(char *cmdarg);
-    char *(*usage)(void);
-};
+void tap_attach_genmac(uint8_t *mac);
 
-extern struct spt_module spt_module_net;
-extern struct spt_module spt_module_block;
-
-/*
- * Array of compiled-in modules. NULL terminated.
- */
-extern struct spt_module *spt_core_modules[];
-
-#endif /* SPT_H */
+#endif /* COMMON_TAP_ATTACH_H */

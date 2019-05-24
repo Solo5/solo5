@@ -23,14 +23,14 @@
  */
 
 #define _GNU_SOURCE
+#define _FILE_OFFSET_BITS 64
 #include <assert.h>
 #include <err.h>
-#include <fcntl.h>
 #include <limits.h>
-#include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 
+#include "../common/block_attach.h"
 #include "hvt.h"
 
 static struct hvt_blkinfo blkinfo;
@@ -111,13 +111,11 @@ static int setup(struct hvt *hvt)
     if (diskfile == NULL)
         return 0; /* Not present */
 
-    /* set up virtual disk */
-    diskfd = open(diskfile, O_RDWR);
-    if (diskfd == -1)
-        err(1, "Could not open disk: %s", diskfile);
+    off_t capacity;
+    diskfd = block_attach(diskfile, &capacity);
 
     blkinfo.sector_size = 512;
-    blkinfo.num_sectors = lseek(diskfd, 0, SEEK_END) / 512;
+    blkinfo.num_sectors = capacity / 512;
     blkinfo.rw = 1;
 
     assert(hvt_core_register_hypercall(HVT_HYPERCALL_BLKINFO,
