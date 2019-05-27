@@ -68,21 +68,25 @@ int tap_attach(const char *ifname)
      * through if the supplied <number> is in range and O_NONBLOCK can be set.
      */
     if (ifname[0] == '@') {
-	char *endp;
-	long int maybe_fd = strtol(&ifname[1], &endp, 10);
-	if (*endp != 0 /* Invalid character at (*endp)? */
-		|| endp == &ifname[1] /* Empty string? */)
-	    errno = EINVAL;
-	else if (maybe_fd < 0 || maybe_fd > INT_MAX)
-	    errno = ERANGE;
-	if (errno)
-	    err(1, "tap_attach");
-        
-	fd = (int)maybe_fd;
+        char *endp;
+        long int maybe_fd = strtol(&ifname[1], &endp, 10);
+        if (*endp != 0 /* Invalid character at (*endp)? */
+            || endp == &ifname[1] /* Empty string? */)
+            errno = EINVAL;
+        else if (maybe_fd < 0 || maybe_fd > INT_MAX)
+            errno = ERANGE;
+        if (errno)
+            return -1;
+
+        fd = (int)maybe_fd;
         if (fcntl(fd, F_SETFL, O_NONBLOCK) == -1)
             return -1;
 
         return fd;
+    }
+    else if (strlen(ifname) >= IFNAMSIZ) {
+        errno = ENAMETOOLONG;
+        return -1;
     }
 
     /*
@@ -98,7 +102,7 @@ int tap_attach(const char *ifname)
         return -1;
     ifp = ifa;
     while (ifp) {
-        if (strcmp(ifp->ifa_name, ifname) == 0) {
+        if (strncmp(ifp->ifa_name, ifname, IFNAMSIZ) == 0) {
             found = 1;
             up = ifp->ifa_flags & (IFF_UP | IFF_RUNNING);
             break;
@@ -133,11 +137,7 @@ int tap_attach(const char *ifname)
      * TODO: IFF_NO_PI may silently truncate packets on read().
      */
     ifr.ifr_flags = IFF_TAP | IFF_NO_PI;
-    if (strlen(ifname) > IFNAMSIZ) {
-        errno = EINVAL;
-        return -1;
-    }
-    strncpy(ifr.ifr_name, ifname, IFNAMSIZ);
+    strncpy(ifr.ifr_name, ifname, IFNAMSIZ - 1);
 
     /*
      * Attach to the tap device; we have already verified that it exists, but
@@ -192,7 +192,7 @@ void tap_attach_genmac(uint8_t *mac)
     int rfd = open("/dev/urandom", O_RDONLY);
 
     if (rfd == -1)
-	err(1, "Could not open /dev/urandom");
+        err(1, "Could not open /dev/urandom");
 
     int ret;
 
