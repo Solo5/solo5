@@ -24,11 +24,11 @@
 void _start(void *arg)
 {
     crt_init_ssp();
-    crt_init_tls();
 
     static struct solo5_start_info si;
 
     platform_init(arg);
+    crt_init_tls();
     si.cmdline = cmdline_parse(platform_cmdline());
 
     log(INFO, "            |      ___|\n");
