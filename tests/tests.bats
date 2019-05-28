@@ -226,6 +226,9 @@ virtio_expect_abort() {
 }
 
 @test "notls spt" {
+  if [ "$(uname -m)" = "ppc64le" ]; then
+    skip "not supported on ${CONFIG_HOST}"
+  fi
   spt_run test_notls/test_notls.spt
   expect_segfault
 }
