@@ -30,6 +30,6 @@
  * the entry point (gpa_ep) and last byte used by the binary (gpa_kend).
  */
 void elf_load(const char *file, uint8_t *mem, size_t mem_size,
-        uint64_t *p_entry, uint64_t *p_end);
+        uint64_t *p_entry, uint64_t *p_end, uint32_t *tls_size);
 
 #endif /* COMMON_ELF_H */

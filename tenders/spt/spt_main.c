@@ -176,11 +176,12 @@ int main(int argc, char **argv)
      */
 
     struct spt *spt = spt_init(mem_size);
+    uint32_t tls_size;
 
-    elf_load(elffile, spt->mem, spt->mem_size, &p_entry, &p_end);
+    elf_load(elffile, spt->mem, spt->mem_size, &p_entry, &p_end, &tls_size);
 
     char *cmdline;
-    spt_bi_init(spt, p_end, &cmdline);
+    spt_bi_init(spt, p_end, &cmdline, tls_size);
     setup_cmdline(cmdline, argc, argv);
 
     setup_modules(spt);

@@ -38,6 +38,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <stdio.h>
 
 #include "cc.h"
 
@@ -88,7 +89,7 @@ static ssize_t pread_in_full(int fd, void *buf, size_t count, off_t offset)
  *
  */
 void elf_load(const char *file, uint8_t *mem, size_t mem_size,
-       uint64_t *p_entry, uint64_t *p_end)
+       uint64_t *p_entry, uint64_t *p_end, uint32_t *tls_size)
 {
     int fd_kernel = -1;
     ssize_t numb;
@@ -104,6 +105,8 @@ void elf_load(const char *file, uint8_t *mem, size_t mem_size,
     *p_entry = 0;
     /* highest byte of the program (on physical memory) */
     *p_end = 0;
+    /* TLS size assumed to be 0 */
+    *tls_size = 0;
 
     fd_kernel = open(file, O_RDONLY);
     if (fd_kernel == -1)
@@ -170,6 +173,11 @@ void elf_load(const char *file, uint8_t *mem, size_t mem_size,
         uint64_t align = phdr[ph_i].p_align;
         uint64_t result;
         int prot;
+
+        if (phdr[ph_i].p_type == PT_TLS) {
+            *tls_size = phdr[ph_i].p_memsz;
+            continue;
+        }
 
         if (phdr[ph_i].p_type != PT_LOAD)
             continue;

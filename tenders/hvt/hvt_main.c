@@ -190,8 +190,9 @@ int main(int argc, char **argv)
 
     hvt_mem_size(&mem_size);
     struct hvt *hvt = hvt_init(mem_size);
+    uint32_t tls_size;
 
-    elf_load(elffile, hvt->mem, hvt->mem_size, &gpa_ep, &gpa_kend);
+    elf_load(elffile, hvt->mem, hvt->mem_size, &gpa_ep, &gpa_kend, &tls_size);
 
     char *cmdline;
     hvt_vcpu_init(hvt, gpa_ep, gpa_kend, &cmdline);

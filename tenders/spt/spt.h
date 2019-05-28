@@ -43,7 +43,8 @@ struct spt {
 
 struct spt *spt_init(size_t mem_size);
 
-void spt_bi_init(struct spt *spt, uint64_t p_end, char **cmdline);
+void spt_bi_init(struct spt *spt, uint64_t p_end, char **cmdline,
+                 uint32_t tls_size);
 
 void spt_run(struct spt *spt, uint64_t p_entry);
 

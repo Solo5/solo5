@@ -84,8 +84,9 @@ struct spt_boot_info {
  * TLS related #defines
  */
 #if defined (__powerpc64__)
-# define TLS_MIN_SIZE (32 * 1024)
 # define TLS_NEGATIVE_EXTENT 0x8000
+# define TLS_LIBINFO_SIZE    0x1000
+# define TLS_MIN_SIZE        TLS_LIBINFO_SIZE
 #endif
 
 #endif /* SPT_ABI_H */
