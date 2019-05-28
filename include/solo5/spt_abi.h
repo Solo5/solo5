@@ -58,6 +58,7 @@ struct spt_boot_info {
     uint64_t mem_size;                  /* Memory size in bytes */
     uint64_t kernel_end;                /* Address of end of kernel */
     const char * cmdline;               /* Address of command line (C string) */
+    uint64_t tls_base;                  /* Address of TLS base */
     struct spt_block_info blocki;
     struct spt_net_info neti;
 };

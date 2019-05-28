@@ -27,7 +27,7 @@ static void _start2(void *arg) __attribute__((noreturn));
 void _start(void *arg)
 {
     crt_init_ssp();
-    crt_init_tls();
+    crt_init_tls(0);
 
     volatile int gdb = 1;
 

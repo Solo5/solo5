@@ -47,7 +47,8 @@ __attribute__((always_inline)) static inline void crt_init_ssp(void)
  * TLS base to zero, thus causing TLS access to point to the zero page.
  */
 
-__attribute__((always_inline)) static inline void crt_init_tls(void)
+__attribute__((always_inline)) static inline
+void crt_init_tls(uint64_t tls_base)
 {
-    (void)platform_set_tls_base(0);
+    (void)platform_set_tls_base(tls_base);
 }

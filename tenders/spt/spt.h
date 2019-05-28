@@ -38,6 +38,7 @@ struct spt {
     size_t mem_size;
     struct spt_boot_info *bi;
     void *sc_ctx;
+    uint64_t tls_base;
 };
 
 struct spt *spt_init(size_t mem_size);

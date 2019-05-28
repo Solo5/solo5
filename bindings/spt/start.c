@@ -28,7 +28,7 @@ void _start(void *arg)
     static struct solo5_start_info si;
 
     platform_init(arg);
-    crt_init_tls();
+    crt_init_tls(0);
     si.cmdline = cmdline_parse(platform_cmdline());
 
     log(INFO, "            |      ___|\n");
