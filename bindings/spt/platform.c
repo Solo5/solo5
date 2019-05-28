@@ -62,7 +62,35 @@ int platform_set_tls_base(uint64_t base)
     cpu_set_tls_base(base);
     return 0;
 #elif defined(__powerpc64__)
-    (void)base;
+    void *origbase;
+
+    __asm__ __volatile(
+        "mr %0, 13\n"
+        : "=a" (origbase)
+        :
+        :
+    );
+
+    /* if we already copied this one before, there is a
+     * marker at the beginning of the TLS indicating that it
+     * had already been setup before. This marker is a poin-
+     * ter to the base address found at the base address.
+     */
+    if (*(uint64_t *)base != base) {
+        memcpy((void *)base, origbase - TLS_NEGATIVE_EXTENT,
+               TLS_MIN_SIZE);
+        *(uint64_t *)base = base;
+    }
+
+    base += TLS_NEGATIVE_EXTENT;
+
+    __asm__ __volatile(
+        "mr 13, %0\n"
+        :
+        : "a" (base)
+        : "r13"
+    );
+
     return 0;
 #else
 #error Unsupported architecture

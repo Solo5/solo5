@@ -42,6 +42,7 @@
 #endif
 
 #include "spt.h"
+#include "solo5.h"
 
 /*
  * TODO: This is copied from 'hvt' in a rather quick and dirty fashion to get
@@ -152,6 +153,10 @@ void spt_bi_init(struct spt *spt, uint64_t p_end, char **cmdline)
     spt->bi = (struct spt_boot_info *)(spt->mem + SPT_BOOT_INFO_BASE);
     memset(spt->bi, 0, sizeof (struct spt_boot_info));
     spt->bi->cmdline = (char *)spt->mem + SPT_CMDLINE_BASE;
+#if defined (__powerpc64__)
+    spt->mem_size -= TLS_MIN_SIZE;
+    spt->bi->tls_base = (uint64_t)spt->mem + spt->mem_size;
+#endif
     spt->bi->mem_size = spt->mem_size;
     spt->bi->kernel_end = p_end;
 
