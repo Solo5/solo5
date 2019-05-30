@@ -81,4 +81,10 @@
 #endif /* _HAS_BUILTIN_ADD_OVERFLOW */
 #undef _HAS_BUILTIN_ADD_OVERFLOW
 
+/*
+ * Generic macros for stringification.
+ */
+#define STR(arg) #arg
+#define XSTR(arg) STR(arg)
+
 #endif /* HVT_CC_H */

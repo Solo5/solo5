@@ -115,7 +115,7 @@ int tscclock_init(uint64_t tsc_freq)
      * to clock skew over time and cannot get corrections from the host (via
      * e.g. NTP). 
      */
-    struct hvt_walltime t;
+    struct hvt_hc_walltime t;
     hvt_do_hypercall(HVT_HYPERCALL_WALLTIME, &t);
     wc_epochoffset = t.nsecs - time_base;
 

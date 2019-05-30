@@ -26,6 +26,8 @@
 #define _FILE_OFFSET_BITS 64
 #include <assert.h>
 #include <err.h>
+#include <limits.h>
+#include <stdio.h>
 #include <string.h>
 #include <sys/types.h>
 #include <seccomp.h>
@@ -33,71 +35,88 @@
 #include "../common/block_attach.h"
 #include "spt.h"
 
-static char *diskfile;
-static int diskfd = -1;
+static bool module_in_use;
 
-static int handle_cmdarg(char *cmdarg)
+static int handle_cmdarg(char *cmdarg, struct mft *mft)
 {
-    if (strncmp("--disk=", cmdarg, 7))
+    if (strncmp("--block:", cmdarg, 8) != 0)
         return -1;
-    diskfile = cmdarg + 7;
+
+    char name[MFT_NAME_SIZE];
+    char path[PATH_MAX + 1];
+    int rc = sscanf(cmdarg,
+            "--block:%" XSTR(MFT_NAME_MAX) "[A-Za-z0-9]="
+            "%" XSTR(PATH_MAX) "s", name, path);
+    if (rc != 2)
+        return -1;
+    struct mft_entry *e = mft_get_by_name(mft, name, MFT_BLOCK_BASIC, NULL);
+    if (e == NULL) {
+        warnx("Resource not declared in manifest: '%s'", name);
+        return -1;
+    }
+
+    off_t capacity;
+    int fd = block_attach(path, &capacity);
+    e->u.block_basic.capacity = capacity;
+    e->u.block_basic.block_size = 512;
+    e->hostfd = fd;
+    e->attached = true;
+    module_in_use = true;
 
     return 0;
 }
 
-static int setup(struct spt *spt)
+static int setup(struct spt *spt, struct mft *mft)
 {
-    if (diskfile == NULL)
-        return 0; /* not present */
+    if (!module_in_use)
+        return 0;
 
-    off_t capacity;
-    diskfd = block_attach(diskfile, &capacity);
+    for (unsigned i = 0; i != mft->entries; i++) {
+        if (mft->e[i].type != MFT_BLOCK_BASIC || !mft->e[i].attached)
+            continue;
 
-    spt->bi->blocki.present = 1;
-    spt->bi->blocki.block_size = 512;
-    spt->bi->blocki.capacity = capacity;
-    spt->bi->blocki.hostfd = diskfd;
+        int rc = -1;
 
-    int rc = -1;
-
-    /*
-     * When reading or writing to the file descriptor, enforce that the
-     * operation cannot be performed beyond the (detected) capacity, otherwise,
-     * when backed by a regular file, the guest could grow the file size
-     * arbitrarily.
-     *
-     * The Solo5 API mandates that reads/writes must be equal to block_size, so
-     * we implement the above by ensuring that (A2 == block_size) && (A3 <=
-     * (capacity - block_size) holds.
-     */
-    rc = seccomp_rule_add(spt->sc_ctx, SCMP_ACT_ALLOW, SCMP_SYS(pread64), 3,
-            SCMP_A0(SCMP_CMP_EQ, diskfd),
-            SCMP_A2(SCMP_CMP_EQ, spt->bi->blocki.block_size),
-            SCMP_A3(SCMP_CMP_LE,
-                (spt->bi->blocki.capacity - spt->bi->blocki.block_size)));
-    if (rc != 0)
-        errx(1, "seccomp_rule_add(pread64, fd=%d) failed: %s", diskfd,
-                strerror(-rc));
-    rc = seccomp_rule_add(spt->sc_ctx, SCMP_ACT_ALLOW, SCMP_SYS(pwrite64), 3,
-            SCMP_A0(SCMP_CMP_EQ, diskfd),
-            SCMP_A2(SCMP_CMP_EQ, spt->bi->blocki.block_size),
-            SCMP_A3(SCMP_CMP_LE,
-                (spt->bi->blocki.capacity - spt->bi->blocki.block_size)));
-    if (rc != 0)
-        errx(1, "seccomp_rule_add(pwrite64, fd=%d) failed: %s", diskfd,
-                strerror(-rc));
+        /*
+         * When reading or writing to the file descriptor, enforce that the
+         * operation cannot be performed beyond the (detected) capacity,
+         * otherwise, when backed by a regular file, the guest could grow the
+         * file size arbitrarily.
+         *
+         * The Solo5 API mandates that reads/writes must be equal to
+         * block_size, so we implement the above by ensuring that (A2 ==
+         * block_size) && (A3 <= (capacity - block_size) holds.
+         */
+        rc = seccomp_rule_add(spt->sc_ctx, SCMP_ACT_ALLOW,
+                SCMP_SYS(pread64), 3,
+                SCMP_A0(SCMP_CMP_EQ, mft->e[i].hostfd),
+                SCMP_A2(SCMP_CMP_EQ, mft->e[i].u.block_basic.block_size),
+                SCMP_A3(SCMP_CMP_LE,
+                    (mft->e[i].u.block_basic.capacity - mft->e[i].u.block_basic.block_size)));
+        if (rc != 0)
+            errx(1, "seccomp_rule_add(pread64, fd=%d) failed: %s",
+                    mft->e[i].hostfd, strerror(-rc));
+        rc = seccomp_rule_add(spt->sc_ctx, SCMP_ACT_ALLOW,
+                SCMP_SYS(pwrite64), 3,
+                SCMP_A0(SCMP_CMP_EQ, mft->e[i].hostfd),
+                SCMP_A2(SCMP_CMP_EQ, mft->e[i].u.block_basic.block_size),
+                SCMP_A3(SCMP_CMP_LE,
+                    (mft->e[i].u.block_basic.capacity - mft->e[i].u.block_basic.block_size)));
+        if (rc != 0)
+            errx(1, "seccomp_rule_add(pwrite64, fd=%d) failed: %s",
+                    mft->e[i].hostfd, strerror(-rc));
+    }
 
     return 0;
 }
 
 static char *usage(void)
 {
-    return "--disk=IMAGE (file exposed to the unikernel as a raw block device)";
+    return "--block:NAME=PATH (attach block device/file at PATH as block storage NAME)";
 }
 
-struct spt_module spt_module_block = {
-    .name = "block",
+DECLARE_MODULE(block,
     .setup = setup,
     .handle_cmdarg = handle_cmdarg,
     .usage = usage
-};
+)

@@ -20,30 +20,48 @@
 
 #include "bindings.h"
 
-static int netfd = -1;
-static uint8_t mac_address[6];
+static struct mft *mft;
+static int epollfd;
+static int npollfds;
+static int timerfd;
 
 void net_init(struct spt_boot_info *bi)
 {
-    if (bi->neti.present) {
-        netfd = bi->neti.hostfd;
-        memcpy(mac_address, bi->neti.mac_address, sizeof mac_address);
+    mft = bi->mft;
+    epollfd = bi->epollfd;
+    timerfd = bi->timerfd;
+
+    npollfds = 0;
+    for (unsigned i = 0; i != mft->entries; i++) {
+	if (mft->e[i].type == MFT_NET_BASIC)
+	    npollfds++;
     }
 }
 
-void solo5_net_info(struct solo5_net_info *info)
+solo5_result_t solo5_net_acquire(const char *name, solo5_handle_t *handle,
+        struct solo5_net_info *info)
 {
-    assert(netfd >= 0);
+    unsigned index;
+    struct mft_entry *e = mft_get_by_name(mft, name, MFT_NET_BASIC, &index);
+    if (e == NULL)
+        return SOLO5_R_EINVAL;
+    assert(e->attached);
 
-    memcpy(info->mac_address, mac_address, sizeof info->mac_address);
-    info->mtu = 1500;
+    *handle = index;
+    info->mtu = e->u.net_basic.mtu;
+    memcpy(info->mac_address, e->u.net_basic.mac,
+            sizeof info->mac_address);
+    return SOLO5_R_OK;
 }
 
-solo5_result_t solo5_net_read(uint8_t *buf, size_t size, size_t *read_size)
+solo5_result_t solo5_net_read(solo5_handle_t handle, uint8_t *buf, size_t size,
+	size_t *read_size)
 {
-    assert(netfd >= 0);
+    struct mft_entry *e = mft_get_by_index(mft, handle, MFT_NET_BASIC);
+    if (e == NULL)
+        return SOLO5_R_EINVAL;
     
-    long nbytes = sys_read(netfd, (char *)buf, size);
+    long nbytes = sys_read(e->hostfd, (char *)buf, size);
     if (nbytes < 0) {
         if (nbytes == SYS_EAGAIN)
             return SOLO5_R_AGAIN;
@@ -55,42 +73,59 @@ solo5_result_t solo5_net_read(uint8_t *buf, size_t size, size_t *read_size)
     return SOLO5_R_OK;
 }
 
-solo5_result_t solo5_net_write(const uint8_t *buf, size_t size)
+solo5_result_t solo5_net_write(solo5_handle_t handle, const uint8_t *buf,
+	size_t size)
 {
-    assert(netfd >= 0);
+    struct mft_entry *e = mft_get_by_index(mft, handle, MFT_NET_BASIC);
+    if (e == NULL)
+        return SOLO5_R_EINVAL;
 
-    long nbytes = sys_write(netfd, (const char *)buf, size);
+    long nbytes = sys_write(e->hostfd, (const char *)buf, size);
 
     return (nbytes == (int)size) ? SOLO5_R_OK : SOLO5_R_EUNSPEC;
 }
 
-bool solo5_yield(solo5_time_t deadline)
+bool solo5_yield(solo5_time_t deadline, solo5_handle_set_t *ready_set)
 {
-    struct sys_timespec ts;
-    int rc;
-    struct sys_pollfd fds[1];
-    int nfds = 0;
-    uint64_t now, timeout_nsecs;
-
-    now = solo5_clock_monotonic();
-    if (deadline <= now)
-        timeout_nsecs = 0;
-    else
-        timeout_nsecs = deadline - now;
-
-    ts.tv_sec = timeout_nsecs / NSEC_PER_SEC;
-    ts.tv_nsec = timeout_nsecs % NSEC_PER_SEC;
-
-    if (netfd >= 0) {
-        fds[nfds].fd = netfd;
-        fds[nfds].events = SYS_POLLIN;
-        nfds++;
-    }
-
+    int nrevents;
+    /*
+     * In order to support nanosecond timeouts, as defined by the Solo5 API, we
+     * use a timerfd internally in the epoll() set. Account for this in the
+     * number of requested events.
+     */
+    int nevents = npollfds ? (npollfds + 1) : 1;
+    struct sys_epoll_event revents[nevents];
+    solo5_handle_set_t tmp_ready_set = 0;
+    struct sys_itimerspec it = {
+        .it_interval = { 0 },
+        .it_value = {
+            .tv_sec = deadline / 1000000000ULL,
+            .tv_nsec = deadline % 1000000000ULL
+        }
+    };
+    /*
+     * On spt, given that Solo5 monotonic time is identical to CLOCK_MONOTONIC,
+     * we can just pass the deadline into the timerfd as an abosulte timeout,
+     * saving a clock_gettime() call in the process.
+     */
+    assert(sys_timerfd_settime(timerfd, SYS_TFD_TIMER_ABSTIME, &it, NULL) != -1);
+    /*
+     * We can always safely restart this call on EINTR, since the internal
+     * timerfd is independent of its invocation.
+     */
     do {
-        rc = sys_ppoll(fds, nfds, &ts);
-    } while (rc == SYS_EINTR);
-    assert(rc >= 0);
-    
-    return rc;
+        nrevents = sys_epoll_pwait(epollfd, revents, nevents, -1, NULL, 0);
+    } while (nrevents == SYS_EINTR);
+    if (nrevents > 0) {
+        int orig_nrevents = nrevents;
+        for (int i = 0; i < orig_nrevents; i++)
+            if (revents[i].data == SPT_INTERNAL_TIMERFD)
+                nrevents -= 1;          /* Disregard in total reported events */
+            else
+                tmp_ready_set |= 1ULL << revents[i].data;
+    }
+    assert(nrevents >= 0);
+    if (ready_set != NULL)
+        *ready_set = tmp_ready_set;
+    return (nrevents > 0);
 }

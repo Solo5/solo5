@@ -27,7 +27,7 @@ void platform_init(void *arg)
 
 void platform_exit(int status, void *cookie)
 {
-    struct hvt_halt h;
+    struct hvt_hc_halt h;
 
     h.exit_status = status;
     h.cookie = cookie;

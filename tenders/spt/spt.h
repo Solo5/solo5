@@ -31,38 +31,56 @@
 
 #include "../common/cc.h"
 #include "../common/elf.h"
+#include "../common/mft.h"
 #include "spt_abi.h"
 
 struct spt {
     uint8_t *mem;
     size_t mem_size;
     struct spt_boot_info *bi;
+    int epollfd;
+    int timerfd;
     void *sc_ctx;
 };
 
 struct spt *spt_init(size_t mem_size);
 
-void spt_bi_init(struct spt *spt, uint64_t p_end, char **cmdline);
+void spt_boot_info_init(struct spt *spt, uint64_t p_end, int cmdline_argc,
+	char **cmdline_argv, struct mft *mft, size_t mft_size);
 
 void spt_run(struct spt *spt, uint64_t p_entry);
 
 /*
- * Module definition. (name) and (setup) are required, all other functions are
- * optional.
+ * Operations provided by a module. (setup) is required, all other functions
+ * are optional.
  */
-struct spt_module {
-    const char *name;
-    int (*setup)(struct spt *spt);
-    int (*handle_cmdarg)(char *cmdarg);
+struct spt_module_ops {
+    int (*setup)(struct spt *spt, struct mft *mft);
+    int (*handle_cmdarg)(char *cmdarg, struct mft *mft);
     char *(*usage)(void);
 };
 
-extern struct spt_module spt_module_net;
-extern struct spt_module spt_module_block;
+struct spt_module {
+    const char name[32];
+    struct spt_module_ops ops;
+};
 
 /*
- * Array of compiled-in modules. NULL terminated.
+ * Declare the module (module_name).
+ *
+ * Usage:
+ *
+ * DECLARE_MODULE(module_name, <initializer of struct spt_module_ops>);
+ *
+ * Note that alignment of the struct is explicitly set, otherwise the linker
+ * will pick a default that does not match the compiler's alignment.
  */
-extern struct spt_module *spt_core_modules[];
+#define DECLARE_MODULE(module_name, ...) \
+    static struct spt_module __module_ ##module_name \
+    __attribute((section("modules"), aligned(8))) \
+    __attribute((used)) = { \
+	.name = #module_name, \
+	.ops = { __VA_ARGS__ } \
+    };
 
 #endif /* SPT_H */

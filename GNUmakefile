@@ -21,9 +21,9 @@ $(TOPDIR)/Makeconf:
 	$(error Makeconf not found, please run ./configure.sh)
 include Makefile.common
 
-SUBDIRS := bindings tenders tests
+SUBDIRS := bindings tenders mfttool tests
 
-tests: bindings
+tests: bindings mfttool
 
 .PHONY: $(SUBDIRS)
 

@@ -19,7 +19,7 @@
  */
 
 /*
- * hvt_elf.c: ELF loader.
+ * elf.c: ELF loader.
  *
  * This module should be kept backend-independent and architectural
  * dependencies should be self-contained.
@@ -31,6 +31,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
+#include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -40,6 +41,7 @@
 #include <unistd.h>
 
 #include "cc.h"
+#include "mft_abi.h"
 
 static ssize_t pread_in_full(int fd, void *buf, size_t count, off_t offset)
 {
@@ -71,28 +73,34 @@ static ssize_t pread_in_full(int fd, void *buf, size_t count, off_t offset)
     return total;
 }
 
-/*
- * Load code from elf file into *mem and return the elf entry point
- * and the last byte of the program when loaded into memory. This
- * accounts not only for the last loaded piece of code from the elf,
- * but also for the zeroed out pieces that are not loaded and sould be
- * reserved.
- *
- * Memory will look like this after the elf is loaded:
- *
- * *mem                    *p_entry                   *p_end
- *   |             |                    |                |
- *   |    ...      | .text .rodata      |   .data .bss   |
- *   |             |        code        |   00000000000  |
- *   |             |  [PROT_EXEC|READ]  |                |
- *
- */
+static bool ehdr_is_valid(const Elf64_Ehdr *hdr)
+{
+    /*
+     * Validate program is in ELF64 format, of type ET_EXEC and for the correct
+     * target architecture.
+     */
+    return (hdr->e_ident[EI_MAG0] == ELFMAG0
+            && hdr->e_ident[EI_MAG1] == ELFMAG1
+            && hdr->e_ident[EI_MAG2] == ELFMAG2
+            && hdr->e_ident[EI_MAG3] == ELFMAG3
+            && hdr->e_ident[EI_CLASS] == ELFCLASS64
+            && hdr->e_type == ET_EXEC
+#if defined(__x86_64__)
+            && hdr->e_machine == EM_X86_64
+#elif defined(__aarch64__)
+            && hdr->e_machine == EM_AARCH64
+#else
+#error Unsupported target
+#endif
+        );
+}
+
 void elf_load(const char *file, uint8_t *mem, size_t mem_size,
        uint64_t *p_entry, uint64_t *p_end)
 {
     int fd_kernel = -1;
-    ssize_t numb;
-    size_t buflen;
+    ssize_t nbytes;
+    size_t ph_size;
     Elf64_Off ph_off;
     Elf64_Half ph_entsz;
     Elf64_Half ph_cnt;
@@ -109,47 +117,25 @@ void elf_load(const char *file, uint8_t *mem, size_t mem_size,
     if (fd_kernel == -1)
         goto out_error;
 
-    numb = pread_in_full(fd_kernel, &hdr, sizeof(Elf64_Ehdr), 0);
-    if (numb < 0)
+    nbytes = pread_in_full(fd_kernel, &hdr, sizeof(Elf64_Ehdr), 0);
+    if (nbytes < 0)
         goto out_error;
-    if (numb != sizeof(Elf64_Ehdr))
+    if (nbytes != sizeof(Elf64_Ehdr))
         goto out_invalid;
-
-    /*
-     * Validate program is in ELF64 format:
-     * 1. EI_MAG fields 0, 1, 2, 3 spell ELFMAG('0x7f', 'E', 'L', 'F'),
-     * 2. File contains 64-bit objects,
-     * 3. Objects are Executable,
-     * 4. Target instruction must be set to the correct architecture.
-     */
-    if (hdr.e_ident[EI_MAG0] != ELFMAG0
-            || hdr.e_ident[EI_MAG1] != ELFMAG1
-            || hdr.e_ident[EI_MAG2] != ELFMAG2
-            || hdr.e_ident[EI_MAG3] != ELFMAG3
-            || hdr.e_ident[EI_CLASS] != ELFCLASS64
-            || hdr.e_type != ET_EXEC
-#if defined(__x86_64__)
-            || hdr.e_machine != EM_X86_64
-#elif defined(__aarch64__)
-            || hdr.e_machine != EM_AARCH64
-#else
-#error Unsupported target
-#endif
-        )
+    if (!ehdr_is_valid(&hdr))
         goto out_invalid;
 
     ph_off = hdr.e_phoff;
     ph_entsz = hdr.e_phentsize;
     ph_cnt = hdr.e_phnum;
-    buflen = ph_entsz * ph_cnt;
-
-    phdr = malloc(buflen);
+    ph_size = ph_entsz * ph_cnt;
+    phdr = malloc(ph_size);
     if (!phdr)
         goto out_error;
-    numb = pread_in_full(fd_kernel, phdr, buflen, ph_off);
-    if (numb < 0)
+    nbytes = pread_in_full(fd_kernel, phdr, ph_size, ph_off);
+    if (nbytes < 0)
         goto out_error;
-    if (numb != buflen)
+    if (nbytes != ph_size)
         goto out_invalid;
 
     /*
@@ -193,10 +179,10 @@ void elf_load(const char *file, uint8_t *mem, size_t mem_size,
             *p_end = _end;
 
         daddr = mem + paddr;
-        numb = pread_in_full(fd_kernel, daddr, filesz, offset);
-        if (numb < 0)
+        nbytes = pread_in_full(fd_kernel, daddr, filesz, offset);
+        if (nbytes < 0)
             goto out_error;
-        if (numb != filesz)
+        if (nbytes != filesz)
             goto out_invalid;
         memset(daddr + filesz, 0, memsz - filesz);
 
@@ -231,6 +217,120 @@ out_error:
 out_invalid:
     warnx("%s: Exec format error", file);
     free (phdr);
+    if (fd_kernel != -1)
+        close (fd_kernel);
+    exit(1);
+}
+
+void elf_load_mft(const char *file, struct mft **mft, size_t *mft_size)
+{
+    int fd_kernel = -1;
+    ssize_t nbytes;
+    size_t ph_size;
+    Elf64_Off ph_off;
+    Elf64_Half ph_entsz;
+    Elf64_Half ph_cnt;
+    Elf64_Half ph_i;
+    Elf64_Phdr *phdr = NULL;
+    Elf64_Ehdr hdr;
+    struct mft *note = NULL;
+    size_t note_offset, note_size = 0;
+
+    fd_kernel = open(file, O_RDONLY);
+    if (fd_kernel == -1)
+        goto out_error;
+
+    nbytes = pread_in_full(fd_kernel, &hdr, sizeof(Elf64_Ehdr), 0);
+    if (nbytes < 0)
+        goto out_error;
+    if (nbytes != sizeof(Elf64_Ehdr))
+        goto out_invalid;
+    if (!ehdr_is_valid(&hdr))
+        goto out_invalid;
+
+    ph_off = hdr.e_phoff;
+    ph_entsz = hdr.e_phentsize;
+    ph_cnt = hdr.e_phnum;
+    ph_size = ph_entsz * ph_cnt;
+    phdr = malloc(ph_size);
+    if (!phdr)
+        goto out_error;
+    nbytes = pread_in_full(fd_kernel, phdr, ph_size, ph_off);
+    if (nbytes < 0)
+        goto out_error;
+    if (nbytes != ph_size)
+        goto out_invalid;
+
+    /*
+     * Find the NOTE containing the Solo5 manifest and sanity check its headers.
+     */
+    bool mft_note_found = false;
+    for (ph_i = 0; ph_i < ph_cnt; ph_i++) {
+        if (phdr[ph_i].p_type != PT_NOTE)
+            continue; /* Not a NOTE, next */
+
+        struct mft_note_header nhdr;
+        if (phdr[ph_i].p_filesz < sizeof nhdr)
+            continue; /* Too small to be a (valid) Solo5 NOTE, skip */
+        nbytes = pread_in_full(fd_kernel, &nhdr, sizeof nhdr,
+                phdr[ph_i].p_offset);
+        if (nbytes < 0)
+            goto out_error;
+        if (nbytes != sizeof nhdr)
+            goto out_invalid;
+        if (strncmp(nhdr.name, SOLO5_NOTE_NAME, sizeof(SOLO5_NOTE_NAME)) != 0)
+            continue; /* Not a Solo5 NOTE, next */
+
+        if (nhdr.type != SOLO5_NOTE_MANIFEST) {
+            warnx("%s: phdr[%u] contains invalid Solo5 NOTE", file, ph_i);
+            goto out_invalid;
+        }
+        if (nhdr.descsz > MFT_NOTE_MAX_SIZE) {
+            warnx("%s: phdr[%u] Solo5 NOTE size out of range", file, ph_i);
+            goto out_invalid;
+        }
+
+        mft_note_found = true;
+        break;
+    }
+    if (!mft_note_found) {
+        warnx("%s: No manifest found, not a Solo5 executable?", file);
+        goto out_invalid;
+    }
+
+    /*
+     * At this point we have verified that the NOTE at phdr[ph_i] could be a
+     * Solo5 manifest, and it's sizes are within some sane limits. Adjust size
+     * and offset to skip the note header itself and read the full note
+     * contents (the manifest) into dynamically allocated memory.
+     */
+    note_offset = phdr[ph_i].p_offset + offsetof(struct mft_note, m);
+    note_size = phdr[ph_i].p_filesz - offsetof(struct mft_note, m);
+    note = malloc(note_size);
+    if (note == NULL)
+        goto out_error;
+    nbytes = pread_in_full(fd_kernel, note, note_size, note_offset);
+    if (nbytes < 0)
+        goto out_error;
+    if (nbytes != note_size)
+        goto out_invalid;
+
+    *mft = note;
+    *mft_size = note_size;
+    return;
+
+out_error:
+    warn("%s", file);
+    free (phdr);
+    free (note);
+    if (fd_kernel != -1)
+        close (fd_kernel);
+    exit(1);
+
+out_invalid:
+    warnx("%s: Exec format error", file);
+    free (phdr);
+    free (note);
     if (fd_kernel != -1)
         close (fd_kernel);
     exit(1);

@@ -40,7 +40,8 @@ void _start(void *arg)
 
     mem_init();
     time_init(arg);
-    net_init();
+    block_init(arg);
+    net_init(arg);
 
     mem_lock_heap(&si.heap_start, &si.heap_size);
     solo5_exit(solo5_app_main(&si));

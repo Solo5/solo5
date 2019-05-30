@@ -214,7 +214,7 @@ static int handle_ip(uint8_t *buf)
     return 0;
 }
 
-static void send_garp(void)
+static void send_garp(solo5_handle_t h)
 {
     struct arppkt p;
     uint8_t zero[HLEN_ETHER] = { 0 };
@@ -235,18 +235,22 @@ static void send_garp(void)
     memcpy(p.arp.spa, ipaddr, PLEN_IPV4);
     memcpy(p.arp.tpa, ipaddr, PLEN_IPV4);
 
-    if (solo5_net_write((uint8_t *)&p, sizeof p) != SOLO5_R_OK)
+    if (solo5_net_write(h, (uint8_t *)&p, sizeof p) != SOLO5_R_OK)
         puts("Could not send GARP packet\n");
 }
 
 static const solo5_time_t NSEC_PER_SEC = 1000000000ULL;
 
-static void ping_serve(int verbose, int limit)
+static int ping_serve(int verbose, int limit)
 {
     unsigned long received = 0;
 
+    solo5_handle_t h;
     struct solo5_net_info ni;
-    solo5_net_info(&ni);
+    if (solo5_net_acquire("service", &h, &ni) != SOLO5_R_OK) {
+        puts("Could not acquire 'service' network\n");
+        return -1;
+    }
     memcpy(macaddr, ni.mac_address, sizeof macaddr);
 
     char macaddr_s[(sizeof macaddr * 2) + 1];
@@ -255,17 +259,38 @@ static void ping_serve(int verbose, int limit)
     puts(macaddr_s);
     puts("\n");
 
-    send_garp();
+    send_garp(h);
 
     uint8_t buf[ni.mtu + SOLO5_NET_HLEN];
 
     for (;;) {
         struct ether *p = (struct ether *)&buf;
         size_t len;
+        solo5_result_t result;
 
-        /* wait for packet */
-        while (solo5_net_read(buf, sizeof buf, &len) == SOLO5_R_AGAIN) {
-            solo5_yield(solo5_clock_monotonic() + NSEC_PER_SEC);
+        /*
+         * Optimistically read a packet. If there is none, yield and read once
+         * a packet is available.
+         */
+        result = solo5_net_read(h, buf, sizeof buf, &len);
+        if (result == SOLO5_R_AGAIN) {
+            solo5_handle_set_t ready_set = 0;
+            while (!solo5_yield(solo5_clock_monotonic() + NSEC_PER_SEC,
+                        &ready_set)) {
+                if (ready_set != 0) {
+                    puts("error: Yield returned false, but handles in set!\n");
+                    return -1;
+                }
+            }
+            if (!(ready_set & (1ULL << h))) {
+                puts("error: Yield returned true, but no handle set!\n");
+                return -1;
+            }
+            result = solo5_net_read(h, buf, sizeof buf, &len);
+        }
+        if (result != SOLO5_R_OK) {
+            puts("Read error\n");
+            break;
         }
 
         if (memcmp(p->target, macaddr, HLEN_ETHER) &&
@@ -289,8 +314,10 @@ static void ping_serve(int verbose, int limit)
                 goto out;
         }
 
-        if (solo5_net_write(buf, len) != SOLO5_R_OK)
+        if (solo5_net_write(h, buf, len) != SOLO5_R_OK) {
             puts("Write error\n");
+            break;
+        }
 
         received++;
         if (limit && received == 100000) {
@@ -303,6 +330,8 @@ static void ping_serve(int verbose, int limit)
 out:
         puts("Received non-ping or unsupported packet, dropped\n");
     }
+
+    return 0;
 }
 
 int solo5_app_main(const struct solo5_start_info *si)
@@ -327,9 +356,13 @@ int solo5_app_main(const struct solo5_start_info *si)
         }
     }
 
-    ping_serve(verbose, limit);
-
-    puts("SUCCESS\n");
-
-    return SOLO5_EXIT_SUCCESS;
+    int result = ping_serve(verbose, limit);
+    if (result == 0) {
+        puts("SUCCESS\n");
+        return SOLO5_EXIT_SUCCESS;
+    }
+    else {
+        puts("FAILURE\n");
+        return SOLO5_EXIT_FAILURE;
+    }
 }

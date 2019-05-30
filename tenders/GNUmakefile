@@ -31,7 +31,8 @@ $(V).SILENT:
 ifneq ($(filter 1,$(CONFIG_HVT) $(CONFIG_SPT)),)
 
 common_LIB := common/libcommon.a
-common_SRCS := common/elf.c common/block_attach.c common/tap_attach.c
+common_SRCS := common/elf.c common/mft.c common/block_attach.c \
+    common/tap_attach.c
 common_OBJS := $(patsubst %.c,%.o,$(common_SRCS))
 
 $(common_LIB): $(common_OBJS)
@@ -53,7 +54,8 @@ endif
 
 ifdef CONFIG_HVT
 
-hvt_SRCS := hvt/hvt_core.c hvt/hvt_main.c hvt/hvt_cpu_$(CONFIG_ARCH).c
+hvt_SRCS := hvt/hvt_boot_info.c hvt/hvt_core.c hvt/hvt_main.c \
+    hvt/hvt_cpu_$(CONFIG_ARCH).c
 hvt_MODULES ?= blk net
 
 ifeq ($(CONFIG_HOST), Linux)

@@ -308,7 +308,7 @@ virtio_expect_abort() {
 }
 
 @test "blk hvt" {
-  hvt_run --disk=${DISK} -- test_blk/test_blk.hvt
+  hvt_run --block:storage=${DISK} -- test_blk/test_blk.hvt
   expect_success
 }
 
@@ -318,7 +318,7 @@ virtio_expect_abort() {
 }
 
 @test "blk spt" {
-  spt_run --disk=${DISK} -- test_blk/test_blk.spt
+  spt_run --block:storage=${DISK} -- test_blk/test_blk.spt
   expect_success
 }
 
@@ -326,7 +326,7 @@ virtio_expect_abort() {
   [ $(id -u) -ne 0 ] && skip "Need root to run this test, for ping -f"
 
   ( sleep 1; ${TIMEOUT} 60s ping -fq -c 100000 ${NET_IP} ) &
-  hvt_run --net=${NET} -- test_ping_serve/test_ping_serve.hvt limit
+  hvt_run --net:service=${NET} -- test_ping_serve/test_ping_serve.hvt limit
   expect_success
 }
 
@@ -342,7 +342,7 @@ virtio_expect_abort() {
   [ $(id -u) -ne 0 ] && skip "Need root to run this test, for ping -f"
 
   ( sleep 1; ${TIMEOUT} 60s ping -fq -c 100000 ${NET_IP} ) &
-  spt_run --net=${NET} -- test_ping_serve/test_ping_serve.spt limit
+  spt_run --net:service=${NET} -- test_ping_serve/test_ping_serve.spt limit
   expect_success
 }
 
