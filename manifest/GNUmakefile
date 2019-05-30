@@ -19,18 +19,41 @@
 ifndef TOPDIR
 $(error TOPDIR must be set, run $(MAKE) from the top of the source tree or set it manually)
 endif
+include $(TOPDIR)/Makefile.common
 
-TESTDIRS := $(wildcard test_*)
-
-TOPTARGETS := all clean
-
-.PHONY: $(TOPTARGETS) $(TESTDIRS)
-
-$(TOPTARGETS): $(TESTDIRS)
-
-$(TESTDIRS):
-	@echo "MAKE $@"
-	$(MAKE) -C $@ $(MAKECMDGOALS) $(SUBOVERRIDE)
+.PHONY: all
+all:
+all_TARGETS :=
 
 .SUFFIXES:
-$(V).SILENT:
+$(V).SILENT:	
+
+%.o: %.c %.d
+	$(HOSTCOMPILE.c)
+
+%.o: %.S %.d
+	$(HOSTCOMPILE.S)
+
+%.d: ;
+.PRECIOUS: %.d
+
+mfttool_SRCS := mfttool.c
+mfttool_OBJS := $(patsubst %.c,%.o,$(mfttool_SRCS))
+
+all_TARGETS += mfttool
+
+mfttool: $(mfttool_OBJS)
+	$(HOSTLINK)
+
+all: $(all_TARGETS)
+
+all_OBJS := $(mfttool_OBJS)
+all_DEPS := $(patsubst %.o,%.d,$(all_OBJS))
+
+.PHONY: clean
+
+clean:
+	@echo "CLEAN manifest"
+	$(RM) $(all_TARGETS) $(all_OBJS) $(all_DEPS)
+
+include $(wildcard $(all_DEPS))
