@@ -31,6 +31,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
+#include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -40,6 +41,7 @@
 #include <unistd.h>
 
 #include "cc.h"
+#include "mft_abi.h"
 
 static ssize_t pread_in_full(int fd, void *buf, size_t count, off_t offset)
 {
@@ -71,24 +73,8 @@ static ssize_t pread_in_full(int fd, void *buf, size_t count, off_t offset)
     return total;
 }
 
-/*
- * Load code from elf file into *mem and return the elf entry point
- * and the last byte of the program when loaded into memory. This
- * accounts not only for the last loaded piece of code from the elf,
- * but also for the zeroed out pieces that are not loaded and sould be
- * reserved.
- *
- * Memory will look like this after the elf is loaded:
- *
- * *mem                    *p_entry                   *p_end
- *   |             |                    |                |
- *   |    ...      | .text .rodata      |   .data .bss   |
- *   |             |        code        |   00000000000  |
- *   |             |  [PROT_EXEC|READ]  |                |
- *
- */
 void elf_load(const char *file, uint8_t *mem, size_t mem_size,
-       uint64_t *p_entry, uint64_t *p_end)
+        uint64_t *p_entry, uint64_t *p_end, struct mft **mft, size_t *mft_size)
 {
     int fd_kernel = -1;
     ssize_t numb;
@@ -151,6 +137,64 @@ void elf_load(const char *file, uint8_t *mem, size_t mem_size,
         goto out_error;
     if (numb != buflen)
         goto out_invalid;
+
+    /*
+     * Find the NOTE containing the Solo5 manifest, validate it with prejudice
+     * and load its contents, if validation passes.
+     */
+    struct mft *note = NULL;
+    size_t note_offset, note_size = 0;
+    for (ph_i = 0; ph_i < ph_cnt; ph_i++) {
+
+        if (phdr[ph_i].p_type != PT_NOTE)
+            continue;
+
+        struct mft_note_header nhdr;
+        note_offset = phdr[ph_i].p_offset;
+        note_size = phdr[ph_i].p_filesz;
+        if (note_size < sizeof nhdr)
+            continue; /* Too small to be a (valid) Solo5 NOTE, skip */
+        numb = pread_in_full(fd_kernel, &nhdr, sizeof nhdr, note_offset);
+        if (numb < 0)
+            goto out_error;
+        if (strncmp(nhdr.name, SOLO5_NOTE_NAME, sizeof(SOLO5_NOTE_NAME)) != 0)
+            continue; /* Not a Solo5 NOTE, skip */
+        if (nhdr.type != SOLO5_NOTE_MANIFEST) {
+            warnx("%s: phdr[%u] contains invalid Solo5 NOTE", file, ph_i);
+            goto out_invalid;
+        }
+        if (note != NULL) {
+            warnx("%s: phdr[%u] contains duplicate Solo5 NOTE", file, ph_i);
+            free(note);
+            goto out_invalid;
+        }
+        if (note_size > MFT_NOTE_MAX_SIZE) {
+            warnx("%s: phdr[%u] Solo5 NOTE size out of range", file, ph_i);
+            goto out_invalid;
+        }
+
+        /*
+         * At this point we have verified that at least the note header is
+         * valid and its size is within limits. Adjust to skip the note header
+         * itself and read the full note contents (the manifest) into
+         * dynamically allocated memory.
+         */
+        note_offset += offsetof(struct mft_note, m);
+        note_size -= offsetof(struct mft_note, m);
+        note = malloc(note_size);
+        if (note == NULL)
+            goto out_error;
+        numb = pread_in_full(fd_kernel, note, note_size, note_offset);
+        if (numb < 0) {
+            free(note);
+            goto out_error;
+        }
+    }
+    if (note == NULL) {
+        /* No SOLO5 note found */
+        warnx("%s: Not a Solo5 executable", file);
+        goto out_invalid;
+    }
 
     /*
      * Load all segments with the LOAD directive from the elf file at offset
@@ -219,6 +263,8 @@ void elf_load(const char *file, uint8_t *mem, size_t mem_size,
     free (phdr);
     close (fd_kernel);
     *p_entry = hdr.e_entry;
+    *mft = note;
+    *mft_size = note_size;
     return;
 
 out_error:

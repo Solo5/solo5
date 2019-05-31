@@ -36,6 +36,7 @@
 #define HVT_HOST
 #include "hvt_abi.h"
 #include "hvt_gdb.h"
+#include "mft_abi.h"
 
 /*
  * HVT_DROP_PRIVILEGES (1) enables the function hvt_drop_privileges

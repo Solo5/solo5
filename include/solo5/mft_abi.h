@@ -32,6 +32,11 @@
 #ifndef MFT_ABI_H
 #define MFT_ABI_H
 
+/*
+ * MFT_VERSION is the manifest ABI version.
+ */
+#define MFT_VERSION 1
+
 enum mft_type {
     MFT_BLOCK_BASIC,
     MFT_NET_BASIC
@@ -58,6 +63,11 @@ struct mft_entry {
     };
 };
 
+/*
+ * MFT_ENTRIES is defined by mfttool when a manifest is being *defined*.
+ * If it is not defined, then (struct mft).e will become a VLA, this is
+ * intentional.
+ */
 #ifndef MFT_ENTRIES
 #define MFT_ENTRIES
 #endif
@@ -82,6 +92,16 @@ struct mft_note {
     struct mft_note_header h;
     struct mft m;
 };
+
+/*
+ * Maximum supported number of manifest entires.
+ */
+#define MFT_MAX_ENTRIES 64
+/*
+ * Maximum total size of manifest ELF note, including header.
+ */
+#define MFT_NOTE_MAX_SIZE (sizeof (struct mft_note) + \
+        (MFT_MAX_ENTRIES * sizeof (struct mft_entry)))
 
 #define MFT_NOTE_BEGIN \
 const struct mft_note __solo5_manifest_note \

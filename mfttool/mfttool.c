@@ -19,11 +19,11 @@
  */
 
 /*
- * mfttool.c: Manifest generator.
+ * mfttool.c: Solo5 application manifest generator.
  *
- * This tool produces a binary manifest from its JSON source. The produced C
- * source file should be compiled with the Solo5 toolchain and linked into the
- * unikernel binary.
+ * This tool produces a C source file defining the binary manifest from its
+ * JSON source. The produced C source file should be compiled with the Solo5
+ * toolchain and linked into the unikernel binary.
  */
 
 #define _GNU_SOURCE
@@ -32,6 +32,7 @@
 #include <stdio.h>
 
 #include "json.h"
+#include "mft_abi.h"
 
 static const char *jtypestr(enum jtypes t)
 {
@@ -60,7 +61,7 @@ static const char out_header[] = \
     "\n"
     "MFT_NOTE_BEGIN\n"
     "{\n"
-    "  .version = %lld, .entries = %d,\n"
+    "  .version = MFT_VERSION, .entries = %d,\n"
     "  .e = {\n";
 
 static const char out_resource[] = \
@@ -111,7 +112,13 @@ int main(int argc, char *argv[])
     if (jresources == NULL)
         errx(1, "missing .resources");
 
-    printf(out_header, entries, jversion->u.i, entries);
+    if (jversion->u.i != MFT_VERSION)
+        errx(1, ".version: invalid version %lld, expected %d", jversion->u.i,
+                MFT_VERSION);
+    if (entries > MFT_MAX_ENTRIES)
+        errx(1, ".resources[]: too many entries, maximum %d", MFT_MAX_ENTRIES);
+
+    printf(out_header, entries, entries);
     for (jvalue **i = jresources->u.v; *i; ++i) {
         jexpect(jobject, *i, ".resources[]");
         char *r_name = NULL, *r_type = NULL;
