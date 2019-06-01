@@ -195,7 +195,10 @@ int main(int argc, char **argv)
     size_t mft_size;
     elf_load(elffile, hvt->mem, hvt->mem_size, &gpa_ep, &gpa_kend,
             &mft, &mft_size);
-    warnx("%d %d\n", mft->version, mft->entries);
+    if (mft_validate(mft, mft_size) == -1) {
+        free(mft);
+        errx(1, "%s: Solo5 manifest is invalid", elffile);
+    }
 
     char *cmdline;
     hvt_vcpu_init(hvt, gpa_ep, gpa_kend, &cmdline);

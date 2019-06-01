@@ -60,7 +60,7 @@ struct mft_entry {
     union {
         struct mft_block_basic block_basic;
         struct mft_net_basic net_basic;
-    };
+    } u;
 };
 
 /*
