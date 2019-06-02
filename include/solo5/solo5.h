@@ -171,6 +171,8 @@ bool solo5_yield(solo5_time_t deadline);
  */
 void solo5_console_write(const char *buf, size_t size);
 
+typedef uint64_t solo5_handle_t;
+
 /*
  * Network I/O.
  *
@@ -197,7 +199,8 @@ struct solo5_net_info {
  * Retrieves information about the network device. Caller must supply space for
  * struct solo5_net_info in (info).
  */
-void solo5_net_info(struct solo5_net_info *info);
+solo5_result_t solo5_net_acquire(const char *name, solo5_handle_t *handle,
+        struct solo5_net_info *info);
 
 /*
  * Sends a single network packet from the buffer (*buf), without blocking.  If
@@ -207,7 +210,8 @@ void solo5_net_info(struct solo5_net_info *info);
  * The maximum allowed value for (size) is (solo5_net_info.mtu +
  * SOLO5_NET_HLEN). The packet must include the ethernet frame header.
  */
-solo5_result_t solo5_net_write(const uint8_t *buf, size_t size);
+solo5_result_t solo5_net_write(solo5_handle_t handle, const uint8_t *buf,
+        size_t size);
 
 /*
  * Receives a single network packet into the buffer (*buf), without blocking.
@@ -218,7 +222,8 @@ solo5_result_t solo5_net_write(const uint8_t *buf, size_t size);
  * SOLO5_R_OK and the size of the received packet including the ethernet frame
  * header in (*read_size).
  */
-solo5_result_t solo5_net_read(uint8_t *buf, size_t size, size_t *read_size);
+solo5_result_t solo5_net_read(solo5_handle_t handle, uint8_t *buf,
+        size_t size, size_t *read_size);
 
 /*
  * Block I/O.
@@ -248,7 +253,8 @@ struct solo5_block_info {
  * Retrieves information about the block device. Caller must supply space for
  * struct solo5_block_info in (info).
  */
-void solo5_block_info(struct solo5_block_info *info);
+solo5_result_t solo5_block_acquire(const char *name, solo5_handle_t *handle,
+        struct solo5_block_info *info);
 
 /*
  * Writes data of (size) bytes from the buffer (*buf) to the block device,
@@ -261,8 +267,8 @@ void solo5_block_info(struct solo5_block_info *info);
  * NOTE: Current implementations further limit the *maximum* I/O size to a
  * single block.
  */
-solo5_result_t solo5_block_write(solo5_off_t offset, const uint8_t *buf,
-        size_t size);
+solo5_result_t solo5_block_write(solo5_handle_t handle, solo5_off_t offset,
+        const uint8_t *buf, size_t size);
 
 /*
  * Reads data of (size) bytes into the buffer (*buf) from the block device,
@@ -275,7 +281,8 @@ solo5_result_t solo5_block_write(solo5_off_t offset, const uint8_t *buf,
  * NOTE: Current implementations further limit the *maximum* I/O size to a
  * single block.
  */
-solo5_result_t solo5_block_read(solo5_off_t offset, uint8_t *buf, size_t size);
+solo5_result_t solo5_block_read(solo5_handle_t handle, solo5_off_t offset,
+        uint8_t *buf, size_t size);
 
 /*
  * Set the TLS base register. This sets the %fs segment register on

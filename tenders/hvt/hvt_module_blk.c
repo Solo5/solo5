@@ -27,99 +27,111 @@
 #include <assert.h>
 #include <err.h>
 #include <limits.h>
+#include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 
 #include "../common/block_attach.h"
 #include "hvt.h"
+#include "solo5.h"
 
-static struct hvt_blkinfo blkinfo;
-static char *diskfile;
-static int diskfd;
-
-static void hypercall_blkinfo(struct hvt *hvt, hvt_gpa_t gpa)
-{
-    struct hvt_blkinfo *info =
-        HVT_CHECKED_GPA_P(hvt, gpa, sizeof (struct hvt_blkinfo));
-
-    info->sector_size = blkinfo.sector_size;
-    info->num_sectors = blkinfo.num_sectors;
-    info->rw = blkinfo.rw;
-}
+static bool module_in_use;
 
 static void hypercall_blkwrite(struct hvt *hvt, hvt_gpa_t gpa)
 {
     struct hvt_blkwrite *wr =
         HVT_CHECKED_GPA_P(hvt, gpa, sizeof (struct hvt_blkwrite));
+    struct mft_entry *e = mft_get_by_index(hvt->mft, wr->handle);
+    if (e == NULL || e->type != MFT_BLOCK_BASIC) {
+        wr->ret = SOLO5_R_EINVAL;
+        return;
+    }
+
     ssize_t ret;
     off_t pos, end;
 
     assert(wr->len <= SSIZE_MAX);
-    if (wr->sector >= blkinfo.num_sectors) {
-        wr->ret = -1;
+    if (wr->offset >= e->u.block_basic.capacity) {
+        wr->ret = SOLO5_R_EINVAL;
         return;
     }
-    pos = (off_t)blkinfo.sector_size * (off_t)wr->sector;
+    pos = wr->offset;
     if (add_overflow(pos, wr->len, end)
-            || (end > blkinfo.num_sectors * blkinfo.sector_size)) {
-        wr->ret = -1;
+            || (end > e->u.block_basic.capacity)) {
+        wr->ret = SOLO5_R_EINVAL;
         return;
     }
 
-    ret = pwrite(diskfd, HVT_CHECKED_GPA_P(hvt, wr->data, wr->len), wr->len,
+    ret = pwrite(e->hostfd, HVT_CHECKED_GPA_P(hvt, wr->data, wr->len), wr->len,
             pos);
     assert(ret == wr->len);
-    wr->ret = 0;
+    wr->ret = SOLO5_R_OK;
 }
 
 static void hypercall_blkread(struct hvt *hvt, hvt_gpa_t gpa)
 {
     struct hvt_blkread *rd =
         HVT_CHECKED_GPA_P(hvt, gpa, sizeof (struct hvt_blkread));
+    struct mft_entry *e = mft_get_by_index(hvt->mft, rd->handle);
+    if (e == NULL || e->type != MFT_BLOCK_BASIC) {
+        rd->ret = SOLO5_R_EINVAL;
+        return;
+    }
+
     ssize_t ret;
     off_t pos, end;
 
     assert(rd->len <= SSIZE_MAX);
-    if (rd->sector >= blkinfo.num_sectors) {
-        rd->ret = -1;
+    if (rd->offset >= e->u.block_basic.capacity) {
+        rd->ret = SOLO5_R_EINVAL;
         return;
     }
-    pos = (off_t)blkinfo.sector_size * (off_t)rd->sector;
+    pos = rd->offset;
     if (add_overflow(pos, rd->len, end)
-            || (end > blkinfo.num_sectors * blkinfo.sector_size)) {
-        rd->ret = -1;
+            || (end > e->u.block_basic.capacity)) {
+        rd->ret = SOLO5_R_EINVAL;
         return;
     }
 
-    ret = pread(diskfd, HVT_CHECKED_GPA_P(hvt, rd->data, rd->len), rd->len,
+    ret = pread(e->hostfd, HVT_CHECKED_GPA_P(hvt, rd->data, rd->len), rd->len,
             pos);
     assert(ret == rd->len);
-    rd->ret = 0;
+    rd->ret = SOLO5_R_OK;
 }
 
-static int handle_cmdarg(char *cmdarg)
+static int handle_cmdarg(char *cmdarg, struct mft *mft)
 {
-    if (strncmp("--disk=", cmdarg, 7))
+    if (strncmp("--block:", cmdarg, 8) != 0)
         return -1;
-    diskfile = cmdarg + 7;
+
+    char name[MFT_NAME_SIZE];
+    char path[PATH_MAX + 1];
+    int rc = sscanf(cmdarg,
+            "--block:%" XSTR(MFT_NAME_MAX) "[A-Za-z0-9]="
+            "%" XSTR(PATH_MAX) "s", name, path);
+    if (rc != 2)
+        return -1;
+
+    warnx("block_setup: rc=%d name=%s path=%s", rc, name, path);
+    struct mft_entry *e = mft_get_by_name(mft, name, NULL);
+    if (e == NULL || e->type != MFT_BLOCK_BASIC)
+        return -1;
+    off_t capacity;
+    int fd = block_attach(path, &capacity);
+    e->u.block_basic.capacity = capacity;
+    e->u.block_basic.block_size = 512;
+    e->hostfd = fd;
+    e->ok = true;
+    module_in_use = true;
 
     return 0;
 }
 
 static int setup(struct hvt *hvt)
 {
-    if (diskfile == NULL)
-        return 0; /* Not present */
+    if (!module_in_use)
+        return 0;
 
-    off_t capacity;
-    diskfd = block_attach(diskfile, &capacity);
-
-    blkinfo.sector_size = 512;
-    blkinfo.num_sectors = capacity / 512;
-    blkinfo.rw = 1;
-
-    assert(hvt_core_register_hypercall(HVT_HYPERCALL_BLKINFO,
-                hypercall_blkinfo) == 0);
     assert(hvt_core_register_hypercall(HVT_HYPERCALL_BLKWRITE,
                 hypercall_blkwrite) == 0);
     assert(hvt_core_register_hypercall(HVT_HYPERCALL_BLKREAD,
@@ -130,7 +142,7 @@ static int setup(struct hvt *hvt)
 
 static char *usage(void)
 {
-    return "--disk=IMAGE (file exposed to the unikernel as a raw block device)";
+    return "--block:NAME=PATH (file exposed to the unikernel as a raw block device)";
 }
 
 BEGIN_REGISTER_MODULE(blk) {

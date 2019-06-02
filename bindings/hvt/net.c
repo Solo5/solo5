@@ -20,23 +20,29 @@
 
 #include "bindings.h"
 
-solo5_result_t solo5_net_write(const uint8_t *buf, size_t size)
+static struct mft *mft;
+
+solo5_result_t solo5_net_write(solo5_handle_t handle, const uint8_t *buf,
+        size_t size)
 {
     volatile struct hvt_netwrite wr;
 
+    wr.handle = handle;
     wr.data = buf;
     wr.len = size;
     wr.ret = 0;
 
     hvt_do_hypercall(HVT_HYPERCALL_NETWRITE, &wr);
 
-    return (wr.ret == 0 && wr.len == size) ? SOLO5_R_OK : SOLO5_R_EUNSPEC;
+    return wr.ret;
 }
 
-solo5_result_t solo5_net_read(uint8_t *buf, size_t size, size_t *read_size)
+solo5_result_t solo5_net_read(solo5_handle_t handle, uint8_t *buf, size_t size,
+        size_t *read_size)
 {
     volatile struct hvt_netread rd;
 
+    rd.handle = handle;
     rd.data = buf;
     rd.len = size;
     rd.ret = 0;
@@ -44,21 +50,26 @@ solo5_result_t solo5_net_read(uint8_t *buf, size_t size, size_t *read_size)
     hvt_do_hypercall(HVT_HYPERCALL_NETREAD, &rd);
 
     *read_size = rd.len;
-    return (rd.ret == 0) ? SOLO5_R_OK : SOLO5_R_AGAIN;
+    return rd.ret;
 }
 
-void solo5_net_info(struct solo5_net_info *info)
+solo5_result_t solo5_net_acquire(const char *name, solo5_handle_t *handle,
+        struct solo5_net_info *info)
 {
-    volatile struct hvt_netinfo ni;
+    unsigned index;
+    struct mft_entry *e = mft_get_by_name(mft, name, &index);
+    if (e == NULL || e->type != MFT_NET_BASIC)
+        return SOLO5_R_EINVAL;
+    assert(e->ok);
 
-    hvt_do_hypercall(HVT_HYPERCALL_NETINFO, &ni);
-
-    memcpy(info->mac_address, (uint8_t *)&ni.mac_address,
+    *handle = index;
+    info->mtu = e->u.net_basic.mtu;
+    memcpy(info->mac_address, e->u.net_basic.mac,
             sizeof info->mac_address);
-    /* XXX: No support on host side yet, so hardcode for now */
-    info->mtu = 1500;
+    return SOLO5_R_OK;
 }
 
-void net_init(void)
+void net_init(struct hvt_boot_info *bi)
 {
+    mft = bi->mft;
 }

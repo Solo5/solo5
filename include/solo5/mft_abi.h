@@ -27,6 +27,7 @@
  *
  */
 
+#include <stdbool.h>
 #include <stdint.h>
 
 #ifndef MFT_ABI_H
@@ -45,22 +46,25 @@ enum mft_type {
 struct mft_block_basic {
     uint64_t capacity;
     uint16_t block_size;
-    void *private;
 };
 
 struct mft_net_basic {
     uint8_t mac[6];
     uint16_t mtu;
-    void *private;
 };
 
+#define MFT_NAME_SIZE 32
+#define MFT_NAME_MAX 31
+
 struct mft_entry {
-    char name[32];
+    char name[MFT_NAME_SIZE];
     enum mft_type type;
     union {
         struct mft_block_basic block_basic;
         struct mft_net_basic net_basic;
     } u;
+    int hostfd;
+    bool ok;
 };
 
 /*

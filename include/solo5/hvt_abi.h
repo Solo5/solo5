@@ -148,6 +148,7 @@ struct hvt_boot_info {
     uint64_t kernel_end;                /* Address of end of kernel */
     HVT_GUEST_PTR(char *) cmdline;     /* Address of command line (C string) */
     struct hvt_cpu_boot_info cpu;      /* Arch-dependent part (see above) */
+    HVT_GUEST_PTR(void *) mft;
 };
 /*
  * Maximum size of guest command line, including the string terminator.
@@ -163,10 +164,8 @@ enum hvt_hypercall {
     HVT_HYPERCALL_WALLTIME=1,
     HVT_HYPERCALL_PUTS,
     HVT_HYPERCALL_POLL,
-    HVT_HYPERCALL_BLKINFO,
     HVT_HYPERCALL_BLKWRITE,
     HVT_HYPERCALL_BLKREAD,
-    HVT_HYPERCALL_NETINFO,
     HVT_HYPERCALL_NETWRITE,
     HVT_HYPERCALL_NETREAD,
     HVT_HYPERCALL_HALT,
@@ -190,18 +189,11 @@ struct hvt_puts {
     size_t len;
 };
 
-/* HVT_HYPERCALL_BLKINFO */
-struct hvt_blkinfo {
-    /* OUT */
-    size_t sector_size;
-    size_t num_sectors;
-    int rw;
-};
-
 /* HVT_HYPERCALL_BLKWRITE */
 struct hvt_blkwrite {
     /* IN */
-    size_t sector;
+    uint64_t handle;
+    uint64_t offset;
     HVT_GUEST_PTR(const void *) data;
     size_t len;
 
@@ -212,7 +204,8 @@ struct hvt_blkwrite {
 /* HVT_HYPERCALL_BLKREAD */
 struct hvt_blkread {
     /* IN */
-    size_t sector;
+    uint64_t handle;
+    uint64_t offset;
     HVT_GUEST_PTR(void *) data;
 
     /* IN/OUT */
@@ -222,15 +215,10 @@ struct hvt_blkread {
     int ret;
 };
 
-/* HVT_HYPERCALL_NETINFO */
-struct hvt_netinfo {
-    /* OUT */
-    uint8_t mac_address[6];
-};
-
 /* HVT_HYPERCALL_NETWRITE */
 struct hvt_netwrite {
     /* IN */
+    uint64_t handle;
     HVT_GUEST_PTR(const void *) data;
     size_t len;
 
@@ -241,6 +229,7 @@ struct hvt_netwrite {
 /* HVT_HYPERCALL_NETREAD */
 struct hvt_netread {
     /* IN */
+    uint64_t handle;
     HVT_GUEST_PTR(void *) data;
 
     /* IN/OUT */

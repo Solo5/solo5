@@ -36,7 +36,7 @@
  */
 int mft_validate(struct mft *mft, size_t mft_size);
 
-struct mft_entry *mft_get_by_name(struct mft *mft, const char *name);
+struct mft_entry *mft_get_by_name(struct mft *mft, const char *name, unsigned *index);
 
 struct mft_entry *mft_get_by_index(struct mft *mft, unsigned index);
 

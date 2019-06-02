@@ -36,7 +36,7 @@
 #include "hvt.h"
 #include "hvt_kvm.h"
 
-struct hvt *hvt_init(size_t mem_size)
+struct hvt *hvt_init(size_t mem_size, struct mft *mft, size_t mft_size)
 {
     int ret;
 
@@ -92,6 +92,8 @@ struct hvt *hvt_init(size_t mem_size)
         err(1, "KVM: ioctl (SET_USER_MEMORY_REGION) failed");
 
     hvt->b = hvb;
+    hvt->mft = mft;
+    hvt->mft_size = mft_size;
     return hvt;
 }
 

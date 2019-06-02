@@ -29,12 +29,16 @@
 
 /*
  * Load an ELF binary from (file) into (mem_size) bytes of (mem), returning
- * the entry point (p_entry), last byte used by the binary (p_end). The
- * Solo5 manifest, as loaded from the NOTE in the ELF file, is returned in
- * memory dynamically allocated at (mft) and its total size as defined in the
- * ELF binary is returned in (mft_size).
+ * the entry point (p_entry), last byte used by the binary (p_end).
  */
 void elf_load(const char *file, uint8_t *mem, size_t mem_size,
-        uint64_t *p_entry, uint64_t *p_end, struct mft **mft, size_t *mft_size);
+        uint64_t *p_entry, uint64_t *p_end);
+
+/*
+ * Load the Solo5 manifest from the ELF binary (file). Memory for the manifest
+ * is allocated with malloc() and returned as (mft), with the manifest size as
+ * defined in the ELF binary returned in (mft_size).
+ */
+void elf_load_mft(const char *file, struct mft **mft, size_t *mft_size);
 
 #endif /* COMMON_ELF_H */

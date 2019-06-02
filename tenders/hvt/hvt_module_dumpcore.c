@@ -228,7 +228,7 @@ failure:
     close(fd);
 }
 
-static int handle_cmdarg(char *cmdarg)
+static int handle_cmdarg(char *cmdarg, struct mft *mft)
 {
     if (strncmp("--dumpcore=", cmdarg, 11))
 	return -1;

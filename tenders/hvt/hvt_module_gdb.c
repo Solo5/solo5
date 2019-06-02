@@ -647,7 +647,7 @@ static int setup(struct hvt *hvt)
     return 0;
 }
 
-static int handle_cmdarg(char *cmdarg)
+static int handle_cmdarg(char *cmdarg, struct mft *mft)
 {
     if (!strcmp("--gdb", cmdarg)) {
         use_gdb = true;

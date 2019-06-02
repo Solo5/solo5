@@ -22,7 +22,9 @@
  * mft.c: Manifest validation and manipulation.
  */
 
+#ifndef __SOLO5_BINDINGS__
 #include <string.h>
+#endif
 
 #include "mft.h"
 
@@ -44,11 +46,15 @@ int mft_validate(struct mft *mft, size_t mft_size)
     return 0;
 }
 
-struct mft_entry *mft_get_by_name(struct mft *mft, const char *name)
+struct mft_entry *mft_get_by_name(struct mft *mft, const char *name,
+        unsigned *index)
 {
     for (unsigned i = 0; i != mft->entries; i++) {
-        if (strcmp(mft->e[i].name, name) == 0)
+        if (strcmp(mft->e[i].name, name) == 0) {
+            if (index != NULL)
+                *index = i;
             return &mft->e[i];
+        }
     }
     return NULL;
 }

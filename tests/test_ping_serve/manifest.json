@@ -1,4 +1,4 @@
 {
     "version": 1,
-    "resources": [ ]
+    "resources": [ { "name": "service", "type": "MFT_NET_BASIC" } ]
 }

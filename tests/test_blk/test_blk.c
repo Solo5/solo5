@@ -26,7 +26,7 @@ static void puts(const char *s)
     solo5_console_write(s, strlen(s));
 }
 
-bool check_one_block(solo5_off_t offset, size_t block_size)
+bool check_one_block(solo5_handle_t h, solo5_off_t offset, size_t block_size)
 {
     size_t i;
     uint8_t wbuf[block_size],
@@ -37,9 +37,9 @@ bool check_one_block(solo5_off_t offset, size_t block_size)
         rbuf[i] = 0;
     }
 
-    if (solo5_block_write(offset, wbuf, block_size) != SOLO5_R_OK)
+    if (solo5_block_write(h, offset, wbuf, block_size) != SOLO5_R_OK)
         return false;
-    if (solo5_block_read(offset, rbuf, block_size) != SOLO5_R_OK)
+    if (solo5_block_read(h, offset, rbuf, block_size) != SOLO5_R_OK)
         return false;
 
     for (i = 0; i < block_size; i++) {
@@ -55,15 +55,19 @@ int solo5_app_main(const struct solo5_start_info *si __attribute__((unused)))
 {
     puts("\n**** Solo5 standalone test_blk ****\n\n");
 
+    solo5_handle_t h;
     struct solo5_block_info bi;
-    solo5_block_info(&bi);
+    if (solo5_block_acquire("storage", &h, &bi) != SOLO5_R_OK) {
+        puts("Could not acquire 'storage' block device\n");
+        return 99;
+    }
 
     /*
      * Write and read/check one tenth of the disk.
      */
     for (solo5_off_t offset = 0; offset < bi.capacity;
             offset += (10 * bi.block_size)) {
-        if (!check_one_block(offset, bi.block_size))
+        if (!check_one_block(h, offset, bi.block_size))
             /* Check failed */
             return 1;
     }
@@ -74,9 +78,9 @@ int solo5_app_main(const struct solo5_start_info *si __attribute__((unused)))
      * Check edge case: read/write of last sector on the device.
      */
     solo5_off_t last_block = bi.capacity - bi.block_size;
-    if (solo5_block_write(last_block, buf, bi.block_size) != SOLO5_R_OK)
+    if (solo5_block_write(h, last_block, buf, bi.block_size) != SOLO5_R_OK)
         return 2;
-    if (solo5_block_read(last_block, buf, bi.block_size) != SOLO5_R_OK)
+    if (solo5_block_read(h, last_block, buf, bi.block_size) != SOLO5_R_OK)
         return 3;
 
     /*
@@ -86,9 +90,9 @@ int solo5_app_main(const struct solo5_start_info *si __attribute__((unused)))
      * XXX: Current implementations may return either SOLO5_R_EINVAL or
      * SOLO5_R_EUNSPEC here, that is fine for now.
      */
-    if (solo5_block_write(bi.capacity, buf, bi.block_size) == SOLO5_R_OK)
+    if (solo5_block_write(h, bi.capacity, buf, bi.block_size) == SOLO5_R_OK)
         return 4;
-    if (solo5_block_read(bi.capacity, buf, bi.block_size) == SOLO5_R_OK)
+    if (solo5_block_read(h, bi.capacity, buf, bi.block_size) == SOLO5_R_OK)
         return 5;
 
     /*
@@ -98,13 +102,13 @@ int solo5_app_main(const struct solo5_start_info *si __attribute__((unused)))
      * XXX: Current implementations may return either SOLO5_R_EINVAL or
      * SOLO5_R_EUNSPEC here, that is fine for now.
      */
-    if (solo5_block_write(0, buf, bi.block_size - 1) == SOLO5_R_OK)
+    if (solo5_block_write(h, 0, buf, bi.block_size - 1) == SOLO5_R_OK)
         return 6;
-    if (solo5_block_read(0, buf, bi.block_size - 1) == SOLO5_R_OK)
+    if (solo5_block_read(h, 0, buf, bi.block_size - 1) == SOLO5_R_OK)
         return 7;
-    if (solo5_block_write(0, buf, bi.block_size + 1) == SOLO5_R_OK)
+    if (solo5_block_write(h, 0, buf, bi.block_size + 1) == SOLO5_R_OK)
         return 8;
-    if (solo5_block_read(0, buf, bi.block_size + 1) == SOLO5_R_OK)
+    if (solo5_block_read(h, 0, buf, bi.block_size + 1) == SOLO5_R_OK)
         return 9;
 
     /*
@@ -114,9 +118,11 @@ int solo5_app_main(const struct solo5_start_info *si __attribute__((unused)))
      * XXX: Current implementations may return either SOLO5_R_EINVAL or
      * SOLO5_R_EUNSPEC here, that is fine for now.
      */
-    if (solo5_block_write(bi.block_size - 1, buf, bi.block_size) == SOLO5_R_OK)
+    if (solo5_block_write(h, bi.block_size - 1, buf, bi.block_size)
+            == SOLO5_R_OK)
         return 10;
-    if (solo5_block_read(bi.block_size - 1, buf, bi.block_size) == SOLO5_R_OK)
+    if (solo5_block_read(h, bi.block_size - 1, buf, bi.block_size)
+            == SOLO5_R_OK)
         return 11;
 
     puts("SUCCESS\n");

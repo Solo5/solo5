@@ -139,64 +139,6 @@ void elf_load(const char *file, uint8_t *mem, size_t mem_size,
         goto out_invalid;
 
     /*
-     * Find the NOTE containing the Solo5 manifest, validate it with prejudice
-     * and load its contents, if validation passes.
-     */
-    struct mft *note = NULL;
-    size_t note_offset, note_size = 0;
-    for (ph_i = 0; ph_i < ph_cnt; ph_i++) {
-
-        if (phdr[ph_i].p_type != PT_NOTE)
-            continue;
-
-        struct mft_note_header nhdr;
-        note_offset = phdr[ph_i].p_offset;
-        note_size = phdr[ph_i].p_filesz;
-        if (note_size < sizeof nhdr)
-            continue; /* Too small to be a (valid) Solo5 NOTE, skip */
-        numb = pread_in_full(fd_kernel, &nhdr, sizeof nhdr, note_offset);
-        if (numb < 0)
-            goto out_error;
-        if (strncmp(nhdr.name, SOLO5_NOTE_NAME, sizeof(SOLO5_NOTE_NAME)) != 0)
-            continue; /* Not a Solo5 NOTE, skip */
-        if (nhdr.type != SOLO5_NOTE_MANIFEST) {
-            warnx("%s: phdr[%u] contains invalid Solo5 NOTE", file, ph_i);
-            goto out_invalid;
-        }
-        if (note != NULL) {
-            warnx("%s: phdr[%u] contains duplicate Solo5 NOTE", file, ph_i);
-            free(note);
-            goto out_invalid;
-        }
-        if (note_size > MFT_NOTE_MAX_SIZE) {
-            warnx("%s: phdr[%u] Solo5 NOTE size out of range", file, ph_i);
-            goto out_invalid;
-        }
-
-        /*
-         * At this point we have verified that at least the note header is
-         * valid and its size is within limits. Adjust to skip the note header
-         * itself and read the full note contents (the manifest) into
-         * dynamically allocated memory.
-         */
-        note_offset += offsetof(struct mft_note, m);
-        note_size -= offsetof(struct mft_note, m);
-        note = malloc(note_size);
-        if (note == NULL)
-            goto out_error;
-        numb = pread_in_full(fd_kernel, note, note_size, note_offset);
-        if (numb < 0) {
-            free(note);
-            goto out_error;
-        }
-    }
-    if (note == NULL) {
-        /* No SOLO5 note found */
-        warnx("%s: Not a Solo5 executable", file);
-        goto out_invalid;
-    }
-
-    /*
      * Load all segments with the LOAD directive from the elf file at offset
      * p_offset, and copy that into p_addr in memory. The amount of bytes
      * copied is p_filesz.  However, each segment should be given
@@ -263,6 +205,145 @@ void elf_load(const char *file, uint8_t *mem, size_t mem_size,
     free (phdr);
     close (fd_kernel);
     *p_entry = hdr.e_entry;
+    return;
+
+out_error:
+    warn("%s", file);
+    free (phdr);
+    if (fd_kernel != -1)
+        close (fd_kernel);
+    exit(1);
+
+out_invalid:
+    warnx("%s: Exec format error", file);
+    free (phdr);
+    if (fd_kernel != -1)
+        close (fd_kernel);
+    exit(1);
+}
+
+void elf_load_mft(const char *file, struct mft **mft, size_t *mft_size)
+{
+    int fd_kernel = -1;
+    ssize_t numb;
+    size_t buflen;
+    Elf64_Off ph_off;
+    Elf64_Half ph_entsz;
+    Elf64_Half ph_cnt;
+    Elf64_Half ph_i;
+    Elf64_Phdr *phdr = NULL;
+    Elf64_Ehdr hdr;
+
+    fd_kernel = open(file, O_RDONLY);
+    if (fd_kernel == -1)
+        goto out_error;
+
+    numb = pread_in_full(fd_kernel, &hdr, sizeof(Elf64_Ehdr), 0);
+    if (numb < 0)
+        goto out_error;
+    if (numb != sizeof(Elf64_Ehdr))
+        goto out_invalid;
+
+    /*
+     * Validate program is in ELF64 format:
+     * 1. EI_MAG fields 0, 1, 2, 3 spell ELFMAG('0x7f', 'E', 'L', 'F'),
+     * 2. File contains 64-bit objects,
+     * 3. Objects are Executable,
+     * 4. Target instruction must be set to the correct architecture.
+     */
+    if (hdr.e_ident[EI_MAG0] != ELFMAG0
+            || hdr.e_ident[EI_MAG1] != ELFMAG1
+            || hdr.e_ident[EI_MAG2] != ELFMAG2
+            || hdr.e_ident[EI_MAG3] != ELFMAG3
+            || hdr.e_ident[EI_CLASS] != ELFCLASS64
+            || hdr.e_type != ET_EXEC
+#if defined(__x86_64__)
+            || hdr.e_machine != EM_X86_64
+#elif defined(__aarch64__)
+            || hdr.e_machine != EM_AARCH64
+#else
+#error Unsupported target
+#endif
+        )
+        goto out_invalid;
+
+    ph_off = hdr.e_phoff;
+    ph_entsz = hdr.e_phentsize;
+    ph_cnt = hdr.e_phnum;
+    buflen = ph_entsz * ph_cnt;
+
+    phdr = malloc(buflen);
+    if (!phdr)
+        goto out_error;
+    numb = pread_in_full(fd_kernel, phdr, buflen, ph_off);
+    if (numb < 0)
+        goto out_error;
+    if (numb != buflen)
+        goto out_invalid;
+
+    /*
+     * Find the NOTE containing the Solo5 manifest, validate it with prejudice
+     * and load its contents, if validation passes.
+     */
+    struct mft *note = NULL;
+    size_t note_offset, note_size = 0;
+    for (ph_i = 0; ph_i < ph_cnt; ph_i++) {
+
+        if (phdr[ph_i].p_type != PT_NOTE)
+            continue;
+
+        struct mft_note_header nhdr;
+        note_offset = phdr[ph_i].p_offset;
+        note_size = phdr[ph_i].p_filesz;
+        if (note_size < sizeof nhdr)
+            continue; /* Too small to be a (valid) Solo5 NOTE, skip */
+        numb = pread_in_full(fd_kernel, &nhdr, sizeof nhdr, note_offset);
+        if (numb < 0)
+            goto out_error;
+        if (numb != sizeof nhdr)
+            goto out_invalid;
+        if (strncmp(nhdr.name, SOLO5_NOTE_NAME, sizeof(SOLO5_NOTE_NAME)) != 0)
+            continue; /* Not a Solo5 NOTE, skip */
+        if (nhdr.type != SOLO5_NOTE_MANIFEST) {
+            warnx("%s: phdr[%u] contains invalid Solo5 NOTE", file, ph_i);
+            goto out_invalid;
+        }
+        if (note != NULL) {
+            warnx("%s: phdr[%u] contains duplicate Solo5 NOTE", file, ph_i);
+            free(note);
+            goto out_invalid;
+        }
+        if (note_size > MFT_NOTE_MAX_SIZE) {
+            warnx("%s: phdr[%u] Solo5 NOTE size out of range", file, ph_i);
+            goto out_invalid;
+        }
+
+        /*
+         * At this point we have verified that at least the note header is
+         * valid and its size is within limits. Adjust to skip the note header
+         * itself and read the full note contents (the manifest) into
+         * dynamically allocated memory.
+         */
+        note_offset += offsetof(struct mft_note, m);
+        note_size -= offsetof(struct mft_note, m);
+        note = malloc(note_size);
+        if (note == NULL)
+            goto out_error;
+        numb = pread_in_full(fd_kernel, note, note_size, note_offset);
+        if (numb < 0) {
+            free(note);
+            goto out_error;
+        }
+        if (numb != note_size) {
+            free(note);
+            goto out_invalid;
+        }
+    }
+    if (note == NULL) {
+        warnx("%s: No manifest found, not a Solo5 executable?", file);
+        goto out_invalid;
+    }
+
     *mft = note;
     *mft_size = note_size;
     return;

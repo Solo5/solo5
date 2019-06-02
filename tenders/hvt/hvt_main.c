@@ -72,11 +72,11 @@ static void setup_modules(struct hvt *hvt)
     }
 }
 
-static int handle_cmdarg(char *cmdarg)
+static int handle_cmdarg(char *cmdarg, struct mft *mft)
 {
     for (struct hvt_module *m = &__start_modules; m < &__stop_modules; m++) {
         if (m->ops.handle_cmdarg) {
-            if (m->ops.handle_cmdarg(cmdarg) == 0) {
+            if (m->ops.handle_cmdarg(cmdarg, mft) == 0) {
                 return 0;
             }
         }
@@ -140,10 +140,49 @@ int main(int argc, char **argv)
     argc--;
     argv++;
 
-    while (*argv && *argv[0] == '-') {
-        if (strcmp("--help", *argv) == 0)
+    /*
+     * Scan command line arguments, looking for the first non-option argument
+     * which will be the ELF file to load. Stop if a "terminal" option such as
+     * --help is encountered.
+     */
+    int argc1 = argc;
+    char **argv1 = argv;
+    while (*argv1 && *argv1[0] == '-') {
+        if (strcmp("--help", *argv1) == 0)
             usage(prog);
 
+        argc1--;
+        argv1++;
+        if (strcmp("--", *argv1) == 0)
+        {
+            argc1--;
+            argv1++;
+            break;
+        }
+    }
+    if (*argv1 == NULL) {
+        warnx("Missing KERNEL operand");
+        usage(prog);
+    }
+    elffile = *argv1;
+
+    /*
+     * Now that we have the ELF file name, try and load the manifest from it,
+     * as subsequent parsing of the command line in the 2nd pass depends on it.
+     */
+    struct mft *mft;
+    size_t mft_size;
+    elf_load_mft(elffile, &mft, &mft_size);
+    if (mft_validate(mft, mft_size) == -1) {
+        free(mft);
+        errx(1, "%s: Solo5 manifest is invalid", elffile);
+    }
+
+    /*
+     * Scan command line arguments in a 2nd pass, and pass options through to
+     * modules to handle.
+     */
+    while (*argv && *argv[0] == '-') {
         if (strcmp("--", *argv) == 0) {
             /* Consume and stop arg processing */
             argc--;
@@ -158,7 +197,7 @@ int main(int argc, char **argv)
             argc--;
             argv++;
         }
-        if (handle_cmdarg(*argv) == 0) {
+        if (handle_cmdarg(*argv, mft) == 0) {
             /* Handled by module, consume and go on to next arg */
             matched = 1;
             argc--;
@@ -169,13 +208,7 @@ int main(int argc, char **argv)
             usage(prog);
         }
     }
-
-    /* At least one non-option argument required */
-    if (*argv == NULL) {
-        warnx("Missing KERNEL operand");
-        usage(prog);
-    }
-    elffile = *argv;
+    assert(elffile == *argv);
     argc--;
     argv++;
 
@@ -189,16 +222,9 @@ int main(int argc, char **argv)
         err(1, "Could not install signal handler");
 
     hvt_mem_size(&mem_size);
-    struct hvt *hvt = hvt_init(mem_size);
+    struct hvt *hvt = hvt_init(mem_size, mft, mft_size);
 
-    struct mft *mft;
-    size_t mft_size;
-    elf_load(elffile, hvt->mem, hvt->mem_size, &gpa_ep, &gpa_kend,
-            &mft, &mft_size);
-    if (mft_validate(mft, mft_size) == -1) {
-        free(mft);
-        errx(1, "%s: Solo5 manifest is invalid", elffile);
-    }
+    elf_load(elffile, hvt->mem, hvt->mem_size, &gpa_ep, &gpa_kend);
 
     char *cmdline;
     hvt_vcpu_init(hvt, gpa_ep, gpa_kend, &cmdline);

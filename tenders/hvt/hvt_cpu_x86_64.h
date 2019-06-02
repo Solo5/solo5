@@ -205,6 +205,8 @@ static const struct x86_sreg hvt_x86_sreg_unusable = {
 #define X86_PT0_MAP_START       X86_BOOT_INFO_BASE
 #define X86_CMDLINE_BASE        0x11000
 #define X86_CMDLINE_SIZE        0x2000
+#define X86_MFT_BASE            0x13000
+#define X86_MFT_MAX_SIZE        0x2000
 #define X86_GUEST_MIN_BASE      0x100000
 
 #define X86_GUEST_PAGE_SIZE     0x200000
