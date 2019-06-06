@@ -138,8 +138,8 @@ ifdef CONFIG_GENODE
 
 $(genode_OBJS): CFLAGS += -Wno-unused-parameter
 
-GENODE_LDFLAGS := -nostdlib -z max-page-size=0x1000 -shared -gc-sections \
-    --eh-frame-hdr --entry=0x0 -T genode/genode_rel.ld
+GENODE_LDFLAGS := -nostdlib -z max-page-size=$(CONFIG_GUEST_PAGE_SIZE) -shared \
+    -gc-sections --eh-frame-hdr --entry=0x0 -T genode/genode_rel.ld
 genode/solo5.lib.so: $(genode_OBJS)
 	@echo "LD $@"
 	$(LD) $(GENODE_LDFLAGS) $^ -o $@

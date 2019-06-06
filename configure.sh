@@ -86,15 +86,19 @@ CC_MACHINE=$(${CC} -dumpmachine)
 case ${CC_MACHINE} in
     x86_64-*linux*)
         CONFIG_ARCH=x86_64 CONFIG_HOST=Linux
+        CONFIG_GUEST_PAGE_SIZE=0x1000
         ;;
     aarch64-*linux*)
         CONFIG_ARCH=aarch64 CONFIG_HOST=Linux
+        CONFIG_GUEST_PAGE_SIZE=0x1000
         ;;
     x86_64-*freebsd*)
         CONFIG_ARCH=x86_64 CONFIG_HOST=FreeBSD
+        CONFIG_GUEST_PAGE_SIZE=0x1000
         ;;
     amd64-*openbsd*)
         CONFIG_ARCH=x86_64 CONFIG_HOST=OpenBSD
+        CONFIG_GUEST_PAGE_SIZE=0x1000
         ;;
     *)
         die "Unsupported toolchain target: ${CC_MACHINE}"
@@ -265,6 +269,7 @@ MAKECONF_CFLAGS=${MAKECONF_CFLAGS}
 MAKECONF_LDFLAGS=${MAKECONF_LDFLAGS}
 CONFIG_ARCH=${CONFIG_ARCH}
 CONFIG_HOST=${CONFIG_HOST}
+CONFIG_GUEST_PAGE_SIZE=${CONFIG_GUEST_PAGE_SIZE}
 MAKECONF_CC=${CC}
 MAKECONF_LD=${LD}
 CONFIG_SPT_NO_PIE=${CONFIG_SPT_NO_PIE}
