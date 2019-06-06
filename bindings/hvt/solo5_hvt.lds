@@ -12,7 +12,7 @@ SECTIONS {
         *(.text.*)
     }
 
-    . = ALIGN(0x1000);
+    . = ALIGN(CONSTANT(MAXPAGESIZE));
     _etext = .;
 
     /* Read-only data */
@@ -26,7 +26,7 @@ SECTIONS {
         *(.eh_frame)
     }
 
-    . = ALIGN(0x1000);
+    . = ALIGN(CONSTANT(MAXPAGESIZE));
     _erodata = .;
 
     /* Read-write data (initialized) */
@@ -41,7 +41,7 @@ SECTIONS {
         *(.data.*)
     }
 
-    . = ALIGN(0x1000);
+    . = ALIGN(CONSTANT(MAXPAGESIZE));
     _edata = .;
 
     /* Read-write data (uninitialized) */
@@ -51,7 +51,7 @@ SECTIONS {
         *(COMMON)
     }
 
-    . = ALIGN(0x1000);
+    . = ALIGN(CONSTANT(MAXPAGESIZE));
     _ebss = .;
     _end = .;
 }
