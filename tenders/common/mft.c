@@ -47,10 +47,10 @@ int mft_validate(struct mft *mft, size_t mft_size)
 }
 
 struct mft_entry *mft_get_by_name(struct mft *mft, const char *name,
-        unsigned *index)
+        enum mft_type type, unsigned *index)
 {
     for (unsigned i = 0; i != mft->entries; i++) {
-        if (strcmp(mft->e[i].name, name) == 0) {
+        if (strcmp(mft->e[i].name, name) == 0 && mft->e[i].type == type) {
             if (index != NULL)
                 *index = i;
             return &mft->e[i];
@@ -59,10 +59,13 @@ struct mft_entry *mft_get_by_name(struct mft *mft, const char *name,
     return NULL;
 }
 
-struct mft_entry *mft_get_by_index(struct mft *mft, unsigned index)
+struct mft_entry *mft_get_by_index(struct mft *mft, unsigned index,
+        enum mft_type type)
 {
     if (index >= mft->entries)
         return NULL;
-    else
+    else if (mft->e[index].type == type)
         return &mft->e[index];
+    else
+        return NULL;
 }

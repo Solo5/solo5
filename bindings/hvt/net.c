@@ -57,8 +57,8 @@ solo5_result_t solo5_net_acquire(const char *name, solo5_handle_t *handle,
         struct solo5_net_info *info)
 {
     unsigned index;
-    struct mft_entry *e = mft_get_by_name(mft, name, &index);
-    if (e == NULL || e->type != MFT_NET_BASIC)
+    struct mft_entry *e = mft_get_by_name(mft, name, MFT_NET_BASIC, &index);
+    if (e == NULL)
         return SOLO5_R_EINVAL;
     assert(e->ok);
 

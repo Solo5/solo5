@@ -41,8 +41,8 @@ static void hypercall_netwrite(struct hvt *hvt, hvt_gpa_t gpa)
 {
     struct hvt_netwrite *wr =
         HVT_CHECKED_GPA_P(hvt, gpa, sizeof (struct hvt_netwrite));
-    struct mft_entry *e = mft_get_by_index(hvt->mft, wr->handle);
-    if (e == NULL || e->type != MFT_NET_BASIC) {
+    struct mft_entry *e = mft_get_by_index(hvt->mft, wr->handle, MFT_NET_BASIC);
+    if (e == NULL) {
         wr->ret = SOLO5_R_EINVAL;
         return;
     }
@@ -58,8 +58,8 @@ static void hypercall_netread(struct hvt *hvt, hvt_gpa_t gpa)
 {
     struct hvt_netread *rd =
         HVT_CHECKED_GPA_P(hvt, gpa, sizeof (struct hvt_netread));
-    struct mft_entry *e = mft_get_by_index(hvt->mft, rd->handle);
-    if (e == NULL || e->type != MFT_NET_BASIC) {
+    struct mft_entry *e = mft_get_by_index(hvt->mft, rd->handle, MFT_NET_BASIC);
+    if (e == NULL) {
         rd->ret = SOLO5_R_EINVAL;
         return;
     }
@@ -100,8 +100,8 @@ static int handle_cmdarg(char *cmdarg, struct mft *mft)
                 "%19s", name, iface);
         if (rc != 2)
             return -1;
-        struct mft_entry *e = mft_get_by_name(mft, name, NULL);
-        if (e == NULL || e->type != MFT_NET_BASIC)
+        struct mft_entry *e = mft_get_by_name(mft, name, MFT_NET_BASIC, NULL);
+        if (e == NULL)
             return -1;
         int fd = tap_attach(iface);
         if (fd < 0) {
@@ -126,8 +126,8 @@ static int handle_cmdarg(char *cmdarg, struct mft *mft)
                 &mac[0], &mac[1], &mac[2], &mac[3], &mac[4], &mac[5]);
         if (rc != 7)
             return -1;
-        struct mft_entry *e = mft_get_by_name(mft, name, NULL);
-        if (e == NULL || e->type != MFT_NET_BASIC)
+        struct mft_entry *e = mft_get_by_name(mft, name, MFT_NET_BASIC, NULL);
+        if (e == NULL)
             return -1;
         memcpy(e->u.net_basic.mac, mac, sizeof mac);
     }

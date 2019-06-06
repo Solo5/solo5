@@ -41,8 +41,9 @@ static void hypercall_blkwrite(struct hvt *hvt, hvt_gpa_t gpa)
 {
     struct hvt_blkwrite *wr =
         HVT_CHECKED_GPA_P(hvt, gpa, sizeof (struct hvt_blkwrite));
-    struct mft_entry *e = mft_get_by_index(hvt->mft, wr->handle);
-    if (e == NULL || e->type != MFT_BLOCK_BASIC) {
+    struct mft_entry *e = mft_get_by_index(hvt->mft, wr->handle,
+            MFT_BLOCK_BASIC);
+    if (e == NULL) {
         wr->ret = SOLO5_R_EINVAL;
         return;
     }
@@ -72,8 +73,9 @@ static void hypercall_blkread(struct hvt *hvt, hvt_gpa_t gpa)
 {
     struct hvt_blkread *rd =
         HVT_CHECKED_GPA_P(hvt, gpa, sizeof (struct hvt_blkread));
-    struct mft_entry *e = mft_get_by_index(hvt->mft, rd->handle);
-    if (e == NULL || e->type != MFT_BLOCK_BASIC) {
+    struct mft_entry *e = mft_get_by_index(hvt->mft, rd->handle,
+            MFT_BLOCK_BASIC);
+    if (e == NULL) {
         rd->ret = SOLO5_R_EINVAL;
         return;
     }
@@ -113,8 +115,8 @@ static int handle_cmdarg(char *cmdarg, struct mft *mft)
         return -1;
 
     warnx("block_setup: rc=%d name=%s path=%s", rc, name, path);
-    struct mft_entry *e = mft_get_by_name(mft, name, NULL);
-    if (e == NULL || e->type != MFT_BLOCK_BASIC)
+    struct mft_entry *e = mft_get_by_name(mft, name, MFT_BLOCK_BASIC, NULL);
+    if (e == NULL)
         return -1;
     off_t capacity;
     int fd = block_attach(path, &capacity);
