@@ -113,11 +113,12 @@ static int handle_cmdarg(char *cmdarg, struct mft *mft)
             "%" XSTR(PATH_MAX) "s", name, path);
     if (rc != 2)
         return -1;
-
-    warnx("block_setup: rc=%d name=%s path=%s", rc, name, path);
     struct mft_entry *e = mft_get_by_name(mft, name, MFT_BLOCK_BASIC, NULL);
-    if (e == NULL)
+    if (e == NULL) {
+        warnx("Resource not declared in manifest: '%s'", name);
         return -1;
+    }
+
     off_t capacity;
     int fd = block_attach(path, &capacity);
     e->u.block_basic.capacity = capacity;

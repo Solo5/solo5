@@ -69,3 +69,15 @@ struct mft_entry *mft_get_by_index(struct mft *mft, unsigned index,
     else
         return NULL;
 }
+
+const char *mft_type_to_string(enum mft_type type)
+{
+    switch(type) {
+        case MFT_BLOCK_BASIC:
+            return "BLOCK_BASIC";
+        case MFT_NET_BASIC:
+            return "NET_BASIC";
+        default:
+            return "UNKNOWN";
+    }
+}

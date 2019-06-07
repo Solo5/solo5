@@ -40,4 +40,5 @@ struct mft_entry *mft_get_by_name(struct mft *mft, const char *name, enum mft_ty
 
 struct mft_entry *mft_get_by_index(struct mft *mft, unsigned index, enum mft_type type);
 
+const char *mft_type_to_string(enum mft_type type);
 #endif /* MFT_H */

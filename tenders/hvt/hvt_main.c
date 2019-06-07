@@ -70,6 +70,19 @@ static void setup_modules(struct hvt *hvt)
             exit(1);
         }
     }
+
+    struct mft *mft = hvt->mft;
+    bool fail = false;
+    for (unsigned i = 0; i != mft->entries; i++) {
+        if (!mft->e[i].ok) {
+            warnx("Resource '%s' of type %s declared but not attached.",
+                    mft->e[i].name, mft_type_to_string(mft->e[i].type));
+            fail = true;
+        }
+    }
+    if (fail)
+        errx(1, "All declared resources must be attached. "
+                "See --help for syntax.");
 }
 
 static int handle_cmdarg(char *cmdarg, struct mft *mft)

@@ -101,8 +101,10 @@ static int handle_cmdarg(char *cmdarg, struct mft *mft)
         if (rc != 2)
             return -1;
         struct mft_entry *e = mft_get_by_name(mft, name, MFT_NET_BASIC, NULL);
-        if (e == NULL)
+        if (e == NULL) {
+            warnx("Resource not declared in manifest: '%s'", name);
             return -1;
+        }
         int fd = tap_attach(iface);
         if (fd < 0) {
             warnx("Could not attach interface: %s", iface);
@@ -128,8 +130,10 @@ static int handle_cmdarg(char *cmdarg, struct mft *mft)
         if (rc != 7)
             return -1;
         struct mft_entry *e = mft_get_by_name(mft, name, MFT_NET_BASIC, NULL);
-        if (e == NULL)
+        if (e == NULL) {
+            warnx("Resource not declared in manifest: '%s'", name);
             return -1;
+        }
         memcpy(e->u.net_basic.mac, mac, sizeof mac);
     }
 
