@@ -1,4 +1,4 @@
 {
     "version": 1,
-    "resources": [ { "name": "storage", "type": "MFT_BLOCK_BASIC" } ]
+    "resources": [ { "name": "storage", "type": "BLOCK_BASIC" } ]
 }

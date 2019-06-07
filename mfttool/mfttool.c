@@ -65,7 +65,7 @@ static const char out_header[] = \
     "  .e = {\n";
 
 static const char out_resource[] = \
-    "    { .name = \"%s\", .type = %s },\n";
+    "    { .name = \"%s\", .type = MFT_%s },\n";
 
 static const char out_footer[] = \
     "  }\n"
@@ -136,6 +136,9 @@ int main(int argc, char *argv[])
         }
         if (r_name == NULL)
             errx(1, ".resources[...]: missing .name");
+        /*
+         * TODO: Validate that name is [A-Z][a-z][0-9]+.
+         */
         if (r_type == NULL)
             errx(1, ".resources[...]: missing .type");
         printf(out_resource, r_name, r_type);
