@@ -72,7 +72,8 @@ typedef unsigned char *host_mvec_t;
 
 #endif
 
-static bool use_dumpcore = false;
+static char *dumpcoredir;
+static int dir;
 
 void hvt_dumpcore_hook(struct hvt *hvt, int status, void *cookie)
 {
@@ -85,12 +86,13 @@ void hvt_dumpcore_hook(struct hvt *hvt, int status, void *cookie)
      * Note that O_APPEND must not be set as this modifies the behaviour of
      * pwrite() on Linux.
      */
-    int fd = open(filename, O_WRONLY | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR);
+    int fd = openat(dir, filename, O_WRONLY | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR);
+    close(dir);
     if (fd < 0) {
         warn("dumpcore: open(%s)", filename);
         goto failure;
     }
-    warnx("dumpcore: dumping guest core to: %s", filename);
+    warnx("dumpcore: dumping guest core to: %s/%s", dumpcoredir, filename);
 
     /*
      * Core file structure:
@@ -228,22 +230,29 @@ failure:
 
 static int handle_cmdarg(char *cmdarg)
 {
-    if (!strcmp("--dumpcore", cmdarg)) {
-        use_dumpcore = true;
-        return 0;
-    }
-    return -1;
+    if (strncmp("--dumpcore=", cmdarg, 11))
+	return -1;
+    dumpcoredir = cmdarg + 11;
+
+    return 0;
 }
 
 static char *usage(void)
 {
-    return "--dumpcore (enable guest core dump on abort/trap)";
+    return "--dumpcore=DIR (enable guest core dump on abort/trap)";
 }
 
 static int setup(struct hvt *hvt)
 {
-    if (!use_dumpcore)
-        return 0;
+    if (dumpcoredir == NULL)
+        return 0; /* Not present */
+
+    dir = open(dumpcoredir, O_RDONLY | O_DIRECTORY);
+    if (dir == -1)
+        errx(1, "dumpcore: cannot open dir");
+
+    if (access(dumpcoredir, W_OK) == -1)
+        errx(1, "dumpcore: dir not writable");
 
     if (hvt_core_register_halt_hook(hvt_dumpcore_hook) == -1)
         return -1;

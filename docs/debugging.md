@@ -55,10 +55,10 @@ This feature is currently only supported on Linux/KVM and FreeBSD vmm on the
 x86\_64 architecture. The `dumpcore` module must be included in your build of
 `solo5-hvt`.
 
-The functionality must also be enabled at run-time by passing the `--dumpcore`
-option to `solo5-hvt`. This will cause `solo5-hvt` to generate a core file if
-the guest aborts, either due to a trap/fault, or by calling `solo5_abort()`
-directly.
+The functionality must also be enabled at run-time by passing the
+`--dumpcore=DIR` option to `solo5-hvt`. This will cause `solo5-hvt` to generate
+a core file in DIR if the guest aborts, either due to a trap/fault, or by
+calling `solo5_abort()` directly.
 
 You can then load the core file into GDB as follows (this example uses the
 `test_abort` provided with Solo5):
