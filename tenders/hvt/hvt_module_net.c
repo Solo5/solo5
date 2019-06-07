@@ -36,12 +36,13 @@
 #include "solo5.h"
 
 static bool module_in_use;
+static struct mft *host_mft;
 
 static void hypercall_netwrite(struct hvt *hvt, hvt_gpa_t gpa)
 {
     struct hvt_netwrite *wr =
         HVT_CHECKED_GPA_P(hvt, gpa, sizeof (struct hvt_netwrite));
-    struct mft_entry *e = mft_get_by_index(hvt->mft, wr->handle, MFT_NET_BASIC);
+    struct mft_entry *e = mft_get_by_index(host_mft, wr->handle, MFT_NET_BASIC);
     if (e == NULL) {
         wr->ret = SOLO5_R_EINVAL;
         return;
@@ -58,7 +59,7 @@ static void hypercall_netread(struct hvt *hvt, hvt_gpa_t gpa)
 {
     struct hvt_netread *rd =
         HVT_CHECKED_GPA_P(hvt, gpa, sizeof (struct hvt_netread));
-    struct mft_entry *e = mft_get_by_index(hvt->mft, rd->handle, MFT_NET_BASIC);
+    struct mft_entry *e = mft_get_by_index(host_mft, rd->handle, MFT_NET_BASIC);
     if (e == NULL) {
         rd->ret = SOLO5_R_EINVAL;
         return;
@@ -140,24 +141,25 @@ static int handle_cmdarg(char *cmdarg, struct mft *mft)
     return 0;
 }
 
-static int setup(struct hvt *hvt)
+static int setup(struct hvt *hvt, struct mft *mft)
 {
     if (!module_in_use)
         return 0;
 
+    host_mft = mft;
     assert(hvt_core_register_hypercall(HVT_HYPERCALL_NETWRITE,
                 hypercall_netwrite) == 0);
     assert(hvt_core_register_hypercall(HVT_HYPERCALL_NETREAD,
                 hypercall_netread) == 0);
 
-    for (unsigned i = 0; i != hvt->mft->entries; i++) {
-        if (hvt->mft->e[i].type != MFT_NET_BASIC || !hvt->mft->e[i].ok)
+    for (unsigned i = 0; i != host_mft->entries; i++) {
+        if (host_mft->e[i].type != MFT_NET_BASIC || !host_mft->e[i].ok)
             continue;
         char no_mac[6] = { 0 };
-        if (memcmp(hvt->mft->e[i].u.net_basic.mac, no_mac, sizeof no_mac) == 0)
-            tap_attach_genmac(hvt->mft->e[i].u.net_basic.mac);
-        assert(hvt_core_register_pollfd(hvt->mft->e[i].hostfd) == 0);
-        hvt->mft->e[i].ok = true;
+        if (memcmp(host_mft->e[i].u.net_basic.mac, no_mac, sizeof no_mac) == 0)
+            tap_attach_genmac(host_mft->e[i].u.net_basic.mac);
+        assert(hvt_core_register_pollfd(host_mft->e[i].hostfd) == 0);
+        host_mft->e[i].ok = true;
     }
 
     return 0;

@@ -54,7 +54,8 @@ endif
 
 ifdef CONFIG_HVT
 
-hvt_SRCS := hvt/hvt_core.c hvt/hvt_main.c hvt/hvt_cpu_$(CONFIG_ARCH).c
+hvt_SRCS := hvt/hvt_boot_info.c hvt/hvt_core.c hvt/hvt_main.c \
+    hvt/hvt_cpu_$(CONFIG_ARCH).c
 hvt_MODULES ?= blk net
 
 ifeq ($(CONFIG_HOST), Linux)

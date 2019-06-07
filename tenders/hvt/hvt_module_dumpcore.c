@@ -242,7 +242,7 @@ static char *usage(void)
     return "--dumpcore=DIR (enable guest core dump on abort/trap)";
 }
 
-static int setup(struct hvt *hvt)
+static int setup(struct hvt *hvt, struct mft *mft)
 {
     if (dumpcoredir == NULL)
         return 0; /* Not present */

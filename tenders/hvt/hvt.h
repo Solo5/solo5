@@ -55,9 +55,9 @@
 struct hvt {
     uint8_t *mem;
     size_t mem_size;
+    uint64_t cpu_cycle_freq;
+    hvt_gpa_t cpu_boot_info_base;
     struct hvt_b *b;
-    struct mft *mft;
-    size_t mft_size;
 };
 
 /*
@@ -83,11 +83,10 @@ inline void *hvt_checked_gpa_p(struct hvt *hvt, hvt_gpa_t gpa, size_t sz,
 }
 
 /*
- * Initialise hypervisor, with (mem_size) bytes of guest memory. (mft) is a
- * pointer to the application manifest and (mft_size) is its total size.
+ * Initialise hypervisor, with (mem_size) bytes of guest memory.
  * (hvt->mem) and (hvt->mem_size) are valid after this function has been called.
  */
-struct hvt *hvt_init(size_t mem_size, struct mft *mft, size_t mft_size);
+struct hvt *hvt_init(size_t mem_size);
 
 /*
  * Computes the memory size to use for this tender, based on the user-provided
@@ -96,12 +95,17 @@ struct hvt *hvt_init(size_t mem_size, struct mft *mft, size_t mft_size);
 void hvt_mem_size(size_t *mem_size);
 
 /*
- * Initialise VCPU state with (gpa_ep) as the entry point and (gpa_kend) as the
- * last byte of memory used by the guest binary. In (*cmdline), returns a
- * buffer with HVT_CMDLINE_SIZE bytes of space for the guest command line.
+ * Initialise VCPU state with (gpa_ep) as the entry point.
  */
-void hvt_vcpu_init(struct hvt *hvt, hvt_gpa_t gpa_ep,
-        hvt_gpa_t gpa_kend, char **cmdline);
+void hvt_vcpu_init(struct hvt *hvt, hvt_gpa_t gpa_ep);
+
+/*
+ * Initialise guest hvt_boot_info structure and its members in guest low
+ * memory. This must be called after hvt_vcpu_init() and after module setup.
+ * The manifest provided will be *copied* into guest memory.
+ */
+void hvt_boot_info_init(struct hvt *hvt, hvt_gpa_t gpa_kend, int cmdline_argc,
+        char **cmdline_argv, struct mft *mft, size_t mft_size);
 
 #if HVT_DROP_PRIVILEGES
 /*
@@ -159,7 +163,7 @@ extern hvt_vmexit_fn_t hvt_core_vmexits[];
  * optional.
  */
 struct hvt_module_ops {
-    int (*setup)(struct hvt *hvt);
+    int (*setup)(struct hvt *hvt, struct mft *mft);
     int (*handle_cmdarg)(char *cmdarg, struct mft *mft);
     char *(*usage)(void);
 };

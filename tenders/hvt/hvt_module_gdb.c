@@ -620,7 +620,7 @@ void handle_hvt_exit(void)
     send_response('X', GDB_SIGNAL_KILL, false);
 }
 
-static int setup(struct hvt *hvt)
+static int setup(struct hvt *hvt, struct mft *mft)
 {
     if (!use_gdb)
         return 0;

@@ -76,8 +76,7 @@ static struct kvm_segment sreg_to_kvm(const struct x86_sreg *sreg)
     return kvm;
 }
 
-void hvt_vcpu_init(struct hvt *hvt, hvt_gpa_t gpa_ep,
-        hvt_gpa_t gpa_kend, char **cmdline)
+void hvt_vcpu_init(struct hvt *hvt, hvt_gpa_t gpa_ep)
 {
     struct hvt_b *hvb = hvt->b;
     int ret;
@@ -109,21 +108,6 @@ void hvt_vcpu_init(struct hvt *hvt, hvt_gpa_t gpa_ep,
     if (ret == -1)
         err(1, "KVM: ioctl (SET_SREGS) failed");
 
-    struct hvt_boot_info *bi =
-        (struct hvt_boot_info *)(hvt->mem + X86_BOOT_INFO_BASE);
-    bi->mem_size = hvt->mem_size;
-    bi->kernel_end = gpa_kend;
-    bi->cmdline = X86_CMDLINE_BASE;
-
-    /*
-     * TODO: Perhaps initialization of bi should be moved to a separate
-     * sub-function entirely? Also, we should sanitize the guest's mft copy so
-     * as not to leak the tender's hostfd setup.
-     */
-    bi->mft = X86_MFT_BASE;
-    assert(hvt->mft_size <= X86_MFT_MAX_SIZE);
-    memcpy(hvt->mem + X86_MFT_BASE, hvt->mft, hvt->mft_size);
-
     ret = ioctl(hvb->kvmfd, KVM_CHECK_EXTENSION, KVM_CAP_GET_TSC_KHZ);
     if (ret == -1)
         err(1, "KVM: ioctl (KVM_CHECK_EXTENSION) failed");
@@ -141,7 +125,7 @@ void hvt_vcpu_init(struct hvt *hvt, hvt_gpa_t gpa_ep,
      * accurate than what we want, but no less accurate than any other
      * KVM-based virtual machine monitor.
      */
-    bi->cpu.tsc_freq = tsc_khz * 1000ULL;
+    hvt->cpu_cycle_freq = tsc_khz * 1000ULL;
 
     /*
      * Initialize user registers using (Linux) x86_64 ABI convention.
@@ -156,7 +140,7 @@ void hvt_vcpu_init(struct hvt *hvt, hvt_gpa_t gpa_ep,
     if (ret == -1)
         err(1, "KVM: ioctl (SET_REGS) failed");
 
-    *cmdline = (char *)(hvt->mem + X86_CMDLINE_BASE);
+    hvt->cpu_boot_info_base = X86_BOOT_INFO_BASE;
 }
 
 int hvt_vcpu_loop(struct hvt *hvt)

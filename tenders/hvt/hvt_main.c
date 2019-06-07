@@ -35,33 +35,14 @@
 
 #include "hvt.h"
 
-static void setup_cmdline(char *cmdline, int argc, char **argv)
-{
-    size_t cmdline_free = HVT_CMDLINE_SIZE;
-
-    cmdline[0] = 0;
-
-    for (; *argv; argc--, argv++) {
-        size_t alen = snprintf(cmdline, cmdline_free, "%s%s", *argv,
-                (argc > 1) ? " " : "");
-        if (alen >= cmdline_free) {
-            errx(1, "Guest command line too long (max=%d characters)",
-                    HVT_CMDLINE_SIZE - 1);
-            break;
-        }
-        cmdline_free -= alen;
-        cmdline += alen;
-    }
-}
-
 extern struct hvt_module __start_modules;
 extern struct hvt_module __stop_modules;
 
-static void setup_modules(struct hvt *hvt)
+static void setup_modules(struct hvt *hvt, struct mft *mft)
 {
     for (struct hvt_module *m = &__start_modules; m < &__stop_modules; m++) {
         assert(m->ops.setup);
-        if (m->ops.setup(hvt)) {
+        if (m->ops.setup(hvt, mft)) {
             warnx("Module `%s' setup failed", m->name);
             if (m->ops.usage) {
                 warnx("Please check you have correctly specified:\n    %s",
@@ -71,7 +52,6 @@ static void setup_modules(struct hvt *hvt)
         }
     }
 
-    struct mft *mft = hvt->mft;
     bool fail = false;
     for (unsigned i = 0; i != mft->entries; i++) {
         if (!mft->e[i].ok) {
@@ -235,19 +215,15 @@ int main(int argc, char **argv)
         err(1, "Could not install signal handler");
 
     hvt_mem_size(&mem_size);
-    struct hvt *hvt = hvt_init(mem_size, mft, mft_size);
+    struct hvt *hvt = hvt_init(mem_size);
 
     elf_load(elffile, hvt->mem, hvt->mem_size, &gpa_ep, &gpa_kend);
 
-    setup_modules(hvt);
+    hvt_vcpu_init(hvt, gpa_ep);
 
-    char *cmdline;
-    /*
-     * XXX: hvt_vcpu_init() must be called after setup_modules()!. See comment
-     * there regarding splitting bi init into a separate function.
-     */
-    hvt_vcpu_init(hvt, gpa_ep, gpa_kend, &cmdline);
-    setup_cmdline(cmdline, argc, argv);
+    setup_modules(hvt, mft);
+
+    hvt_boot_info_init(hvt, gpa_kend, argc, argv, mft, mft_size);
 
 #if HVT_DROP_PRIVILEGES
     hvt_drop_privileges();

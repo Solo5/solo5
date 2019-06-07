@@ -36,12 +36,13 @@
 #include "solo5.h"
 
 static bool module_in_use;
+static struct mft *host_mft;
 
 static void hypercall_blkwrite(struct hvt *hvt, hvt_gpa_t gpa)
 {
     struct hvt_blkwrite *wr =
         HVT_CHECKED_GPA_P(hvt, gpa, sizeof (struct hvt_blkwrite));
-    struct mft_entry *e = mft_get_by_index(hvt->mft, wr->handle,
+    struct mft_entry *e = mft_get_by_index(host_mft, wr->handle,
             MFT_BLOCK_BASIC);
     if (e == NULL) {
         wr->ret = SOLO5_R_EINVAL;
@@ -73,7 +74,7 @@ static void hypercall_blkread(struct hvt *hvt, hvt_gpa_t gpa)
 {
     struct hvt_blkread *rd =
         HVT_CHECKED_GPA_P(hvt, gpa, sizeof (struct hvt_blkread));
-    struct mft_entry *e = mft_get_by_index(hvt->mft, rd->handle,
+    struct mft_entry *e = mft_get_by_index(host_mft, rd->handle,
             MFT_BLOCK_BASIC);
     if (e == NULL) {
         rd->ret = SOLO5_R_EINVAL;
@@ -130,11 +131,12 @@ static int handle_cmdarg(char *cmdarg, struct mft *mft)
     return 0;
 }
 
-static int setup(struct hvt *hvt)
+static int setup(struct hvt *hvt, struct mft *mft)
 {
     if (!module_in_use)
         return 0;
 
+    host_mft = mft;
     assert(hvt_core_register_hypercall(HVT_HYPERCALL_BLKWRITE,
                 hypercall_blkwrite) == 0);
     assert(hvt_core_register_hypercall(HVT_HYPERCALL_BLKREAD,

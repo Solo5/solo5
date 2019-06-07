@@ -157,7 +157,7 @@ static void hypercall_poll(struct hvt *hvt, hvt_gpa_t gpa)
     t->ret = rc;
 }
 
-static int setup(struct hvt *hvt)
+static int setup(struct hvt *hvt, struct mft *mft)
 {
     assert(hvt_core_register_hypercall(HVT_HYPERCALL_WALLTIME,
                 hypercall_walltime) == 0);
