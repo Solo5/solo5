@@ -74,7 +74,7 @@ static ssize_t pread_in_full(int fd, void *buf, size_t count, off_t offset)
 }
 
 void elf_load(const char *file, uint8_t *mem, size_t mem_size,
-        uint64_t *p_entry, uint64_t *p_end, struct mft **mft, size_t *mft_size)
+       uint64_t *p_entry, uint64_t *p_end)
 {
     int fd_kernel = -1;
     ssize_t numb;
