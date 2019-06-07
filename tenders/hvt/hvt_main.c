@@ -226,11 +226,15 @@ int main(int argc, char **argv)
 
     elf_load(elffile, hvt->mem, hvt->mem_size, &gpa_ep, &gpa_kend);
 
+    setup_modules(hvt);
+
     char *cmdline;
+    /*
+     * XXX: hvt_vcpu_init() must be called after setup_modules()!. See comment
+     * there regarding splitting bi init into a separate function.
+     */
     hvt_vcpu_init(hvt, gpa_ep, gpa_kend, &cmdline);
     setup_cmdline(cmdline, argc, argv);
-
-    setup_modules(hvt);
 
 #if HVT_DROP_PRIVILEGES
     hvt_drop_privileges();

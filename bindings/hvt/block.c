@@ -25,6 +25,19 @@ static struct mft *mft;
 solo5_result_t solo5_block_write(solo5_handle_t handle, solo5_off_t offset,
         const uint8_t *buf, size_t size)
 {
+    struct mft_entry *e = mft_get_by_index(mft, handle, MFT_BLOCK_BASIC);
+    if (e == NULL)
+        return SOLO5_R_EINVAL;
+    if (offset % e->u.block_basic.block_size != 0)
+        return SOLO5_R_EINVAL;
+    /*
+     * TODO: This artificially enforces the current limit of allowing only
+     * single-block operations. Will be removed once all targets can handle
+     * reads/writes of >1 block.
+     */
+    if (size != e->u.block_basic.block_size)
+        return SOLO5_R_EINVAL;
+
     volatile struct hvt_blkwrite wr;
     wr.handle = handle;
     wr.offset = offset;
@@ -40,6 +53,19 @@ solo5_result_t solo5_block_write(solo5_handle_t handle, solo5_off_t offset,
 solo5_result_t solo5_block_read(solo5_handle_t handle, solo5_off_t offset,
         uint8_t *buf, size_t size)
 {
+    struct mft_entry *e = mft_get_by_index(mft, handle, MFT_BLOCK_BASIC);
+    if (e == NULL)
+        return SOLO5_R_EINVAL;
+    if (offset % e->u.block_basic.block_size != 0)
+        return SOLO5_R_EINVAL;
+    /*
+     * TODO: This artificially enforces the current limit of allowing only
+     * single-block operations. Will be removed once all targets can handle
+     * reads/writes of >1 block.
+     */
+    if (size != e->u.block_basic.block_size)
+        return SOLO5_R_EINVAL;
+
     volatile struct hvt_blkread rd;
     rd.handle = handle;
     rd.offset = offset;

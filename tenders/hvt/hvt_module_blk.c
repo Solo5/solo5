@@ -144,7 +144,7 @@ static int setup(struct hvt *hvt)
 
 static char *usage(void)
 {
-    return "--block:NAME=PATH (file exposed to the unikernel as a raw block device)";
+    return "--block:NAME=PATH (attach block device/file at PATH as block storage NAME)";
 }
 
 BEGIN_REGISTER_MODULE(blk) {

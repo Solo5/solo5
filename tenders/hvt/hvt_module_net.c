@@ -114,6 +114,7 @@ static int handle_cmdarg(char *cmdarg, struct mft *mft)
          */
         e->u.net_basic.mtu = 1500; /* TODO */
         e->hostfd = fd;
+        e->ok = true;
         module_in_use = true;
     }
     else if (which == opt_net_mac) {
@@ -160,8 +161,8 @@ static int setup(struct hvt *hvt)
 
 static char *usage(void)
 {
-    return "--net:NAME==TAP (host tap device for guest network interface or @NN tap fd)\n"
-        "    [ --net-mac:NAME=HWADDR ] (guest MAC address)";
+    return "--net:NAME=IFACE | @NN (attach tap at IFACE or at fd @NN as network NAME)\n"
+        "  [ --net-mac:NAME=HWADDR ] (set HWADDR for network NAME)";
 }
 
 BEGIN_REGISTER_MODULE(net) {

@@ -115,10 +115,14 @@ void hvt_vcpu_init(struct hvt *hvt, hvt_gpa_t gpa_ep,
     bi->kernel_end = gpa_kend;
     bi->cmdline = X86_CMDLINE_BASE;
 
+    /*
+     * TODO: Perhaps initialization of bi should be moved to a separate
+     * sub-function entirely? Also, we should sanitize the guest's mft copy so
+     * as not to leak the tender's hostfd setup.
+     */
     bi->mft = X86_MFT_BASE;
     assert(hvt->mft_size <= X86_MFT_MAX_SIZE);
     memcpy(hvt->mem + X86_MFT_BASE, hvt->mft, hvt->mft_size);
-    /* TODO sanitize guest mft copy? leaks hostfds */
 
     ret = ioctl(hvb->kvmfd, KVM_CHECK_EXTENSION, KVM_CAP_GET_TSC_KHZ);
     if (ret == -1)
