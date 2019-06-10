@@ -129,12 +129,15 @@ void hvt_vcpu_init(struct hvt *hvt, hvt_gpa_t gpa_ep)
 
     /*
      * Initialize user registers using (Linux) x86_64 ABI convention.
+     *
+     * x86_64 ABI requires stack alignment of ((%rsp + 8) % 16) == 0.
+     * %rdi is the only argument to _start, (struct hvt_boot_info *).
      */
     struct kvm_regs regs = {
         .rip = gpa_ep,
         .rflags = X86_RFLAGS_INIT,
-        .rsp = hvt->mem_size - 8, /* x86_64 ABI requires ((rsp + 8) % 16) == 0 */
-        .rdi = X86_BOOT_INFO_BASE,                  /* arg1 is hvt_boot_info */
+        .rsp = hvt->mem_size - 8,
+        .rdi = X86_BOOT_INFO_BASE,
     };
     ret = ioctl(hvb->vcpufd, KVM_SET_REGS, &regs);
     if (ret == -1)

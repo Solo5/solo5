@@ -55,9 +55,7 @@
  * 0x0FFFFFFFF End of RAM space
  * 0x100000    loaded elf file (linker script dictates location)
  *   ...       unused ram
- * 0x013000    command line arguments end
- * 0x011000    command line arguments start
- * 0x010000    hvt_boot_info
+ * 0x010000    hvt_boot_info starts
  * 0x007000    PTE
  * 0x006000    PMD3
  * 0x005000    PMD2
@@ -76,9 +74,6 @@
 #define AARCH64_PTE_PGT_BASE     _AC(0x7000, UL)
 #define AARCH64_PTE_PGT_SIZE     _AC(0x1000, UL)
 #define AARCH64_BOOT_INFO        _AC(0x10000, UL)
-#define AARCH64_BOOT_INFO_SZ     _AC(0x1000, UL)
-#define AARCH64_CMDLINE_BASE     _AC(0x11000, UL)
-#define AARCH64_CMDLINE_SZ       _AC(0x2000, UL)
 #define AARCH64_GUEST_MIN_BASE   _AC(0x100000, UL)
 #define AARCH64_MMIO_BASE        _AC(0x100000000, UL)
 #define AARCH64_MMIO_SZ          _AC(0x40000000, UL)
