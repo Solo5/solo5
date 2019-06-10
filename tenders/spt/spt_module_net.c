@@ -121,8 +121,6 @@ static int setup(struct spt *spt, struct mft *mft)
         if (rc != 0)
             errx(1, "seccomp_rule_add(write, fd=%d) failed: %s",
                     mft->e[i].hostfd, strerror(-rc));
-
-        mft->e[i].ok = true;
     }
 
     return 0;

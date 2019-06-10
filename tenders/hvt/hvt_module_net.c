@@ -152,14 +152,13 @@ static int setup(struct hvt *hvt, struct mft *mft)
     assert(hvt_core_register_hypercall(HVT_HYPERCALL_NETREAD,
                 hypercall_netread) == 0);
 
-    for (unsigned i = 0; i != host_mft->entries; i++) {
-        if (host_mft->e[i].type != MFT_NET_BASIC || !host_mft->e[i].ok)
+    for (unsigned i = 0; i != mft->entries; i++) {
+        if (mft->e[i].type != MFT_NET_BASIC || !mft->e[i].ok)
             continue;
         char no_mac[6] = { 0 };
-        if (memcmp(host_mft->e[i].u.net_basic.mac, no_mac, sizeof no_mac) == 0)
-            tap_attach_genmac(host_mft->e[i].u.net_basic.mac);
-        assert(hvt_core_register_pollfd(host_mft->e[i].hostfd) == 0);
-        host_mft->e[i].ok = true;
+        if (memcmp(mft->e[i].u.net_basic.mac, no_mac, sizeof no_mac) == 0)
+            tap_attach_genmac(mft->e[i].u.net_basic.mac);
+        assert(hvt_core_register_pollfd(mft->e[i].hostfd) == 0);
     }
 
     return 0;
