@@ -147,15 +147,43 @@ struct spt *spt_init(size_t mem_size)
     return spt;
 }
 
-void spt_bi_init(struct spt *spt, uint64_t p_end, char **cmdline)
+static void setup_cmdline(uint8_t *cmdline, int argc, char **argv)
 {
-    spt->bi = (struct spt_boot_info *)(spt->mem + SPT_BOOT_INFO_BASE);
-    memset(spt->bi, 0, sizeof (struct spt_boot_info));
-    spt->bi->cmdline = (char *)spt->mem + SPT_CMDLINE_BASE;
-    spt->bi->mem_size = spt->mem_size;
-    spt->bi->kernel_end = p_end;
+    size_t cmdline_free = SPT_CMDLINE_SIZE;
 
-    *cmdline = (char *)spt->mem + SPT_CMDLINE_BASE;
+    cmdline[0] = 0;
+
+    for (; *argv; argc--, argv++) {
+        size_t alen = snprintf((char *)cmdline, cmdline_free, "%s%s", *argv,
+                (argc > 1) ? " " : "");
+        if (alen >= cmdline_free) {
+            errx(1, "Guest command line too long (max=%d characters)",
+                    SPT_CMDLINE_SIZE - 1);
+            break;
+        }
+        cmdline_free -= alen;
+        cmdline += alen;
+    }
+}
+
+void spt_boot_info_init(struct spt *spt, uint64_t p_end, int cmdline_argc,
+        char **cmdline_argv, struct mft *mft, size_t mft_size)
+{
+    uint64_t lowmem_pos = SPT_BOOT_INFO_BASE;
+
+    struct spt_boot_info *bi =
+        (struct spt_boot_info *)(spt->mem + lowmem_pos);
+    lowmem_pos += sizeof (struct spt_boot_info);
+    bi->mem_size = spt->mem_size;
+    bi->kernel_end = p_end;
+
+    bi->mft = (void *)lowmem_pos;
+    memcpy(spt->mem + lowmem_pos, mft, mft_size);
+    lowmem_pos += mft_size;
+
+    bi->cmdline = (void *)lowmem_pos;
+    setup_cmdline(spt->mem + lowmem_pos, cmdline_argc, cmdline_argv);
+    lowmem_pos += SPT_CMDLINE_SIZE;
 }
 
 /*
@@ -188,10 +216,10 @@ void spt_run(struct spt *spt, uint64_t p_entry)
     abort(); /* spt_launch() does not return */
 }
 
-static int handle_cmdarg(char *cmdarg)
+static int handle_cmdarg(char *cmdarg, struct mft *mft)
 {
     if (!strncmp("--x-exec-heap", cmdarg, 13)) {
-	warnx("WARNING: The use of --x-exec-heap is dangerous and not"
+        warnx("WARNING: The use of --x-exec-heap is dangerous and not"
               " recommended as it makes the heap and stack executable.");
         use_exec_heap = true;
         return 0;
@@ -199,7 +227,7 @@ static int handle_cmdarg(char *cmdarg)
     return -1;
 }
 
-static int setup(struct spt *spt)
+static int setup(struct spt *spt, struct mft *mft)
 {
     int rc = -1;
 
@@ -238,7 +266,7 @@ static int setup(struct spt *spt)
 static char *usage(void)
 {
     return "--x-exec-heap (make the heap executable)."
-	   " WARNING: This option is dangerous and not recommended as it"
+           " WARNING: This option is dangerous and not recommended as it"
            " makes the heap and stack executable.";
 }
 

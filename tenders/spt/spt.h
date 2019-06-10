@@ -31,6 +31,7 @@
 
 #include "../common/cc.h"
 #include "../common/elf.h"
+#include "../common/mft.h"
 #include "spt_abi.h"
 
 struct spt {
@@ -42,7 +43,8 @@ struct spt {
 
 struct spt *spt_init(size_t mem_size);
 
-void spt_bi_init(struct spt *spt, uint64_t p_end, char **cmdline);
+void spt_boot_info_init(struct spt *spt, uint64_t p_end, int cmdline_argc,
+	char **cmdline_argv, struct mft *mft, size_t mft_size);
 
 void spt_run(struct spt *spt, uint64_t p_entry);
 
@@ -52,8 +54,8 @@ void spt_run(struct spt *spt, uint64_t p_entry);
  */
 struct spt_module {
     const char *name;
-    int (*setup)(struct spt *spt);
-    int (*handle_cmdarg)(char *cmdarg);
+    int (*setup)(struct spt *spt, struct mft *mft);
+    int (*handle_cmdarg)(char *cmdarg, struct mft *mft);
     char *(*usage)(void);
 };
 

@@ -318,7 +318,7 @@ virtio_expect_abort() {
 }
 
 @test "blk spt" {
-  spt_run --disk=${DISK} -- test_blk/test_blk.spt
+  spt_run --block:storage=${DISK} -- test_blk/test_blk.spt
   expect_success
 }
 

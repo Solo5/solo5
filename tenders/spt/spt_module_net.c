@@ -33,71 +33,105 @@
 #include "../common/tap_attach.h"
 #include "spt.h"
 
-static char *netiface;
-static int netfd = -1;
-static uint8_t guest_mac[6];
-static int cmdline_mac = 0;
+static bool module_in_use;
 
-static int handle_cmdarg(char *cmdarg)
+static int handle_cmdarg(char *cmdarg, struct mft *mft)
 {
-    if (!strncmp("--net=", cmdarg, 6)) {
-        netiface = cmdarg + 6;
-        return 0;
-    } else if (!strncmp("--net-mac=", cmdarg, 10)) {
-        const char *macptr = cmdarg + 10;
-        uint8_t mac[6];
-        if (sscanf(macptr,
-                   "%02"SCNx8":%02"SCNx8":%02"SCNx8":"
-                   "%02"SCNx8":%02"SCNx8":%02"SCNx8,
-                   &mac[0], &mac[1], &mac[2], &mac[3], &mac[4], &mac[5]) != 6) {
-            warnx("Malformed mac address: %s", macptr);
+    enum {
+        opt_net,
+        opt_net_mac
+    } which;
+
+    if (strncmp("--net:", cmdarg, 6) == 0)
+        which = opt_net;
+    else if (strncmp("--net-mac:", cmdarg, 10) == 0)
+        which = opt_net_mac;
+    else
+        return -1;
+
+    char name[MFT_NAME_SIZE];
+    char iface[20]; /* XXX should be IFNAMSIZ, needs extra header here */
+    int rc;
+    if (which == opt_net) {
+        rc = sscanf(cmdarg,
+                "--net:%" XSTR(MFT_NAME_MAX) "[A-Za-z0-9]="
+                "%19s", name, iface);
+        if (rc != 2)
+            return -1;
+        struct mft_entry *e = mft_get_by_name(mft, name, MFT_NET_BASIC, NULL);
+        if (e == NULL) {
+            warnx("Resource not declared in manifest: '%s'", name);
             return -1;
         }
-        memcpy(guest_mac, mac, sizeof guest_mac);
-        cmdline_mac = 1;
-        return 0;
-    } else {
-        return -1;
+        int fd = tap_attach(iface);
+        if (fd < 0) {
+            warnx("Could not attach interface: %s", iface);
+            return -1;
+        }
+
+        /* e->u.net_basic.mac[] is set either by option or generated later by
+         * setup().
+         */
+        e->u.net_basic.mtu = 1500; /* TODO */
+        e->hostfd = fd;
+        e->ok = true;
+        module_in_use = true;
     }
+    else if (which == opt_net_mac) {
+        uint8_t mac[6];
+        rc = sscanf(cmdarg,
+                "--net-mac:%" XSTR(MFT_NAME_MAX) "[A-Za-z0-9]="
+                "%02"SCNx8":%02"SCNx8":%02"SCNx8":"
+                "%02"SCNx8":%02"SCNx8":%02"SCNx8,
+                name,
+                &mac[0], &mac[1], &mac[2], &mac[3], &mac[4], &mac[5]);
+        if (rc != 7)
+            return -1;
+        struct mft_entry *e = mft_get_by_name(mft, name, MFT_NET_BASIC, NULL);
+        if (e == NULL) {
+            warnx("Resource not declared in manifest: '%s'", name);
+            return -1;
+        }
+        memcpy(e->u.net_basic.mac, mac, sizeof mac);
+    }
+
+    return 0;
 }
 
-static int setup(struct spt *spt)
+static int setup(struct spt *spt, struct mft *mft)
 {
-    if (netiface == NULL)
-        return 0; /* not set up == not present */
+    if (!module_in_use)
+        return 0;
 
-    netfd = tap_attach(netiface);
-    if (netfd < 0)
-        err(1, "Could not attach interface: %s", netiface);
+    for (unsigned i = 0; i != mft->entries; i++) {
+        if (mft->e[i].type != MFT_NET_BASIC || !mft->e[i].ok)
+            continue;
+        char no_mac[6] = { 0 };
+        if (memcmp(mft->e[i].u.net_basic.mac, no_mac, sizeof no_mac) == 0)
+            tap_attach_genmac(mft->e[i].u.net_basic.mac);
 
-    if (!cmdline_mac)
-	tap_attach_genmac(guest_mac);
+        int rc = -1;
+        rc = seccomp_rule_add(spt->sc_ctx, SCMP_ACT_ALLOW, SCMP_SYS(read), 1,
+                SCMP_A0(SCMP_CMP_EQ, mft->e[i].hostfd));
+        if (rc != 0)
+            errx(1, "seccomp_rule_add(read, fd=%d) failed: %s",
+                    mft->e[i].hostfd, strerror(-rc));
+        rc = seccomp_rule_add(spt->sc_ctx, SCMP_ACT_ALLOW, SCMP_SYS(write), 1,
+                SCMP_A0(SCMP_CMP_EQ, mft->e[i].hostfd));
+        if (rc != 0)
+            errx(1, "seccomp_rule_add(write, fd=%d) failed: %s",
+                    mft->e[i].hostfd, strerror(-rc));
 
-    spt->bi->neti.present = 1;
-    memcpy(spt->bi->neti.mac_address, guest_mac,
-            sizeof spt->bi->neti.mac_address);
-    spt->bi->neti.hostfd = netfd;
-
-    int rc = -1;
-
-    rc = seccomp_rule_add(spt->sc_ctx, SCMP_ACT_ALLOW, SCMP_SYS(read), 1,
-            SCMP_A0(SCMP_CMP_EQ, netfd));
-    if (rc != 0)
-        errx(1, "seccomp_rule_add(read, fd=%d) failed: %s", netfd,
-                strerror(-rc));
-    rc = seccomp_rule_add(spt->sc_ctx, SCMP_ACT_ALLOW, SCMP_SYS(write), 1,
-            SCMP_A0(SCMP_CMP_EQ, netfd));
-    if (rc != 0)
-        errx(1, "seccomp_rule_add(write, fd=%d) failed: %s", netfd,
-                strerror(-rc));
+        mft->e[i].ok = true;
+    }
 
     return 0;
 }
 
 static char *usage(void)
 {
-    return "--net=TAP (host tap device for guest network interface or @NN tap fd)\n"
-        "    [ --net-mac=HWADDR ] (guest MAC address)";
+    return "--net:NAME=IFACE | @NN (attach tap at IFACE or at fd @NN as network NAME)\n"
+        "  [ --net-mac:NAME=HWADDR ] (set HWADDR for network NAME)";
 }
 
 struct spt_module spt_module_net = {

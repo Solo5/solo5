@@ -34,30 +34,11 @@
 
 #include "spt.h"
 
-static void setup_cmdline(char *cmdline, int argc, char **argv)
-{
-    size_t cmdline_free = SPT_CMDLINE_SIZE;
-
-    cmdline[0] = 0;
-
-    for (; *argv; argc--, argv++) {
-        size_t alen = snprintf(cmdline, cmdline_free, "%s%s", *argv,
-                (argc > 1) ? " " : "");
-        if (alen >= cmdline_free) {
-            errx(1, "Guest command line too long (max=%d characters)",
-                    SPT_CMDLINE_SIZE - 1);
-            break;
-        }
-        cmdline_free -= alen;
-        cmdline += alen;
-    }
-}
-
-static void setup_modules(struct spt *spt)
+static void setup_modules(struct spt *spt, struct mft *mft)
 {
     for (struct spt_module **m = spt_core_modules; *m; m++) {
         assert((*m)->setup);
-        if ((*m)->setup(spt)) {
+        if ((*m)->setup(spt, mft)) {
             warnx("Module `%s' setup failed", (*m)->name);
             if ((*m)->usage) {
                 warnx("Please check you have correctly specified:\n    %s",
@@ -66,13 +47,25 @@ static void setup_modules(struct spt *spt)
             exit(1);
         }
     }
+
+    bool fail = false;
+    for (unsigned i = 0; i != mft->entries; i++) {
+        if (!mft->e[i].ok) {
+            warnx("Resource '%s' of type %s declared but not attached.",
+                    mft->e[i].name, mft_type_to_string(mft->e[i].type));
+            fail = true;
+        }
+    }
+    if (fail)
+        errx(1, "All declared resources must be attached. "
+                "See --help for syntax.");
 }
 
-static int handle_cmdarg(char *cmdarg)
+static int handle_cmdarg(char *cmdarg, struct mft *mft)
 {
     for (struct spt_module **m = spt_core_modules; *m; m++) {
         if ((*m)->handle_cmdarg) {
-            if ((*m)->handle_cmdarg(cmdarg) == 0) {
+            if ((*m)->handle_cmdarg(cmdarg, mft) == 0) {
                 return 0;
             }
         }
@@ -131,10 +124,49 @@ int main(int argc, char **argv)
     argc--;
     argv++;
 
-    while (*argv && *argv[0] == '-') {
-        if (strcmp("--help", *argv) == 0)
+    /*
+     * Scan command line arguments, looking for the first non-option argument
+     * which will be the ELF file to load. Stop if a "terminal" option such as
+     * --help is encountered.
+     */
+    int argc1 = argc;
+    char **argv1 = argv;
+    while (*argv1 && *argv1[0] == '-') {
+        if (strcmp("--help", *argv1) == 0)
             usage(prog);
 
+        argc1--;
+        argv1++;
+        if (strcmp("--", *argv1) == 0)
+        {
+            argc1--;
+            argv1++;
+            break;
+        }
+    }
+    if (*argv1 == NULL) {
+        warnx("Missing KERNEL operand");
+        usage(prog);
+    }
+    elffile = *argv1;
+
+    /*
+     * Now that we have the ELF file name, try and load the manifest from it,
+     * as subsequent parsing of the command line in the 2nd pass depends on it.
+     */
+    struct mft *mft;
+    size_t mft_size;
+    elf_load_mft(elffile, &mft, &mft_size);
+    if (mft_validate(mft, mft_size) == -1) {
+        free(mft);
+        errx(1, "%s: Solo5 manifest is invalid", elffile);
+    }
+
+    /*
+     * Scan command line arguments in a 2nd pass, and pass options through to
+     * modules to handle.
+     */
+    while (*argv && *argv[0] == '-') {
         if (strcmp("--", *argv) == 0) {
             /* Consume and stop arg processing */
             argc--;
@@ -149,7 +181,7 @@ int main(int argc, char **argv)
             argc--;
             argv++;
         }
-        if (handle_cmdarg(*argv) == 0) {
+        if (handle_cmdarg(*argv, mft) == 0) {
             /* Handled by module, consume and go on to next arg */
             matched = 1;
             argc--;
@@ -160,13 +192,7 @@ int main(int argc, char **argv)
             usage(prog);
         }
     }
-
-    /* At least one non-option argument required */
-    if (*argv == NULL) {
-        warnx("Missing KERNEL operand");
-        usage(prog);
-    }
-    elffile = *argv;
+    assert(elffile == *argv);
     argc--;
     argv++;
 
@@ -179,11 +205,9 @@ int main(int argc, char **argv)
 
     elf_load(elffile, spt->mem, spt->mem_size, &p_entry, &p_end);
 
-    char *cmdline;
-    spt_bi_init(spt, p_end, &cmdline);
-    setup_cmdline(cmdline, argc, argv);
+    setup_modules(spt, mft);
 
-    setup_modules(spt);
+    spt_boot_info_init(spt, p_end, argc, argv, mft, mft_size);
 
     spt_run(spt, p_entry);
 }

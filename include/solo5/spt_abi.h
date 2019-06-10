@@ -32,25 +32,6 @@
 #include <stdint.h>
 
 /*
- * Block device information passed by the tender to the guest.
- */
-struct spt_block_info {
-    int present;                        /* Set to 1 if present/valid */
-    uint64_t capacity;                  /* Capacity of block device, bytes */
-    uint64_t block_size;                /* Minimum I/O unit, bytes */
-    int hostfd;                         /* Host backing file descriptor */
-};
-
-/*
- * Network device information passed by the tender to the guest.
- */
-struct spt_net_info {
-    int present;                        /* Set to 1 if present/valid */
-    uint8_t mac_address[6];             /* Guest MAC address */
-    int hostfd;                         /* Host TAP file descriptor */
-};
-
-/*
  * A pointer to this structure is passed by the tender as the sole argument to
  * the guest entrypoint.
  */
@@ -58,8 +39,7 @@ struct spt_boot_info {
     uint64_t mem_size;                  /* Memory size in bytes */
     uint64_t kernel_end;                /* Address of end of kernel */
     const char * cmdline;               /* Address of command line (C string) */
-    struct spt_block_info blocki;
-    struct spt_net_info neti;
+    void *mft;
 };
 
 /*
@@ -72,7 +52,6 @@ struct spt_boot_info {
  * Guest low memory layout.
  */
 #define SPT_BOOT_INFO_BASE (SPT_HOST_MEM_BASE + 0x1000)
-#define SPT_CMDLINE_BASE   (SPT_HOST_MEM_BASE + 0x2000)
 
 /*
  * Maximum size of guest command line, including the string terminator.

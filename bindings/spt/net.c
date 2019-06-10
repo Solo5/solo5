@@ -20,30 +20,48 @@
 
 #include "bindings.h"
 
-static int netfd = -1;
-static uint8_t mac_address[6];
+static struct mft *mft;
+static struct sys_pollfd pollfds[MFT_MAX_ENTRIES];
+static int npollfds;
 
 void net_init(struct spt_boot_info *bi)
 {
-    if (bi->neti.present) {
-        netfd = bi->neti.hostfd;
-        memcpy(mac_address, bi->neti.mac_address, sizeof mac_address);
+    mft = bi->mft;
+
+    npollfds = 0;
+    for (unsigned i = 0; i != mft->entries; i++) {
+	if (mft->e[i].type == MFT_NET_BASIC) {
+	    pollfds[npollfds].fd = mft->e[i].hostfd;
+	    pollfds[npollfds].events = SYS_POLLIN;
+	    npollfds++;
+	}
     }
 }
 
-void solo5_net_info(struct solo5_net_info *info)
+solo5_result_t solo5_net_acquire(const char *name, solo5_handle_t *handle,
+        struct solo5_net_info *info)
 {
-    assert(netfd >= 0);
+    unsigned index;
+    struct mft_entry *e = mft_get_by_name(mft, name, MFT_NET_BASIC, &index);
+    if (e == NULL)
+        return SOLO5_R_EINVAL;
+    assert(e->ok);
 
-    memcpy(info->mac_address, mac_address, sizeof info->mac_address);
-    info->mtu = 1500;
+    *handle = index;
+    info->mtu = e->u.net_basic.mtu;
+    memcpy(info->mac_address, e->u.net_basic.mac,
+            sizeof info->mac_address);
+    return SOLO5_R_OK;
 }
 
-solo5_result_t solo5_net_read(uint8_t *buf, size_t size, size_t *read_size)
+solo5_result_t solo5_net_read(solo5_handle_t handle, uint8_t *buf, size_t size,
+	size_t *read_size)
 {
-    assert(netfd >= 0);
+    struct mft_entry *e = mft_get_by_index(mft, handle, MFT_NET_BASIC);
+    if (e == NULL)
+        return SOLO5_R_EINVAL;
     
-    long nbytes = sys_read(netfd, (char *)buf, size);
+    long nbytes = sys_read(e->hostfd, (char *)buf, size);
     if (nbytes < 0) {
         if (nbytes == SYS_EAGAIN)
             return SOLO5_R_AGAIN;
@@ -55,11 +73,14 @@ solo5_result_t solo5_net_read(uint8_t *buf, size_t size, size_t *read_size)
     return SOLO5_R_OK;
 }
 
-solo5_result_t solo5_net_write(const uint8_t *buf, size_t size)
+solo5_result_t solo5_net_write(solo5_handle_t handle, const uint8_t *buf,
+	size_t size)
 {
-    assert(netfd >= 0);
+    struct mft_entry *e = mft_get_by_index(mft, handle, MFT_NET_BASIC);
+    if (e == NULL)
+        return SOLO5_R_EINVAL;
 
-    long nbytes = sys_write(netfd, (const char *)buf, size);
+    long nbytes = sys_write(e->hostfd, (const char *)buf, size);
 
     return (nbytes == (int)size) ? SOLO5_R_OK : SOLO5_R_EUNSPEC;
 }
@@ -68,8 +89,6 @@ bool solo5_yield(solo5_time_t deadline)
 {
     struct sys_timespec ts;
     int rc;
-    struct sys_pollfd fds[1];
-    int nfds = 0;
     uint64_t now, timeout_nsecs;
 
     now = solo5_clock_monotonic();
@@ -81,14 +100,8 @@ bool solo5_yield(solo5_time_t deadline)
     ts.tv_sec = timeout_nsecs / NSEC_PER_SEC;
     ts.tv_nsec = timeout_nsecs % NSEC_PER_SEC;
 
-    if (netfd >= 0) {
-        fds[nfds].fd = netfd;
-        fds[nfds].events = SYS_POLLIN;
-        nfds++;
-    }
-
     do {
-        rc = sys_ppoll(fds, nfds, &ts);
+        rc = sys_ppoll(pollfds, npollfds, &ts);
     } while (rc == SYS_EINTR);
     assert(rc >= 0);
     
