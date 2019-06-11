@@ -85,6 +85,7 @@ solo5_result_t solo5_net_write(solo5_handle_t handle, const uint8_t *buf,
 
 bool solo5_yield(solo5_time_t deadline)
 {
+    int rc;
     uint64_t now, timeout_nsecs;
 
     now = solo5_clock_monotonic();
@@ -96,9 +97,11 @@ bool solo5_yield(solo5_time_t deadline)
     int nevents = npollfds ? npollfds : 1;
     struct sys_epoll_event events[nevents];
 
-    int nfds = sys_epoll_wait(epollfd, events, nevents,
-            timeout_nsecs / 1000000ULL);
-    assert(nfds >= 0);
+    do {
+        rc = sys_epoll_pwait(epollfd, events, nevents,
+                timeout_nsecs / 1000000ULL, NULL, 0);
+    } while (rc == SYS_EINTR);
+    assert(rc >= 0);
     
-    return nfds;
+    return rc;
 }

@@ -74,7 +74,8 @@ struct sys_epoll_event {
     sys_epoll_data_t data;
 };
 
-long sys_epoll_wait(long epfd, void *events, long maxevents, long timeout);
+long sys_epoll_pwait(long epfd, void *events, long maxevents, long timeout,
+        void *sigmask, long sigsetsize);
 
 #define SYS_ARCH_SET_FS		0x1002
 

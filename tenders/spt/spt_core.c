@@ -244,7 +244,7 @@ static int setup(struct spt *spt, struct mft *mft)
     rc = seccomp_rule_add(spt->sc_ctx, SCMP_ACT_ALLOW, SCMP_SYS(exit_group), 0);
     if (rc != 0)
         errx(1, "seccomp_rule_add(exit_group) failed: %s", strerror(-rc));
-    rc = seccomp_rule_add(spt->sc_ctx, SCMP_ACT_ALLOW, SCMP_SYS(epoll_wait), 1,
+    rc = seccomp_rule_add(spt->sc_ctx, SCMP_ACT_ALLOW, SCMP_SYS(epoll_pwait), 1,
             SCMP_A0(SCMP_CMP_EQ, spt->epollfd));
     if (rc != 0)
         errx(1, "seccomp_rule_add(epoll_pwait) failed: %s", strerror(-rc));

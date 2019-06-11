@@ -37,7 +37,7 @@
 #define SYS_clock_gettime 113
 #define SYS_exit_group    94
 #define SYS_ppoll         73
-#define SYS_epoll_wait    252
+#define SYS_epoll_pwait   22
 
 long sys_read(long fd, void *buf, long size)
 {
@@ -159,18 +159,22 @@ long sys_ppoll(void *fds, long nfds, void *ts)
     return x0;
 }
 
-long sys_epoll_wait(long epfd, void *events, long maxevents, long timeout)
+long sys_epoll_pwait(long epfd, void *events, long maxevents, long timeout,
+        void *sigmask, long sigsetsize)
 {
-    register long x8 __asm__("x8") = SYS_epoll_wait;
+    register long x8 __asm__("x8") = SYS_epoll_pwait;
     register long x0 __asm__("x0") = epfd;
     register long x1 __asm__("x1") = (long)events;
     register long x2 __asm__("x2") = maxevents;
     register long x3 __asm__("x3") = timeout;
+    register long x4 __asm__("x4") = (long)sigmask;
+    register long x5 __asm__("x5") = sigsetsize;
 
     __asm__ __volatile__ (
             "svc 0"
             : "=r" (x0)
-            : "r" (x8), "r" (x0), "r" (x1), "r" (x2), "r" (x3)
+            : "r" (x8), "r" (x0), "r" (x1), "r" (x2), "r" (x3), "r" (x4),
+              "r" (x5)
             : "memory", "cc"
     );
 
