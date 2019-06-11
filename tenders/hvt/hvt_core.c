@@ -144,7 +144,6 @@ static void hypercall_puts(struct hvt *hvt, hvt_gpa_t gpa)
 
 static int waitsetfd = -1;
 static int npollfds;
-static sigset_t pollsigmask;
 
 static void setup_waitset(void)
 {
@@ -182,21 +181,26 @@ static void hypercall_poll(struct hvt *hvt, hvt_gpa_t gpa)
 {
     struct hvt_poll *t =
         HVT_CHECKED_GPA_P(hvt, gpa, sizeof (struct hvt_poll));
-
     int nevents = npollfds ? npollfds : 1;
+    int nrevents;
 
 #if defined(__linux__)
     struct epoll_event revents[nevents];
 
-    int nrevents = epoll_pwait(waitsetfd, revents, nevents,
-            t->timeout_nsecs / 1000000ULL, &pollsigmask);
+    do {
+        nrevents = epoll_pwait(waitsetfd, revents, nevents,
+                t->timeout_nsecs / 1000000ULL, NULL);
+    } while (nrevents == -1 && errno == EINTR);
 #else /* kqueue */
     struct kevent revents[nevents];
     struct timespec ts;
 
     ts.tv_sec = t->timeout_nsecs / 1000000000ULL;
     ts.tv_nsec = t->timeout_nsecs % 1000000000ULL;
-    int nrevents = kevent(waitsetfd, NULL, 0, revents, nevents, &ts);
+
+    do {
+        nrevents = kevent(waitsetfd, NULL, 0, revents, nevents, &ts);
+    } while (nrevents == -1 && errno == EINTR);
 #endif
     assert(nrevents >= 0);
     t->ret = nrevents;
@@ -213,13 +217,6 @@ static int setup(struct hvt *hvt, struct mft *mft)
                 hypercall_puts) == 0);
     assert(hvt_core_register_hypercall(HVT_HYPERCALL_POLL,
                 hypercall_poll) == 0);
-
-    /*
-     * XXX: This needs documenting / coordination with the top-level caller.
-     */
-    sigfillset(&pollsigmask);
-    sigdelset(&pollsigmask, SIGTERM);
-    sigdelset(&pollsigmask, SIGINT);
 
     return 0;
 }
