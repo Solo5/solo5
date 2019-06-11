@@ -156,7 +156,7 @@ static void setup_waitset(void)
         err(1, "Could not create wait set");
 }
 
-int hvt_core_register_pollfd(int fd)
+int hvt_core_register_pollfd(int fd, uint64_t waitset_data)
 {
     if (waitsetfd == -1)
         setup_waitset();
@@ -164,12 +164,12 @@ int hvt_core_register_pollfd(int fd)
 #if defined(__linux__)
     struct epoll_event ev;
     ev.events = EPOLLIN;
-    ev.data.fd = fd;
+    ev.data.u64 = waitset_data;
     if (epoll_ctl(waitsetfd, EPOLL_CTL_ADD, fd, &ev) == -1)
         err(1, "epoll_ctl(EPOLL_CTL_ADD) failed");
 #else /* kqueue */
     struct kevent ev;
-    EV_SET(&ev, fd, EVFILT_READ, EV_ADD, 0, 0, NULL);
+    EV_SET(&ev, fd, EVFILT_READ, EV_ADD, 0, 0, (void *)waitset_data);
     if (kevent(waitsetfd, &ev, 1, NULL, 0, NULL) == -1)
         err(1, "kevent(EV_ADD) failed");
 #endif
@@ -183,6 +183,7 @@ static void hypercall_poll(struct hvt *hvt, hvt_gpa_t gpa)
         HVT_CHECKED_GPA_P(hvt, gpa, sizeof (struct hvt_poll));
     int nevents = npollfds ? npollfds : 1;
     int nrevents;
+    uint64_t ready_set = 0;
 
 #if defined(__linux__)
     struct epoll_event revents[nevents];
@@ -191,6 +192,11 @@ static void hypercall_poll(struct hvt *hvt, hvt_gpa_t gpa)
         nrevents = epoll_pwait(waitsetfd, revents, nevents,
                 t->timeout_nsecs / 1000000ULL, NULL);
     } while (nrevents == -1 && errno == EINTR);
+    assert(nrevents >= 0);
+    if (nrevents > 0) {
+        for (int i = 0; i < nrevents; i++)
+            ready_set |= (1ULL << revents[i].data.u64);
+    }
 #else /* kqueue */
     struct kevent revents[nevents];
     struct timespec ts;
@@ -201,8 +207,13 @@ static void hypercall_poll(struct hvt *hvt, hvt_gpa_t gpa)
     do {
         nrevents = kevent(waitsetfd, NULL, 0, revents, nevents, &ts);
     } while (nrevents == -1 && errno == EINTR);
-#endif
     assert(nrevents >= 0);
+    if (nrevents > 0) {
+        for (int i = 0; i < nrevents; i++)
+            ready_set |= (1ULL << (uint64_t *)revents[i].udata);
+    }
+#endif
+    t->ready_set = ready_set;
     t->ret = nrevents;
 }
 

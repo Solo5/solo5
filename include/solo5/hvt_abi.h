@@ -250,6 +250,7 @@ struct hvt_poll {
     uint64_t timeout_nsecs;
 
     /* OUT */
+    uint64_t ready_set;
     int ret;
 };
 

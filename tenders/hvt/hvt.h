@@ -125,8 +125,9 @@ int hvt_vcpu_loop(struct hvt *hvt);
 
 /*
  * Register the file descriptor (fd) for use with HVT_HYPERCALL_POLL.
+ * (waitset_data) must be set to the solo5_handle_t associated with (fd).
  */
-int hvt_core_register_pollfd(int fd);
+int hvt_core_register_pollfd(int fd, uint64_t waitset_data);
 
 /*
  * Register (fn) as the handler for hypercall (nr).

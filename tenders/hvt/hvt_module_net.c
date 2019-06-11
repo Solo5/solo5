@@ -158,7 +158,7 @@ static int setup(struct hvt *hvt, struct mft *mft)
         char no_mac[6] = { 0 };
         if (memcmp(mft->e[i].u.net_basic.mac, no_mac, sizeof no_mac) == 0)
             tap_attach_genmac(mft->e[i].u.net_basic.mac);
-        assert(hvt_core_register_pollfd(mft->e[i].hostfd) == 0);
+        assert(hvt_core_register_pollfd(mft->e[i].hostfd, i) == 0);
     }
 
     return 0;

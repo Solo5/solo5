@@ -83,9 +83,8 @@ solo5_result_t solo5_net_write(solo5_handle_t handle, const uint8_t *buf,
     return (nbytes == (int)size) ? SOLO5_R_OK : SOLO5_R_EUNSPEC;
 }
 
-bool solo5_yield(solo5_time_t deadline)
+bool solo5_yield(solo5_time_t deadline, solo5_handle_set_t *ready_set)
 {
-    int rc;
     uint64_t now, timeout_nsecs;
 
     now = solo5_clock_monotonic();
@@ -94,14 +93,21 @@ bool solo5_yield(solo5_time_t deadline)
     else
         timeout_nsecs = deadline - now;
 
+    int nrevents;
     int nevents = npollfds ? npollfds : 1;
-    struct sys_epoll_event events[nevents];
+    struct sys_epoll_event revents[nevents];
+    solo5_handle_set_t tmp_ready_set = 0;
 
     do {
-        rc = sys_epoll_pwait(epollfd, events, nevents,
+        nrevents = sys_epoll_pwait(epollfd, revents, nevents,
                 timeout_nsecs / 1000000ULL, NULL, 0);
-    } while (rc == SYS_EINTR);
-    assert(rc >= 0);
-    
-    return rc;
+    } while (nrevents == SYS_EINTR);
+    assert(nrevents >= 0);
+    if (nrevents > 0) {
+        for (int i = 0; i < nrevents; i++)
+            tmp_ready_set |= 1ULL << revents[i].data.u64;
+    }
+    if (ready_set != NULL)
+        *ready_set = tmp_ready_set;
+    return (nrevents > 0);
 }
