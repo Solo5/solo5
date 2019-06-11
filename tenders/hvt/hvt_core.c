@@ -156,7 +156,7 @@ static void setup_waitset(void)
         err(1, "Could not create wait set");
 }
 
-int hvt_core_register_pollfd(int fd, uint64_t waitset_data)
+int hvt_core_register_pollfd(int fd, uintptr_t waitset_data)
 {
     if (waitsetfd == -1)
         setup_waitset();
@@ -210,7 +210,7 @@ static void hypercall_poll(struct hvt *hvt, hvt_gpa_t gpa)
     assert(nrevents >= 0);
     if (nrevents > 0) {
         for (int i = 0; i < nrevents; i++)
-            ready_set |= (1ULL << (uint64_t)revents[i].udata);
+            ready_set |= (1ULL << (uintptr_t)revents[i].udata);
     }
 #endif
     t->ready_set = ready_set;
