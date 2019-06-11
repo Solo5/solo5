@@ -210,7 +210,7 @@ static void hypercall_poll(struct hvt *hvt, hvt_gpa_t gpa)
     assert(nrevents >= 0);
     if (nrevents > 0) {
         for (int i = 0; i < nrevents; i++)
-            ready_set |= (1ULL << (uint64_t *)revents[i].udata);
+            ready_set |= (1ULL << (uint64_t)revents[i].udata);
     }
 #endif
     t->ready_set = ready_set;
