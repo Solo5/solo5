@@ -29,7 +29,6 @@
 #include <assert.h>
 #include <err.h>
 #include <errno.h>
-#include <sys/epoll.h>
 #include <signal.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -38,6 +37,22 @@
 #include <sys/mman.h>
 #include <time.h>
 #include <unistd.h>
+
+#if defined(__linux__)
+
+#include <sys/epoll.h>
+
+#elif defined(__FreeBSD__) || defined(__OpenBSD__)
+
+#include <sys/types.h>
+#include <sys/event.h>
+#include <sys/time.h>
+
+#else
+
+#error Unsupported target
+
+#endif
 
 #include "hvt.h"
 
@@ -127,23 +142,38 @@ static void hypercall_puts(struct hvt *hvt, hvt_gpa_t gpa)
     assert(rc >= 0);
 }
 
-static int epollfd = -1;
+static int waitsetfd = -1;
 static int npollfds;
 static sigset_t pollsigmask;
 
+static void setup_waitset(void)
+{
+#if defined(__linux__)
+    waitsetfd = epoll_create1(0);
+#else /* kqueue */
+    waitsetfd = kqueue();
+#endif
+    if (waitsetfd == -1)
+        err(1, "Could not create wait set");
+}
+
 int hvt_core_register_pollfd(int fd)
 {
-    if (epollfd == -1) {
-        epollfd = epoll_create1(0);
-        if (epollfd == -1)
-            err(1, "epoll_create1() failed");
-    }
+    if (waitsetfd == -1)
+        setup_waitset();
 
+#if defined(__linux__)
     struct epoll_event ev;
     ev.events = EPOLLIN;
     ev.data.fd = fd;
-    if (epoll_ctl(epollfd, EPOLL_CTL_ADD, fd, &ev) == -1)
+    if (epoll_ctl(waitsetfd, EPOLL_CTL_ADD, fd, &ev) == -1)
         err(1, "epoll_ctl(EPOLL_CTL_ADD) failed");
+#else /* kqueue */
+    struct kevent ev;
+    EV_SET(&ev, fd, EVFILT_READ, EV_ADD, 0, 0, NULL);
+    if (kevent(waitsetfd, &ev, 1, NULL, 0, NULL) == -1)
+        err(1, "kevent(EV_ADD) failed");
+#endif
     npollfds++;
     return 0;
 }
@@ -154,21 +184,28 @@ static void hypercall_poll(struct hvt *hvt, hvt_gpa_t gpa)
         HVT_CHECKED_GPA_P(hvt, gpa, sizeof (struct hvt_poll));
 
     int nevents = npollfds ? npollfds : 1;
-    struct epoll_event events[nevents];
 
-    int nfds = epoll_pwait(epollfd, events, nevents,
+#if defined(__linux__)
+    struct epoll_event revents[nevents];
+
+    int nrevents = epoll_pwait(waitsetfd, revents, nevents,
             t->timeout_nsecs / 1000000ULL, &pollsigmask);
-    assert(nfds >= 0);
-    t->ret = nfds;
+#else /* kqueue */
+    struct kevent revents[nevents];
+    struct timespec ts;
+
+    ts.tv_sec = t->timeout_nsecs / 1000000000ULL;
+    ts.tv_nsec = t->timeout_nsecs % 1000000000ULL;
+    int nrevents = kevent(waitsetfd, NULL, 0, revents, nevents, &ts);
+#endif
+    assert(nrevents >= 0);
+    t->ret = nrevents;
 }
 
 static int setup(struct hvt *hvt, struct mft *mft)
 {
-    if (epollfd == -1) {
-        epollfd = epoll_create1(0);
-        if (epollfd == -1)
-            err(1, "epoll_create1() failed");
-    }
+    if (waitsetfd == -1)
+        setup_waitset();
 
     assert(hvt_core_register_hypercall(HVT_HYPERCALL_WALLTIME,
                 hypercall_walltime) == 0);
