@@ -38,6 +38,7 @@ struct spt {
     uint8_t *mem;
     size_t mem_size;
     struct spt_boot_info *bi;
+    int epollfd;
     void *sc_ctx;
 };
 

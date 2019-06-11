@@ -21,20 +21,18 @@
 #include "bindings.h"
 
 static struct mft *mft;
-static struct sys_pollfd pollfds[MFT_MAX_ENTRIES];
+static int epollfd;
 static int npollfds;
 
 void net_init(struct spt_boot_info *bi)
 {
     mft = bi->mft;
+    epollfd = bi->epollfd;
 
     npollfds = 0;
     for (unsigned i = 0; i != mft->entries; i++) {
-	if (mft->e[i].type == MFT_NET_BASIC) {
-	    pollfds[npollfds].fd = mft->e[i].hostfd;
-	    pollfds[npollfds].events = SYS_POLLIN;
+	if (mft->e[i].type == MFT_NET_BASIC)
 	    npollfds++;
-	}
     }
 }
 
@@ -87,8 +85,6 @@ solo5_result_t solo5_net_write(solo5_handle_t handle, const uint8_t *buf,
 
 bool solo5_yield(solo5_time_t deadline)
 {
-    struct sys_timespec ts;
-    int rc;
     uint64_t now, timeout_nsecs;
 
     now = solo5_clock_monotonic();
@@ -97,13 +93,12 @@ bool solo5_yield(solo5_time_t deadline)
     else
         timeout_nsecs = deadline - now;
 
-    ts.tv_sec = timeout_nsecs / NSEC_PER_SEC;
-    ts.tv_nsec = timeout_nsecs % NSEC_PER_SEC;
+    int nevents = npollfds ? npollfds : 1;
+    struct sys_epoll_event events[nevents];
 
-    do {
-        rc = sys_ppoll(pollfds, npollfds, &ts);
-    } while (rc == SYS_EINTR);
-    assert(rc >= 0);
+    int nfds = sys_epoll_wait(epollfd, events, nevents,
+            timeout_nsecs / 1000000ULL);
+    assert(nfds >= 0);
     
-    return rc;
+    return nfds;
 }

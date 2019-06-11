@@ -29,7 +29,7 @@
 #include <assert.h>
 #include <err.h>
 #include <errno.h>
-#include <poll.h>
+#include <sys/epoll.h>
 #include <signal.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -127,17 +127,23 @@ static void hypercall_puts(struct hvt *hvt, hvt_gpa_t gpa)
     assert(rc >= 0);
 }
 
-static struct pollfd pollfds[NUM_MODULES];
-static int npollfds = 0;
+static int epollfd = -1;
+static int npollfds;
 static sigset_t pollsigmask;
 
 int hvt_core_register_pollfd(int fd)
 {
-    if (npollfds == NUM_MODULES)
-        return -1;
+    if (epollfd == -1) {
+        epollfd = epoll_create1(0);
+        if (epollfd == -1)
+            err(1, "epoll_create1() failed");
+    }
 
-    pollfds[npollfds].fd = fd;
-    pollfds[npollfds].events = POLLIN;
+    struct epoll_event ev;
+    ev.events = EPOLLIN;
+    ev.data.fd = fd;
+    if (epoll_ctl(epollfd, EPOLL_CTL_ADD, fd, &ev) == -1)
+        err(1, "epoll_ctl(EPOLL_CTL_ADD) failed");
     npollfds++;
     return 0;
 }
@@ -146,19 +152,24 @@ static void hypercall_poll(struct hvt *hvt, hvt_gpa_t gpa)
 {
     struct hvt_poll *t =
         HVT_CHECKED_GPA_P(hvt, gpa, sizeof (struct hvt_poll));
-    struct timespec ts;
-    int rc;
 
-    ts.tv_sec = t->timeout_nsecs / 1000000000ULL;
-    ts.tv_nsec = t->timeout_nsecs % 1000000000ULL;
+    int nevents = npollfds ? npollfds : 1;
+    struct epoll_event events[nevents];
 
-    rc = ppoll(pollfds, npollfds, &ts, &pollsigmask);
-    assert(rc >= 0);
-    t->ret = rc;
+    int nfds = epoll_pwait(epollfd, events, nevents,
+            t->timeout_nsecs / 1000000ULL, &pollsigmask);
+    assert(nfds >= 0);
+    t->ret = nfds;
 }
 
 static int setup(struct hvt *hvt, struct mft *mft)
 {
+    if (epollfd == -1) {
+        epollfd = epoll_create1(0);
+        if (epollfd == -1)
+            err(1, "epoll_create1() failed");
+    }
+
     assert(hvt_core_register_hypercall(HVT_HYPERCALL_WALLTIME,
                 hypercall_walltime) == 0);
     assert(hvt_core_register_hypercall(HVT_HYPERCALL_PUTS,

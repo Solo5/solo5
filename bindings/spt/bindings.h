@@ -62,6 +62,20 @@ struct sys_pollfd {
 
 long sys_ppoll(void *fds, long nfds, void *ts);
 
+typedef union sys_epoll_data {
+    void *ptr;
+    int fd;
+    uint32_t u32;
+    uint64_t u64;
+} sys_epoll_data_t;
+
+struct sys_epoll_event {
+    uint32_t events;
+    sys_epoll_data_t data;
+};
+
+long sys_epoll_wait(long epfd, void *events, long maxevents, long timeout);
+
 #define SYS_ARCH_SET_FS		0x1002
 
 long sys_arch_prctl(long code, long addr);

@@ -36,6 +36,7 @@
 #include <time.h>
 #include <seccomp.h>
 #include <sys/personality.h>
+#include <sys/epoll.h>
 
 #if defined(__x86_64__)
 #include <asm/prctl.h>
@@ -141,6 +142,10 @@ struct spt *spt_init(size_t mem_size)
     spt->mem -= SPT_HOST_MEM_BASE;
     spt->mem_size = mem_size;
 
+    spt->epollfd = epoll_create1(0);
+    if (spt->epollfd == -1)
+        err(1, "epoll_create1() failed");
+
     spt->sc_ctx = seccomp_init(SCMP_ACT_KILL);
     assert(spt->sc_ctx != NULL);
 
@@ -176,6 +181,7 @@ void spt_boot_info_init(struct spt *spt, uint64_t p_end, int cmdline_argc,
     lowmem_pos += sizeof (struct spt_boot_info);
     bi->mem_size = spt->mem_size;
     bi->kernel_end = p_end;
+    bi->epollfd = spt->epollfd;
 
     bi->mft = (void *)lowmem_pos;
     memcpy(spt->mem + lowmem_pos, mft, mft_size);
@@ -238,10 +244,10 @@ static int setup(struct spt *spt, struct mft *mft)
     rc = seccomp_rule_add(spt->sc_ctx, SCMP_ACT_ALLOW, SCMP_SYS(exit_group), 0);
     if (rc != 0)
         errx(1, "seccomp_rule_add(exit_group) failed: %s", strerror(-rc));
-    rc = seccomp_rule_add(spt->sc_ctx, SCMP_ACT_ALLOW, SCMP_SYS(ppoll), 1,
-            SCMP_A3(SCMP_CMP_EQ, 0));
+    rc = seccomp_rule_add(spt->sc_ctx, SCMP_ACT_ALLOW, SCMP_SYS(epoll_wait), 1,
+            SCMP_A0(SCMP_CMP_EQ, spt->epollfd));
     if (rc != 0)
-        errx(1, "seccomp_rule_add(ppoll) failed: %s", strerror(-rc));
+        errx(1, "seccomp_rule_add(epoll_pwait) failed: %s", strerror(-rc));
     rc = seccomp_rule_add(spt->sc_ctx, SCMP_ACT_ALLOW, SCMP_SYS(clock_gettime),
             1, SCMP_A0(SCMP_CMP_EQ, CLOCK_MONOTONIC));
     if (rc != 0)

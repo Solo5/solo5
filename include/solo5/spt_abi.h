@@ -40,6 +40,7 @@ struct spt_boot_info {
     uint64_t kernel_end;                /* Address of end of kernel */
     const char * cmdline;               /* Address of command line (C string) */
     void *mft;
+    int epollfd;
 };
 
 /*

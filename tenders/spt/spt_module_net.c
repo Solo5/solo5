@@ -29,6 +29,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <seccomp.h>
+#include <sys/epoll.h>
 
 #include "../common/tap_attach.h"
 #include "spt.h"
@@ -110,7 +111,15 @@ static int setup(struct spt *spt, struct mft *mft)
         if (memcmp(mft->e[i].u.net_basic.mac, no_mac, sizeof no_mac) == 0)
             tap_attach_genmac(mft->e[i].u.net_basic.mac);
 
-        int rc = -1;
+        int rc;
+        struct epoll_event ev;
+        ev.events = EPOLLIN;
+        ev.data.fd = mft->e[i].hostfd;
+        rc = epoll_ctl(spt->epollfd, EPOLL_CTL_ADD, mft->e[i].hostfd, &ev);
+        if (rc == -1)
+            err(1, "epoll_ctl(EPOLL_CTL_ADD, hostfd=%d) failed",
+                    mft->e[i].hostfd);
+
         rc = seccomp_rule_add(spt->sc_ctx, SCMP_ACT_ALLOW, SCMP_SYS(read), 1,
                 SCMP_A0(SCMP_CMP_EQ, mft->e[i].hostfd));
         if (rc != 0)
