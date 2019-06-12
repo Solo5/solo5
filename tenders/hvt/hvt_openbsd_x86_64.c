@@ -180,9 +180,7 @@ int hvt_vcpu_loop(struct hvt *hvt)
                     /* Guest has halted the CPU. */
                     if (nr == HVT_HYPERCALL_HALT) {
                         hvt_gpa_t gpa = vei->vei.vei_data;
-                        struct hvt_halt *p =
-                            HVT_CHECKED_GPA_P(hvt, gpa, sizeof (struct hvt_halt));
-                        return p->exit_status;
+                        return hvt_core_hypercall_halt(hvt, gpa);
                     }
 
                     hvt_hypercall_fn_t fn = hvt_core_hypercalls[nr];
