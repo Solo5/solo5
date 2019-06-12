@@ -241,6 +241,10 @@ case "${CONFIG_HOST}" in
         ;;
 esac
 
+# TEMPORARY TODO, remove once other targets are functional on this branch.
+CONFIG_MUEN=
+CONFIG_GENODE=
+
 # WARNING:
 #
 # The generated Makeconf is dual-use! It is both sourced by GNU make, and by
