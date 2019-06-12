@@ -94,10 +94,18 @@ bool solo5_yield(solo5_time_t deadline, solo5_handle_set_t *ready_set)
         timeout_nsecs = deadline - now;
 
     int nrevents;
+    /*
+     * At least one event must be requested in epoll(), otherwise the call will
+     * just return or error.
+     */
     int nevents = npollfds ? npollfds : 1;
     struct sys_epoll_event revents[nevents];
     solo5_handle_set_t tmp_ready_set = 0;
-
+    
+    /*
+     * TODO: This reduces timeout granularity to milliseconds. Use an internal
+     * timerfd here?
+     */
     do {
         nrevents = sys_epoll_pwait(epollfd, revents, nevents,
                 timeout_nsecs / 1000000ULL, NULL, 0);

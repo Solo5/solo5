@@ -164,11 +164,19 @@ int hvt_core_register_pollfd(int fd, uintptr_t waitset_data)
 #if defined(__linux__)
     struct epoll_event ev;
     ev.events = EPOLLIN;
+    /*
+     * waitset_data is a solo5_handle_t, and will be returned by epoll() as
+     * part of any received event.
+     */
     ev.data.u64 = waitset_data;
     if (epoll_ctl(waitsetfd, EPOLL_CTL_ADD, fd, &ev) == -1)
         err(1, "epoll_ctl(EPOLL_CTL_ADD) failed");
 #else /* kqueue */
     struct kevent ev;
+    /*
+     * waitset_data is a solo5_handle_t, and will be returned by kevent() as
+     * part of any received event.
+     */
     EV_SET(&ev, fd, EVFILT_READ, EV_ADD, 0, 0, (void *)waitset_data);
     if (kevent(waitsetfd, &ev, 1, NULL, 0, NULL) == -1)
         err(1, "kevent(EV_ADD) failed");
@@ -181,6 +189,10 @@ static void hypercall_poll(struct hvt *hvt, hvt_gpa_t gpa)
 {
     struct hvt_poll *t =
         HVT_CHECKED_GPA_P(hvt, gpa, sizeof (struct hvt_poll));
+    /*
+     * At least one event must be requested in epoll() or kevent(), otherwise
+     * the call will just return or error.
+     */
     int nevents = npollfds ? npollfds : 1;
     int nrevents;
     uint64_t ready_set = 0;
@@ -188,6 +200,10 @@ static void hypercall_poll(struct hvt *hvt, hvt_gpa_t gpa)
 #if defined(__linux__)
     struct epoll_event revents[nevents];
 
+    /*
+     * TODO: This reduces timeout granularity to milliseconds. Use an internal
+     * timerfd here?
+     */
     do {
         nrevents = epoll_pwait(waitsetfd, revents, nevents,
                 t->timeout_nsecs / 1000000ULL, NULL);

@@ -114,6 +114,10 @@ static int setup(struct spt *spt, struct mft *mft)
         int rc;
         struct epoll_event ev;
         ev.events = EPOLLIN;
+        /*
+         * i is the manifest index, i.e. the solo5_handle_t and will be returned
+         * by epoll() as part of any received event.
+         */
         ev.data.u64 = i;
         rc = epoll_ctl(spt->epollfd, EPOLL_CTL_ADD, mft->e[i].hostfd, &ev);
         if (rc == -1)
