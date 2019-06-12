@@ -38,10 +38,10 @@
 static bool module_in_use;
 static struct mft *host_mft;
 
-static void hypercall_netwrite(struct hvt *hvt, hvt_gpa_t gpa)
+static void hypercall_net_write(struct hvt *hvt, hvt_gpa_t gpa)
 {
-    struct hvt_netwrite *wr =
-        HVT_CHECKED_GPA_P(hvt, gpa, sizeof (struct hvt_netwrite));
+    struct hvt_hc_net_write *wr =
+        HVT_CHECKED_GPA_P(hvt, gpa, sizeof (struct hvt_hc_net_write));
     struct mft_entry *e = mft_get_by_index(host_mft, wr->handle, MFT_NET_BASIC);
     if (e == NULL) {
         wr->ret = SOLO5_R_EINVAL;
@@ -55,10 +55,10 @@ static void hypercall_netwrite(struct hvt *hvt, hvt_gpa_t gpa)
     wr->ret = SOLO5_R_OK;
 }
 
-static void hypercall_netread(struct hvt *hvt, hvt_gpa_t gpa)
+static void hypercall_net_read(struct hvt *hvt, hvt_gpa_t gpa)
 {
-    struct hvt_netread *rd =
-        HVT_CHECKED_GPA_P(hvt, gpa, sizeof (struct hvt_netread));
+    struct hvt_hc_net_read *rd =
+        HVT_CHECKED_GPA_P(hvt, gpa, sizeof (struct hvt_hc_net_read));
     struct mft_entry *e = mft_get_by_index(host_mft, rd->handle, MFT_NET_BASIC);
     if (e == NULL) {
         rd->ret = SOLO5_R_EINVAL;
@@ -147,10 +147,10 @@ static int setup(struct hvt *hvt, struct mft *mft)
         return 0;
 
     host_mft = mft;
-    assert(hvt_core_register_hypercall(HVT_HYPERCALL_NETWRITE,
-                hypercall_netwrite) == 0);
-    assert(hvt_core_register_hypercall(HVT_HYPERCALL_NETREAD,
-                hypercall_netread) == 0);
+    assert(hvt_core_register_hypercall(HVT_HYPERCALL_NET_WRITE,
+                hypercall_net_write) == 0);
+    assert(hvt_core_register_hypercall(HVT_HYPERCALL_NET_READ,
+                hypercall_net_read) == 0);
 
     for (unsigned i = 0; i != mft->entries; i++) {
         if (mft->e[i].type != MFT_NET_BASIC || !mft->e[i].attached)

@@ -34,13 +34,6 @@
 #include <stddef.h>
 #include <stdint.h>
 
-/*
- * Arch-dependent part of struct hvt_boot_info.
- */
-struct hvt_cpu_boot_info {
-    uint64_t tsc_freq;                  /* TSC frequency in Hz */
-};
-
 #ifdef __x86_64__
 /*
  * PIO base address used to dispatch hypercalls.
@@ -146,10 +139,11 @@ static inline void hvt_do_hypercall(int n, volatile void *arg)
 struct hvt_boot_info {
     uint64_t mem_size;                  /* Memory size in bytes */
     uint64_t kernel_end;                /* Address of end of kernel */
-    HVT_GUEST_PTR(char *) cmdline;     /* Address of command line (C string) */
-    struct hvt_cpu_boot_info cpu;      /* Arch-dependent part (see above) */
-    HVT_GUEST_PTR(void *) mft;
+    uint64_t cpu_cycle_freq;            /* CPU cycle counter frequency, Hz */
+    HVT_GUEST_PTR(char *) cmdline;      /* Address of command line (C string) */
+    HVT_GUEST_PTR(void *) mft;          /* Address of application manifest */
 };
+
 /*
  * Maximum size of guest command line, including the string terminator.
  */
@@ -164,10 +158,10 @@ enum hvt_hypercall {
     HVT_HYPERCALL_WALLTIME=1,
     HVT_HYPERCALL_PUTS,
     HVT_HYPERCALL_POLL,
-    HVT_HYPERCALL_BLKWRITE,
-    HVT_HYPERCALL_BLKREAD,
-    HVT_HYPERCALL_NETWRITE,
-    HVT_HYPERCALL_NETREAD,
+    HVT_HYPERCALL_BLOCK_WRITE,
+    HVT_HYPERCALL_BLOCK_READ,
+    HVT_HYPERCALL_NET_WRITE,
+    HVT_HYPERCALL_NET_READ,
     HVT_HYPERCALL_HALT,
     HVT_HYPERCALL_MAX
 };
@@ -177,20 +171,20 @@ enum hvt_hypercall {
  */
 
 /* HVT_HYPERCALL_WALLTIME */
-struct hvt_walltime {
+struct hvt_hc_walltime {
     /* OUT */
     uint64_t nsecs;
 };
 
 /* HVT_HYPERCALL_PUTS */
-struct hvt_puts {
+struct hvt_hc_puts {
     /* IN */
     HVT_GUEST_PTR(const char *) data;
     size_t len;
 };
 
-/* HVT_HYPERCALL_BLKWRITE */
-struct hvt_blkwrite {
+/* HVT_HYPERCALL_BLOCK_WRITE */
+struct hvt_hc_block_write {
     /* IN */
     uint64_t handle;
     uint64_t offset;
@@ -201,8 +195,8 @@ struct hvt_blkwrite {
     int ret;
 };
 
-/* HVT_HYPERCALL_BLKREAD */
-struct hvt_blkread {
+/* HVT_HYPERCALL_BLOCK_READ */
+struct hvt_hc_block_read {
     /* IN */
     uint64_t handle;
     uint64_t offset;
@@ -215,8 +209,8 @@ struct hvt_blkread {
     int ret;
 };
 
-/* HVT_HYPERCALL_NETWRITE */
-struct hvt_netwrite {
+/* HVT_HYPERCALL_NET_WRITE */
+struct hvt_hc_net_write {
     /* IN */
     uint64_t handle;
     HVT_GUEST_PTR(const void *) data;
@@ -226,8 +220,8 @@ struct hvt_netwrite {
     int ret;
 };
 
-/* HVT_HYPERCALL_NETREAD */
-struct hvt_netread {
+/* HVT_HYPERCALL_NET_READ */
+struct hvt_hc_net_read {
     /* IN */
     uint64_t handle;
     HVT_GUEST_PTR(void *) data;
@@ -239,15 +233,10 @@ struct hvt_netread {
     int ret;
 };
 
-/*
- * HVT_HYPERCALL_POLL: Block until timeout_nsecs have passed or I/O is
- * possible, whichever is sooner. Returns 1 if I/O is possible, otherwise 0.
- *
- * TODO: Extend this interface to select which I/O events are of interest.
- */
-struct hvt_poll {
+/* HVT_HYPERCALL_POLL */
+struct hvt_hc_poll {
     /* IN */
-    uint64_t timeout_nsecs;
+    uint64_t timeout_nsecs;             /* Relative to time of call */
 
     /* OUT */
     uint64_t ready_set;
@@ -266,7 +255,7 @@ struct hvt_poll {
  */
 #define HVT_HALT_COOKIE_MAX 512
 
-struct hvt_halt {
+struct hvt_hc_halt {
     /* IN */
     HVT_GUEST_PTR(void *) cookie;
 

@@ -25,14 +25,14 @@ static struct mft *mft;
 solo5_result_t solo5_net_write(solo5_handle_t handle, const uint8_t *buf,
         size_t size)
 {
-    volatile struct hvt_netwrite wr;
+    volatile struct hvt_hc_net_write wr;
 
     wr.handle = handle;
     wr.data = buf;
     wr.len = size;
     wr.ret = 0;
 
-    hvt_do_hypercall(HVT_HYPERCALL_NETWRITE, &wr);
+    hvt_do_hypercall(HVT_HYPERCALL_NET_WRITE, &wr);
 
     return wr.ret;
 }
@@ -40,14 +40,14 @@ solo5_result_t solo5_net_write(solo5_handle_t handle, const uint8_t *buf,
 solo5_result_t solo5_net_read(solo5_handle_t handle, uint8_t *buf, size_t size,
         size_t *read_size)
 {
-    volatile struct hvt_netread rd;
+    volatile struct hvt_hc_net_read rd;
 
     rd.handle = handle;
     rd.data = buf;
     rd.len = size;
     rd.ret = 0;
 
-    hvt_do_hypercall(HVT_HYPERCALL_NETREAD, &rd);
+    hvt_do_hypercall(HVT_HYPERCALL_NET_READ, &rd);
 
     *read_size = rd.len;
     return rd.ret;

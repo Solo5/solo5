@@ -38,10 +38,10 @@
 static bool module_in_use;
 static struct mft *host_mft;
 
-static void hypercall_blkwrite(struct hvt *hvt, hvt_gpa_t gpa)
+static void hypercall_block_write(struct hvt *hvt, hvt_gpa_t gpa)
 {
-    struct hvt_blkwrite *wr =
-        HVT_CHECKED_GPA_P(hvt, gpa, sizeof (struct hvt_blkwrite));
+    struct hvt_hc_block_write *wr =
+        HVT_CHECKED_GPA_P(hvt, gpa, sizeof (struct hvt_hc_block_write));
     struct mft_entry *e = mft_get_by_index(host_mft, wr->handle,
             MFT_BLOCK_BASIC);
     if (e == NULL) {
@@ -70,10 +70,10 @@ static void hypercall_blkwrite(struct hvt *hvt, hvt_gpa_t gpa)
     wr->ret = SOLO5_R_OK;
 }
 
-static void hypercall_blkread(struct hvt *hvt, hvt_gpa_t gpa)
+static void hypercall_block_read(struct hvt *hvt, hvt_gpa_t gpa)
 {
-    struct hvt_blkread *rd =
-        HVT_CHECKED_GPA_P(hvt, gpa, sizeof (struct hvt_blkread));
+    struct hvt_hc_block_read *rd =
+        HVT_CHECKED_GPA_P(hvt, gpa, sizeof (struct hvt_hc_block_read));
     struct mft_entry *e = mft_get_by_index(host_mft, rd->handle,
             MFT_BLOCK_BASIC);
     if (e == NULL) {
@@ -137,10 +137,10 @@ static int setup(struct hvt *hvt, struct mft *mft)
         return 0;
 
     host_mft = mft;
-    assert(hvt_core_register_hypercall(HVT_HYPERCALL_BLKWRITE,
-                hypercall_blkwrite) == 0);
-    assert(hvt_core_register_hypercall(HVT_HYPERCALL_BLKREAD,
-                hypercall_blkread) == 0);
+    assert(hvt_core_register_hypercall(HVT_HYPERCALL_BLOCK_WRITE,
+                hypercall_block_write) == 0);
+    assert(hvt_core_register_hypercall(HVT_HYPERCALL_BLOCK_READ,
+                hypercall_block_read) == 0);
 
     return 0;
 }

@@ -87,8 +87,8 @@ int hvt_core_hypercall_halt(struct hvt *hvt, hvt_gpa_t gpa)
 {
     void *cookie;
     int idx;
-    struct hvt_halt *t =
-            HVT_CHECKED_GPA_P(hvt, gpa, sizeof (struct hvt_halt));
+    struct hvt_hc_halt *t =
+            HVT_CHECKED_GPA_P(hvt, gpa, sizeof (struct hvt_hc_halt));
 
     /*
      * If the guest set a non-NULL cookie (non-zero before conversion), verify
@@ -125,8 +125,8 @@ int hvt_core_register_vmexit(hvt_vmexit_fn_t fn)
 
 static void hypercall_walltime(struct hvt *hvt, hvt_gpa_t gpa)
 {
-    struct hvt_walltime *t =
-        HVT_CHECKED_GPA_P(hvt, gpa, sizeof (struct hvt_walltime));
+    struct hvt_hc_walltime *t =
+        HVT_CHECKED_GPA_P(hvt, gpa, sizeof (struct hvt_hc_walltime));
     struct timespec ts;
 
     int rc = clock_gettime(CLOCK_REALTIME, &ts);
@@ -136,8 +136,8 @@ static void hypercall_walltime(struct hvt *hvt, hvt_gpa_t gpa)
 
 static void hypercall_puts(struct hvt *hvt, hvt_gpa_t gpa)
 {
-    struct hvt_puts *p =
-        HVT_CHECKED_GPA_P(hvt, gpa, sizeof (struct hvt_puts));
+    struct hvt_hc_puts *p =
+        HVT_CHECKED_GPA_P(hvt, gpa, sizeof (struct hvt_hc_puts));
     int rc = write(1, HVT_CHECKED_GPA_P(hvt, p->data, p->len), p->len);
     assert(rc >= 0);
 }
@@ -187,8 +187,8 @@ int hvt_core_register_pollfd(int fd, uintptr_t waitset_data)
 
 static void hypercall_poll(struct hvt *hvt, hvt_gpa_t gpa)
 {
-    struct hvt_poll *t =
-        HVT_CHECKED_GPA_P(hvt, gpa, sizeof (struct hvt_poll));
+    struct hvt_hc_poll *t =
+        HVT_CHECKED_GPA_P(hvt, gpa, sizeof (struct hvt_hc_poll));
     /*
      * At least one event must be requested in epoll() or kevent(), otherwise
      * the call will just return or error.

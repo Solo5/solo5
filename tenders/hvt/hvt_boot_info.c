@@ -64,7 +64,7 @@ void hvt_boot_info_init(struct hvt *hvt, hvt_gpa_t gpa_kend, int cmdline_argc,
     lowmem_pos += sizeof (struct hvt_boot_info);
     bi->mem_size = hvt->mem_size;
     bi->kernel_end = gpa_kend;
-    bi->cpu.tsc_freq = hvt->cpu_cycle_freq;
+    bi->cpu_cycle_freq = hvt->cpu_cycle_freq;
     /*
      * Followed by mft_size bytes for manifest.
      *

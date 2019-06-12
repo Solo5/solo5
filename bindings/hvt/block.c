@@ -38,14 +38,14 @@ solo5_result_t solo5_block_write(solo5_handle_t handle, solo5_off_t offset,
     if (size != e->u.block_basic.block_size)
         return SOLO5_R_EINVAL;
 
-    volatile struct hvt_blkwrite wr;
+    volatile struct hvt_hc_block_write wr;
     wr.handle = handle;
     wr.offset = offset;
     wr.data = buf;
     wr.len = size;
     wr.ret = 0;
 
-    hvt_do_hypercall(HVT_HYPERCALL_BLKWRITE, &wr);
+    hvt_do_hypercall(HVT_HYPERCALL_BLOCK_WRITE, &wr);
 
     return wr.ret;
 }
@@ -66,14 +66,14 @@ solo5_result_t solo5_block_read(solo5_handle_t handle, solo5_off_t offset,
     if (size != e->u.block_basic.block_size)
         return SOLO5_R_EINVAL;
 
-    volatile struct hvt_blkread rd;
+    volatile struct hvt_hc_block_read rd;
     rd.handle = handle;
     rd.offset = offset;
     rd.data = buf;
     rd.len = size;
     rd.ret = 0;
 
-    hvt_do_hypercall(HVT_HYPERCALL_BLKREAD, &rd);
+    hvt_do_hypercall(HVT_HYPERCALL_BLOCK_READ, &rd);
 
     return rd.ret;
 }
