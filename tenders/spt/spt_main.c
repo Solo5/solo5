@@ -50,14 +50,14 @@ static void setup_modules(struct spt *spt, struct mft *mft)
 
     bool fail = false;
     for (unsigned i = 0; i != mft->entries; i++) {
-        if (!mft->e[i].ok) {
-            warnx("Resource '%s' of type %s declared but not attached.",
+        if (!mft->e[i].attached) {
+            warnx("Device '%s' of type %s declared but not attached.",
                     mft->e[i].name, mft_type_to_string(mft->e[i].type));
             fail = true;
         }
     }
     if (fail)
-        errx(1, "All declared resources must be attached. "
+        errx(1, "All declared devices must be attached. "
                 "See --help for syntax.");
 }
 

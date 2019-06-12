@@ -125,7 +125,7 @@ static int handle_cmdarg(char *cmdarg, struct mft *mft)
     e->u.block_basic.capacity = capacity;
     e->u.block_basic.block_size = 512;
     e->hostfd = fd;
-    e->ok = true;
+    e->attached = true;
     module_in_use = true;
 
     return 0;

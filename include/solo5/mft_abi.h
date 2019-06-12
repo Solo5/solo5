@@ -19,7 +19,7 @@
  */
 
 /*
- * mft_abi.h: Manifest ABI definitions.
+ * mft_abi.h: Application manifest ABI definitions.
  *
  * This header file must be kept self-contained with no external dependencies
  * other than C99 headers. It defines the binary structures of the application
@@ -38,33 +38,45 @@
  */
 #define MFT_VERSION 1
 
-enum mft_type {
+/*
+ * Supported device types.
+ */
+typedef enum mft_type {
     MFT_BLOCK_BASIC,
     MFT_NET_BASIC
-};
+} mft_type_t;
 
+/*
+ * MFT_BLOCK_BASIC (basic block device) properties.
+ */
 struct mft_block_basic {
     uint64_t capacity;
     uint16_t block_size;
 };
 
+/*
+ * MFT_NET_BASIC (basic network device) properties.
+ */
 struct mft_net_basic {
     uint8_t mac[6];
     uint16_t mtu;
 };
 
-#define MFT_NAME_SIZE 32
-#define MFT_NAME_MAX 31
+#define MFT_NAME_SIZE 32        /* Bytes, including string terminator */
+#define MFT_NAME_MAX  31        /* Characters */
 
+/*
+ * Manifest entry (mft.e[]).
+ */
 struct mft_entry {
     char name[MFT_NAME_SIZE];
-    enum mft_type type;
+    mft_type_t type;
     union {
         struct mft_block_basic block_basic;
         struct mft_net_basic net_basic;
     } u;
-    int hostfd;
-    bool ok;
+    int hostfd;                 /* Backing host descriptor */
+    bool attached;              /* Device attached? */
 };
 
 /*
@@ -76,13 +88,19 @@ struct mft_entry {
 #define MFT_ENTRIES
 #endif
 
+/*
+ * Top-level manifest structure.
+ */
 struct mft {
     uint32_t version;
     uint32_t entries;
     struct mft_entry e[MFT_ENTRIES];
 };
 
-#define SOLO5_NOTE_NAME "Solo5"
+/*
+ * Manifest ELF note headers.
+ */
+#define SOLO5_NOTE_NAME     "Solo5"
 #define SOLO5_NOTE_MANIFEST 0x3154464d /* "MFT1" */
 
 struct mft_note_header {
@@ -101,6 +119,7 @@ struct mft_note {
  * Maximum supported number of manifest entires.
  */
 #define MFT_MAX_ENTRIES 64
+
 /*
  * Maximum total size of manifest ELF note, including header.
  */

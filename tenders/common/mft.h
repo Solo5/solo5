@@ -19,7 +19,7 @@
  */
 
 /*
- * mft.h: Manifest validation and manipulation.
+ * mft.h: Application manifest validation and manipulation.
  */
 
 #ifndef MFT_H
@@ -30,15 +30,30 @@
 
 /*
  * Validate that the manfiest at (mft), of size (mft_size) is safe to use, and
- * "sanitize" fields such as strings by explicity NULL-terminating them.
+ * sanitize all fields with prejudice, as these are considered untrusted data.
  *
  * On success returns 0, on error returns -1.
  */
 int mft_validate(struct mft *mft, size_t mft_size);
 
-struct mft_entry *mft_get_by_name(struct mft *mft, const char *name, enum mft_type type, unsigned *index);
+/*
+ * Return the manifest entry matching (name), of type (type), or NULL if none
+ * found.
+ */
+struct mft_entry *mft_get_by_name(struct mft *mft, const char *name,
+        mft_type_t type, unsigned *index);
 
-struct mft_entry *mft_get_by_index(struct mft *mft, unsigned index, enum mft_type type);
+/*
+ * Return the manifest entry at (index), of type (type), or NULL if the entry
+ * at (index) is not of type (type).
+ */
 
-const char *mft_type_to_string(enum mft_type type);
+struct mft_entry *mft_get_by_index(struct mft *mft, unsigned index,
+        mft_type_t type);
+
+/*
+ * Return a string representation of (type).
+ */
+const char *mft_type_to_string(mft_type_t type);
+
 #endif /* MFT_H */

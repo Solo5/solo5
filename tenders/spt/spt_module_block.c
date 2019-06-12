@@ -60,7 +60,7 @@ static int handle_cmdarg(char *cmdarg, struct mft *mft)
     e->u.block_basic.capacity = capacity;
     e->u.block_basic.block_size = 512;
     e->hostfd = fd;
-    e->ok = true;
+    e->attached = true;
     module_in_use = true;
 
     return 0;
@@ -72,7 +72,7 @@ static int setup(struct spt *spt, struct mft *mft)
         return 0;
 
     for (unsigned i = 0; i != mft->entries; i++) {
-        if (mft->e[i].type != MFT_BLOCK_BASIC || !mft->e[i].ok)
+        if (mft->e[i].type != MFT_BLOCK_BASIC || !mft->e[i].attached)
             continue;
 
         int rc = -1;

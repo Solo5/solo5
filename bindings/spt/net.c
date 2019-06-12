@@ -43,7 +43,7 @@ solo5_result_t solo5_net_acquire(const char *name, solo5_handle_t *handle,
     struct mft_entry *e = mft_get_by_name(mft, name, MFT_NET_BASIC, &index);
     if (e == NULL)
         return SOLO5_R_EINVAL;
-    assert(e->ok);
+    assert(e->attached);
 
     *handle = index;
     info->mtu = e->u.net_basic.mtu;

@@ -1,4 +1,4 @@
 {
     "version": 1,
-    "resources": [ { "name": "storage", "type": "BLOCK_BASIC" } ]
+    "devices": [ { "name": "storage", "type": "BLOCK_BASIC" } ]
 }

@@ -64,7 +64,7 @@ static const char out_header[] = \
     "  .version = MFT_VERSION, .entries = %d,\n"
     "  .e = {\n";
 
-static const char out_resource[] = \
+static const char out_entry[] = \
     "    { .name = \"%s\", .type = MFT_%s },\n";
 
 static const char out_footer[] = \
@@ -87,7 +87,7 @@ int main(int argc, char *argv[])
     jupdate(root);
     jexpect(jobject, root, "(root)");
 
-    jvalue *jversion = NULL, *jresources = NULL;
+    jvalue *jversion = NULL, *jdevices = NULL;
     int entries = 0;
 
     for(jvalue **i = root->u.v; *i; ++i) {
@@ -95,13 +95,13 @@ int main(int argc, char *argv[])
             jexpect(jint, *i, ".version");
             jversion = *i;
         }
-        else if (strcmp((*i)->n, "resources") == 0) {
-            jexpect(jarray, *i, ".resources");
+        else if (strcmp((*i)->n, "devices") == 0) {
+            jexpect(jarray, *i, ".devices");
             for (jvalue **j = (*i)->u.v; *j; ++j) {
-                jexpect(jobject, *j, ".resources[]");
+                jexpect(jobject, *j, ".devices[]");
                 entries++;
             }
-            jresources = *i;
+            jdevices = *i;
         }
         else
             errx(1, "(root): unknown key: %s", (*i)->n);
@@ -109,39 +109,39 @@ int main(int argc, char *argv[])
 
     if (jversion == NULL)
         errx(1, "missing .version");
-    if (jresources == NULL)
-        errx(1, "missing .resources");
+    if (jdevices == NULL)
+        errx(1, "missing .devices[]");
 
     if (jversion->u.i != MFT_VERSION)
         errx(1, ".version: invalid version %lld, expected %d", jversion->u.i,
                 MFT_VERSION);
     if (entries > MFT_MAX_ENTRIES)
-        errx(1, ".resources[]: too many entries, maximum %d", MFT_MAX_ENTRIES);
+        errx(1, ".devices[]: too many entries, maximum %d", MFT_MAX_ENTRIES);
 
     printf(out_header, entries, entries);
-    for (jvalue **i = jresources->u.v; *i; ++i) {
-        jexpect(jobject, *i, ".resources[]");
+    for (jvalue **i = jdevices->u.v; *i; ++i) {
+        jexpect(jobject, *i, ".devices[]");
         char *r_name = NULL, *r_type = NULL;
         for (jvalue **j = (*i)->u.v; *j; ++j) {
             if (strcmp((*j)->n, "name") == 0) {
-                jexpect(jstring, *j, ".resources[...]");
+                jexpect(jstring, *j, ".devices[...]");
                 r_name = (*j)->u.s;
             }
             else if (strcmp((*j)->n, "type") == 0) {
-                jexpect(jstring, *j, ".resources[...]");
+                jexpect(jstring, *j, ".devices[...]");
                 r_type = (*j)->u.s;
             }
             else
-                errx(1, ".resources[...]: unknown key: %s", (*j)->n);
+                errx(1, ".devices[...]: unknown key: %s", (*j)->n);
         }
         if (r_name == NULL)
-            errx(1, ".resources[...]: missing .name");
+            errx(1, ".devices[...]: missing .name");
         /*
          * TODO: Validate that name is [A-Z][a-z][0-9]+.
          */
         if (r_type == NULL)
-            errx(1, ".resources[...]: missing .type");
-        printf(out_resource, r_name, r_type);
+            errx(1, ".devices[...]: missing .type");
+        printf(out_entry, r_name, r_type);
     }
     printf(out_footer);
 

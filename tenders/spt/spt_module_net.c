@@ -75,7 +75,7 @@ static int handle_cmdarg(char *cmdarg, struct mft *mft)
          */
         e->u.net_basic.mtu = 1500; /* TODO */
         e->hostfd = fd;
-        e->ok = true;
+        e->attached = true;
         module_in_use = true;
     }
     else if (which == opt_net_mac) {
@@ -105,7 +105,7 @@ static int setup(struct spt *spt, struct mft *mft)
         return 0;
 
     for (unsigned i = 0; i != mft->entries; i++) {
-        if (mft->e[i].type != MFT_NET_BASIC || !mft->e[i].ok)
+        if (mft->e[i].type != MFT_NET_BASIC || !mft->e[i].attached)
             continue;
         char no_mac[6] = { 0 };
         if (memcmp(mft->e[i].u.net_basic.mac, no_mac, sizeof no_mac) == 0)

@@ -1,4 +1,4 @@
 {
     "version": 1,
-    "resources": [ { "name": "service", "type": "NET_BASIC" } ]
+    "devices": [ { "name": "service", "type": "NET_BASIC" } ]
 }

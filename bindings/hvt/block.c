@@ -85,7 +85,7 @@ solo5_result_t solo5_block_acquire(const char *name, solo5_handle_t *handle,
     struct mft_entry *e = mft_get_by_name(mft, name, MFT_BLOCK_BASIC, &index);
     if (e == NULL)
         return SOLO5_R_EINVAL;
-    assert(e->ok);
+    assert(e->attached);
 
     *handle = index;
     info->capacity = e->u.block_basic.capacity;
