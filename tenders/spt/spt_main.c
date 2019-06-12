@@ -34,15 +34,18 @@
 
 #include "spt.h"
 
+extern struct spt_module __start_modules;
+extern struct spt_module __stop_modules;
+
 static void setup_modules(struct spt *spt, struct mft *mft)
 {
-    for (struct spt_module **m = spt_core_modules; *m; m++) {
-        assert((*m)->setup);
-        if ((*m)->setup(spt, mft)) {
-            warnx("Module `%s' setup failed", (*m)->name);
-            if ((*m)->usage) {
+    for (struct spt_module *m = &__start_modules; m < &__stop_modules; m++) {
+        assert(m->ops.setup);
+        if (m->ops.setup(spt, mft)) {
+            warnx("Module `%s' setup failed", m->name);
+            if (m->ops.usage) {
                 warnx("Please check you have correctly specified:\n    %s",
-                       (*m)->usage());
+                       m->ops.usage());
             }
             exit(1);
         }
@@ -63,9 +66,9 @@ static void setup_modules(struct spt *spt, struct mft *mft)
 
 static int handle_cmdarg(char *cmdarg, struct mft *mft)
 {
-    for (struct spt_module **m = spt_core_modules; *m; m++) {
-        if ((*m)->handle_cmdarg) {
-            if ((*m)->handle_cmdarg(cmdarg, mft) == 0) {
+    for (struct spt_module *m = &__start_modules; m < &__stop_modules; m++) {
+        if (m->ops.handle_cmdarg) {
+            if (m->ops.handle_cmdarg(cmdarg, mft) == 0) {
                 return 0;
             }
         }
@@ -94,16 +97,16 @@ static void usage(const char *prog)
     fprintf(stderr, "  [ --mem=512 ] (guest memory in MB)\n");
     fprintf(stderr, "    --help (display this help)\n");
     fprintf(stderr, "Compiled-in modules: ");
-    for (struct spt_module **m = spt_core_modules; *m; m++) {
-        assert((*m)->name);
-        fprintf(stderr, "%s ", (*m)->name);
+    for (struct spt_module *m = &__start_modules; m < &__stop_modules; m++) {
+        assert(m->name);
+        fprintf(stderr, "%s ", m->name);
     }
     fprintf(stderr, "\n");
     fprintf(stderr, "Compiled-in module options:\n");
     int nm = 0;
-    for (struct spt_module **m = spt_core_modules; *m; m++) {
-        if ((*m)->usage) {
-            fprintf(stderr, "    %s\n", (*m)->usage());
+    for (struct spt_module *m = &__start_modules; m < &__stop_modules; m++) {
+        if (m->ops.usage) {
+            fprintf(stderr, "    %s\n", m->ops.usage());
             nm++;
         }
     }

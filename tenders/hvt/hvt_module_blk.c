@@ -150,9 +150,8 @@ static char *usage(void)
     return "--block:NAME=PATH (attach block device/file at PATH as block storage NAME)";
 }
 
-BEGIN_REGISTER_MODULE(blk) {
+DECLARE_MODULE(block,
     .setup = setup,
     .handle_cmdarg = handle_cmdarg,
     .usage = usage
-}
-END_REGISTER_MODULE
+)

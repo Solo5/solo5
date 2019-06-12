@@ -263,9 +263,8 @@ static int setup(struct hvt *hvt, struct mft *mft)
     return 0;
 }
 
-BEGIN_REGISTER_MODULE(dumpcore) {
+DECLARE_MODULE(dumpcore,
     .setup = setup,
     .handle_cmdarg = handle_cmdarg,
     .usage = usage
-}
-END_REGISTER_MODULE
+)

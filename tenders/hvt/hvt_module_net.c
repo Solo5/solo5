@@ -170,9 +170,8 @@ static char *usage(void)
         "  [ --net-mac:NAME=HWADDR ] (set HWADDR for network NAME)";
 }
 
-BEGIN_REGISTER_MODULE(net) {
+DECLARE_MODULE(net,
     .setup = setup,
     .handle_cmdarg = handle_cmdarg,
     .usage = usage
-}
-END_REGISTER_MODULE
+)

@@ -115,9 +115,8 @@ static char *usage(void)
     return "--block:NAME=PATH (attach block device/file at PATH as block storage NAME)";
 }
 
-struct spt_module spt_module_block = {
-    .name = "block",
+DECLARE_MODULE(block,
     .setup = setup,
     .handle_cmdarg = handle_cmdarg,
     .usage = usage
-};
+)

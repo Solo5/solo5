@@ -145,9 +145,8 @@ static char *usage(void)
         "  [ --net-mac:NAME=HWADDR ] (set HWADDR for network NAME)";
 }
 
-struct spt_module spt_module_net = {
-    .name = "net",
+DECLARE_MODULE(net,
     .setup = setup,
     .handle_cmdarg = handle_cmdarg,
     .usage = usage
-};
+)

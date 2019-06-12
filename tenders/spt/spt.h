@@ -53,19 +53,23 @@ void spt_run(struct spt *spt, uint64_t p_entry);
  * Module definition. (name) and (setup) are required, all other functions are
  * optional.
  */
-struct spt_module {
-    const char *name;
+struct spt_module_ops {
     int (*setup)(struct spt *spt, struct mft *mft);
     int (*handle_cmdarg)(char *cmdarg, struct mft *mft);
     char *(*usage)(void);
 };
 
-extern struct spt_module spt_module_net;
-extern struct spt_module spt_module_block;
+struct spt_module {
+    const char *name;
+    struct spt_module_ops ops;
+};
 
-/*
- * Array of compiled-in modules. NULL terminated.
- */
-extern struct spt_module *spt_core_modules[];
+#define DECLARE_MODULE(module_name, ...) \
+    static struct spt_module __module_ ##module_name \
+    __attribute((section("modules"))) \
+    __attribute((used)) = { \
+	.name = #module_name, \
+	.ops = { __VA_ARGS__ } \
+    };
 
 #endif /* SPT_H */

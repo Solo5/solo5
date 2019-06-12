@@ -248,7 +248,6 @@ static int setup(struct hvt *hvt, struct mft *mft)
     return 0;
 }
 
-BEGIN_REGISTER_MODULE(core) {
+DECLARE_MODULE(core,
     .setup = setup
-}
-END_REGISTER_MODULE
+)

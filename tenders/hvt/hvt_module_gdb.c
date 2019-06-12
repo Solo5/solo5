@@ -665,12 +665,11 @@ static int handle_cmdarg(char *cmdarg, struct mft *mft)
 static char *usage(void)
 {
     return "--gdb (optional flag for running in a gdb debug session)\n"
-        "    [ --gdb-port=1234 ] (port to use) ";
+        "  [ --gdb-port=1234 ] (port to use) ";
 }
 
-BEGIN_REGISTER_MODULE(gdb) {
+DECLARE_MODULE(gdb,
     .setup = setup,
     .handle_cmdarg = handle_cmdarg,
     .usage = usage
-}
-END_REGISTER_MODULE
+)

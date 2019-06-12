@@ -45,21 +45,6 @@
 #include "spt.h"
 
 /*
- * TODO: This is copied from 'hvt' in a rather quick and dirty fashion to get
- * a working "net" and "block"; needs a re-think.
- */
-
-struct spt_module spt_module_core;
-
-struct spt_module *spt_core_modules[] = {
-    &spt_module_core,
-    &spt_module_net,
-    &spt_module_block,
-    NULL,
-};
-#define NUM_MODULES ((sizeof spt_core_modules / sizeof (struct spt_module *)) - 1)
-
-/*
  * TODO: Split up the functions in this module better, and introduce something
  * similar to hvt_gpa_t for clarity.
  */
@@ -276,9 +261,8 @@ static char *usage(void)
            " makes the heap and stack executable.";
 }
 
-struct spt_module spt_module_core = {
-    .name = "core",
+DECLARE_MODULE(core,
     .setup = setup,
     .handle_cmdarg = handle_cmdarg,
     .usage = usage
-};
+)

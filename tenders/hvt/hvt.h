@@ -175,14 +175,13 @@ struct hvt_module {
 };
 
 
-#define BEGIN_REGISTER_MODULE(module_name) \
+#define DECLARE_MODULE(module_name, ...) \
     static struct hvt_module __module_ ##module_name \
     __attribute((section("modules"))) \
     __attribute((used)) = { \
 	.name = #module_name, \
-	.ops =
-	
-#define END_REGISTER_MODULE };
+	.ops = { __VA_ARGS__ } \
+    };
 
 /*
  * GDB specific functions to be implemented on all backends for all
