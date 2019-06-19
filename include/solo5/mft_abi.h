@@ -99,6 +99,9 @@ struct mft {
 
 /*
  * Manifest ELF note headers.
+ *
+ * Note that somewhat counter-intuitively, in practice the note section header
+ * fields (namesz/descsz/type) are 32-bit words even on ELF64.
  */
 #define SOLO5_NOTE_NAME     "Solo5"
 #define SOLO5_NOTE_MANIFEST 0x3154464d /* "MFT1" */
@@ -126,9 +129,14 @@ struct mft_note {
 #define MFT_NOTE_MAX_SIZE (sizeof (struct mft_note) + \
         (MFT_MAX_ENTRIES * sizeof (struct mft_entry)))
 
+/*
+ * Declare a Solo5 manifest NOTE. Structure must be aligned to a 4-byte
+ * boundary (or possibly an 8-byte boundary, but ELF64 toolchains seem
+ * happy with the current arrangement... the specifications are mess).
+ */
 #define MFT_NOTE_BEGIN \
 const struct mft_note __solo5_manifest_note \
-__attribute__ ((section (".note.solo5.manifest"))) \
+__attribute__ ((section (".note.solo5.manifest"), aligned(4))) \
 = { \
     .h = { \
         .namesz = sizeof(SOLO5_NOTE_NAME), \
