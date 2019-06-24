@@ -28,8 +28,12 @@ solo5_result_t solo5_block_write(solo5_handle_t handle, solo5_off_t offset,
     struct mft_entry *e = mft_get_by_index(mft, handle, MFT_BLOCK_BASIC);
     if (e == NULL)
         return SOLO5_R_EINVAL;
-    if (offset % e->u.block_basic.block_size != 0)
+    if (offset & (e->u.block_basic.block_size - 1))
         return SOLO5_R_EINVAL;
+    /*
+     * Checks for writes beyond capacity are enforced by the tender in the
+     * hypercall handler.
+     */
     /*
      * TODO: This artificially enforces the current limit of allowing only
      * single-block operations. Will be removed once all targets can handle
@@ -56,8 +60,12 @@ solo5_result_t solo5_block_read(solo5_handle_t handle, solo5_off_t offset,
     struct mft_entry *e = mft_get_by_index(mft, handle, MFT_BLOCK_BASIC);
     if (e == NULL)
         return SOLO5_R_EINVAL;
-    if (offset % e->u.block_basic.block_size != 0)
+    if (offset & (e->u.block_basic.block_size - 1))
         return SOLO5_R_EINVAL;
+    /*
+     * Checks for reads beyond capacity are enforced by the tender in the
+     * hypercall handler.
+     */
     /*
      * TODO: This artificially enforces the current limit of allowing only
      * single-block operations. Will be removed once all targets can handle

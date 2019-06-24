@@ -45,12 +45,21 @@ int mft_validate(struct mft *mft, size_t mft_size)
         return -1;
 
     for (unsigned i = 0; i != mft->entries; i++) {
-        /* Ensure name[] is always terminated */
-        mft->e[i].name[sizeof mft->e[i].name - 1] = 0;
-        /* hostfd must be set to an invalid value, attached to false */
+        /*
+         * Ensure name[] is always terminated with \0, even if there is garbage
+         * in the array itself.
+         */
+        mft->e[i].name[MFT_NAME_MAX] = 0;
+        /*
+         * Sanitize private fields (to be used by the tender/bindings):
+         *
+         * 1. hostfd must be set to an invalid value, attached to false.
+         */
         mft->e[i].hostfd = -1;
         mft->e[i].attached = false;
-        /* and device properties are zeroed */
+        /*
+         * 2. Device properties are initialised to zero.
+         */
         memset(&mft->e[i].u, 0, sizeof mft->e[i].u);
     }
 
@@ -61,7 +70,8 @@ struct mft_entry *mft_get_by_name(struct mft *mft, const char *name,
         mft_type_t type, unsigned *index)
 {
     for (unsigned i = 0; i != mft->entries; i++) {
-        if (strcmp(mft->e[i].name, name) == 0 && mft->e[i].type == type) {
+        if (mft->e[i].type == type
+                && strncmp(mft->e[i].name, name, MFT_NAME_SIZE) == 0) {
             if (index != NULL)
                 *index = i;
             return &mft->e[i];

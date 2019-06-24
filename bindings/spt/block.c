@@ -50,7 +50,7 @@ solo5_result_t solo5_block_read(solo5_handle_t handle, solo5_off_t offset,
         return SOLO5_R_EINVAL;
 
     /*
-     * Note that writes beyond capacity are additionally enforced by the
+     * Note that reads beyond capacity are additionally enforced by the
      * tender's seccomp policy.
      */
     if(size != e->u.block_basic.block_size)
@@ -73,7 +73,7 @@ solo5_result_t solo5_block_write(solo5_handle_t handle, solo5_off_t offset,
         return SOLO5_R_EINVAL;
     
     /*
-     * Note that reads beyond capacity are additionally enforced by the
+     * Note that writes beyond capacity are additionally enforced by the
      * tender's seccomp policy.
      */
     if(size != e->u.block_basic.block_size)
