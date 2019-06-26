@@ -160,8 +160,8 @@ int hvt_core_register_vmexit(hvt_vmexit_fn_t fn);
 extern hvt_vmexit_fn_t hvt_core_vmexits[];
 
 /*
- * Module definition. (name) and (setup) are required, all other functions are
- * optional.
+ * Operations provided by a module. (setup) is required, all other functions
+ * are optional.
  */
 struct hvt_module_ops {
     int (*setup)(struct hvt *hvt, struct mft *mft);
@@ -170,14 +170,23 @@ struct hvt_module_ops {
 };
 
 struct hvt_module {
-    const char *name;
+    const char name[32];
     struct hvt_module_ops ops;
 };
 
-
+/*
+ * Declare the module (module_name).
+ *
+ * Usage:
+ *
+ * DECLARE_MODULE(module_name, <initializer of struct hvt_module_ops>);
+ *
+ * Note that alignment of the struct is explicitly set, otherwise the linker
+ * will pick a default that does not match the compiler's alignment.
+ */
 #define DECLARE_MODULE(module_name, ...) \
     static struct hvt_module __module_ ##module_name \
-    __attribute((section("modules"))) \
+    __attribute((section("modules"), aligned(8))) \
     __attribute((used)) = { \
 	.name = #module_name, \
 	.ops = { __VA_ARGS__ } \

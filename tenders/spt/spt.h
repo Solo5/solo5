@@ -51,8 +51,8 @@ void spt_boot_info_init(struct spt *spt, uint64_t p_end, int cmdline_argc,
 void spt_run(struct spt *spt, uint64_t p_entry);
 
 /*
- * Module definition. (name) and (setup) are required, all other functions are
- * optional.
+ * Operations provided by a module. (setup) is required, all other functions
+ * are optional.
  */
 struct spt_module_ops {
     int (*setup)(struct spt *spt, struct mft *mft);
@@ -61,13 +61,23 @@ struct spt_module_ops {
 };
 
 struct spt_module {
-    const char *name;
+    const char name[32];
     struct spt_module_ops ops;
 };
 
+/*
+ * Declare the module (module_name).
+ *
+ * Usage:
+ *
+ * DECLARE_MODULE(module_name, <initializer of struct spt_module_ops>);
+ *
+ * Note that alignment of the struct is explicitly set, otherwise the linker
+ * will pick a default that does not match the compiler's alignment.
+ */
 #define DECLARE_MODULE(module_name, ...) \
     static struct spt_module __module_ ##module_name \
-    __attribute((section("modules"))) \
+    __attribute((section("modules"), aligned(8))) \
     __attribute((used)) = { \
 	.name = #module_name, \
 	.ops = { __VA_ARGS__ } \
