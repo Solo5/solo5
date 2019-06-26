@@ -45,37 +45,39 @@ struct sys_timespec {
     long tv_nsec;
 };
 
+struct sys_itimerspec {
+    struct sys_timespec it_interval;
+    struct sys_timespec it_value;
+};
+
 #define SYS_CLOCK_REALTIME 0
 #define SYS_CLOCK_MONOTONIC 1
 
 long sys_clock_gettime(const long which, void *ts);
 
-struct sys_pollfd {
-    int fd;
-    short events;
-    short revents;
-};
-
-#define SYS_POLLIN 1
 #define SYS_EINTR -4
 #define SYS_EAGAIN -11
 
-long sys_ppoll(void *fds, long nfds, void *ts);
-
-typedef union sys_epoll_data {
-    void *ptr;
-    int fd;
-    uint32_t u32;
-    uint64_t u64;
-} sys_epoll_data_t;
+/*
+ * Ah, the wonders of Linux ABIs...
+ */
+#if defined(__x86_64__)
+#define EPOLL_PACKED __attribute__((packed))
+#else
+#define EPOLL_PACKED
+#endif
 
 struct sys_epoll_event {
-    uint32_t events;
-    sys_epoll_data_t data;
-};
+    unsigned events;
+    uint64_t data;
+} EPOLL_PACKED;
 
 long sys_epoll_pwait(long epfd, void *events, long maxevents, long timeout,
         void *sigmask, long sigsetsize);
+
+#define SYS_TFD_TIMER_ABSTIME (1 << 0)
+
+long sys_timerfd_settime(long fd, long flags, const void *utmr, void *otmr);
 
 #define SYS_ARCH_SET_FS		0x1002
 

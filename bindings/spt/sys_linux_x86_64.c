@@ -30,15 +30,15 @@
  * also consider explicitly inlining these functions.
  */
 
-#define SYS_read          0
-#define SYS_write         1
-#define SYS_pread64       17
-#define SYS_pwrite64      18
-#define SYS_arch_prctl    158
+#define SYS_read 0
+#define SYS_write 1
+#define SYS_pread64 17
+#define SYS_pwrite64 18
+#define SYS_arch_prctl 158
 #define SYS_clock_gettime 228
-#define SYS_exit_group    231
-#define SYS_ppoll         271
-#define SYS_epoll_pwait   281
+#define SYS_exit_group 231
+#define SYS_epoll_pwait 281
+#define SYS_timerfd_settime 286
 
 long sys_read(long fd, void *buf, long size)
 {
@@ -124,23 +124,6 @@ long sys_clock_gettime(const long which, void *ts)
     return ret;
 }
 
-long sys_ppoll(void *fds, long nfds, void *ts)
-{
-    int ret;
-    register int64_t r10 asm("r10") = 0;
-    register int64_t r8 asm("r8") = 0;
-
-    __asm__ __volatile__ (
-            "syscall"
-            : "=a" (ret)
-            : "a" (SYS_ppoll), "D" (fds), "S" (nfds), "d" (ts),
-              "r" (r10) /* sigmask */, "r" (r8) /* sigsetsize */
-            : "rcx", "r11", "memory"
-    );
-
-    return ret;
-}
-
 long sys_epoll_pwait(long epfd, void *events, long maxevents, long timeout,
         void *sigmask, long sigsetsize)
 {
@@ -154,6 +137,22 @@ long sys_epoll_pwait(long epfd, void *events, long maxevents, long timeout,
             : "=a" (ret)
             : "a" (SYS_epoll_pwait), "D" (epfd), "S" (events), "d" (maxevents),
               "r" (r10), "r" (r8), "r" (r9)
+            : "rcx", "r11", "memory"
+    );
+
+    return ret;
+}
+
+long sys_timerfd_settime(long fd, long flags, const void *utmr, void *otmr)
+{
+    long ret;
+    register long r10 asm("r10") = (long)otmr;
+
+    __asm__ __volatile__ (
+            "syscall"
+            : "=a" (ret)
+            : "a" (SYS_timerfd_settime), "D" (fd), "S" (flags), "d" (utmr),
+              "r" (r10)
             : "rcx", "r11", "memory"
     );
 

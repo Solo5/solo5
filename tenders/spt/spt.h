@@ -39,6 +39,7 @@ struct spt {
     size_t mem_size;
     struct spt_boot_info *bi;
     int epollfd;
+    int timerfd;
     void *sc_ctx;
 };
 

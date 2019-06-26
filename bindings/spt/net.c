@@ -23,11 +23,13 @@
 static struct mft *mft;
 static int epollfd;
 static int npollfds;
+static int timerfd;
 
 void net_init(struct spt_boot_info *bi)
 {
     mft = bi->mft;
     epollfd = bi->epollfd;
+    timerfd = bi->timerfd;
 
     npollfds = 0;
     for (unsigned i = 0; i != mft->entries; i++) {
@@ -85,36 +87,44 @@ solo5_result_t solo5_net_write(solo5_handle_t handle, const uint8_t *buf,
 
 bool solo5_yield(solo5_time_t deadline, solo5_handle_set_t *ready_set)
 {
-    uint64_t now, timeout_nsecs;
-
-    now = solo5_clock_monotonic();
-    if (deadline <= now)
-        timeout_nsecs = 0;
-    else
-        timeout_nsecs = deadline - now;
-
     int nrevents;
     /*
-     * At least one event must be requested in epoll(), otherwise the call will
-     * just return or error.
+     * In order to support nanosecond timeouts, as defined by the Solo5 API, we
+     * use a timerfd internally in the epoll() set. Account for this in the
+     * number of requested events.
      */
-    int nevents = npollfds ? npollfds : 1;
+    int nevents = npollfds ? (npollfds + 1) : 1;
     struct sys_epoll_event revents[nevents];
     solo5_handle_set_t tmp_ready_set = 0;
-    
+    struct sys_itimerspec it = {
+        .it_interval = { 0 },
+        .it_value = {
+            .tv_sec = deadline / 1000000000ULL,
+            .tv_nsec = deadline % 1000000000ULL
+        }
+    };
     /*
-     * TODO: This reduces timeout granularity to milliseconds. Use an internal
-     * timerfd here?
+     * On spt, given that Solo5 monotonic time is identical to CLOCK_MONOTONIC,
+     * we can just pass the deadline into the timerfd as an abosulte timeout,
+     * saving a clock_gettime() call in the process.
+     */
+    assert(sys_timerfd_settime(timerfd, SYS_TFD_TIMER_ABSTIME, &it, NULL) != -1);
+    /*
+     * We can always safely restart this call on EINTR, since the internal
+     * timerfd is independent of its invocation.
      */
     do {
-        nrevents = sys_epoll_pwait(epollfd, revents, nevents,
-                timeout_nsecs / 1000000ULL, NULL, 0);
+        nrevents = sys_epoll_pwait(epollfd, revents, nevents, -1, NULL, 0);
     } while (nrevents == SYS_EINTR);
-    assert(nrevents >= 0);
     if (nrevents > 0) {
-        for (int i = 0; i < nrevents; i++)
-            tmp_ready_set |= 1ULL << revents[i].data.u64;
+        int orig_nrevents = nrevents;
+        for (int i = 0; i < orig_nrevents; i++)
+            if (revents[i].data == SPT_INTERNAL_TIMERFD)
+                nrevents -= 1;          /* Disregard in total reported events */
+            else
+                tmp_ready_set |= 1ULL << revents[i].data;
     }
+    assert(nrevents >= 0);
     if (ready_set != NULL)
         *ready_set = tmp_ready_set;
     return (nrevents > 0);

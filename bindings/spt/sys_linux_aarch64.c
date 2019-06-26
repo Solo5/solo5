@@ -30,14 +30,14 @@
  * also consider explicitly inlining these functions.
  */
 
-#define SYS_read          63
-#define SYS_write         64
-#define SYS_pread64       67
-#define SYS_pwrite64      68
+#define SYS_read 63
+#define SYS_write 64
+#define SYS_pread64 67
+#define SYS_pwrite64 68
 #define SYS_clock_gettime 113
-#define SYS_exit_group    94
-#define SYS_ppoll         73
-#define SYS_epoll_pwait   22
+#define SYS_exit_group 94
+#define SYS_epoll_pwait 22
+#define SYS_timerfd_settime 86
 
 long sys_read(long fd, void *buf, long size)
 {
@@ -140,25 +140,6 @@ long sys_clock_gettime(const long which, void *ts)
     return x0;
 }
 
-long sys_ppoll(void *fds, long nfds, void *ts)
-{
-    register long x8 __asm__("x8") = SYS_ppoll;
-    register long x0 __asm__("x0") = (long)fds;
-    register long x1 __asm__("x1") = nfds;
-    register long x2 __asm__("x2") = (long)ts;
-    register long x3 __asm__("x3") = 0; /* sigmask */
-    register long x4 __asm__("x4") = 0; /* sigsetsize */
-
-    __asm__ __volatile__ (
-            "svc 0"
-            : "=r" (x0)
-            : "r" (x8), "r" (x0), "r" (x1), "r" (x2), "r" (x3), "r" (x4)
-            : "memory", "cc"
-    );
-
-    return x0;
-}
-
 long sys_epoll_pwait(long epfd, void *events, long maxevents, long timeout,
         void *sigmask, long sigsetsize)
 {
@@ -175,6 +156,24 @@ long sys_epoll_pwait(long epfd, void *events, long maxevents, long timeout,
             : "=r" (x0)
             : "r" (x8), "r" (x0), "r" (x1), "r" (x2), "r" (x3), "r" (x4),
               "r" (x5)
+            : "memory", "cc"
+    );
+
+    return x0;
+}
+
+long sys_timerfd_settime(long fd, long flags, const void *utmr, void *otmr)
+{
+    register long x8 __asm__("x8") = SYS_timerfd_settime;
+    register long x0 __asm__("x0") = fd;
+    register long x1 __asm__("x1") = flags;
+    register long x2 __asm__("x2") = (long)utmr;
+    register long x3 __asm__("x3") = (long)otmr;
+
+    __asm__ __volatile__ (
+            "svc 0"
+            : "=r" (x0)
+            : "r" (x8), "r" (x0), "r" (x1), "r" (x2), "r" (x3)
             : "memory", "cc"
     );
 
