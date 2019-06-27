@@ -1,4 +1,3 @@
-#!/bin/sh
 # Copyright (c) 2015-2019 Contributors as noted in the AUTHORS file
 #
 # This file is part of Solo5, a sandboxed execution environment.
@@ -17,45 +16,10 @@
 # NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
 # CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-#
-# Set up test environment.
-#
-# Convention is:
-#
-# tap interface named 'tap100', host address of 10.0.0.1/24.
-# tap interface named 'tap101', host address of 10.1.0.1/24.
-#
+include $(TOPDIR)/Makefile.common
 
-if [ $(id -u) -ne 0 ]; then
-    echo "$0: must be root" 1>&2
-    exit 1
-fi
+test_NAME := test_net_2if
 
-case `uname -s` in
-Linux)
-    set -xe
-    ip tuntap add tap100 mode tap
-    ip addr add 10.0.0.1/24 dev tap100
-    ip link set dev tap100 up
-    ip tuntap add tap101 mode tap
-    ip addr add 10.1.0.1/24 dev tap101
-    ip link set dev tap101 up
-    ;;
-FreeBSD)
-    kldload vmm
-    kldload if_tap
-    kldload nmdm
-    sysctl -w net.link.tap.up_on_open=1
-    ifconfig tap100 create 10.0.0.1/24 link0 up
-    ;;
-OpenBSD)
-    (
-         cd /dev
-         ./MAKEDEV tap100
-    )
-    ifconfig tap100 inet 10.0.0.1 netmask 255.255.255.0
-    ;;
-*)
-    exit 1
-    ;;
-esac
+include ../Makefile.tests
+
+test_net_2if.o: ../test_net/test_net.c

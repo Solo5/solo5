@@ -18,6 +18,6 @@
 
 include $(TOPDIR)/Makefile.common
 
-test_NAME := test_ping_serve
+test_NAME := test_net
 
 include ../Makefile.tests
