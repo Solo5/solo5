@@ -63,8 +63,10 @@ setup() {
     ;;
   esac
 
-  NET=tap100
-  NET_IP=10.0.0.2
+  NET0=tap100
+  NET0_IP=10.0.0.2
+  NET1=tap101
+  NET1_IP=10.1.0.2
   DISK=${BATS_TMPDIR}/disk.img
   dd if=/dev/zero of=${DISK} bs=4k count=1024
 }
@@ -322,27 +324,47 @@ virtio_expect_abort() {
   expect_success
 }
 
-@test "ping-serve hvt" {
+@test "net hvt" {
   [ $(id -u) -ne 0 ] && skip "Need root to run this test, for ping -f"
 
-  ( sleep 1; ${TIMEOUT} 60s ping -fq -c 100000 ${NET_IP} ) &
-  hvt_run --net:service=${NET} -- test_ping_serve/test_ping_serve.hvt limit
+  ( sleep 1; ${TIMEOUT} 60s ping -fq -c 100000 ${NET0_IP} ) &
+  hvt_run --net:service0=${NET0} -- test_net/test_net.hvt limit
   expect_success
 }
 
-@test "ping-serve virtio" {
+@test "net virtio" {
   [ $(id -u) -ne 0 ] && skip "Need root to run this test, for ping -f"
 
-  ( sleep 3; ${TIMEOUT} 60s ping -fq -c 100000 ${NET_IP} ) &
-  virtio_run -n ${NET} -- test_ping_serve/test_ping_serve.virtio limit
+  ( sleep 3; ${TIMEOUT} 60s ping -fq -c 100000 ${NET0_IP} ) &
+  virtio_run -n ${NET0} -- test_net/test_net.virtio limit
   virtio_expect_success
 }
 
-@test "ping-serve spt" {
+@test "net spt" {
   [ $(id -u) -ne 0 ] && skip "Need root to run this test, for ping -f"
 
-  ( sleep 1; ${TIMEOUT} 60s ping -fq -c 100000 ${NET_IP} ) &
-  spt_run --net:service=${NET} -- test_ping_serve/test_ping_serve.spt limit
+  ( sleep 1; ${TIMEOUT} 60s ping -fq -c 100000 ${NET0_IP} ) &
+  spt_run --net:service0=${NET0} -- test_net/test_net.spt limit
+  expect_success
+}
+
+@test "net_2if hvt" {
+  [ $(id -u) -ne 0 ] && skip "Need root to run this test, for ping -f"
+
+  ( sleep 1; ${TIMEOUT} 60s ping -fq -c 50000 ${NET0_IP} ) &
+  ( sleep 1; ${TIMEOUT} 60s ping -fq -c 50000 ${NET1_IP} ) &
+  hvt_run --net:service0=${NET0} --net:service1=${NET1} -- \
+      test_net_2if/test_net_2if.hvt limit
+  expect_success
+}
+
+@test "net_2if spt" {
+  [ $(id -u) -ne 0 ] && skip "Need root to run this test, for ping -f"
+
+  ( sleep 1; ${TIMEOUT} 60s ping -fq -c 50000 ${NET0_IP} ) &
+  ( sleep 1; ${TIMEOUT} 60s ping -fq -c 50000 ${NET1_IP} ) &
+  spt_run --net:service0=${NET0} --net:service1=${NET1} -- \
+      test_net_2if/test_net_2if.spt limit
   expect_success
 }
 

@@ -20,7 +20,10 @@
 #
 # Set up test environment.
 #
-# Convention is: tap interface named 'tap100', host address of 10.0.0.1/24.
+# Convention is:
+#
+# tap interface named 'tap100', host address of 10.0.0.1/24.
+# tap interface named 'tap101', host address of 10.1.0.1/24.
 #
 
 if [ $(id -u) -ne 0 ]; then
@@ -34,6 +37,9 @@ Linux)
     ip tuntap add tap100 mode tap
     ip addr add 10.0.0.1/24 dev tap100
     ip link set dev tap100 up
+    ip tuntap add tap101 mode tap
+    ip addr add 10.1.0.1/24 dev tap101
+    ip link set dev tap101 up
     ;;
 FreeBSD)
     kldload vmm
@@ -41,13 +47,16 @@ FreeBSD)
     kldload nmdm
     sysctl -w net.link.tap.up_on_open=1
     ifconfig tap100 create 10.0.0.1/24 link0 up
+    ifconfig tap101 create 10.1.0.1/24 link0 up
     ;;
 OpenBSD)
     (
          cd /dev
          ./MAKEDEV tap100
+         ./MAKEDEV tap101
     )
     ifconfig tap100 inet 10.0.0.1 netmask 255.255.255.0
+    ifconfig tap101 inet 10.1.0.1 netmask 255.255.255.0
     ;;
 *)
     exit 1
