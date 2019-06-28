@@ -357,9 +357,8 @@ virtio_expect_abort() {
   esac
 
   run ${TIMEOUT} --foreground 60s ${HVT_TENDER_DEBUG} \
-      --dumpcore test_dumpcore/test_dumpcore.hvt
+     --dumpcore="$BATS_TMPDIR" test_dumpcore/test_dumpcore.hvt
   [ "$status" -eq 255 ]
   CORE=`echo "$output" | grep -o "core\.solo5-hvt\.[0-9]*$"`
-  [ -f "$CORE" ]
-  [ -f "$CORE" ] && mv "$CORE" "$BATS_TMPDIR"
+  [ -f "$BATS_TMPDIR"/"$CORE" ]
 }
