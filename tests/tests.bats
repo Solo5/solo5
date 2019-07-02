@@ -350,6 +350,7 @@ virtio_expect_abort() {
 
 @test "net_2if hvt" {
   [ $(id -u) -ne 0 ] && skip "Need root to run this test, for ping -f"
+  [ "${CONFIG_HOST}" = "OpenBSD" ] && skip "breaks on OpenBSD due to #374"
 
   ( sleep 1; ${TIMEOUT} 60s ping -fq -c 50000 ${NET0_IP} ) &
   ( sleep 1; ${TIMEOUT} 60s ping -fq -c 50000 ${NET1_IP} ) &
