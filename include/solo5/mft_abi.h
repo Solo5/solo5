@@ -62,8 +62,8 @@ struct mft_net_basic {
     uint16_t mtu;
 };
 
-#define MFT_NAME_SIZE 32        /* Bytes, including string terminator */
-#define MFT_NAME_MAX  31        /* Characters */
+#define MFT_NAME_SIZE 68        /* Bytes, including string terminator */
+#define MFT_NAME_MAX  67        /* Characters */
 
 /*
  * Manifest entry (mft.e[]).
