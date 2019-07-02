@@ -28,6 +28,7 @@
 
 #define _GNU_SOURCE
 #include <assert.h>
+#include <ctype.h>
 #include <err.h>
 #include <stdio.h>
 
@@ -136,9 +137,11 @@ int main(int argc, char *argv[])
         }
         if (r_name == NULL)
             errx(1, ".devices[...]: missing .name");
-        /*
-         * TODO: Validate that name is [A-Z][a-z][0-9]+.
-         */
+        if (strlen(r_name) > MFT_NAME_MAX)
+            errx(1, ".devices[...]: name too long");
+        for (char *p = r_name; *p; p++)
+            if (!isalnum((unsigned char)*p))
+                errx(1, ".devices[...]: name is not alphanumeric");
         if (r_type == NULL)
             errx(1, ".devices[...]: missing .type");
         printf(out_entry, r_name, r_type);
