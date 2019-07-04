@@ -137,6 +137,8 @@ int main(int argc, char *argv[])
         }
         if (r_name == NULL)
             errx(1, ".devices[...]: missing .name");
+        if (r_name[0] == 0)
+            errx(1, ".devices[...]: .name may not be empty");
         if (strlen(r_name) > MFT_NAME_MAX)
             errx(1, ".devices[...]: name too long");
         for (char *p = r_name; *p; p++)
