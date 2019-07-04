@@ -40,7 +40,12 @@ int mft_validate(struct mft *mft, size_t mft_size)
         return -1;
     if (mft->entries > MFT_MAX_ENTRIES)
         return -1;
-    if (mft_size != (sizeof(struct mft) +
+    /*
+     * mft_size MAY be larger than the exact structure size due to alignment,
+     * so only fail here if it is strictly less than the space required for the
+     * declared number of manifest entries.
+     */
+    if (mft_size < (sizeof(struct mft) +
                 (mft->entries * sizeof(struct mft_entry))))
         return -1;
 

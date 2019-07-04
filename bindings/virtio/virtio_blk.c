@@ -51,8 +51,10 @@ static struct virtq blkq;
 
 static uint16_t virtio_blk_pci_base; /* base in PCI config space */
 
-static int blk_configured;
-
+static bool blk_configured;
+static bool blk_acquired;
+static solo5_handle_t blk_handle;
+extern struct mft_note __solo5_manifest_note;
 
 /* Returns the index to the head of the buffers chain. */
 static uint16_t virtio_blk_op(uint32_t type,
@@ -184,10 +186,45 @@ void virtio_config_block(struct pci_config_info *pci)
     outb(pci->base + VIRTIO_PCI_STATUS, VIRTIO_PCI_STATUS_DRIVER_OK);
 }
 
-solo5_result_t solo5_block_write(solo5_off_t offset, const uint8_t *buf,
-        size_t size)
+/*
+ * FIXME: This is a single-device implementation of the new manifest-based
+ * APIs. On virtio, this call has the following semantics:
+ *
+ * 1. The first call to solo5_block_acquire() asking for a handle to a valid
+ *    block device (one specified in the application manifest) will succeed,
+ *    and return a handle for the sole virtio block device.
+ * 2. All subsequent calls will return an error.
+ *
+ * Note that the presence of a virtio block device is registered during boot
+ * in (blk_configured), and the initial acquisition by solo5_block_acquire() is
+ * registered in (blk_acquired).
+ */
+solo5_result_t solo5_block_acquire(const char *name, solo5_handle_t *h,
+        struct solo5_block_info *info)
 {
-    assert(blk_configured);
+    if (!blk_configured || blk_acquired)
+        return SOLO5_R_EUNSPEC;
+
+    unsigned mft_index;
+    struct mft_entry *mft_e = mft_get_by_name(&__solo5_manifest_note.m, name,
+        MFT_BLOCK_BASIC, &mft_index);
+    if (mft_e == NULL)
+        return SOLO5_R_EINVAL;
+    blk_handle = (solo5_handle_t)mft_index;
+    blk_acquired = true;
+
+    info->block_size = VIRTIO_BLK_SECTOR_SIZE;
+    info->capacity = virtio_blk_sectors * VIRTIO_BLK_SECTOR_SIZE;
+    *h = (solo5_handle_t)mft_index;
+    log(INFO, "Solo5: Application acquired '%s' as block device\n", name);
+    return SOLO5_R_OK;
+}
+
+solo5_result_t solo5_block_write(solo5_handle_t h, solo5_off_t offset,
+        const uint8_t *buf, size_t size)
+{
+    if (!blk_acquired || h != blk_handle)
+        return SOLO5_R_EINVAL;
 
     /*
      * XXX: This does not check for writes ending past the end of the device,
@@ -209,9 +246,11 @@ solo5_result_t solo5_block_write(solo5_off_t offset, const uint8_t *buf,
     return (rv == 0) ? SOLO5_R_OK : SOLO5_R_EUNSPEC;
 }
 
-solo5_result_t solo5_block_read(solo5_off_t offset, uint8_t *buf, size_t size)
+solo5_result_t solo5_block_read(solo5_handle_t h, solo5_off_t offset,
+        uint8_t *buf, size_t size)
 {
-    assert(blk_configured);
+    if (!blk_acquired || h != blk_handle)
+        return SOLO5_R_EINVAL;
 
     /*
      * XXX: This does not check for reads ending past the end of the device,
@@ -226,12 +265,4 @@ solo5_result_t solo5_block_read(solo5_off_t offset, uint8_t *buf, size_t size)
 
     int rv = virtio_blk_op_sync(VIRTIO_BLK_T_IN, sector, buf, size);
     return (rv == 0) ? SOLO5_R_OK : SOLO5_R_EUNSPEC;
-}
-
-void solo5_block_info(struct solo5_block_info *info)
-{
-    assert(blk_configured);
-
-    info->block_size = VIRTIO_BLK_SECTOR_SIZE;
-    info->capacity = virtio_blk_sectors * VIRTIO_BLK_SECTOR_SIZE;
 }
