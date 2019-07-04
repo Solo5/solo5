@@ -60,28 +60,3 @@ void time_init(void)
     if (!use_pvclock)
         assert(tscclock_init() == 0);
 }
-
-bool solo5_yield(solo5_time_t deadline)
-{
-    bool rc = false;
-
-    /*
-     * cpu_block() as currently implemented will only poll for the maximum time
-     * the PIT can be run in "one shot" mode. Loop until either I/O is possible
-     * or the desired time has been reached.
-     */
-    cpu_intr_disable();
-    do {
-        if (virtio_net_pkt_poll()) {
-            rc = true;
-            break;
-        }
-
-        cpu_block(deadline);
-    } while (solo5_clock_monotonic() < deadline);
-    if (!rc)
-        rc = virtio_net_pkt_poll();
-    cpu_intr_enable();
-
-    return rc;
-}

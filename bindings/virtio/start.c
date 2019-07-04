@@ -47,6 +47,8 @@ void _start(void *arg)
     _newstack(platform_mem_size(), _start2, 0);
 }
 
+extern struct mft_note __solo5_manifest_note;
+
 static void _start2(void *arg __attribute__((unused)))
 {
     static struct solo5_start_info si;
@@ -62,6 +64,13 @@ static void _start2(void *arg __attribute__((unused)))
     time_init();
     pci_enumerate();
     cpu_intr_enable();
+
+    struct mft *mft = &__solo5_manifest_note.m;
+    size_t mft_size = __solo5_manifest_note.h.descsz;
+    if (mft_validate(mft, mft_size) != 0) {
+	log(ERROR, "Solo5: Built-in manifest validation failed. Aborting.\n");
+	solo5_abort();
+    }
 
     mem_lock_heap(&si.heap_start, &si.heap_size);
     solo5_exit(solo5_app_main(&si));
