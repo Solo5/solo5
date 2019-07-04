@@ -102,4 +102,4 @@ all: $(all_TARGETS)
 clean:
 	@echo "CLEAN $(test_NAME)"
 	$(RM) $(test_NAME).o $(test_NAME).genode.o \
-	    manifest.c manifest.o manifest.genode.o $(test_TARGETS)
+	    manifest.c manifest.o manifest.genode.o $(all_TARGETS)
