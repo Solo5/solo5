@@ -30,7 +30,9 @@
 #include <assert.h>
 #include <ctype.h>
 #include <err.h>
+#include <libgen.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "json.h"
 #include "mft_abi.h"
@@ -73,19 +75,30 @@ static const char out_footer[] = \
     "}\n"
     "MFT_NOTE_END\n";
 
-int main(int argc, char *argv[])
+static void usage(const char *prog)
 {
-    if (argc != 2)
-        errx(1, "usage: mfttool JSON");
+    fprintf(stderr, "usage: %s COMMAND ...\n\n", prog);
+    fprintf(stderr, "COMMAND is:\n");
+    fprintf(stderr, "    gen SOURCE OUTPUT:\n");
+    fprintf(stderr, "        Generate application manifest from SOURCE, "
+            "writing to OUTPUT.\n");
+    exit(EXIT_FAILURE);
+}
 
-    FILE *fp = fopen(argv[1], "r");
-    if (fp == NULL)
-        err(1, "fopen");
+static int mft_generate(const char *source, const char *output)
+{
+    FILE *sfp = fopen(source, "r");
+    if (sfp == NULL)
+        err(1, "Could not open %s", source);
+    FILE *ofp = fopen(output, "w");
+    if (ofp == NULL)
+        err(1, "Could not open %s", output);
 
-    jvalue *root = jparse(fp);
+    jvalue *root = jparse(sfp);
     if (root == NULL)
-        errx(1, "parse error");
+        errx(1, "%s: JSON parse error", source);
     jupdate(root);
+    fclose(sfp);
     jexpect(jobject, root, "(root)");
 
     jvalue *jversion = NULL, *jdevices = NULL;
@@ -119,7 +132,7 @@ int main(int argc, char *argv[])
     if (entries > MFT_MAX_ENTRIES)
         errx(1, ".devices[]: too many entries, maximum %d", MFT_MAX_ENTRIES);
 
-    printf(out_header, entries, entries);
+    fprintf(ofp, out_header, entries, entries);
     for (jvalue **i = jdevices->u.v; *i; ++i) {
         jexpect(jobject, *i, ".devices[]");
         char *r_name = NULL, *r_type = NULL;
@@ -146,10 +159,28 @@ int main(int argc, char *argv[])
                 errx(1, ".devices[...]: name is not alphanumeric");
         if (r_type == NULL)
             errx(1, ".devices[...]: missing .type");
-        printf(out_entry, r_name, r_type);
+        fprintf(ofp, out_entry, r_name, r_type);
     }
-    printf(out_footer);
+    fprintf(ofp, out_footer);
 
+    fclose(ofp);
     jdel(root);
-    return 0;
+    return EXIT_SUCCESS;
+}
+
+int main(int argc, char *argv[])
+{
+    const char *prog;
+
+    prog = basename(argv[0]);
+
+    if (argc < 2)
+        usage(prog);
+    if (strcmp(argv[1], "gen") == 0) {
+        if (argc != 4)
+            usage(prog);
+        return mft_generate(argv[2], argv[3]);
+    }
+    else
+        usage(prog);
 }
