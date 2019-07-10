@@ -37,6 +37,13 @@
 #include "json.h"
 #include "mft_abi.h"
 
+/*
+ * For "dump" functionality, we pull in the ELF loader and manifest validation
+ * code directly to simplify the build.
+ */
+#include "../tenders/common/mft.c"
+#include "../tenders/common/elf.c"
+
 static const char *jtypestr(enum jtypes t)
 {
     switch (t) {
@@ -79,13 +86,15 @@ static void usage(const char *prog)
 {
     fprintf(stderr, "usage: %s COMMAND ...\n\n", prog);
     fprintf(stderr, "COMMAND is:\n");
+    fprintf(stderr, "    dump BINARY:\n");
+    fprintf(stderr, "        Dump the application manifest from BINARY.\n");
     fprintf(stderr, "    gen SOURCE OUTPUT:\n");
     fprintf(stderr, "        Generate application manifest from SOURCE, "
             "writing to OUTPUT.\n");
     exit(EXIT_FAILURE);
 }
 
-static int mft_generate(const char *source, const char *output)
+static int mfttool_generate(const char *source, const char *output)
 {
     FILE *sfp = fopen(source, "r");
     if (sfp == NULL)
@@ -168,6 +177,27 @@ static int mft_generate(const char *source, const char *output)
     return EXIT_SUCCESS;
 }
 
+static int mfttool_dump(const char *binary)
+{
+    struct mft *mft;
+    size_t mft_size;
+    elf_load_mft(binary, &mft, &mft_size);
+    if (mft_validate(mft, mft_size) == -1) {
+        free(mft);
+        warnx("%s: Manifest validation failed", binary);
+        return EXIT_FAILURE;
+    }
+
+    printf("%s: Manifest contains %d entries.\n", binary, mft->entries);
+    for (unsigned i = 0; i != mft->entries; i++) {
+        printf("%s[%u]: Name: '%s', Type: %s\n", binary, i, mft->e[i].name,
+                mft_type_to_string(mft->e[i].type));
+    }
+
+    free(mft);
+    return EXIT_SUCCESS;
+}
+
 int main(int argc, char *argv[])
 {
     const char *prog;
@@ -179,7 +209,12 @@ int main(int argc, char *argv[])
     if (strcmp(argv[1], "gen") == 0) {
         if (argc != 4)
             usage(prog);
-        return mft_generate(argv[2], argv[3]);
+        return mfttool_generate(argv[2], argv[3]);
+    }
+    else if (strcmp(argv[1], "dump") == 0) {
+        if (argc != 3)
+            usage(prog);
+        return mfttool_dump(argv[2]);
     }
     else
         usage(prog);

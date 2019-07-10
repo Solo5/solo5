@@ -317,6 +317,8 @@ void elf_load_mft(const char *file, struct mft **mft, size_t *mft_size)
 
     *mft = note;
     *mft_size = note_size;
+    free(phdr);
+    close(fd_kernel);
     return;
 
 out_error:
