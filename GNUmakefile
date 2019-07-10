@@ -69,6 +69,7 @@ install-opam-%: all opam/solo5-bindings-%.pc force-install
 	cp bindings/$*/solo5_$*.o bindings/$*/solo5_$*.lds \
 	    $(PREFIX)/lib/solo5-bindings-$*
 	cp opam/solo5-bindings-$*.pc $(PREFIX)/lib/pkgconfig
+	cp mfttool/solo5-mfttool $(PREFIX)/bin
 ifdef CONFIG_HVT
 	cp tenders/hvt/solo5-hvt tenders/hvt/solo5-hvt-configure $(PREFIX)/bin
 	- [ -f tenders/hvt/solo5-hvt-debug ] && \
@@ -98,6 +99,7 @@ uninstall-opam-%: force-uninstall
 	$(RM) $(PREFIX)/lib/solo5-bindings-$*/solo5_$*.o \
 	    $(PREFIX)/lib/solo5-bindings-$*/solo5_$*.lds
 	$(RM) $(PREFIX)/lib/pkgconfig/solo5-bindings-$*.pc
+	$(RM) $(PREFIX)/bin/solo5-mfttool
 # CONFIG_HVT
 	$(RM) $(PREFIX)/bin/solo5-hvt $(PREFIX)/bin/solo5-hvt-debug \
 	    $(PREFIX)/bin/solo5-hvt-configure

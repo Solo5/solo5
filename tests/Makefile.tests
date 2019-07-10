@@ -34,7 +34,7 @@ BINDINGS.muen := $(TOPDIR)/bindings/muen/solo5_muen.o
 LDS.genode := $(TOPDIR)/bindings/genode/genode_dyn.ld
 BINDINGS.genode := $(TOPDIR)/bindings/genode/solo5.lib.so
 
-MFTTOOL := $(TOPDIR)/mfttool/mfttool
+MFTTOOL := $(TOPDIR)/mfttool/solo5-mfttool
 
 # As a test is currently a single source file, we don't try to do any 
 # dependency auto-generation here, and just hard-code all expected dependencies
