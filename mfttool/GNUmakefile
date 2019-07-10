@@ -40,9 +40,9 @@ $(V).SILENT:
 mfttool_SRCS := mfttool.c
 mfttool_OBJS := $(patsubst %.c,%.o,$(mfttool_SRCS))
 
-all_TARGETS += mfttool
+all_TARGETS += solo5-mfttool
 
-mfttool: $(mfttool_OBJS)
+solo5-mfttool: $(mfttool_OBJS)
 	$(HOSTLINK)
 
 all: $(all_TARGETS)
