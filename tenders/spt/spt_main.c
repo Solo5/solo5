@@ -135,17 +135,19 @@ int main(int argc, char **argv)
     int argc1 = argc;
     char **argv1 = argv;
     while (*argv1 && *argv1[0] == '-') {
+        if (strcmp("--", *argv1) == 0)
+        {
+            /* Consume and stop option processing */
+            argc1--;
+            argv1++;
+            break;
+        }
+
         if (strcmp("--help", *argv1) == 0)
             usage(prog);
 
         argc1--;
         argv1++;
-        if (strcmp("--", *argv1) == 0)
-        {
-            argc1--;
-            argv1++;
-            break;
-        }
     }
     if (*argv1 == NULL) {
         warnx("Missing KERNEL operand");
@@ -171,7 +173,7 @@ int main(int argc, char **argv)
      */
     while (*argv && *argv[0] == '-') {
         if (strcmp("--", *argv) == 0) {
-            /* Consume and stop arg processing */
+            /* Consume and stop option processing */
             argc--;
             argv++;
             break;
