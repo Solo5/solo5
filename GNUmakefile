@@ -65,7 +65,7 @@ install-opam-%: all opam/solo5-bindings-%.pc force-install
 	    $(PREFIX)/lib/solo5-bindings-$* \
 	    $(PREFIX)/include/solo5-bindings-$*/solo5 \
 	    $(PREFIX)/include/solo5-bindings-$*/crt
-	cp -R include/solo5/ include/crt/ $(PREFIX)/include/solo5-bindings-$*
+	cp -R include/solo5 include/crt $(PREFIX)/include/solo5-bindings-$*
 	cp bindings/$*/solo5_$*.o bindings/$*/solo5_$*.lds \
 	    $(PREFIX)/lib/solo5-bindings-$*
 	cp opam/solo5-bindings-$*.pc $(PREFIX)/lib/pkgconfig
@@ -113,7 +113,7 @@ uninstall-opam-%: force-uninstall
 # upgrading existing OPAM switches will fail. They should be removed at some
 # point, along with the dummy solo5-hvt-configure.
 opam-hvt-uninstall: uninstall-opam-hvt ;
-	
+
 opam-spt-uninstall: uninstall-opam-spt ;
 
 opam-virtio-uninstall: uninstall-opam-virtio ;
