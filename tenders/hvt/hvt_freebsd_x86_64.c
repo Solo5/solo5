@@ -93,8 +93,7 @@ static void vmm_set_sreg(int vmfd, int reg, const struct x86_sreg *sreg)
     vmm_set_reg(vmfd, reg, sreg->selector * 8);
 }
 
-void hvt_vcpu_init(struct hvt *hvt, hvt_gpa_t gpa_ep,
-        hvt_gpa_t gpa_kend, char **cmdline)
+void hvt_vcpu_init(struct hvt *hvt, hvt_gpa_t gpa_ep)
 {
     struct hvt_b *hvb = hvt->b;
 
@@ -117,14 +116,9 @@ void hvt_vcpu_init(struct hvt *hvt, hvt_gpa_t gpa_ep,
     vmm_set_sreg(hvb->vmfd, VM_REG_GUEST_TR, &hvt_x86_sreg_tr);
     vmm_set_sreg(hvb->vmfd, VM_REG_GUEST_LDTR, &hvt_x86_sreg_unusable);
 
-    struct hvt_boot_info *bi =
-        (struct hvt_boot_info *)(hvt->mem + X86_BOOT_INFO_BASE);
-    bi->mem_size = hvt->mem_size;
-    bi->kernel_end = gpa_kend;
-    bi->cmdline = X86_CMDLINE_BASE;
-
-    size_t outsz = sizeof bi->cpu.tsc_freq;
-    int ret = sysctlbyname("machdep.tsc_freq", &bi->cpu.tsc_freq, &outsz, NULL,
+    uint64_t cpu_cycle_freq;
+    size_t outsz = sizeof cpu_cycle_freq;
+    int ret = sysctlbyname("machdep.tsc_freq", &cpu_cycle_freq, &outsz, NULL,
             0);
     if (ret == -1)
         err(1, "sysctl(machdep.tsc_freq)");
@@ -136,6 +130,7 @@ void hvt_vcpu_init(struct hvt *hvt, hvt_gpa_t gpa_ep,
         err(1, "sysctl(kern.timecounter.invariant_tsc");
     if (invariant_tsc != 1)
         errx(1, "Host TSC is not invariant, cannot continue");
+    hvt->cpu_cycle_freq = cpu_cycle_freq;
 
     vmm_set_reg(hvb->vmfd, VM_REG_GUEST_RIP, gpa_ep);
     vmm_set_reg(hvb->vmfd, VM_REG_GUEST_RFLAGS, X86_RFLAGS_INIT);
@@ -149,7 +144,7 @@ void hvt_vcpu_init(struct hvt *hvt, hvt_gpa_t gpa_ep,
     if (ret == -1)
         err(1, "VM_ACTIVATE_CPU");
 
-    *cmdline = (char *)(hvt->mem + X86_CMDLINE_BASE);
+    hvt->cpu_boot_info_base = X86_BOOT_INFO_BASE;
 }
 
 static void dump_vmx(struct vm_exit *vme)

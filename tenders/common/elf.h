@@ -25,11 +25,20 @@
 #ifndef COMMON_ELF_H
 #define COMMON_ELF_H
 
+#include "mft_abi.h"
+
 /*
  * Load an ELF binary from (file) into (mem_size) bytes of (mem), returning
- * the entry point (gpa_ep) and last byte used by the binary (gpa_kend).
+ * the entry point (p_entry), last byte used by the binary (p_end).
  */
 void elf_load(const char *file, uint8_t *mem, size_t mem_size,
         uint64_t *p_entry, uint64_t *p_end);
+
+/*
+ * Load the Solo5 manifest from the ELF binary (file). Memory for the manifest
+ * is allocated with malloc() and returned as (mft), with the manifest size as
+ * defined in the ELF binary returned in (mft_size).
+ */
+void elf_load_mft(const char *file, struct mft **mft, size_t *mft_size);
 
 #endif /* COMMON_ELF_H */

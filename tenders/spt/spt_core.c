@@ -36,27 +36,14 @@
 #include <time.h>
 #include <seccomp.h>
 #include <sys/personality.h>
+#include <sys/epoll.h>
+#include <sys/timerfd.h>
 
 #if defined(__x86_64__)
 #include <asm/prctl.h>
 #endif
 
 #include "spt.h"
-
-/*
- * TODO: This is copied from 'hvt' in a rather quick and dirty fashion to get
- * a working "net" and "block"; needs a re-think.
- */
-
-struct spt_module spt_module_core;
-
-struct spt_module *spt_core_modules[] = {
-    &spt_module_core,
-    &spt_module_net,
-    &spt_module_block,
-    NULL,
-};
-#define NUM_MODULES ((sizeof spt_core_modules / sizeof (struct spt_module *)) - 1)
 
 /*
  * TODO: Split up the functions in this module better, and introduce something
@@ -141,21 +128,63 @@ struct spt *spt_init(size_t mem_size)
     spt->mem -= SPT_HOST_MEM_BASE;
     spt->mem_size = mem_size;
 
+    spt->epollfd = epoll_create1(0);
+    if (spt->epollfd == -1)
+        err(1, "epoll_create1() failed");
+    spt->timerfd = timerfd_create(CLOCK_MONOTONIC, TFD_NONBLOCK);
+    if (spt->timerfd == -1)
+        err(1, "timerfd_create() failed");
+    struct epoll_event ev;
+    ev.events = EPOLLIN;
+    ev.data.u64 = SPT_INTERNAL_TIMERFD;
+    if (epoll_ctl(spt->epollfd, EPOLL_CTL_ADD, spt->timerfd, &ev) == -1)
+        err(1, "epoll_ctl(EPOLL_CTL_ADD) failed");
+
     spt->sc_ctx = seccomp_init(SCMP_ACT_KILL);
     assert(spt->sc_ctx != NULL);
 
     return spt;
 }
 
-void spt_bi_init(struct spt *spt, uint64_t p_end, char **cmdline)
+static void setup_cmdline(uint8_t *cmdline, int argc, char **argv)
 {
-    spt->bi = (struct spt_boot_info *)(spt->mem + SPT_BOOT_INFO_BASE);
-    memset(spt->bi, 0, sizeof (struct spt_boot_info));
-    spt->bi->cmdline = (char *)spt->mem + SPT_CMDLINE_BASE;
-    spt->bi->mem_size = spt->mem_size;
-    spt->bi->kernel_end = p_end;
+    size_t cmdline_free = SPT_CMDLINE_SIZE;
 
-    *cmdline = (char *)spt->mem + SPT_CMDLINE_BASE;
+    cmdline[0] = 0;
+
+    for (; *argv; argc--, argv++) {
+        size_t alen = snprintf((char *)cmdline, cmdline_free, "%s%s", *argv,
+                (argc > 1) ? " " : "");
+        if (alen >= cmdline_free) {
+            errx(1, "Guest command line too long (max=%d characters)",
+                    SPT_CMDLINE_SIZE - 1);
+            break;
+        }
+        cmdline_free -= alen;
+        cmdline += alen;
+    }
+}
+
+void spt_boot_info_init(struct spt *spt, uint64_t p_end, int cmdline_argc,
+        char **cmdline_argv, struct mft *mft, size_t mft_size)
+{
+    uint64_t lowmem_pos = SPT_BOOT_INFO_BASE;
+
+    struct spt_boot_info *bi =
+        (struct spt_boot_info *)(spt->mem + lowmem_pos);
+    lowmem_pos += sizeof (struct spt_boot_info);
+    bi->mem_size = spt->mem_size;
+    bi->kernel_end = p_end;
+    bi->epollfd = spt->epollfd;
+    bi->timerfd = spt->timerfd;
+
+    bi->mft = (void *)lowmem_pos;
+    memcpy(spt->mem + lowmem_pos, mft, mft_size);
+    lowmem_pos += mft_size;
+
+    bi->cmdline = (void *)lowmem_pos;
+    setup_cmdline(spt->mem + lowmem_pos, cmdline_argc, cmdline_argv);
+    lowmem_pos += SPT_CMDLINE_SIZE;
 }
 
 /*
@@ -188,10 +217,10 @@ void spt_run(struct spt *spt, uint64_t p_entry)
     abort(); /* spt_launch() does not return */
 }
 
-static int handle_cmdarg(char *cmdarg)
+static int handle_cmdarg(char *cmdarg, struct mft *mft)
 {
     if (!strncmp("--x-exec-heap", cmdarg, 13)) {
-	warnx("WARNING: The use of --x-exec-heap is dangerous and not"
+        warnx("WARNING: The use of --x-exec-heap is dangerous and not"
               " recommended as it makes the heap and stack executable.");
         use_exec_heap = true;
         return 0;
@@ -199,7 +228,7 @@ static int handle_cmdarg(char *cmdarg)
     return -1;
 }
 
-static int setup(struct spt *spt)
+static int setup(struct spt *spt, struct mft *mft)
 {
     int rc = -1;
 
@@ -210,10 +239,14 @@ static int setup(struct spt *spt)
     rc = seccomp_rule_add(spt->sc_ctx, SCMP_ACT_ALLOW, SCMP_SYS(exit_group), 0);
     if (rc != 0)
         errx(1, "seccomp_rule_add(exit_group) failed: %s", strerror(-rc));
-    rc = seccomp_rule_add(spt->sc_ctx, SCMP_ACT_ALLOW, SCMP_SYS(ppoll), 1,
-            SCMP_A3(SCMP_CMP_EQ, 0));
+    rc = seccomp_rule_add(spt->sc_ctx, SCMP_ACT_ALLOW, SCMP_SYS(epoll_pwait), 1,
+            SCMP_A0(SCMP_CMP_EQ, spt->epollfd));
     if (rc != 0)
-        errx(1, "seccomp_rule_add(ppoll) failed: %s", strerror(-rc));
+        errx(1, "seccomp_rule_add(epoll_pwait) failed: %s", strerror(-rc));
+    rc = seccomp_rule_add(spt->sc_ctx, SCMP_ACT_ALLOW,
+            SCMP_SYS(timerfd_settime), 1, SCMP_A0(SCMP_CMP_EQ, spt->timerfd));
+    if (rc != 0)
+        errx(1, "seccomp_rule_add(timerfd_settime) failed: %s", strerror(-rc));
     rc = seccomp_rule_add(spt->sc_ctx, SCMP_ACT_ALLOW, SCMP_SYS(clock_gettime),
             1, SCMP_A0(SCMP_CMP_EQ, CLOCK_MONOTONIC));
     if (rc != 0)
@@ -238,13 +271,12 @@ static int setup(struct spt *spt)
 static char *usage(void)
 {
     return "--x-exec-heap (make the heap executable)."
-	   " WARNING: This option is dangerous and not recommended as it"
+           " WARNING: This option is dangerous and not recommended as it"
            " makes the heap and stack executable.";
 }
 
-struct spt_module spt_module_core = {
-    .name = "core",
+DECLARE_MODULE(core,
     .setup = setup,
     .handle_cmdarg = handle_cmdarg,
     .usage = usage
-};
+)

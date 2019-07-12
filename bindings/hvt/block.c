@@ -20,80 +20,88 @@
 
 #include "bindings.h"
 
-/*
- * TODO: To avoid changing both the Solo5 API and hvt hypercall ABI at the
- * same time, this module currently performs some translation between the two.
- * This translation will be removed in a separate change which will align the
- * hvt hypercall ABI to match the Solo5 API.
- */
+static struct mft *mft;
 
-static struct solo5_block_info block_info;
-
-static void init_block_info(void)
+solo5_result_t solo5_block_write(solo5_handle_t handle, solo5_off_t offset,
+        const uint8_t *buf, size_t size)
 {
-    volatile struct hvt_blkinfo bi;
-
-    hvt_do_hypercall(HVT_HYPERCALL_BLKINFO, &bi);
-
-    block_info.block_size = bi.sector_size;
-    block_info.capacity = bi.num_sectors * bi.sector_size;
-}
-
-solo5_result_t solo5_block_write(solo5_off_t offset, const uint8_t *buf,
-        size_t size)
-{
-    if (!block_info.capacity)
-        init_block_info();
-
+    struct mft_entry *e = mft_get_by_index(mft, handle, MFT_BLOCK_BASIC);
+    if (e == NULL)
+        return SOLO5_R_EINVAL;
+    if (offset & (e->u.block_basic.block_size - 1))
+        return SOLO5_R_EINVAL;
     /*
-     * XXX: This does not check for writes ending past the end of the device,
-     * current hvt will return -1 (translated to SOLO5_R_EUNSPEC) below.
+     * Checks for writes beyond capacity are enforced by the tender in the
+     * hypercall handler.
      */
-    if ((offset % block_info.block_size != 0) ||
-        (offset >= block_info.capacity) ||
-        (size != block_info.block_size))
+    /*
+     * TODO: This artificially enforces the current limit of allowing only
+     * single-block operations. Will be removed once all targets can handle
+     * reads/writes of >1 block.
+     */
+    if (size != e->u.block_basic.block_size)
         return SOLO5_R_EINVAL;
 
-    volatile struct hvt_blkwrite wr;
-    wr.sector = offset / block_info.block_size;
+    volatile struct hvt_hc_block_write wr;
+    wr.handle = handle;
+    wr.offset = offset;
     wr.data = buf;
     wr.len = size;
     wr.ret = 0;
 
-    hvt_do_hypercall(HVT_HYPERCALL_BLKWRITE, &wr);
+    hvt_do_hypercall(HVT_HYPERCALL_BLOCK_WRITE, &wr);
 
-    return (wr.ret == 0) ? SOLO5_R_OK : SOLO5_R_EUNSPEC;
+    return wr.ret;
 }
 
-solo5_result_t solo5_block_read(solo5_off_t offset, uint8_t *buf, size_t size)
+solo5_result_t solo5_block_read(solo5_handle_t handle, solo5_off_t offset,
+        uint8_t *buf, size_t size)
 {
-    if (!block_info.capacity)
-        init_block_info();
-
+    struct mft_entry *e = mft_get_by_index(mft, handle, MFT_BLOCK_BASIC);
+    if (e == NULL)
+        return SOLO5_R_EINVAL;
+    if (offset & (e->u.block_basic.block_size - 1))
+        return SOLO5_R_EINVAL;
     /*
-     * XXX: This does not check for reads ending past the end of the device,
-     * current hvt will return -1 (translated to SOLO5_R_EUNSPEC) below.
+     * Checks for reads beyond capacity are enforced by the tender in the
+     * hypercall handler.
      */
-    if ((offset % block_info.block_size != 0) ||
-        (offset >= block_info.capacity) ||
-        (size != block_info.block_size))
+    /*
+     * TODO: This artificially enforces the current limit of allowing only
+     * single-block operations. Will be removed once all targets can handle
+     * reads/writes of >1 block.
+     */
+    if (size != e->u.block_basic.block_size)
         return SOLO5_R_EINVAL;
 
-    volatile struct hvt_blkread rd;
-    rd.sector = offset / block_info.block_size;
+    volatile struct hvt_hc_block_read rd;
+    rd.handle = handle;
+    rd.offset = offset;
     rd.data = buf;
     rd.len = size;
     rd.ret = 0;
 
-    hvt_do_hypercall(HVT_HYPERCALL_BLKREAD, &rd);
+    hvt_do_hypercall(HVT_HYPERCALL_BLOCK_READ, &rd);
 
-    return (rd.ret == 0 && rd.len == size) ? SOLO5_R_OK : SOLO5_R_EUNSPEC;
+    return rd.ret;
 }
 
-void solo5_block_info(struct solo5_block_info *info)
+solo5_result_t solo5_block_acquire(const char *name, solo5_handle_t *handle,
+        struct solo5_block_info *info)
 {
-    if (!block_info.capacity)
-        init_block_info();
+    unsigned index;
+    struct mft_entry *e = mft_get_by_name(mft, name, MFT_BLOCK_BASIC, &index);
+    if (e == NULL)
+        return SOLO5_R_EINVAL;
+    assert(e->attached);
 
-    *info = block_info;
+    *handle = index;
+    info->capacity = e->u.block_basic.capacity;
+    info->block_size = e->u.block_basic.block_size;
+    return SOLO5_R_OK;
+}
+
+void block_init(struct hvt_boot_info *bi)
+{
+    mft = bi->mft;
 }

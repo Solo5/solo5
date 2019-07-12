@@ -33,6 +33,7 @@
 
 #include "../common/cc.h"
 #include "../common/elf.h"
+#include "../common/mft.h"
 #define HVT_HOST
 #include "hvt_abi.h"
 #include "hvt_gdb.h"
@@ -54,6 +55,8 @@
 struct hvt {
     uint8_t *mem;
     size_t mem_size;
+    uint64_t cpu_cycle_freq;
+    hvt_gpa_t cpu_boot_info_base;
     struct hvt_b *b;
 };
 
@@ -92,12 +95,17 @@ struct hvt *hvt_init(size_t mem_size);
 void hvt_mem_size(size_t *mem_size);
 
 /*
- * Initialise VCPU state with (gpa_ep) as the entry point and (gpa_kend) as the
- * last byte of memory used by the guest binary. In (*cmdline), returns a
- * buffer with HVT_CMDLINE_SIZE bytes of space for the guest command line.
+ * Initialise VCPU state with (gpa_ep) as the entry point.
  */
-void hvt_vcpu_init(struct hvt *hvt, hvt_gpa_t gpa_ep,
-        hvt_gpa_t gpa_kend, char **cmdline);
+void hvt_vcpu_init(struct hvt *hvt, hvt_gpa_t gpa_ep);
+
+/*
+ * Initialise guest hvt_boot_info structure and its members in guest low
+ * memory. This must be called after hvt_vcpu_init() and after module setup.
+ * The manifest provided will be *copied* into guest memory.
+ */
+void hvt_boot_info_init(struct hvt *hvt, hvt_gpa_t gpa_kend, int cmdline_argc,
+        char **cmdline_argv, struct mft *mft, size_t mft_size);
 
 #if HVT_DROP_PRIVILEGES
 /*
@@ -117,8 +125,9 @@ int hvt_vcpu_loop(struct hvt *hvt);
 
 /*
  * Register the file descriptor (fd) for use with HVT_HYPERCALL_POLL.
+ * (waitset_data) must be set to the solo5_handle_t associated with (fd).
  */
-int hvt_core_register_pollfd(int fd);
+int hvt_core_register_pollfd(int fd, uintptr_t waitset_data);
 
 /*
  * Register (fn) as the handler for hypercall (nr).
@@ -151,29 +160,37 @@ int hvt_core_register_vmexit(hvt_vmexit_fn_t fn);
 extern hvt_vmexit_fn_t hvt_core_vmexits[];
 
 /*
- * Module definition. (name) and (setup) are required, all other functions are
- * optional.
+ * Operations provided by a module. (setup) is required, all other functions
+ * are optional.
  */
 struct hvt_module_ops {
-    int (*setup)(struct hvt *hvt);
-    int (*handle_cmdarg)(char *cmdarg);
+    int (*setup)(struct hvt *hvt, struct mft *mft);
+    int (*handle_cmdarg)(char *cmdarg, struct mft *mft);
     char *(*usage)(void);
 };
 
 struct hvt_module {
-    const char *name;
+    const char name[32];
     struct hvt_module_ops ops;
 };
 
-
-#define BEGIN_REGISTER_MODULE(module_name) \
+/*
+ * Declare the module (module_name).
+ *
+ * Usage:
+ *
+ * DECLARE_MODULE(module_name, <initializer of struct hvt_module_ops>);
+ *
+ * Note that alignment of the struct is explicitly set, otherwise the linker
+ * will pick a default that does not match the compiler's alignment.
+ */
+#define DECLARE_MODULE(module_name, ...) \
     static struct hvt_module __module_ ##module_name \
-    __attribute((section("modules"))) \
+    __attribute((section("modules"), aligned(8))) \
     __attribute((used)) = { \
 	.name = #module_name, \
-	.ops =
-	
-#define END_REGISTER_MODULE };
+	.ops = { __VA_ARGS__ } \
+    };
 
 /*
  * GDB specific functions to be implemented on all backends for all

@@ -1,3 +1,20 @@
+## dev
+
+TODO: Complete this before release.
+
+Rough list of changes on master since 0.4.1:
+
+* Support for stack smashing protection, build with -fstack-protector-strong.
+* Unmap low memory and zero page on hvt and virtio.
+* New target "spt" (Linux seccomp for isolation).
+* Replace ee\_printf() with a better implementation.
+* Remove hvt compile-time specialization.
+* Add `solo5_set_tls_base()`.
+* W^X: Add tests, enforce on those targets where support is working/available.
+* hvt: Change --dumpcore option to --dumpcore=DIR.
+* Introduce application manifest and support for multiple (block, network)
+  devices.
+
 ## 0.4.1 (2018-11-08)
 
 This release introduces experimental support for the Genode Operating System

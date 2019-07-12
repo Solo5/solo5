@@ -35,6 +35,7 @@
 #include <stdarg.h>
 
 #include "solo5.h"
+#include "mft.h"
 
 #ifdef __x86_64__
 #include "cpu_x86_64.h"

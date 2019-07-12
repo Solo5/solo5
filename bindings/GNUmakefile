@@ -29,7 +29,7 @@ all_TARGETS :=
 $(V).SILENT:
 
 common_SRCS := abort.c cpu_$(CONFIG_ARCH).c cpu_vectors_$(CONFIG_ARCH).S \
-    crt.c printf.c intr.c lib.c mem.c exit.c log.c cmdline.c tls.c
+    crt.c printf.c intr.c lib.c mem.c exit.c log.c cmdline.c tls.c mft.c
 
 common_hvt_SRCS := hvt/start.c hvt/platform.c hvt/platform_intr.c hvt/time.c
 
@@ -38,6 +38,7 @@ hvt_SRCS := $(common_SRCS) $(common_hvt_SRCS) \
     hvt/net.c hvt/block.c
 
 spt_SRCS := abort.c crt.c printf.c lib.c mem.c exit.c log.c cmdline.c tls.c \
+    mft.c \
     spt/bindings.c spt/block.c spt/net.c spt/platform.c spt/start.c \
     spt/sys_linux_$(CONFIG_ARCH).c
 

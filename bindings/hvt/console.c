@@ -22,7 +22,7 @@
 
 int platform_puts(const char *buf, int n)
 {
-    struct hvt_puts str;
+    struct hvt_hc_puts str;
 
     str.data = (char *)buf;
     str.len = n;

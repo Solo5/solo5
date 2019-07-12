@@ -20,9 +20,6 @@ ifndef TOPDIR
 $(error TOPDIR must be set, run $(MAKE) from the top of the source tree or set it manually)
 endif
 
-.SUFFIXES:
-$(V).SILENT:
-
 TESTDIRS := $(wildcard test_*)
 
 TOPTARGETS := all clean
@@ -34,3 +31,6 @@ $(TOPTARGETS): $(TESTDIRS)
 $(TESTDIRS):
 	@echo "MAKE $@"
 	$(MAKE) -C $@ $(MAKECMDGOALS) $(SUBOVERRIDE)
+
+.SUFFIXES:
+$(V).SILENT:

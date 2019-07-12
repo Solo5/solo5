@@ -84,17 +84,15 @@ If you are looking for a high-level stack for deploying unikernels, one such
 project is [Albatross](https://hannes.nqsb.io/Posts/VMM).
 
 The following examples use the standalone
-[test\_ping\_serve](../tests/test_ping_serve/test_ping_serve.c) unikernel which is
+[test\_net](../tests/test_net/test_net.c) unikernel which is
 built as part of the normal Solo5 build process.
 
-The products of building a Solo5 unikernel are, depending on the _target_, one
-or two artifacts:
+~~The products of building a Solo5 unikernel are, depending on the _target_, one
+or two artifacts: (...)~~
 
-- an ELF binary containing the built unikernel,
-- for the _hvt_ target, a specialized _[tender](architecture.md)_, by
-  convention currently built as `solo5-hvt` alongside the unikernel binary.
+_TODO: Tie in / link to application manifest documentation?._
 
-`test_ping_serve` is a minimalist network test which will respond only to ARP
+`test_net` is a minimalist network test which will respond only to ARP
 and ICMP echo requests sent to the hard-coded IP address of `10.0.0.2`. It
 accepts two possible command line arguments: Either `verbose` for verbose
 operation or `limit` to terminate after having sent 100,000 ICMP echo replies.
@@ -128,23 +126,18 @@ The _hvt_ ("hardware virtualized tender") target supports Linux, FreeBSD and
 OpenBSD systems and uses hardware virtualization to isolate the guest
 unikernel.
 
-A specialized _tender_ called `solo5-hvt` is generated as part of the
-unikernel's build process, so the command line arguments may differ depending on
-the needs of the unikernel.  To see the arguments, run `solo5-hvt` with
-no arguments or `--help`.
-
-On Linux, `solo5-hvt` only requires access to `/dev/kvm` and `/dev/net/tun`,
-and thus does NOT need to run as `root` provided your have granted the user in
-question the correct permissions.
+On Linux, the `solo5-hvt` _tender_ only requires access to `/dev/kvm` and
+`/dev/net/tun`, and thus does NOT need to run as `root` provided your have
+granted the user in question the correct permissions.
 
 On FreeBSD and OpenBSD, `root` privileges are currently required in order to
-access the `vmm` APIs. However, before starting the unikernel, the tender will
-drop privileges to an unprivileged user and, in the case of OpenBSD, use
+access the `vmm` APIs. However, before starting the unikernel, the _tender_
+will drop privileges to an unprivileged user and, in the case of OpenBSD, use
 `pledge(2)` to further lower its privileges.
 
 To launch the unikernel:
 
-    ./solo5-hvt --net=tap100 -- test_ping_serve.hvt verbose
+    ../tenders/hvt/solo5-hvt --net:service=tap100 -- test_net.hvt verbose
 
 Use `^C` to terminate the unikernel.
 
@@ -159,7 +152,7 @@ special privileges to run.
 
 To launch the unikernel:
 
-    solo5-spt --net=tap100 -- test_ping_serve.spt verbose
+    ../tenders/spt/solo5-spt --net:service=tap100 -- test_net.spt verbose
 
 ## _virtio_: Running with KVM/QEMU on Linux, or bhyve on FreeBSD
 
@@ -170,7 +163,7 @@ launch the guest VM. You can run these manually if desired.
 
 To launch the unikernel:
 
-    solo5-virtio-run.sh -n tap100 -- test_ping_serve.virtio verbose
+    ../scripts/virtio-run/solo5-virtio-run.sh -n tap100 -- test_net.virtio verbose
 
 Use `^C` to terminate the unikernel.
 
@@ -198,7 +191,14 @@ devote a substantial amount of time to the further development of _virtio_.
 
 Therefore, we recommend that new deployments use the _hvt_ target instead.
 
-The following devices are supported by the _virtio_ target:
+As the _virtio_ bindings internally support only a single network and/or block
+device, if multiple such devices are declared in the application manifest, only
+the first valid "acquire" call of each device type will succeed. Conversely, if
+multiple such virtual hardware devices are presented to the VM by the
+hypervisor, only the first instance of each device will be used by the
+unikernel.
+
+The following virtual hardware devices are supported by the _virtio_ target:
 
 * the serial console, fixed at COM1 and 115200 baud
 * the KVM paravirtualized clock, if available

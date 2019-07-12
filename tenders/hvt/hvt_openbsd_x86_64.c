@@ -93,8 +93,7 @@ void hvt_mem_size(size_t *mem_size) {
     hvt_x86_mem_size(mem_size);
 }
 
-void hvt_vcpu_init(struct hvt *hvt, hvt_gpa_t gpa_ep,
-        hvt_gpa_t gpa_kend, char **cmdline)
+void hvt_vcpu_init(struct hvt *hvt, hvt_gpa_t gpa_ep)
 {
     struct hvt_b *hvb = hvt->b;
 
@@ -132,17 +131,12 @@ void hvt_vcpu_init(struct hvt *hvt, hvt_gpa_t gpa_ep,
     hvt_x86_setup_gdt(hvt->mem);
     hvt_x86_setup_pagetables(hvt->mem, hvt->mem_size);
 
-    struct hvt_boot_info *bi =
-        (struct hvt_boot_info *)(hvt->mem + X86_BOOT_INFO_BASE);
-    bi->mem_size = hvt->mem_size;
-    bi->kernel_end = gpa_kend;
-    bi->cmdline = X86_CMDLINE_BASE;
-    bi->cpu.tsc_freq = get_tsc_freq();
+    hvt->cpu_cycle_freq = get_tsc_freq();
 
     if (ioctl(hvb->vmd_fd, VMM_IOC_RESETCPU, &vrp) < 0)
         err(1, "Cannot reset VCPU - exiting.");
 
-    *cmdline = (char *)(hvt->mem + X86_CMDLINE_BASE);
+    hvt->cpu_boot_info_base = X86_BOOT_INFO_BASE;
 }
 
 int hvt_vcpu_loop(struct hvt *hvt)
@@ -186,9 +180,7 @@ int hvt_vcpu_loop(struct hvt *hvt)
                     /* Guest has halted the CPU. */
                     if (nr == HVT_HYPERCALL_HALT) {
                         hvt_gpa_t gpa = vei->vei.vei_data;
-                        struct hvt_halt *p =
-                            HVT_CHECKED_GPA_P(hvt, gpa, sizeof (struct hvt_halt));
-                        return p->exit_status;
+                        return hvt_core_hypercall_halt(hvt, gpa);
                     }
 
                     hvt_hypercall_fn_t fn = hvt_core_hypercalls[nr];

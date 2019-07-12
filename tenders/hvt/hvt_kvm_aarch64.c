@@ -255,11 +255,10 @@ static void aarch64_enable_guest_mmu(int vcpufd)
  * convention: x0 ~ x7
  */
 static void aarch64_setup_core_registers(struct hvt *hvt,
-                             hvt_gpa_t gpa_ep, hvt_gpa_t gpa_kend)
+                             hvt_gpa_t gpa_ep)
 {
     int ret;
     struct hvt_b *hvb = hvt->b;
-    struct hvt_boot_info *bi;
 
     /* Set default PSTATE flags to SPSR_EL1 */
     ret = aarch64_set_one_register(hvb->vcpufd, SPSR_EL1,
@@ -276,22 +275,18 @@ static void aarch64_setup_core_registers(struct hvt *hvt,
     if (ret == -1)
          err(1, "Initialize sp[EL1] failed!\n");
 
-    bi = (struct hvt_boot_info *)(hvt->mem + AARCH64_BOOT_INFO);
-    bi->mem_size = hvt->mem_size;
-    bi->kernel_end = gpa_kend;
-    bi->cmdline = AARCH64_CMDLINE_BASE;
-
     /*
      * KVM on aarch64 doesn't support KVM_CAP_GET_TSC_KHZ. But we can use
      * the cntvct_el0 as RDTSC of x86. So we can read counter frequency
      * from cntfrq_el0 directly.
      */
-    bi->cpu.tsc_freq = aarch64_get_counter_frequency();
+    hvt->cpu_cycle_freq = aarch64_get_counter_frequency();
 
     /* Passing hvt_boot_info through x0 */
     ret = aarch64_set_one_register(hvb->vcpufd, REG_X0, AARCH64_BOOT_INFO);
     if (ret == -1)
          err(1, "Set boot info to x0 failed!\n");
+    hvt->cpu_boot_info_base = AARCH64_BOOT_INFO;
 
     /* Set guest reset PC entry here */
     ret = aarch64_set_one_register(hvb->vcpufd, REG_PC, gpa_ep);
@@ -299,8 +294,7 @@ static void aarch64_setup_core_registers(struct hvt *hvt,
          err(1, "Set guest reset entry to PC failed!\n");
 }
 
-void hvt_vcpu_init(struct hvt *hvt, hvt_gpa_t gpa_ep,
-        hvt_gpa_t gpa_kend, char **cmdline)
+void hvt_vcpu_init(struct hvt *hvt, hvt_gpa_t gpa_ep)
 {
     struct hvt_b *hvb = hvt->b;
 
@@ -319,9 +313,7 @@ void hvt_vcpu_init(struct hvt *hvt, hvt_gpa_t gpa_ep,
     aarch64_enable_guest_mmu(hvb->vcpufd);
 
     /* Initialize core registers for guest */
-    aarch64_setup_core_registers(hvt, gpa_ep, gpa_kend);
-
-    *cmdline = (char *)(hvt->mem + AARCH64_CMDLINE_BASE);
+    aarch64_setup_core_registers(hvt, gpa_ep);
 }
 
 static inline uint32_t mmio_read32(void *data)

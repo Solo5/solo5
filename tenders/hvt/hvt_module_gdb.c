@@ -620,7 +620,7 @@ void handle_hvt_exit(void)
     send_response('X', GDB_SIGNAL_KILL, false);
 }
 
-static int setup(struct hvt *hvt)
+static int setup(struct hvt *hvt, struct mft *mft)
 {
     if (!use_gdb)
         return 0;
@@ -647,7 +647,7 @@ static int setup(struct hvt *hvt)
     return 0;
 }
 
-static int handle_cmdarg(char *cmdarg)
+static int handle_cmdarg(char *cmdarg, struct mft *mft)
 {
     if (!strcmp("--gdb", cmdarg)) {
         use_gdb = true;
@@ -665,12 +665,11 @@ static int handle_cmdarg(char *cmdarg)
 static char *usage(void)
 {
     return "--gdb (optional flag for running in a gdb debug session)\n"
-        "    [ --gdb-port=1234 ] (port to use) ";
+        "  [ --gdb-port=1234 ] (port to use) ";
 }
 
-BEGIN_REGISTER_MODULE(gdb) {
+DECLARE_MODULE(gdb,
     .setup = setup,
     .handle_cmdarg = handle_cmdarg,
     .usage = usage
-}
-END_REGISTER_MODULE
+)

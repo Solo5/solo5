@@ -1,0 +1,4 @@
+{
+    "version": 1,
+    "devices": [ { "name": "storage", "type": "BLOCK_BASIC" } ]
+}

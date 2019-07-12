@@ -228,7 +228,7 @@ failure:
     close(fd);
 }
 
-static int handle_cmdarg(char *cmdarg)
+static int handle_cmdarg(char *cmdarg, struct mft *mft)
 {
     if (strncmp("--dumpcore=", cmdarg, 11))
 	return -1;
@@ -242,7 +242,7 @@ static char *usage(void)
     return "--dumpcore=DIR (enable guest core dump on abort/trap)";
 }
 
-static int setup(struct hvt *hvt)
+static int setup(struct hvt *hvt, struct mft *mft)
 {
     if (dumpcoredir == NULL)
         return 0; /* Not present */
@@ -263,9 +263,8 @@ static int setup(struct hvt *hvt)
     return 0;
 }
 
-BEGIN_REGISTER_MODULE(dumpcore) {
+DECLARE_MODULE(dumpcore,
     .setup = setup,
     .handle_cmdarg = handle_cmdarg,
     .usage = usage
-}
-END_REGISTER_MODULE
+)

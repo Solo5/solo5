@@ -24,7 +24,7 @@
 
 /* The feature bitmap for virtio net */
 #define VIRTIO_NET_F_CSUM       0 /* Host handles pkts w/ partial csum */
-#define VIRTIO_NET_F_GUEST_CSUM	1 /* Guest handles pkts w/ partial csum */
+#define VIRTIO_NET_F_GUEST_CSUM        1 /* Guest handles pkts w/ partial csum */
 #define VIRTIO_NET_F_MAC (1 << 5) /* Host has given MAC address. */
 
 #define PKT_BUFFER_LEN 1526
@@ -61,7 +61,10 @@ static uint16_t virtio_net_pci_base; /* base in PCI config space */
 static uint8_t virtio_net_mac[6];
 static char virtio_net_mac_str[18];
 
-static int net_configured;
+static bool net_configured;
+static bool net_acquired;
+static solo5_handle_t net_handle;
+extern struct mft_note __solo5_manifest_note;
 
 static int handle_virtio_net_interrupt(void *);
 
@@ -73,7 +76,7 @@ int handle_virtio_net_interrupt(void *arg __attribute__((unused)))
     if (net_configured) {
         isr_status = inb(virtio_net_pci_base + VIRTIO_PCI_ISR);
         if (isr_status & VIRTIO_PCI_ISR_HAS_INTR) {
-	    /* This interrupt is just to kick the application out of any
+            /* This interrupt is just to kick the application out of any
              * solo5_poll() that may be running. */
             return 1;
         }
@@ -139,7 +142,7 @@ void virtio_config_network(struct pci_config_info *pci)
 
     /*
      * 2. Set the ACKNOWLEDGE status bit: the guest OS has notice the device.
-     * 3. Set the DRIVER status bit: the guest OS knows how to drive the device. 
+     * 3. Set the DRIVER status bit: the guest OS knows how to drive the device.
      */
 
     outb(pci->base + VIRTIO_PCI_STATUS, VIRTIO_PCI_STATUS_ACK);
@@ -149,7 +152,7 @@ void virtio_config_network(struct pci_config_info *pci)
      * 4. Read device feature bits, and write the subset of feature bits
      * understood by the OS and driver to the device. During this step the
      * driver MAY read (but MUST NOT write) the device-specific configuration
-     * fields to check that it can support the device before accepting it. 
+     * fields to check that it can support the device before accepting it.
      */
 
     host_features = inl(pci->base + VIRTIO_PCI_HOST_FEATURES);
@@ -269,20 +272,90 @@ void virtio_net_recv_pkt_put(void)
     outw(virtio_net_pci_base + VIRTIO_PCI_QUEUE_NOTIFY, VIRTQ_RECV);
 }
 
-solo5_result_t solo5_net_write(const uint8_t *buf, size_t size)
+/*
+ * FIXME: This is a single-device implementation of the new manifest-based
+ * APIs. On virtio, this call has the following semantics:
+ *
+ * 1. The first call to solo5_net_acquire() asking for a handle to a valid
+ *    network device (one specified in the application manifest) will succeed,
+ *    and return a handle for the sole virtio network device.
+ * 2. All subsequent calls will return an error.
+ *
+ * Note that the presence of a virtio network device is registered during boot
+ * in (net_configured), and the initial acquisition by solo5_net_acquire() is
+ * registered in (net_acquired).
+ */
+solo5_result_t solo5_net_acquire(const char *name, solo5_handle_t *h,
+        struct solo5_net_info *info)
 {
-    assert(net_configured);
+    if (!net_configured || net_acquired)
+        return SOLO5_R_EUNSPEC;
+
+    unsigned mft_index;
+    struct mft_entry *mft_e = mft_get_by_name(&__solo5_manifest_note.m, name,
+            MFT_NET_BASIC, &mft_index);
+    if (mft_e == NULL)
+        return SOLO5_R_EINVAL;
+    net_handle = (solo5_handle_t)mft_index;
+    net_acquired = true;
+
+    memcpy(info->mac_address, virtio_net_mac, sizeof info->mac_address);
+    info->mtu = 1500;
+    *h = (solo5_handle_t)mft_index;
+    log(INFO, "Solo5: Application acquired '%s' as network device\n", name);
+    return SOLO5_R_OK;
+}
+
+bool solo5_yield(solo5_time_t deadline, solo5_handle_set_t *ready_set)
+{
+    bool rc = false;
+
+    /*
+     * cpu_block() as currently implemented will only poll for the maximum time
+     * the PIT can be run in "one shot" mode. Loop until either I/O is possible
+     * or the desired time has been reached.
+     */
+    cpu_intr_disable();
+    do {
+        if (net_acquired && virtio_net_pkt_poll()) {
+            rc = true;
+            break;
+        }
+
+        cpu_block(deadline);
+    } while (solo5_clock_monotonic() < deadline);
+    if (!rc)
+        rc = net_acquired && virtio_net_pkt_poll();
+    cpu_intr_enable();
+
+    solo5_handle_set_t tmp_ready_set;
+    if (rc)
+        tmp_ready_set = 1UL << net_handle;
+    else
+        tmp_ready_set = 0;
+    if (ready_set)
+        *ready_set = tmp_ready_set;
+    return rc;
+}
+
+solo5_result_t solo5_net_write(solo5_handle_t h, const uint8_t *buf,
+        size_t size)
+{
+    if (!net_acquired || h != net_handle)
+        return SOLO5_R_EINVAL;
 
     int rv = virtio_net_xmit_packet(buf, size);
     return (rv == 0) ? SOLO5_R_OK : SOLO5_R_EUNSPEC;
 }
 
-solo5_result_t solo5_net_read(uint8_t *buf, size_t size, size_t *read_size)
+solo5_result_t solo5_net_read(solo5_handle_t h, uint8_t *buf, size_t size,
+        size_t *read_size)
 {
     uint8_t *pkt;
     size_t len = size;
 
-    assert(net_configured);
+    if (!net_acquired || h != net_handle)
+        return SOLO5_R_EINVAL;
 
     /* We only need interrupts to wake up the application when it's sleeping
      * and waiting for incoming packets. The app is definitely not doing that
@@ -311,12 +384,4 @@ solo5_result_t solo5_net_read(uint8_t *buf, size_t size, size_t *read_size)
     recvq.avail->flags &= ~VIRTQ_AVAIL_F_NO_INTERRUPT;
 
     return SOLO5_R_OK;
-}
-
-void solo5_net_info(struct solo5_net_info *info)
-{
-    assert(net_configured);
-
-    memcpy(info->mac_address, virtio_net_mac, sizeof info->mac_address);
-    info->mtu = 1500;
 }

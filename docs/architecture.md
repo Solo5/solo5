@@ -86,35 +86,80 @@ The current interface and its implementations have not been designed for high
 I/O performance. Proposed prototypes show that I/O performance comparable or
 better than that of virtual machines using virtio-style devices is possible.
 
-The current architecture is limited to supporting a single network interface
-and block device per unikernel instance. For details on why this is so, and
-what needs to happen for this limitation to be lifted, please see this mailing
-list [thread](https://www.mail-archive.com/solo5@lists.h3q.com/msg00024.html).
-
 The Solo5 interfaces and ABI are not yet stable, and will change in the future.
 We expect to provide a stable ABI (binary compatibility) in the future.
 
-# Architecture and code organisation
+# Architecture
+
+## Application manifest
+
+_TODO: Expand this._
+
+Solo5 introduces the concept of an _application manifest_, which is defined by
+the developer at unikernel build time, using the following JSON format and
+customarily named `manifest.json`:
+
+```
+{
+    "version" = 1,
+    "devices" = [
+        { "name" = "<NAME>", "type" = "<TYPE>" },
+        ...
+    ]
+}
+```
+
+_NAME_ is a human-readable unique identifier for the device. The intention is
+that the name conveys some meaning of the intended use ("wiring") of the
+device, eg. `frontend` for a network or `storage` for a block device.
+
+_NAME_ must be composed of alphanumeric characters only, and within 1..67
+characters in length.
+
+_TYPE_ is the type of device being declared, currently `BLOCK_BASIC` or
+`NET_BASIC`.
+
+Note that there is a maximum limit of 64 devices in the manifest.
+
+At unikernel build time, `manifest.json` is pre-processed by `solo5-mfttool`,
+generating a C source file with a binary representation. This source file is
+then compiled using `cc` from the Solo5 toolchain, and linked into the
+unikernel binary, where it is represented as an ELF "NOTE".
+
+## Public API, _Tenders_ and _Bindings_
+
+The _bindings_ implement the Solo5 public ("unikernel-facing") API defined in
+[include/solo5/solo5.h](include/solo5/solo5.h) for a particular _target_.
+
+The _hvt_ and _spt_ targets make use of a _tender_ which serves as a loader for
+the unikernel within the host OS, sets up access to host resources declared in
+the _application manifest_ and, in the case of _hvt_, mediates guest access to
+those resources.
+
+## Code organisation
 
 The main components of Solo5 are:
 
 - [bindings/](../bindings/): the Solo5 _bindings_ to (implementation of) the
   unikernel-facing interface for the various supported targets, as defined in
   [solo5.h](../include/solo5/solo5.h).
+- [tenders/common/](../tenders/common): common code shared by tender
+  implementations, notably including the ELF loader and _application manifest_
+  validation routines.
 - [tenders/hvt/](../tenders/hvt/): the tender implementation for the _hvt_
   target, with tender-internal interfaces defined in
   [hvt.h](../tenders/hvt/hvt.h) and the internal "hypercall" ABI
-  to Solo5 defined in [hvt\_abi.h](../include/solo5/hvt_abi.h). All
-  non-core code is contained in optional modules, which are selected at
-  unikernel build time by the
-  [solo5-hvt-configure](../tenders/hvt/solo5-hvt-configure) script.
+  to Solo5 defined in [hvt\_abi.h](../include/solo5/hvt_abi.h).
 - [tenders/spt](../tenders/spt/): the tender implementation for the _spt_
   target. Tender-internal interfaces are defined in [spt.h](../tenders/spt/spt.h)
   and internal Solo5-facing ABIs in [spt\_abi.h](../include/solo5/spt_abi.h).
+- [mfttool/](../mfttool): `solo5-mfttool`, the _application manifest_ generation
+  tool.
 - [tests/](../tests/): self tests used as part of our CI system.
 - [scripts/](../scripts/): extra tooling and scripts (mainly to support the
   _virtio_ target).
-- [opam/](../opam/): package definitions and pkg-config files for integration with OPAM and MirageOS.
+- [opam/](../opam/): package definitions and pkg-config files for integration
+  with OPAM and MirageOS.
 
 The code is architected to split processor architecture and/or host operating
 system (_target_)-specific modules from shared functionality where possible.

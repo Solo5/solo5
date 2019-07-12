@@ -21,9 +21,9 @@ $(TOPDIR)/Makeconf:
 	$(error Makeconf not found, please run ./configure.sh)
 include Makefile.common
 
-SUBDIRS := bindings tenders tests
+SUBDIRS := bindings tenders mfttool tests
 
-tests: bindings
+tests: bindings mfttool
 
 .PHONY: $(SUBDIRS)
 
@@ -65,10 +65,11 @@ install-opam-%: all opam/solo5-bindings-%.pc force-install
 	    $(PREFIX)/lib/solo5-bindings-$* \
 	    $(PREFIX)/include/solo5-bindings-$*/solo5 \
 	    $(PREFIX)/include/solo5-bindings-$*/crt
-	cp -R include/solo5/ include/crt/ $(PREFIX)/include/solo5-bindings-$*
+	cp -R include/solo5 include/crt $(PREFIX)/include/solo5-bindings-$*
 	cp bindings/$*/solo5_$*.o bindings/$*/solo5_$*.lds \
 	    $(PREFIX)/lib/solo5-bindings-$*
 	cp opam/solo5-bindings-$*.pc $(PREFIX)/lib/pkgconfig
+	cp mfttool/solo5-mfttool $(PREFIX)/bin
 ifdef CONFIG_HVT
 	cp tenders/hvt/solo5-hvt tenders/hvt/solo5-hvt-configure $(PREFIX)/bin
 	- [ -f tenders/hvt/solo5-hvt-debug ] && \
@@ -98,6 +99,7 @@ uninstall-opam-%: force-uninstall
 	$(RM) $(PREFIX)/lib/solo5-bindings-$*/solo5_$*.o \
 	    $(PREFIX)/lib/solo5-bindings-$*/solo5_$*.lds
 	$(RM) $(PREFIX)/lib/pkgconfig/solo5-bindings-$*.pc
+	$(RM) $(PREFIX)/bin/solo5-mfttool
 # CONFIG_HVT
 	$(RM) $(PREFIX)/bin/solo5-hvt $(PREFIX)/bin/solo5-hvt-debug \
 	    $(PREFIX)/bin/solo5-hvt-configure
@@ -111,7 +113,7 @@ uninstall-opam-%: force-uninstall
 # upgrading existing OPAM switches will fail. They should be removed at some
 # point, along with the dummy solo5-hvt-configure.
 opam-hvt-uninstall: uninstall-opam-hvt ;
-	
+
 opam-spt-uninstall: uninstall-opam-spt ;
 
 opam-virtio-uninstall: uninstall-opam-virtio ;
