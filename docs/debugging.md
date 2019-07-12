@@ -2,22 +2,21 @@
 
 The _hvt_ target provides support both for live debugging of a running
 unikernel, and post-mortem debugging (guest core dumps). In both cases, you
-will need to enable building the relevant module in your `solo5-hvt` _tender_.
+will need to run your unikernel using the `solo5-hvt-debug` _tender_, which
+enables the `gdb` and/or `dumpcore` modules with debugging functionality.
 
-To do so for the standalone tests provided with Solo5, edit the Makefile and
-add the module to the `HVT_MODULES` variable. For other downstream build
-systems, consult the documentation of your unikernel project, and/or instruct
-your build system to add the module to the invocation of `solo5-hvt-configure`.
+The _spt_ target likewise provides this support, without the need for a special
+`-debug` _tender_. See below for details.
 
 ## Live debugging of _hvt_ unikernels
 
 This feature is currently only supported on Linux/KVM on the x86\_64
-architecture. The `gdb` module must be included in your build of `solo5-hvt`.
+architecture.
 
-Start solo5-hvt with the `--gdb` flag, like this:
+Start solo5-hvt-debug with the `--gdb` flag, like this:
 
     $ cd tests/test_hello
-    $ ./solo5-hvt --gdb test_hello.hvt
+    $ ../tenders/hvt/solo5-hvt-debug --gdb test_hello.hvt
 
 This will start a GDB server on TCP port 1234, and the tender will wait for
 GDB to connect before launching the unikernel. You can use the `--gdb-port`
@@ -52,13 +51,12 @@ Here is a typical gdb session:
 ## Post-mortem debugging of _hvt_ unikernels
 
 This feature is currently only supported on Linux/KVM and FreeBSD vmm on the
-x86\_64 architecture. The `dumpcore` module must be included in your build of
-`solo5-hvt`.
+x86\_64 architecture.
 
-The functionality must also be enabled at run-time by passing the
-`--dumpcore=DIR` option to `solo5-hvt`. This will cause `solo5-hvt` to generate
-a core file in DIR if the guest aborts, either due to a trap/fault, or by
-calling `solo5_abort()` directly.
+The functionality must be enabled at run-time by passing the
+`--dumpcore=DIR` option to `solo5-hvt-debug`. This will cause `solo5-hvt-debug`
+to generate a core file in DIR if the guest aborts, either due to a trap/fault,
+or by calling `solo5_abort()` directly.
 
 You can then load the core file into GDB as follows (this example uses the
 `test_abort` provided with Solo5):
