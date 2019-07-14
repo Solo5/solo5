@@ -22,8 +22,8 @@
 #define MUEN_NET_H
 
 /*
- * Returns True if there is pending network data.
+ * Returns True if the network device designated by handle has pending data.
  */
-bool muen_net_pending_data();
+bool muen_net_pending_data(solo5_handle_t handle);
 
 #endif
