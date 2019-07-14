@@ -31,6 +31,10 @@
 #include <string.h>
 #include <unistd.h>
 
+#if HVT_FREEBSD_ENABLE_CAPSICUM
+#include <sys/capsicum.h>
+#endif
+
 #include "../common/tap_attach.h"
 #include "hvt.h"
 #include "solo5.h"
@@ -165,6 +169,13 @@ static int setup(struct hvt *hvt, struct mft *mft)
             tap_attach_genmac(mft->e[i].u.net_basic.mac);
         assert(hvt_core_register_pollfd(mft->e[i].b.hostfd, i) == 0);
     }
+
+#if HVT_FREEBSD_ENABLE_CAPSICUM
+    cap_rights_t rights;
+    cap_rights_init(&rights, CAP_EVENT, CAP_WRITE, CAP_READ);
+    if (cap_rights_limit(netfd, &rights) == -1 && errno != ENOSYS)
+        err(1, "cap_rights_limit() failed");
+#endif
 
     return 0;
 }

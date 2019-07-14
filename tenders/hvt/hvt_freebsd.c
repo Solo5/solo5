@@ -44,6 +44,16 @@
 #include <sys/cpuset.h>
 #include <machine/vmm_dev.h>
 
+#include <osreldate.h>
+
+#if HVT_FREEBSD_ENABLE_CAPSICUM
+#include <sys/capsicum.h>
+#include <sys/nv.h>
+#include <libcasper.h>
+#include <casper/cap_sysctl.h>
+#include <capsicum_helpers.h>
+#endif
+
 #include "hvt.h"
 #include "hvt_freebsd.h"
 
@@ -56,12 +66,24 @@
  */
 static struct hvt *cleanup_hvt;
 
+#if HVT_FREEBSD_ENABLE_CAPSICUM
+static cap_channel_t *capsysctl;
+#endif
+
 static void cleanup_vm(void)
 {
-    if (cleanup_hvt != NULL)
-        sysctlbyname("hw.vmm.destroy", NULL, NULL, cleanup_hvt->b->vmname,
+    if (cleanup_hvt != NULL) {
+#if HVT_FREEBSD_ENABLE_CAPSICUM
+       cap_sysctlbyname(capsysctl, "hw.vmm.destroy", NULL, NULL,
+                cleanup_hvt->b->vmname, strlen(cleanup_hvt->b->vmname));
+       cap_close(capsysctl);
+#else
+       sysctlbyname("hw.vmm.destroy", NULL, NULL, cleanup_hvt->b->vmname,
                 strlen(cleanup_hvt->b->vmname));
+#endif
+    }
 }
+
 
 static void cleanup_vmfd(void)
 {
@@ -129,15 +151,51 @@ struct hvt *hvt_init(size_t mem_size)
     if (hvt->mem == MAP_FAILED)
         err(1, "mmap");
     hvt->mem_size = mem_size;
+
+#if HVT_FREEBSD_ENABLE_CAPSICUM
+    cap_rights_t rights;
+    const cap_ioctl_t cmds[] = { VM_RUN, VM_SET_CAPABILITY, VM_ALLOC_MEMSEG,
+                                 VM_MMAP_MEMSEG, VM_SET_SEGMENT_DESCRIPTOR,
+                                 VM_SET_REGISTER, VM_GET_REGISTER,
+                                 VM_ACTIVATE_CPU };
+    cap_rights_init(&rights, CAP_IOCTL, CAP_MMAP_RW);
+    if (cap_rights_limit(hvb->vmfd, &rights) == -1 && errno != ENOSYS)
+        err(1, "cap_rights_limit() failed");
+    if (cap_ioctls_limit(hvb->vmfd, cmds, nitems(cmds)) == -1 && errno != ENOSYS)
+        err(1, "cap_ioctls_limit() failed");
+
+    cap_channel_t *capcas;
+    capcas = cap_init();
+    if (capcas == NULL)
+        err(1, "Unable to contact Casper");
+
+    capsysctl = cap_service_open(capcas, "system.sysctl");
+    if (capsysctl == NULL)
+        err(1, "Unable to open system.sysctl service");
+
+    cap_close(capcas);
+
+    nvlist_t *limits;
+    limits = nvlist_create(0);
+
+    nvlist_add_number(limits, "hw.vmm.destroy", CAP_SYSCTL_WRITE);
+    if (cap_limit_set(capsysctl, limits) < 0)
+        err(1, "Unable to set limits");
+
+    if (caph_limit_stdout() == -1 || caph_limit_stderr() == -1)
+        err(1, "Unable to apply rights for sandbox");
+#endif
+
     return hvt;
 }
 
 #if HVT_DROP_PRIVILEGES
 void hvt_drop_privileges()
 {
-    /*
-     * This function intentionally left blank for now (see #282).
-     */
+#if HVT_FREEBSD_ENABLE_CAPSICUM
+    if (caph_enter() == -1)
+        err(1, "cap_enter() failed");
+#endif
 }
 #endif
 
