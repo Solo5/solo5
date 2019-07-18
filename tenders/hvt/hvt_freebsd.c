@@ -132,6 +132,11 @@ struct hvt *hvt_init(size_t mem_size)
     return hvt;
 }
 
+int hvt_guest_mprotect(void *t, void *addr, size_t len, int prot)
+{
+    return mprotect(addr, len, prot);
+}
+
 #if HVT_DROP_PRIVILEGES
 void hvt_drop_privileges()
 {

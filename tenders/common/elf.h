@@ -27,11 +27,14 @@
 
 #include "mft_abi.h"
 
+typedef int (*guest_mprotect_fn_t)(void *t, void *addr, size_t size, int prot);
+
 /*
  * Load an ELF binary from (file) into (mem_size) bytes of (mem), returning
  * the entry point (p_entry), last byte used by the binary (p_end).
  */
-void elf_load(const char *file, uint8_t *mem, size_t mem_size,
+void elf_load(void *t, const char *file, uint8_t *mem, size_t mem_size,
+        guest_mprotect_fn_t guest_mprotect_fn,
         uint64_t *p_entry, uint64_t *p_end);
 
 /*

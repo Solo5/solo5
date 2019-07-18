@@ -115,6 +115,11 @@ static void usage(const char *prog)
     exit(1);
 }
 
+int spt_guest_mprotect(void *t, void *addr, size_t len, int prot)
+{
+    return mprotect(addr, len, prot);
+}
+
 int main(int argc, char **argv)
 {
     size_t mem_size = 0x20000000;
@@ -208,7 +213,8 @@ int main(int argc, char **argv)
 
     struct spt *spt = spt_init(mem_size);
 
-    elf_load(elffile, spt->mem, spt->mem_size, &p_entry, &p_end);
+    elf_load(spt, elffile, spt->mem, spt->mem_size, spt_guest_mprotect, &p_entry,
+             &p_end);
 
     setup_modules(spt, mft);
 

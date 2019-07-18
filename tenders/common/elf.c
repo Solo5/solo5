@@ -42,6 +42,7 @@
 
 #include "cc.h"
 #include "mft_abi.h"
+#include "elf.h"
 
 static ssize_t pread_in_full(int fd, void *buf, size_t count, off_t offset)
 {
@@ -95,7 +96,24 @@ static bool ehdr_is_valid(const Elf64_Ehdr *hdr)
         );
 }
 
-void elf_load(const char *file, uint8_t *mem, size_t mem_size,
+/*
+ * Load code from elf file into *mem and return the elf entry point
+ * and the last byte of the program when loaded into memory. This
+ * accounts not only for the last loaded piece of code from the elf,
+ * but also for the zeroed out pieces that are not loaded and sould be
+ * reserved.
+ *
+ * Memory will look like this after the elf is loaded:
+ *
+ * *mem                    *p_entry                   *p_end
+ *   |             |                    |                |
+ *   |    ...      | .text .rodata      |   .data .bss   |
+ *   |             |        code        |   00000000000  |
+ *   |             |  [PROT_EXEC|READ]  |                |
+ *
+ */
+void elf_load(void *t, const char *file, uint8_t *mem, size_t mem_size,
+       guest_mprotect_fn_t guest_mprotect_fn,
        uint64_t *p_entry, uint64_t *p_end)
 {
     int fd_kernel = -1;
@@ -198,7 +216,7 @@ void elf_load(const char *file, uint8_t *mem, size_t mem_size,
                   file, ph_i);
             goto out_invalid;
         }
-        if (mprotect(daddr, _end - paddr, prot) == -1)
+        if (guest_mprotect_fn(t, daddr, _end - paddr, prot) == -1)
             goto out_error;
     }
 

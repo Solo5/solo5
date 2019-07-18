@@ -136,6 +136,42 @@ struct hvt *hvt_init(size_t mem_size)
     return hvt;
 }
 
+int hvt_guest_mprotect(void *t, void *addr, size_t len, int prot)
+{
+    int ret;
+
+    if(mprotect(addr, len, prot) == -1)
+        return -1;
+
+    ret = 0;
+#if defined(VMM_IOC_MPROTECT_EPT)
+    struct hvt *hvt = (struct hvt *)t;
+    struct hvt_b *hvb = hvt->b;
+    struct vm_mprotect_ept_params *vmep;
+
+    vmep = calloc(1, sizeof (struct vm_mprotect_ept_params));
+    if (vmep == NULL) {
+        warn("calloc");
+        return -1;
+    }
+
+    vmep->vmep_vm_id = hvb->vcp_id;
+    // sgpa = vmr->vmr_gpa(0x0) + (addr - vmr->vmr_va)
+    vmep->vmep_sgpa = (vaddr_t)addr - (vaddr_t)hvt->mem;
+    vmep->vmep_size = len;
+    vmep->vmep_prot = prot;
+
+    if (ioctl(hvb->vmd_fd, VMM_IOC_MPROTECT_EPT, vmep) < 0) {
+        warn("mprotect ept vmm ioctl failed - exiting");
+        ret = -1;
+    }
+
+    free(vmep);
+#endif
+
+    return (ret);
+}
+
 #if HVT_DROP_PRIVILEGES
 void hvt_drop_privileges()
 {

@@ -107,6 +107,11 @@ void hvt_vcpu_init(struct hvt *hvt, hvt_gpa_t gpa_ep);
 void hvt_boot_info_init(struct hvt *hvt, hvt_gpa_t gpa_kend, int cmdline_argc,
         char **cmdline_argv, struct mft *mft, size_t mft_size);
 
+/*
+ * Control the protection of pages for both the guest and the host
+ */
+int hvt_guest_mprotect(void *t, void *addr, size_t len, int prot);
+
 #if HVT_DROP_PRIVILEGES
 /*
  * Drop privileges. This function is called by the tender before entering the
