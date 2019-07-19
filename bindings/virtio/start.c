@@ -49,6 +49,23 @@ void _start(void *arg)
 
 extern struct mft_note __solo5_manifest_note;
 
+/* Will abort the program if any of the devices is not acquired. */
+static void mft_check_all_acquired(struct mft *mft)
+{
+    bool fail = false;
+    for (unsigned i = 0; i != mft->entries; i++) {
+        if (!mft->e[i].attached) {
+            log(WARN, "Solo5: Device '%s' of type %s not attached.",
+                    mft->e[i].name, mft_type_to_string(mft->e[i].type));
+            fail = true;
+        }
+    }
+    if (fail) {
+        log(ERROR, "Solo5: All declared devices must be attached. Aborting.\n");
+        solo5_abort();
+    }
+}
+
 static void _start2(void *arg __attribute__((unused)))
 {
     static struct solo5_start_info si;
@@ -60,17 +77,21 @@ static void _start2(void *arg __attribute__((unused)))
     log(INFO, "\\__ \\ (   | | (   |  ) |\n");
     log(INFO, "____/\\___/ _|\\___/____/\n");
 
-    mem_init();
-    time_init();
-    pci_enumerate();
-    cpu_intr_enable();
-
     struct mft *mft = &__solo5_manifest_note.m;
     size_t mft_size = __solo5_manifest_note.h.descsz;
     if (mft_validate(mft, mft_size) != 0) {
 	log(ERROR, "Solo5: Built-in manifest validation failed. Aborting.\n");
 	solo5_abort();
     }
+
+    mem_init();
+    time_init();
+    if (pci_enumerate(mft) != 0) {
+	log(ERROR, "Solo5: PCI enumeration failed. Aborting.\n");
+	solo5_abort();
+    }
+    mft_check_all_acquired(mft);
+    cpu_intr_enable();
 
     mem_lock_heap(&si.heap_start, &si.heap_size);
     solo5_exit(solo5_app_main(&si));
