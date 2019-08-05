@@ -71,7 +71,7 @@ manifest.c: manifest.json ../../include/solo5/mft_abi.h $(MFTTOOL)
 %.genode: %.genode.o manifest.genode.o $(LDS.genode) $(BINDINGS.genode)
 	@echo "LD $@"
 	$(LD) $(GENODE_APP_LDFLAGS) -T $(LDS.genode) $(BINDINGS.genode) \
-	    $< manifest.o -o $@
+	    $< manifest.genode.o -o $@
 
 ifdef CONFIG_HVT
     all_TARGETS += $(test_NAME).hvt
