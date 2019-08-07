@@ -119,7 +119,7 @@ characters in length.
 _TYPE_ is the type of device being declared, currently `BLOCK_BASIC` or
 `NET_BASIC`.
 
-Note that there is a maximum limit of 64 devices in the manifest.
+Note that there is a maximum limit of 63 devices in the manifest.
 
 At unikernel build time, `manifest.json` is pre-processed by `solo5-mfttool`,
 generating a C source file with a binary representation. This source file is

@@ -39,11 +39,12 @@
 #define MFT_VERSION 1
 
 /*
- * Supported device types.
+ * Supported manifest entry types.
  */
 typedef enum mft_type {
-    MFT_BLOCK_BASIC,
-    MFT_NET_BASIC
+    MFT_BLOCK_BASIC = 1,
+    MFT_NET_BASIC,
+    MFT_RESERVED_FIRST = (1U << 30)
 } mft_type_t;
 
 /*
