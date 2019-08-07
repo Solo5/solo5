@@ -44,8 +44,6 @@
 #include <sys/cpuset.h>
 #include <machine/vmm_dev.h>
 
-#include <osreldate.h>
-
 #if HVT_FREEBSD_ENABLE_CAPSICUM
 #include <sys/capsicum.h>
 #include <sys/nv.h>
