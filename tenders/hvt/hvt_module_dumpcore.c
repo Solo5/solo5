@@ -56,7 +56,6 @@ typedef unsigned char *host_mvec_t;
 #include "hvt_dumpcore_freebsd_x86_64.c"
 #define EM_HOST EM_X86_64
 typedef char *host_mvec_t;
-static int dir;
 
 #elif defined(__OpenBSD__) && defined(__x86_64__)
 
