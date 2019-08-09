@@ -75,19 +75,16 @@
 /*
  * GDT layout
  *
- * This should be kept consistent with the layout used by the hvt tender (as
- * defined in tenders/hvt/hvt_cpu_x86_64.h.
  */
 #define GDT_DESC_NULL           0
 #define GDT_DESC_CODE           1
-#define GDT_DESC_CODE32         2 /* Used by boot.S on virtio targets */
-#define GDT_DESC_DATA           3
-#define GDT_DESC_TSS_LO         4
-#define GDT_DESC_TSS_HI         5
+#define GDT_DESC_DATA           2
+#define GDT_DESC_TSS_LO         3
+#define GDT_DESC_TSS_HI         4
 #define GDT_DESC_TSS            GDT_DESC_TSS_LO
 
 #define GDT_DESC_OFFSET(n)      ((n) * 0x8)
-#define GDT_NUM_ENTRIES         6
+#define GDT_NUM_ENTRIES         5
 
 #define GDT_DESC_CODE_VAL       0x00af99000000ffff
 #define GDT_DESC_DATA_VAL       0x00cf93000000ffff
