@@ -161,11 +161,10 @@ typedef uint64_t solo5_handle_set_t;
  *   a) monotonic time reaches (deadline), or
  *   b) at least one network device is ready for input.
  *
- * Returns true if at least one network device is ready, otherwise false.
  * If (ready_set) is not NULL, it will be filled in with the set of
  * solo5_handle_t's ready for input.
  */
-bool solo5_yield(solo5_time_t deadline, solo5_handle_set_t *ready_set);
+void solo5_yield(solo5_time_t deadline, solo5_handle_set_t *ready_set);
 
 /*
  * Console I/O.

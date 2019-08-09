@@ -306,9 +306,9 @@ solo5_result_t solo5_net_acquire(const char *name, solo5_handle_t *h,
     return SOLO5_R_OK;
 }
 
-bool solo5_yield(solo5_time_t deadline, solo5_handle_set_t *ready_set)
+void solo5_yield(solo5_time_t deadline, solo5_handle_set_t *ready_set)
 {
-    bool rc = false;
+    solo5_handle_set_t tmp_ready_set = 0;
 
     /*
      * cpu_block() as currently implemented will only poll for the maximum time
@@ -318,24 +318,18 @@ bool solo5_yield(solo5_time_t deadline, solo5_handle_set_t *ready_set)
     cpu_intr_disable();
     do {
         if (net_acquired && virtio_net_pkt_poll()) {
-            rc = true;
+            tmp_ready_set |= 1UL << net_handle;
             break;
         }
 
         cpu_block(deadline);
     } while (solo5_clock_monotonic() < deadline);
-    if (!rc)
-        rc = net_acquired && virtio_net_pkt_poll();
+    if (!tmp_ready_set && net_acquired && virtio_net_pkt_poll())
+        tmp_ready_set |= 1UL << net_handle;
     cpu_intr_enable();
 
-    solo5_handle_set_t tmp_ready_set;
-    if (rc)
-        tmp_ready_set = 1UL << net_handle;
-    else
-        tmp_ready_set = 0;
     if (ready_set)
         *ready_set = tmp_ready_set;
-    return rc;
 }
 
 solo5_result_t solo5_net_write(solo5_handle_t h, const uint8_t *buf,

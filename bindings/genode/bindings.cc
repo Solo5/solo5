@@ -422,7 +422,7 @@ struct Solo5::Platform
 	 ** Solo5 bindings **
 	 ********************/
 
-	bool
+	void
 	yield(solo5_time_t deadline_ns, solo5_handle_set_t *ready_set)
 	{
 		if (!nic_ready) {
@@ -451,10 +451,7 @@ struct Solo5::Platform
 				*ready_set = nic_ready;
 			}
 			nic_ready = 0;
-			return true;
 		}
-
-		return false;
 	}
 
 	solo5_result_t
@@ -535,11 +532,11 @@ solo5_time_t solo5_clock_wall(void)
 }
 
 
-bool
+void
 solo5_yield(solo5_time_t deadline,
             solo5_handle_set_t *ready_set)
 {
-	return Platform::instance->yield(deadline, ready_set);
+	Platform::instance->yield(deadline, ready_set);
 }
 
 

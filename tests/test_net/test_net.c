@@ -354,23 +354,17 @@ static bool ping_serve(void)
 #endif
 
     for (;;) {
-        bool io_ready = false;
         solo5_handle_set_t ready_set = 0;
 
-        io_ready = solo5_yield(solo5_clock_monotonic() + NSEC_PER_SEC,
-                &ready_set);
-        if (io_ready && (ready_set & 1U << ni[0].h))
+        solo5_yield(solo5_clock_monotonic() + NSEC_PER_SEC, &ready_set);
+        if (ready_set & 1U << ni[0].h)
             if (!handle_packet(0))
                 return false;
 #ifdef TWO_INTERFACES
-        if (io_ready && (ready_set & 1U << ni[1].h))
+        if (ready_set & 1U << ni[1].h)
             if (!handle_packet(1))
                 return false;
 #endif
-        if (!io_ready && ready_set != 0) {
-            puts("error: Yield returned false, but handles in set!\n");
-            return false;
-        }
         if (opt_limit && n_pings_received >= 100000) {
             puts("Limit reached, exiting\n");
             break;
