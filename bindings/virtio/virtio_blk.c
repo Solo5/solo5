@@ -208,8 +208,8 @@ int virtio_config_block(struct pci_config_info *pci,
     struct mft_entry *e = mft_get_by_index(virtio_mft, mft_index,
             MFT_BLOCK_BASIC);
     if (e == NULL) {
-        log(WARN, "Solo5: Virtio blk: Index %lu not declared in manifest\n",
-             mft_index);
+        log(WARN, "Solo5: Virtio blk: PCI:%02x:%02x not in manifest\n",
+             pci->bus, pci->dev);
         return -1;
     }
 
