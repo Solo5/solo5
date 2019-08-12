@@ -25,7 +25,7 @@ static uint64_t cpu_gdt64[GDT_NUM_ENTRIES] ALIGN_64_BIT;
 /*
  * The tender (hvt) or bootloader + bootstrap (virtio) starts us up with a
  * bootstrap GDT which is "invisible" to the guest, init and switch to our own
- * GDT.
+ * GDT, reloading all segment selectors in the process.
  *
  * This is done primarily since we need to do LTR later in a predictable
  * fashion.
@@ -39,12 +39,21 @@ static void gdt_init(void)
     volatile struct gdtptr gdtptr;
     gdtptr.limit = sizeof(cpu_gdt64) - 1;
     gdtptr.base = (uint64_t)&cpu_gdt64;
-    __asm__ __volatile__("lgdt (%0)" :: "r" (&gdtptr));
-    /*
-     * TODO: Technically we should reload all segment registers here, in
-     * practice this doesn't matter since the bootstrap GDT matches ours, for
-     * now.
-     */
+    __asm__ __volatile__(
+            "lgdt (%0);\n"
+            "pushq %1;\n"
+            "pushq $1f;\n"
+            "lretq;\n"
+            "1:\n"
+            "movq %2, %%rax;\n"
+            "movl %%eax, %%ss;\n"
+            "movl %%eax, %%ds;\n"
+            "movl %%eax, %%es;\n"
+            :
+            : "r" (&gdtptr),
+              "n" (GDT_DESC_OFFSET(GDT_DESC_CODE)),
+              "n" (GDT_DESC_OFFSET(GDT_DESC_DATA))
+            : "%rax");
 }
 
 static struct idt_gate_desc cpu_idt[IDT_NUM_ENTRIES] ALIGN_64_BIT;
