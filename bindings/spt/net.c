@@ -85,7 +85,7 @@ solo5_result_t solo5_net_write(solo5_handle_t handle, const uint8_t *buf,
     return (nbytes == (int)size) ? SOLO5_R_OK : SOLO5_R_EUNSPEC;
 }
 
-bool solo5_yield(solo5_time_t deadline, solo5_handle_set_t *ready_set)
+void solo5_yield(solo5_time_t deadline, solo5_handle_set_t *ready_set)
 {
     int nrevents;
     /*
@@ -127,5 +127,4 @@ bool solo5_yield(solo5_time_t deadline, solo5_handle_set_t *ready_set)
     assert(nrevents >= 0);
     if (ready_set != NULL)
         *ready_set = tmp_ready_set;
-    return (nrevents > 0);
 }
