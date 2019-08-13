@@ -236,14 +236,14 @@ static void virtio_net_config(struct virtio_net_desc *nd,
 }
 
 /* Returns 1 if there is one or more used descriptors for us to read. */
-static int virtio_net_pkt_poll(virtio_set_t *ready_set)
+static void virtio_net_pkt_poll(virtio_set_t *ready_set)
 {
     unsigned idx;
 
-    if (!net_configured)
-        return 0;
-
     *ready_set = 0;
+
+    if (!net_configured)
+        return;
 
     assert(nd_num_entries < VIRTIO_NET_MAX_ENTRIES);
 
@@ -255,7 +255,6 @@ static int virtio_net_pkt_poll(virtio_set_t *ready_set)
         if (nd->recvq.last_used != nd->recvq.used->idx)
             *ready_set |= 1ULL << idx;
     }
-    return *ready_set != 0;
 }
 
 /* Get the data from the next_avail (top-most) receive buffer/descriptpr in
@@ -379,8 +378,7 @@ solo5_handle_set_t virtio_to_handle_set(virtio_set_t virtio_set)
 
 void solo5_yield(solo5_time_t deadline, solo5_handle_set_t *ready_set)
 {
-    bool rc = false;
-    virtio_set_t virtio_set;
+    virtio_set_t virtio_set = 0;
 
     /*
      * cpu_block() as currently implemented will only poll for the maximum time
@@ -389,19 +387,18 @@ void solo5_yield(solo5_time_t deadline, solo5_handle_set_t *ready_set)
      */
     cpu_intr_disable();
     do {
-        if (virtio_net_pkt_poll(&virtio_set)) {
-            rc = true;
+        virtio_net_pkt_poll(&virtio_set);
+        if (virtio_set != 0)
             break;
-        }
 
         cpu_block(deadline);
     } while (solo5_clock_monotonic() < deadline);
-    if (!rc)
-        rc = virtio_net_pkt_poll(&virtio_set);
+    if (virtio_set == 0)
+        virtio_net_pkt_poll(&virtio_set);
     cpu_intr_enable();
 
     solo5_handle_set_t tmp_ready_set;
-    if (rc)
+    if (virtio_set != 0)
         tmp_ready_set = virtio_to_handle_set(virtio_set);
     else
         tmp_ready_set = 0;
