@@ -359,6 +359,17 @@ virtio_expect_abort() {
   expect_success
 }
 
+@test "net_2if virtio" {
+  [ $(id -u) -ne 0 ] && skip "Need root to run this test, for ping -f"
+  [ "${CONFIG_HOST}" = "OpenBSD" ] && skip "breaks on OpenBSD due to #374"
+
+  ( sleep 2; ${TIMEOUT} 60s ping -fq -c 50000 ${NET0_IP} ) &
+  ( sleep 2; ${TIMEOUT} 60s ping -fq -c 50000 ${NET1_IP} ) &
+  virtio_run -n ${NET0} -n ${NET1} -- \
+      test_net_2if/test_net_2if.virtio limit
+  virtio_expect_success
+}
+
 @test "net_2if spt" {
   [ $(id -u) -ne 0 ] && skip "Need root to run this test, for ping -f"
 
