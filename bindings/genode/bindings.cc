@@ -405,12 +405,12 @@ struct Solo5::Platform
 		for (solo5_handle_t i = 0U; i < MFT_MAX_ENTRIES; ++i) {
 			devices[i] = &invalid_device;
 
-			if (struct mft_entry *me = mft_get_by_index(&mft, i, MFT_BLOCK_BASIC)) {
+			if (struct mft_entry *me = mft_get_by_index(&mft, i, MFT_DEV_BLOCK_BASIC)) {
 				devices[i] = new (heap)
 					Block_device(*me, env, pkt_alloc);
 			}
 			else
-			if (struct mft_entry *me = mft_get_by_index(&mft, i, MFT_NET_BASIC)) {
+			if (struct mft_entry *me = mft_get_by_index(&mft, i, MFT_DEV_NET_BASIC)) {
 				devices[i] = new (heap)
 					Net_device(*me, env, pkt_alloc, nic_ready, i);
 			}
@@ -458,7 +458,7 @@ struct Solo5::Platform
 	net_acquire(const char *name, solo5_handle_t &handle, solo5_net_info &info)
 	{
 		unsigned index = ~0;
-		struct mft_entry *me = mft_get_by_name(&mft, name, MFT_NET_BASIC, &index); {
+		struct mft_entry *me = mft_get_by_name(&mft, name, MFT_DEV_NET_BASIC, &index); {
 		if (me != nullptr && index < MFT_MAX_ENTRIES)
 			handle = index;
 			return devices[index]->net_info(info);
@@ -470,7 +470,7 @@ struct Solo5::Platform
 	block_acquire(const char *name, solo5_handle_t &handle, solo5_block_info &info)
 	{
 		unsigned index = ~0;
-		struct mft_entry *me = mft_get_by_name(&mft, name, MFT_BLOCK_BASIC, &index);
+		struct mft_entry *me = mft_get_by_name(&mft, name, MFT_DEV_BLOCK_BASIC, &index);
 		if (me != nullptr && index < MFT_MAX_ENTRIES) {
 			handle = index;
 			return devices[index]->block_info(info);

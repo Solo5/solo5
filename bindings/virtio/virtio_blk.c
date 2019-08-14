@@ -207,7 +207,7 @@ solo5_result_t solo5_block_acquire(const char *name, solo5_handle_t *h,
 
     unsigned mft_index;
     struct mft_entry *mft_e = mft_get_by_name(&__solo5_manifest_note.m, name,
-        MFT_BLOCK_BASIC, &mft_index);
+        MFT_DEV_BLOCK_BASIC, &mft_index);
     if (mft_e == NULL)
         return SOLO5_R_EINVAL;
     blk_handle = (solo5_handle_t)mft_index;

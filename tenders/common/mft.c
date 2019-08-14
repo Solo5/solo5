@@ -109,9 +109,9 @@ struct mft_entry *mft_get_by_index(struct mft *mft, unsigned index,
 const char *mft_type_to_string(mft_type_t type)
 {
     switch(type) {
-        case MFT_BLOCK_BASIC:
+        case MFT_DEV_BLOCK_BASIC:
             return "BLOCK_BASIC";
-        case MFT_NET_BASIC:
+        case MFT_DEV_NET_BASIC:
             return "NET_BASIC";
         case MFT_RESERVED_FIRST:
             return "RESERVED_FIRST";

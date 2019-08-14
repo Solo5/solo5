@@ -43,7 +43,7 @@ static void hypercall_block_write(struct hvt *hvt, hvt_gpa_t gpa)
     struct hvt_hc_block_write *wr =
         HVT_CHECKED_GPA_P(hvt, gpa, sizeof (struct hvt_hc_block_write));
     struct mft_entry *e = mft_get_by_index(host_mft, wr->handle,
-            MFT_BLOCK_BASIC);
+            MFT_DEV_BLOCK_BASIC);
     if (e == NULL) {
         wr->ret = SOLO5_R_EINVAL;
         return;
@@ -75,7 +75,7 @@ static void hypercall_block_read(struct hvt *hvt, hvt_gpa_t gpa)
     struct hvt_hc_block_read *rd =
         HVT_CHECKED_GPA_P(hvt, gpa, sizeof (struct hvt_hc_block_read));
     struct mft_entry *e = mft_get_by_index(host_mft, rd->handle,
-            MFT_BLOCK_BASIC);
+            MFT_DEV_BLOCK_BASIC);
     if (e == NULL) {
         rd->ret = SOLO5_R_EINVAL;
         return;
@@ -114,7 +114,7 @@ static int handle_cmdarg(char *cmdarg, struct mft *mft)
             "%" XSTR(PATH_MAX) "s", name, path);
     if (rc != 2)
         return -1;
-    struct mft_entry *e = mft_get_by_name(mft, name, MFT_BLOCK_BASIC, NULL);
+    struct mft_entry *e = mft_get_by_name(mft, name, MFT_DEV_BLOCK_BASIC, NULL);
     if (e == NULL) {
         warnx("Resource not declared in manifest: '%s'", name);
         return -1;

@@ -77,7 +77,7 @@ static const char out_header[] = \
     "    { .name = \"\", .type = MFT_RESERVED_FIRST },\n";
 
 static const char out_entry[] = \
-    "    { .name = \"%s\", .type = MFT_%s },\n";
+    "    { .name = \"%s\", .type = MFT_DEV_%s },\n";
 
 static const char out_footer[] = \
     "  }\n"

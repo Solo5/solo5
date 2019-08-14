@@ -33,8 +33,8 @@ void net_init(struct spt_boot_info *bi)
 
     npollfds = 0;
     for (unsigned i = 0; i != mft->entries; i++) {
-	if (mft->e[i].type == MFT_NET_BASIC)
-	    npollfds++;
+        if (mft->e[i].type == MFT_DEV_NET_BASIC)
+            npollfds++;
     }
 }
 
@@ -42,7 +42,7 @@ solo5_result_t solo5_net_acquire(const char *name, solo5_handle_t *handle,
         struct solo5_net_info *info)
 {
     unsigned index;
-    struct mft_entry *e = mft_get_by_name(mft, name, MFT_NET_BASIC, &index);
+    struct mft_entry *e = mft_get_by_name(mft, name, MFT_DEV_NET_BASIC, &index);
     if (e == NULL)
         return SOLO5_R_EINVAL;
     assert(e->attached);
@@ -55,12 +55,12 @@ solo5_result_t solo5_net_acquire(const char *name, solo5_handle_t *handle,
 }
 
 solo5_result_t solo5_net_read(solo5_handle_t handle, uint8_t *buf, size_t size,
-	size_t *read_size)
+        size_t *read_size)
 {
-    struct mft_entry *e = mft_get_by_index(mft, handle, MFT_NET_BASIC);
+    struct mft_entry *e = mft_get_by_index(mft, handle, MFT_DEV_NET_BASIC);
     if (e == NULL)
         return SOLO5_R_EINVAL;
-    
+
     long nbytes = sys_read(e->hostfd, (char *)buf, size);
     if (nbytes < 0) {
         if (nbytes == SYS_EAGAIN)
@@ -74,9 +74,9 @@ solo5_result_t solo5_net_read(solo5_handle_t handle, uint8_t *buf, size_t size,
 }
 
 solo5_result_t solo5_net_write(solo5_handle_t handle, const uint8_t *buf,
-	size_t size)
+        size_t size)
 {
-    struct mft_entry *e = mft_get_by_index(mft, handle, MFT_NET_BASIC);
+    struct mft_entry *e = mft_get_by_index(mft, handle, MFT_DEV_NET_BASIC);
     if (e == NULL)
         return SOLO5_R_EINVAL;
 
