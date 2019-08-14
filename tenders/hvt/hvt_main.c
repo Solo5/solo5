@@ -54,6 +54,8 @@ static void setup_modules(struct hvt *hvt, struct mft *mft)
 
     bool fail = false;
     for (unsigned i = 0; i != mft->entries; i++) {
+        if (mft->e[i].type >= MFT_RESERVED_FIRST)
+            continue;
         if (!mft->e[i].attached) {
             warnx("Device '%s' of type %s declared but not attached.",
                     mft->e[i].name, mft_type_to_string(mft->e[i].type));

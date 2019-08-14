@@ -49,7 +49,7 @@ static int handle_cmdarg(char *cmdarg, struct mft *mft)
             "%" XSTR(PATH_MAX) "s", name, path);
     if (rc != 2)
         return -1;
-    struct mft_entry *e = mft_get_by_name(mft, name, MFT_BLOCK_BASIC, NULL);
+    struct mft_entry *e = mft_get_by_name(mft, name, MFT_DEV_BLOCK_BASIC, NULL);
     if (e == NULL) {
         warnx("Resource not declared in manifest: '%s'", name);
         return -1;
@@ -72,7 +72,7 @@ static int setup(struct spt *spt, struct mft *mft)
         return 0;
 
     for (unsigned i = 0; i != mft->entries; i++) {
-        if (mft->e[i].type != MFT_BLOCK_BASIC || !mft->e[i].attached)
+        if (mft->e[i].type != MFT_DEV_BLOCK_BASIC || !mft->e[i].attached)
             continue;
 
         int rc = -1;

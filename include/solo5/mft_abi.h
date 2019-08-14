@@ -39,15 +39,16 @@
 #define MFT_VERSION 1
 
 /*
- * Supported device types.
+ * Supported manifest entry types.
  */
 typedef enum mft_type {
-    MFT_BLOCK_BASIC,
-    MFT_NET_BASIC
+    MFT_DEV_BLOCK_BASIC = 1,
+    MFT_DEV_NET_BASIC,
+    MFT_RESERVED_FIRST = (1U << 30)
 } mft_type_t;
 
 /*
- * MFT_BLOCK_BASIC (basic block device) properties.
+ * MFT_DEV_BLOCK_BASIC (basic block device) properties.
  */
 struct mft_block_basic {
     uint64_t capacity;
@@ -55,7 +56,7 @@ struct mft_block_basic {
 };
 
 /*
- * MFT_NET_BASIC (basic network device) properties.
+ * MFT_DEV_NET_BASIC (basic network device) properties.
  */
 struct mft_net_basic {
     uint8_t mac[6];

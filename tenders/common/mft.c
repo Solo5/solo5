@@ -48,6 +48,16 @@ int mft_validate(struct mft *mft, size_t mft_size)
     if (mft_size < (sizeof(struct mft) +
                 (mft->entries * sizeof(struct mft_entry))))
         return -1;
+    /*
+     * The manifest must contain at least one entry, and the first entry must
+     * be of type MFT_RESERVED_FIRST with an empty name.
+     */
+    if (mft->entries < 1)
+        return -1;
+    if (mft->e[0].type != MFT_RESERVED_FIRST)
+        return -1;
+    if (mft->e[0].name[0] != 0)
+        return -1;
 
     for (unsigned i = 0; i != mft->entries; i++) {
         /*
@@ -99,10 +109,12 @@ struct mft_entry *mft_get_by_index(struct mft *mft, unsigned index,
 const char *mft_type_to_string(mft_type_t type)
 {
     switch(type) {
-        case MFT_BLOCK_BASIC:
+        case MFT_DEV_BLOCK_BASIC:
             return "BLOCK_BASIC";
-        case MFT_NET_BASIC:
+        case MFT_DEV_NET_BASIC:
             return "NET_BASIC";
+        case MFT_RESERVED_FIRST:
+            return "RESERVED_FIRST";
         default:
             assert(false);
     }

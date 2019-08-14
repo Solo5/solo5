@@ -59,7 +59,8 @@ static int handle_cmdarg(char *cmdarg, struct mft *mft)
                 "%19s", name, iface);
         if (rc != 2)
             return -1;
-        struct mft_entry *e = mft_get_by_name(mft, name, MFT_NET_BASIC, NULL);
+        struct mft_entry *e = mft_get_by_name(mft, name, MFT_DEV_NET_BASIC,
+                NULL);
         if (e == NULL) {
             warnx("Resource not declared in manifest: '%s'", name);
             return -1;
@@ -88,7 +89,8 @@ static int handle_cmdarg(char *cmdarg, struct mft *mft)
                 &mac[0], &mac[1], &mac[2], &mac[3], &mac[4], &mac[5]);
         if (rc != 7)
             return -1;
-        struct mft_entry *e = mft_get_by_name(mft, name, MFT_NET_BASIC, NULL);
+        struct mft_entry *e = mft_get_by_name(mft, name, MFT_DEV_NET_BASIC,
+                NULL);
         if (e == NULL) {
             warnx("Resource not declared in manifest: '%s'", name);
             return -1;
@@ -105,7 +107,7 @@ static int setup(struct spt *spt, struct mft *mft)
         return 0;
 
     for (unsigned i = 0; i != mft->entries; i++) {
-        if (mft->e[i].type != MFT_NET_BASIC || !mft->e[i].attached)
+        if (mft->e[i].type != MFT_DEV_NET_BASIC || !mft->e[i].attached)
             continue;
         char no_mac[6] = { 0 };
         if (memcmp(mft->e[i].u.net_basic.mac, no_mac, sizeof no_mac) == 0)
