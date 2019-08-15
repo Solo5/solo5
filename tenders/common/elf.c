@@ -36,6 +36,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/mman.h>
+#include <sys/param.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -73,26 +74,56 @@ static ssize_t pread_in_full(int fd, void *buf, size_t count, off_t offset)
     return total;
 }
 
+#if defined(__x86_64__)
+#define EM_TARGET EM_X86_64
+#elif defined(__aarch64__)
+#define EM_TARGET EM_AARCH64
+#else
+#error Unsupported target
+#endif
+
+#if __BYTE_ORDER == __LITTLE_ENDIAN
+#define EI_DATA_TARGET ELFDATA2LSB
+#else
+#define EI_DATA_TARGET ELFDATA2MSB
+#endif
+
 static bool ehdr_is_valid(const Elf64_Ehdr *hdr)
 {
     /*
-     * Validate program is in ELF64 format, of type ET_EXEC and for the correct
-     * target architecture.
+     * 1. Validate that this is an ELF64 header we support.
+     *
+     * Note: e_ident[EI_OSABI] and e_ident[EI_ABIVERSION] are deliberately NOT
+     * checked as compilers do not provide a way to override this without
+     * building the entire toolchain from scratch.
      */
-    return (hdr->e_ident[EI_MAG0] == ELFMAG0
+    if (!(hdr->e_ident[EI_MAG0] == ELFMAG0
             && hdr->e_ident[EI_MAG1] == ELFMAG1
             && hdr->e_ident[EI_MAG2] == ELFMAG2
             && hdr->e_ident[EI_MAG3] == ELFMAG3
             && hdr->e_ident[EI_CLASS] == ELFCLASS64
-            && hdr->e_type == ET_EXEC
-#if defined(__x86_64__)
-            && hdr->e_machine == EM_X86_64
-#elif defined(__aarch64__)
-            && hdr->e_machine == EM_AARCH64
-#else
-#error Unsupported target
-#endif
-        );
+            && hdr->e_ident[EI_DATA] == EI_DATA_TARGET
+            && hdr->e_version == EV_CURRENT))
+        return false;
+    /*
+     * 2. Validate ELF64 header internal sizes match what we expect, and that
+     * at least one program header entry is present.
+     */
+    if (hdr->e_ehsize != sizeof (Elf64_Ehdr))
+        return false;
+    if (hdr->e_phnum < 1)
+        return false;
+    if (hdr->e_phentsize != sizeof (Elf64_Phdr))
+        return false;
+    /*
+     * 3. Validate that this is an executable for our target architecture.
+     */
+    if (hdr->e_type != ET_EXEC)
+        return false;
+    if (hdr->e_machine != EM_TARGET)
+        return false;
+
+    return true;
 }
 
 void elf_load(const char *file, uint8_t *mem, size_t mem_size,
