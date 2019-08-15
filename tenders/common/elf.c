@@ -131,93 +131,98 @@ void elf_load(const char *file, uint8_t *mem, size_t mem_size,
 {
     int fd_kernel = -1;
     ssize_t nbytes;
-    size_t ph_size;
-    Elf64_Off ph_off;
-    Elf64_Half ph_entsz;
-    Elf64_Half ph_cnt;
-    Elf64_Half ph_i;
     Elf64_Phdr *phdr = NULL;
-    Elf64_Ehdr hdr;
-
-    /* elf entry point (on physical memory) */
-    *p_entry = 0;
-    /* highest byte of the program (on physical memory) */
-    *p_end = 0;
+    Elf64_Ehdr *ehdr = NULL;
+    Elf64_Addr e_entry;                 /* Program entry point */
+    Elf64_Addr e_end;                   /* Highest memory address occupied */
 
     fd_kernel = open(file, O_RDONLY);
     if (fd_kernel == -1)
         goto out_error;
 
-    nbytes = pread_in_full(fd_kernel, &hdr, sizeof(Elf64_Ehdr), 0);
+    ehdr = malloc(sizeof(Elf64_Ehdr));
+    if (ehdr == NULL)
+        goto out_error;
+    nbytes = pread_in_full(fd_kernel, ehdr, sizeof(Elf64_Ehdr), 0);
     if (nbytes < 0)
         goto out_error;
     if (nbytes != sizeof(Elf64_Ehdr))
         goto out_invalid;
-    if (!ehdr_is_valid(&hdr))
+    if (!ehdr_is_valid(ehdr))
         goto out_invalid;
+    /*
+     * e_entry must be non-zero and within range of our memory allocation.
+     */
+    if (ehdr->e_entry == 0 || ehdr->e_entry >= mem_size)
+        goto out_invalid;
+    e_entry = ehdr->e_entry;
 
-    ph_off = hdr.e_phoff;
-    ph_entsz = hdr.e_phentsize;
-    ph_cnt = hdr.e_phnum;
-    ph_size = ph_entsz * ph_cnt;
+    size_t ph_size = ehdr->e_phnum * ehdr->e_phentsize;
     phdr = malloc(ph_size);
     if (!phdr)
         goto out_error;
-    nbytes = pread_in_full(fd_kernel, phdr, ph_size, ph_off);
+    nbytes = pread_in_full(fd_kernel, phdr, ph_size, ehdr->e_phoff);
     if (nbytes < 0)
         goto out_error;
     if (nbytes != ph_size)
         goto out_invalid;
 
     /*
-     * Load all segments with the LOAD directive from the elf file at offset
-     * p_offset, and copy that into p_addr in memory. The amount of bytes
-     * copied is p_filesz.  However, each segment should be given
-     * p_memsz aligned up to p_align bytes on memory.
+     * Load all program segments with the PT_LOAD directive.
      */
-    for (ph_i = 0; ph_i < ph_cnt; ph_i++) {
-        uint8_t *daddr;
-        uint64_t _end;
-        size_t offset = phdr[ph_i].p_offset;
-        size_t filesz = phdr[ph_i].p_filesz;
-        size_t memsz = phdr[ph_i].p_memsz;
-        uint64_t paddr = phdr[ph_i].p_paddr;
-        uint64_t align = phdr[ph_i].p_align;
-        uint64_t result;
-        int prot;
+    e_end = 0;
+    for (Elf64_Half ph_i = 0; ph_i < ehdr->e_phnum; ph_i++) {
+        Elf64_Addr p_vaddr = phdr[ph_i].p_vaddr;
+        Elf64_Xword p_filesz = phdr[ph_i].p_filesz;
+        Elf64_Xword p_memsz = phdr[ph_i].p_memsz;
+        Elf64_Xword p_align = phdr[ph_i].p_align;
+        Elf64_Addr p_vaddr_end;
 
         if (phdr[ph_i].p_type != PT_LOAD)
             continue;
 
-        if ((paddr >= mem_size) || add_overflow(paddr, filesz, result)
-                || (result >= mem_size))
+        if ((p_vaddr >= mem_size)
+                || add_overflow(p_vaddr, p_filesz, p_vaddr_end)
+                || (p_vaddr_end >= mem_size))
             goto out_invalid;
-        if (add_overflow(paddr, memsz, result) || (result >= mem_size))
+        /* 
+         * Each segment should be given p_memsz aligned up to p_align bytes of
+         * memory, compute this as p_vaddr_end.
+         */
+        if (add_overflow(p_vaddr, p_memsz, p_vaddr_end)
+                || (p_vaddr_end >= mem_size))
             goto out_invalid;
         /*
-         * Verify that align is a non-zero power of 2 and safely compute
-         * ((_end + (align - 1)) & -align).
+         * Verify that p_align is a non-zero power of 2 and safely compute
+         * ((p_vaddr_end + (p_align - 1)) & -p_align).
          */
-        if (align > 0 && (align & (align - 1)) == 0) {
-            if (add_overflow(result, (align - 1), _end))
+        if (p_align > 0 && (p_align & (p_align - 1)) == 0) {
+            if (add_overflow(p_vaddr_end, (p_align - 1), p_vaddr_end))
                 goto out_invalid;
-            _end = _end & -align;
+            p_vaddr_end = p_vaddr_end & -p_align;
         }
-        else {
-            _end = result;
-        }
-        if (_end > *p_end)
-            *p_end = _end;
+        /*
+         * Keep track of the highest byte of memory occupied by the program.
+         */
+        if (p_vaddr_end > e_end)
+            e_end = p_vaddr_end;
 
-        daddr = mem + paddr;
-        nbytes = pread_in_full(fd_kernel, daddr, filesz, offset);
+        /*
+         * Load the segment into host memory at host_vaddr and ensure any BSS
+         * (p_memsz - p_filesz) is initialised to zero.
+         */
+        uint8_t *host_vaddr = mem + p_vaddr;
+        nbytes = pread_in_full(fd_kernel, host_vaddr, p_filesz,
+                phdr[ph_i].p_offset);
         if (nbytes < 0)
             goto out_error;
-        if (nbytes != filesz)
+        if (nbytes != p_filesz)
             goto out_invalid;
-        memset(daddr + filesz, 0, memsz - filesz);
+        if (p_memsz < p_filesz)
+            goto out_invalid;
+        memset(host_vaddr + p_filesz, 0, p_memsz - p_filesz);
 
-        prot = PROT_NONE;
+        int prot = PROT_NONE;
         if (phdr[ph_i].p_flags & PF_R)
             prot |= PROT_READ;
         if (phdr[ph_i].p_flags & PF_W)
@@ -229,27 +234,31 @@ void elf_load(const char *file, uint8_t *mem, size_t mem_size,
                   file, ph_i);
             goto out_invalid;
         }
-        if (mprotect(daddr, _end - paddr, prot) == -1)
+        if (mprotect(host_vaddr, p_vaddr_end - p_vaddr, prot) == -1)
             goto out_error;
     }
 
-    free (phdr);
-    close (fd_kernel);
-    *p_entry = hdr.e_entry;
+    free(ehdr);
+    free(phdr);
+    close(fd_kernel);
+    *p_entry = e_entry;
+    *p_end = e_end;
     return;
 
 out_error:
     warn("%s", file);
-    free (phdr);
+    free(ehdr);
+    free(phdr);
     if (fd_kernel != -1)
-        close (fd_kernel);
+        close(fd_kernel);
     exit(1);
 
 out_invalid:
     warnx("%s: Exec format error", file);
-    free (phdr);
+    free(ehdr);
+    free(phdr);
     if (fd_kernel != -1)
-        close (fd_kernel);
+        close(fd_kernel);
     exit(1);
 }
 
@@ -257,13 +266,8 @@ void elf_load_mft(const char *file, struct mft **mft, size_t *mft_size)
 {
     int fd_kernel = -1;
     ssize_t nbytes;
-    size_t ph_size;
-    Elf64_Off ph_off;
-    Elf64_Half ph_entsz;
-    Elf64_Half ph_cnt;
-    Elf64_Half ph_i;
     Elf64_Phdr *phdr = NULL;
-    Elf64_Ehdr hdr;
+    Elf64_Ehdr *ehdr = NULL;
     struct mft *note = NULL;
     size_t note_offset, note_size = 0;
 
@@ -271,22 +275,22 @@ void elf_load_mft(const char *file, struct mft **mft, size_t *mft_size)
     if (fd_kernel == -1)
         goto out_error;
 
-    nbytes = pread_in_full(fd_kernel, &hdr, sizeof(Elf64_Ehdr), 0);
+    ehdr = malloc(sizeof(Elf64_Ehdr));
+    if (ehdr == NULL)
+        goto out_error;
+    nbytes = pread_in_full(fd_kernel, ehdr, sizeof(Elf64_Ehdr), 0);
     if (nbytes < 0)
         goto out_error;
     if (nbytes != sizeof(Elf64_Ehdr))
         goto out_invalid;
-    if (!ehdr_is_valid(&hdr))
+    if (!ehdr_is_valid(ehdr))
         goto out_invalid;
 
-    ph_off = hdr.e_phoff;
-    ph_entsz = hdr.e_phentsize;
-    ph_cnt = hdr.e_phnum;
-    ph_size = ph_entsz * ph_cnt;
+    size_t ph_size = ehdr->e_phnum * ehdr->e_phentsize;
     phdr = malloc(ph_size);
     if (!phdr)
         goto out_error;
-    nbytes = pread_in_full(fd_kernel, phdr, ph_size, ph_off);
+    nbytes = pread_in_full(fd_kernel, phdr, ph_size, ehdr->e_phoff);
     if (nbytes < 0)
         goto out_error;
     if (nbytes != ph_size)
@@ -296,7 +300,8 @@ void elf_load_mft(const char *file, struct mft **mft, size_t *mft_size)
      * Find the NOTE containing the Solo5 manifest and sanity check its headers.
      */
     bool mft_note_found = false;
-    for (ph_i = 0; ph_i < ph_cnt; ph_i++) {
+    Elf64_Half ph_i;
+    for (ph_i = 0; ph_i < ehdr->e_phnum; ph_i++) {
         if (phdr[ph_i].p_type != PT_NOTE)
             continue; /* Not a NOTE, next */
 
@@ -348,22 +353,25 @@ void elf_load_mft(const char *file, struct mft **mft, size_t *mft_size)
 
     *mft = note;
     *mft_size = note_size;
+    free(ehdr);
     free(phdr);
     close(fd_kernel);
     return;
 
 out_error:
     warn("%s", file);
-    free (phdr);
-    free (note);
+    free(ehdr);
+    free(phdr);
+    free(note);
     if (fd_kernel != -1)
         close (fd_kernel);
     exit(1);
 
 out_invalid:
     warnx("%s: Exec format error", file);
-    free (phdr);
-    free (note);
+    free(ehdr);
+    free(phdr);
+    free(note);
     if (fd_kernel != -1)
         close (fd_kernel);
     exit(1);
