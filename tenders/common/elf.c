@@ -26,6 +26,7 @@
  */
 
 #define _GNU_SOURCE
+#include <assert.h>
 #include <err.h>
 #include <elf.h>
 #include <errno.h>
@@ -76,8 +77,10 @@ static ssize_t pread_in_full(int fd, void *buf, size_t count, off_t offset)
 
 #if defined(__x86_64__)
 #define EM_TARGET EM_X86_64
+#define EM_PAGE_SIZE 0x1000
 #elif defined(__aarch64__)
 #define EM_TARGET EM_AARCH64
+#define EM_PAGE_SIZE 0x1000
 #else
 #error Unsupported target
 #endif
@@ -126,8 +129,42 @@ static bool ehdr_is_valid(const Elf64_Ehdr *hdr)
     return true;
 }
 
+/*
+ * Align (addr) down to (align) boundary. Returns 1 if (align) is not a
+ * non-zero power of 2.
+ */
+int align_down(Elf64_Addr addr, Elf64_Xword align, Elf64_Addr *out_result)
+{
+    if (align > 0 && (align & (align - 1)) == 0) {
+        *out_result = addr & -align;
+        return 0;
+    }
+    else
+        return 1;
+}
+
+/*
+ * Align (addr) up to (align) boundary. Returns 1 if an overflow would occur or
+ * (align) is not a non-zero power of 2, otherwise result in (*out_result) and
+ * 0.
+ */
+int align_up(Elf64_Addr addr, Elf64_Xword align, Elf64_Addr *out_result)
+{
+    Elf64_Addr result;
+
+    if (align > 0 && (align & (align - 1)) == 0) {
+        if (add_overflow(addr, (align - 1), result))
+            return 1;
+        result = result & -align;
+        *out_result = result;
+        return 0;
+    }
+    else
+        return 1;
+}
+
 void elf_load(const char *file, uint8_t *mem, size_t mem_size,
-       uint64_t *p_entry, uint64_t *p_end)
+       uint64_t p_min_loadaddr, uint64_t *p_entry, uint64_t *p_end)
 {
     int fd_kernel = -1;
     ssize_t nbytes;
@@ -153,7 +190,7 @@ void elf_load(const char *file, uint8_t *mem, size_t mem_size,
     /*
      * e_entry must be non-zero and within range of our memory allocation.
      */
-    if (ehdr->e_entry == 0 || ehdr->e_entry >= mem_size)
+    if (ehdr->e_entry < p_min_loadaddr || ehdr->e_entry >= mem_size)
         goto out_invalid;
     e_entry = ehdr->e_entry;
 
@@ -171,57 +208,103 @@ void elf_load(const char *file, uint8_t *mem, size_t mem_size,
      * Load all program segments with the PT_LOAD directive.
      */
     e_end = 0;
+    Elf64_Addr plast_vaddr = 0;
     for (Elf64_Half ph_i = 0; ph_i < ehdr->e_phnum; ph_i++) {
         Elf64_Addr p_vaddr = phdr[ph_i].p_vaddr;
         Elf64_Xword p_filesz = phdr[ph_i].p_filesz;
         Elf64_Xword p_memsz = phdr[ph_i].p_memsz;
         Elf64_Xword p_align = phdr[ph_i].p_align;
-        Elf64_Addr p_vaddr_end;
+        Elf64_Addr temp, p_vaddr_start, p_vaddr_end;
 
         if (phdr[ph_i].p_type != PT_LOAD)
             continue;
 
-        if ((p_vaddr >= mem_size)
-                || add_overflow(p_vaddr, p_filesz, p_vaddr_end)
-                || (p_vaddr_end >= mem_size))
-            goto out_invalid;
-        /* 
-         * Each segment should be given p_memsz aligned up to p_align bytes of
-         * memory, compute this as p_vaddr_end.
-         */
-        if (add_overflow(p_vaddr, p_memsz, p_vaddr_end)
-                || (p_vaddr_end >= mem_size))
+        if (p_vaddr < p_min_loadaddr)
             goto out_invalid;
         /*
-         * Verify that p_align is a non-zero power of 2 and safely compute
-         * ((p_vaddr_end + (p_align - 1)) & -p_align).
+         * The ELF specification mandates that program headers are sorted on
+         * p_vaddr in ascending order. Enforce this, at the same time avoiding
+         * any surprises later.
          */
-        if (p_align > 0 && (p_align & (p_align - 1)) == 0) {
-            if (add_overflow(p_vaddr_end, (p_align - 1), p_vaddr_end))
-                goto out_invalid;
-            p_vaddr_end = p_vaddr_end & -p_align;
-        }
+        if (p_vaddr < plast_vaddr)
+            goto out_invalid;
+        else
+            plast_vaddr = p_vaddr;
+        /*
+         * Compute p_vaddr_start = p_vaddr, aligned down to requested alignment
+         * and verify result is within range.
+         */
+        if (align_down(p_vaddr, p_align, &p_vaddr_start))
+            goto out_invalid;
+        if (p_vaddr_start < p_min_loadaddr)
+            goto out_invalid;
+        /*
+         * Disallow overlapping segments. This may be overkill, but in practice
+         * the Solo5 toolchains do not produce such executables.
+         */
+        if (p_vaddr_start < e_end)
+            goto out_invalid;
+        /*
+         * Verify p_vaddr + p_filesz is within range.
+         */
+        if (p_vaddr >= mem_size)
+            goto out_invalid;
+        if (add_overflow(p_vaddr, p_filesz, temp))
+            goto out_invalid;
+        if (temp > mem_size)
+            goto out_invalid;
+        /*
+         * Compute p_vaddr_end = p_vaddr + p_memsz, aligned up to requested
+         * alignment and verify result is within range.
+         */
+        if (p_memsz < p_filesz)
+            goto out_invalid;
+        if (add_overflow(p_vaddr, p_memsz, p_vaddr_end))
+            goto out_invalid;
+        if (align_up(p_vaddr_end, p_align, &p_vaddr_end))
+            goto out_invalid;
+        if (p_vaddr_end > mem_size)
+            goto out_invalid;
         /*
          * Keep track of the highest byte of memory occupied by the program.
          */
-        if (p_vaddr_end > e_end)
+        if (p_vaddr_end > e_end) {
             e_end = p_vaddr_end;
+            /*
+             * Double check result for host (caller) address space overflow.
+             */
+            assert((mem + e_end) >= (mem + p_min_loadaddr));
+        }
 
         /*
-         * Load the segment into host memory at host_vaddr and ensure any BSS
-         * (p_memsz - p_filesz) is initialised to zero.
+         * Load the segment (p_vaddr .. p_vaddr + p_filesz) into host memory at
+         * host_vaddr and ensure any BSS (p_memsz - p_filesz) is initialised to
+         * zero.
          */
         uint8_t *host_vaddr = mem + p_vaddr;
+        /*
+         * Double check result for host (caller) address space overflow.
+         */
+        assert(host_vaddr >= (mem + p_min_loadaddr));
         nbytes = pread_in_full(fd_kernel, host_vaddr, p_filesz,
                 phdr[ph_i].p_offset);
         if (nbytes < 0)
             goto out_error;
         if (nbytes != p_filesz)
             goto out_invalid;
-        if (p_memsz < p_filesz)
-            goto out_invalid;
         memset(host_vaddr + p_filesz, 0, p_memsz - p_filesz);
 
+        /*
+         * Memory protection flags should be applied to the aligned address
+         * range (p_vaddr_start .. p_vaddr_end). Before we apply them, also
+         * verify that the address range is aligned to the architectural page
+         * size.
+         */
+        if (p_vaddr_start & (EM_PAGE_SIZE - 1))
+            goto out_invalid;
+        if (p_vaddr_end & (EM_PAGE_SIZE - 1))
+            goto out_invalid;
+        host_vaddr = mem + p_vaddr_start;
         int prot = PROT_NONE;
         if (phdr[ph_i].p_flags & PF_R)
             prot |= PROT_READ;
@@ -234,7 +317,7 @@ void elf_load(const char *file, uint8_t *mem, size_t mem_size,
                   file, ph_i);
             goto out_invalid;
         }
-        if (mprotect(host_vaddr, p_vaddr_end - p_vaddr, prot) == -1)
+        if (mprotect(host_vaddr, p_vaddr_end - p_vaddr_start, prot) == -1)
             goto out_error;
     }
 

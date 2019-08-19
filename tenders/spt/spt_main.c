@@ -210,7 +210,8 @@ int main(int argc, char **argv)
 
     struct spt *spt = spt_init(mem_size);
 
-    elf_load(elffile, spt->mem, spt->mem_size, &p_entry, &p_end);
+    elf_load(elffile, spt->mem, spt->mem_size, SPT_GUEST_MIN_BASE, &p_entry,
+            &p_end);
 
     setup_modules(spt, mft);
 

@@ -34,6 +34,11 @@
 #include <stddef.h>
 #include <stdint.h>
 
+/*
+ * Lowest virtual address at which guests can be loaded.
+ */
+#define HVT_GUEST_MIN_BASE 0x100000
+
 #ifdef __x86_64__
 /*
  * PIO base address used to dispatch hypercalls.
@@ -106,11 +111,11 @@ static inline void hvt_do_hypercall(int n, volatile void *arg)
 #    ifdef assert
     assert(((uint64_t)arg <= UINT32_MAX));
 #    endif
-	__asm__ __volatile__("str %w0, [%1]"
-	        :
-	        : "rZ" ((uint32_t)((uint64_t)arg)),
-	          "r" ((uint64_t)HVT_HYPERCALL_ADDRESS(n))
-	        : "memory");
+        __asm__ __volatile__("str %w0, [%1]"
+                :
+                : "rZ" ((uint32_t)((uint64_t)arg)),
+                  "r" ((uint64_t)HVT_HYPERCALL_ADDRESS(n))
+                : "memory");
 }
 #    endif
 #else

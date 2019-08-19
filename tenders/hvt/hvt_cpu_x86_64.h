@@ -26,6 +26,8 @@
 #ifndef HVT_CPU_X86_64_H
 #define HVT_CPU_X86_64_H
 
+#include "hvt_abi.h"
+
 #ifndef _BITUL
 
 #ifdef __ASSEMBLY__
@@ -202,7 +204,7 @@ static const struct x86_sreg hvt_x86_sreg_unusable = {
 #define X86_PTE_SIZE            0x1000
 #define X86_BOOT_INFO_BASE      0x10000
 #define X86_PT0_MAP_START       X86_BOOT_INFO_BASE
-#define X86_GUEST_MIN_BASE      0x100000
+#define X86_GUEST_MIN_BASE      HVT_GUEST_MIN_BASE
 
 #define X86_GUEST_PAGE_SIZE     0x200000
 
