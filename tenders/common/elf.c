@@ -304,7 +304,11 @@ void elf_load(const char *file, uint8_t *mem, size_t mem_size,
             goto out_invalid;
         if (p_vaddr_end & (EM_PAGE_SIZE - 1))
             goto out_invalid;
-        host_vaddr = mem + p_vaddr_start;
+        uint8_t *host_vaddr_start = mem + p_vaddr_start;
+        /*
+         * Double check result for host (caller) address space overflow.
+         */
+        assert(host_vaddr_start >= (mem + p_min_loadaddr));
         int prot = PROT_NONE;
         if (phdr[ph_i].p_flags & PF_R)
             prot |= PROT_READ;
@@ -317,7 +321,7 @@ void elf_load(const char *file, uint8_t *mem, size_t mem_size,
                   file, ph_i);
             goto out_invalid;
         }
-        if (mprotect(host_vaddr, p_vaddr_end - p_vaddr_start, prot) == -1)
+        if (mprotect(host_vaddr_start, p_vaddr_end - p_vaddr_start, prot) == -1)
             goto out_error;
     }
 
