@@ -32,6 +32,11 @@
 #include <stdint.h>
 
 /*
+ * Lowest virtual address at which guests can be loaded.
+ */
+#define SPT_GUEST_MIN_BASE 0x100000
+
+/*
  * A pointer to this structure is passed by the tender as the sole argument to
  * the guest entrypoint.
  */

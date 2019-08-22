@@ -28,11 +28,12 @@
 #include "mft_abi.h"
 
 /*
- * Load an ELF binary from (file) into (mem_size) bytes of (mem), returning
- * the entry point (p_entry), last byte used by the binary (p_end).
+ * Load an ELF binary from (file) into (mem_size) bytes of memory at (*mem).
+ * (p_min_loadaddr) is the lowest allowed load address within (*mem). Returns
+ * the entry point (p_entry) and last address used by the binary (p_end).
  */
 void elf_load(const char *file, uint8_t *mem, size_t mem_size,
-        uint64_t *p_entry, uint64_t *p_end);
+        uint64_t p_min_loadaddr, uint64_t *p_entry, uint64_t *p_end);
 
 /*
  * Load the Solo5 manifest from the ELF binary (file). Memory for the manifest

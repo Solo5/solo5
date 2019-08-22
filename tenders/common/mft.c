@@ -36,6 +36,8 @@ int mft_validate(struct mft *mft, size_t mft_size)
      * tenders, and must treat the manifest at (*mft) and supplied (mft_size)
      * as untrusted data.
      */
+    if (mft_size < sizeof(*mft))
+        return -1;
     if (mft->version != MFT_VERSION)
         return -1;
     if (mft->entries > MFT_MAX_ENTRIES)

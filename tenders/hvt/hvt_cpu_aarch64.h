@@ -26,6 +26,8 @@
 #ifndef HVT_CPU_AARCH64_H
 #define HVT_CPU_AARCH64_H
 
+#include "hvt_abi.h"
+
 #ifndef _BITUL
 
 #ifdef __ASSEMBLY__
@@ -74,7 +76,7 @@
 #define AARCH64_PTE_PGT_BASE     _AC(0x7000, UL)
 #define AARCH64_PTE_PGT_SIZE     _AC(0x1000, UL)
 #define AARCH64_BOOT_INFO        _AC(0x10000, UL)
-#define AARCH64_GUEST_MIN_BASE   _AC(0x100000, UL)
+#define AARCH64_GUEST_MIN_BASE   _AC(HVT_GUEST_MIN_BASE, UL)
 #define AARCH64_MMIO_BASE        _AC(0x100000000, UL)
 #define AARCH64_MMIO_SZ          _AC(0x40000000, UL)
 #define AARCH64_GUEST_BLOCK_SIZE _AC(0x200000, UL)

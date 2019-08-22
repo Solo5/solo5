@@ -21,6 +21,10 @@ SECTIONS {
         *(.rodata)
         *(.rodata.*)
     }
+    .note.solo5 :
+    {
+        *(.note.solo5*)
+    }
     .eh_frame :
     {
         *(.eh_frame)
@@ -40,11 +44,19 @@ SECTIONS {
         *(.data)
         *(.data.*)
     }
+    .tdata :
+    {
+        *(.tdata)
+    }
 
     . = ALIGN(CONSTANT(MAXPAGESIZE));
     _edata = .;
 
     /* Read-write data (uninitialized) */
+    .tbss :
+    {
+        *(.tbss)
+    }
     .bss :
     {
         *(.bss)
