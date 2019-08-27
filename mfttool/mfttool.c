@@ -70,7 +70,7 @@ static const char out_header[] = \
     "#define MFT_ENTRIES %d\n"
     "#include \"mft_abi.h\"\n"
     "\n"
-    "MFT_NOTE_BEGIN\n"
+    "MFT1_NOTE_DECLARE_BEGIN\n"
     "{\n"
     "  .version = MFT_VERSION, .entries = %d,\n"
     "  .e = {\n"
@@ -82,7 +82,7 @@ static const char out_entry[] = \
 static const char out_footer[] = \
     "  }\n"
     "}\n"
-    "MFT_NOTE_END\n";
+    "MFT1_NOTE_DECLARE_END\n";
 
 static void usage(const char *prog)
 {
@@ -187,7 +187,11 @@ static int mfttool_dump(const char *binary)
 {
     struct mft *mft;
     size_t mft_size;
-    elf_load_mft(binary, &mft, &mft_size);
+    if (elf_load_note(binary, MFT1_NOTE_TYPE, MFT1_NOTE_ALIGN,
+                MFT1_NOTE_MAX_SIZE, (void **)&mft, &mft_size) == -1) {
+        warnx("%s: No Solo5 manifest found in executable", binary);
+        return EXIT_FAILURE;
+    }
     if (mft_validate(mft, mft_size) == -1) {
         free(mft);
         warnx("%s: Manifest validation failed", binary);

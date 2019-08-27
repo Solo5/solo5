@@ -32,6 +32,9 @@
  * Validate that the manfiest at (mft), of size (mft_size) is safe to use, and
  * sanitize all fields with prejudice, as these are considered untrusted data.
  *
+ * Note that (mft_size) must be the **exact** expected size of the expected
+ * manifest structure, including the array of entires.
+ *
  * On success returns 0, on error returns -1.
  */
 int mft_validate(struct mft *mft, size_t mft_size);

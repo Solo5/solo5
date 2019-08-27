@@ -54,7 +54,7 @@ static uint16_t virtio_blk_pci_base; /* base in PCI config space */
 static bool blk_configured;
 static bool blk_acquired;
 static solo5_handle_t blk_handle;
-extern struct mft_note __solo5_manifest_note;
+extern struct mft *virtio_manifest;
 
 /* Returns the index to the head of the buffers chain. */
 static uint16_t virtio_blk_op(uint32_t type,
@@ -206,7 +206,7 @@ solo5_result_t solo5_block_acquire(const char *name, solo5_handle_t *h,
         return SOLO5_R_EUNSPEC;
 
     unsigned mft_index;
-    struct mft_entry *mft_e = mft_get_by_name(&__solo5_manifest_note.m, name,
+    struct mft_entry *mft_e = mft_get_by_name(virtio_manifest, name,
         MFT_DEV_BLOCK_BASIC, &mft_index);
     if (mft_e == NULL)
         return SOLO5_R_EINVAL;

@@ -43,11 +43,13 @@ int mft_validate(struct mft *mft, size_t mft_size)
     if (mft->entries > MFT_MAX_ENTRIES)
         return -1;
     /*
-     * mft_size MAY be larger than the exact structure size due to alignment,
-     * so only fail here if it is strictly less than the space required for the
-     * declared number of manifest entries.
+     * mft_size must be the exact expected structure size, including the space
+     * required for manifest entires.
+     *
+     * If you are debugging this and it does not match up, the most likely
+     * cause is an internal structure alignment issue (see mft_abi.h).
      */
-    if (mft_size < (sizeof(struct mft) +
+    if (mft_size != (sizeof(struct mft) +
                 (mft->entries * sizeof(struct mft_entry))))
         return -1;
     /*

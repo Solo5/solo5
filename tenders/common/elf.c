@@ -133,7 +133,8 @@ static bool ehdr_is_valid(const Elf64_Ehdr *hdr)
  * Align (addr) down to (align) boundary. Returns 1 if (align) is not a
  * non-zero power of 2.
  */
-int align_down(Elf64_Addr addr, Elf64_Xword align, Elf64_Addr *out_result)
+static int align_down(Elf64_Addr addr, Elf64_Xword align,
+        Elf64_Addr *out_result)
 {
     if (align > 0 && (align & (align - 1)) == 0) {
         *out_result = addr & -align;
@@ -148,7 +149,7 @@ int align_down(Elf64_Addr addr, Elf64_Xword align, Elf64_Addr *out_result)
  * (align) is not a non-zero power of 2, otherwise result in (*out_result) and
  * 0.
  */
-int align_up(Elf64_Addr addr, Elf64_Xword align, Elf64_Addr *out_result)
+static int align_up(Elf64_Addr addr, Elf64_Xword align, Elf64_Addr *out_result)
 {
     Elf64_Addr result;
 
@@ -341,7 +342,7 @@ out_error:
     exit(1);
 
 out_invalid:
-    warnx("%s: Exec format error", file);
+    warnx("%s: Invalid or unsupported executable", file);
     free(ehdr);
     free(phdr);
     if (fd_kernel != -1)
@@ -349,14 +350,38 @@ out_invalid:
     exit(1);
 }
 
-void elf_load_mft(const char *file, struct mft **mft, size_t *mft_size)
+/*
+ * Solo5-owned notes are identified by an n_name of "Solo5".
+ */
+#define SOLO5_NOTE_NAME "Solo5"
+
+/*
+ * Defines an Elf64_Nhdr with n_name filled in and padded to a 4-byte boundary,
+ * i.e. the common part of a Solo5-owned Nhdr.
+ */
+struct solo5_nhdr {
+    Elf64_Nhdr h;
+    char n_name[(sizeof(SOLO5_NOTE_NAME) + 3) & -4];
+    /*
+     * Note content ("descriptor" in ELF terms) follows in the file here,
+     * possibly with some internal alignment before the first struct member
+     * (see below).
+     */
+};
+
+_Static_assert((sizeof(struct solo5_nhdr)) ==
+        (sizeof(uint32_t) + sizeof(uint32_t) + sizeof(uint32_t) + 8),
+        "struct solo5_nhdr alignment issue");
+
+int elf_load_note(const char *file, uint32_t note_type, size_t note_align,
+        size_t max_note_size, void **out_note_data, size_t *out_note_size)
 {
     int fd_kernel = -1;
     ssize_t nbytes;
     Elf64_Phdr *phdr = NULL;
     Elf64_Ehdr *ehdr = NULL;
-    struct mft *note = NULL;
-    size_t note_offset, note_size = 0;
+    uint8_t *note_data = NULL;
+    size_t note_offset, note_size, note_pad;
 
     fd_kernel = open(file, O_RDONLY);
     if (fd_kernel == -1)
@@ -384,81 +409,112 @@ void elf_load_mft(const char *file, struct mft **mft, size_t *mft_size)
         goto out_invalid;
 
     /*
-     * Find the NOTE containing the Solo5 manifest and sanity check its headers.
+     * Find the phdr containing the Solo5 NOTE of type note_type, and sanity
+     * check its headers.
      */
-    bool mft_note_found = false;
+    bool note_found = false;
     Elf64_Half ph_i;
+    struct solo5_nhdr nhdr;
     for (ph_i = 0; ph_i < ehdr->e_phnum; ph_i++) {
         if (phdr[ph_i].p_type != PT_NOTE)
-            continue; /* Not a NOTE, next */
-
-        struct mft_note_header nhdr;
+            continue;
+        if (phdr[ph_i].p_filesz < sizeof (Elf64_Nhdr))
+            /*
+             * p_filesz is less than minimum possible size of a NOTE header,
+             * reject the executable.
+             */
+            goto out_invalid;
         if (phdr[ph_i].p_filesz < sizeof nhdr)
-            continue; /* Too small to be a (valid) Solo5 NOTE, skip */
+            /*
+             * p_filesz is less than minimum possible size of a Solo5 NOTE
+             * header, ignore the note.
+             */
+            continue;
         nbytes = pread_in_full(fd_kernel, &nhdr, sizeof nhdr,
                 phdr[ph_i].p_offset);
         if (nbytes < 0)
             goto out_error;
         if (nbytes != sizeof nhdr)
             goto out_invalid;
-        if (strncmp(nhdr.name, SOLO5_NOTE_NAME, sizeof(SOLO5_NOTE_NAME)) != 0)
-            continue; /* Not a Solo5 NOTE, next */
-
-        if (nhdr.type != SOLO5_NOTE_MANIFEST) {
-            warnx("%s: phdr[%u] contains invalid Solo5 NOTE", file, ph_i);
+        if (nhdr.h.n_namesz != sizeof(SOLO5_NOTE_NAME))
+            /*
+             * Not a Solo5-owned NOTE or invalid n_namesz, skip.
+             */
+            continue;
+        if (strncmp(nhdr.n_name, SOLO5_NOTE_NAME, sizeof(SOLO5_NOTE_NAME)) != 0)
+            /*
+             * Not a Solo5-owned NOTE, skip.
+             */
+            continue;
+        if (nhdr.h.n_type != note_type)
+            /*
+             * Not the Solo5 NOTE of note_type we are looking for, skip.
+             */
+            continue;
+        /*
+         * Check note descriptor (content) size is within limits, and
+         * cross-check with p_filesz.
+         */
+        if (nhdr.h.n_descsz < 1 || nhdr.h.n_descsz > max_note_size)
             goto out_invalid;
-        }
-        if (nhdr.descsz > MFT_NOTE_MAX_SIZE) {
-            warnx("%s: phdr[%u] Solo5 NOTE size out of range", file, ph_i);
+        if (phdr[ph_i].p_filesz < sizeof nhdr + nhdr.h.n_descsz)
             goto out_invalid;
-        }
 
-        mft_note_found = true;
+        note_found = true;
         break;
     }
-    if (!mft_note_found) {
-        warnx("%s: No manifest found, not a Solo5 executable?", file);
-        goto out_invalid;
+    if (!note_found) {
+        free(ehdr);
+        free(phdr);
+        close(fd_kernel);
+        return -1;
     }
 
     /*
-     * At this point we have verified that the NOTE at phdr[ph_i] could be a
-     * Solo5 manifest, and it's sizes are within some sane limits. Adjust size
-     * and offset to skip the note header itself and read the full note
-     * contents (the manifest) into dynamically allocated memory.
+     * At this point we have verified that the NOTE at phdr[ph_i] is the Solo5
+     * NOTE with the requested note_type and its file sizes are sane.
+     *
+     * Adjust for alignment requested in (note_align) and read the note
+     * descriptor (content) following the header into dynamically allocated
+     * memory.
      */
-    note_offset = phdr[ph_i].p_offset + offsetof(struct mft_note, m);
-    note_size = phdr[ph_i].p_filesz - offsetof(struct mft_note, m);
-    note = malloc(note_size);
-    if (note == NULL)
+    assert(note_align > 0 && (note_align & (note_align - 1)) == 0);
+    note_offset = (sizeof nhdr + (note_align - 1)) & -note_align;
+    assert(note_offset >= sizeof nhdr);
+    note_pad = note_offset - sizeof nhdr;
+    note_size = nhdr.h.n_descsz - note_pad;
+    assert(note_size != 0 && note_size <= nhdr.h.n_descsz);
+    note_data = malloc(note_size);
+    if (note_data == NULL)
         goto out_error;
-    nbytes = pread_in_full(fd_kernel, note, note_size, note_offset);
+    nbytes = pread_in_full(fd_kernel, note_data, note_size,
+            phdr[ph_i].p_offset + note_offset);
     if (nbytes < 0)
         goto out_error;
     if (nbytes != note_size)
         goto out_invalid;
 
-    *mft = note;
-    *mft_size = note_size;
+    *out_note_data = note_data;
+    *out_note_size = note_size;
     free(ehdr);
     free(phdr);
     close(fd_kernel);
-    return;
+    return 0;
 
 out_error:
     warn("%s", file);
     free(ehdr);
     free(phdr);
-    free(note);
+    free(note_data);
     if (fd_kernel != -1)
         close (fd_kernel);
     exit(1);
 
 out_invalid:
-    warnx("%s: Exec format error", file);
+    warnx("%s: Invalid or unsupported executable", file);
     free(ehdr);
     free(phdr);
-    free(note);
+    free(note_data);
     if (fd_kernel != -1)
         close (fd_kernel);
     exit(1);

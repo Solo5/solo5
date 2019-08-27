@@ -28,6 +28,7 @@
  */
 
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 
 #ifndef MFT_ABI_H
@@ -67,7 +68,7 @@ struct mft_net_basic {
 #define MFT_NAME_MAX  67        /* Characters */
 
 /*
- * Manifest entry (mft.e[]).
+ * Manifest entry (struct mft.e[]).
  */
 struct mft_entry {
     char name[MFT_NAME_SIZE];
@@ -99,55 +100,80 @@ struct mft {
 };
 
 /*
- * Manifest ELF note headers.
- *
- * Note that somewhat counter-intuitively, in practice the note section header
- * fields (namesz/descsz/type) are 32-bit words even on ELF64.
- */
-#define SOLO5_NOTE_NAME     "Solo5"
-#define SOLO5_NOTE_MANIFEST 0x3154464d /* "MFT1" */
-
-struct mft_note_header {
-    uint32_t namesz;
-    uint32_t descsz;
-    uint32_t type;
-    char name[(sizeof(SOLO5_NOTE_NAME) + 3) & -4];
-};
-
-struct mft_note {
-    struct mft_note_header h;
-    struct mft m;
-};
-
-/*
  * Maximum supported number of manifest entires.
  */
 #define MFT_MAX_ENTRIES 64
 
 /*
- * Maximum total size of manifest ELF note, including header.
+ * HERE BE DRAGONS.
+ *
+ * The following structures and macros are used to declare a Solo5 "MFT1"
+ * format note at link time. This is somewhat tricky, as we need to ensure all
+ * structures are aligned correctly.
  */
-#define MFT_NOTE_MAX_SIZE (sizeof (struct mft_note) + \
+#define MFT1_NOTE_NAME "Solo5"
+#define MFT1_NOTE_TYPE 0x3154464d /* "MFT1" */
+
+/*
+ * Defines an Elf64_Nhdr with n_name filled in and padded to a 4-byte boundary,
+ * i.e. the common part of a Solo5-owned Nhdr.
+ */
+struct mft1_nhdr {
+    uint32_t n_namesz;
+    uint32_t n_descsz;
+    uint32_t n_type;
+    char n_name[(sizeof(MFT1_NOTE_NAME) + 3) & -4];
+};
+
+_Static_assert((sizeof(struct mft1_nhdr)) ==
+        (sizeof(uint32_t) + sizeof(uint32_t) + sizeof(uint32_t) + 8),
+        "struct mft1_nhdr alignment issue");
+
+/*
+ * Defines the entire note (header, descriptor content).
+ */
+struct mft1_note {
+    struct mft1_nhdr h;
+    struct mft m;
+};
+
+/*
+ * Internal alignment of (m) within struct mft1_note. Must be passed to
+ * elf_load_note() as note_align when loading.
+ */
+#define MFT1_NOTE_ALIGN offsetof(struct { char c; struct mft m; }, m)
+
+_Static_assert((offsetof(struct mft1_note, m) & (MFT1_NOTE_ALIGN - 1)) == 0,
+        "struct mft1_note.m is not aligned to a MFT1_NOTE_ALIGN boundary");
+
+/*
+ * Maximum descsz of manifest ELF note descriptor (content), including
+ * internal alignment.
+ */
+#define MFT1_NOTE_MAX_SIZE ((sizeof (struct mft1_note) - \
+         sizeof (struct mft1_nhdr)) + \
         (MFT_MAX_ENTRIES * sizeof (struct mft_entry)))
 
 /*
- * Declare a Solo5 manifest NOTE. Structure must be aligned to a 4-byte
- * boundary (or possibly an 8-byte boundary, but ELF64 toolchains seem
- * happy with the current arrangement... the specifications are mess).
+ * Declare a Solo5 "MFT1" format NOTE.
+ *
+ * Structure must be aligned to a 4-byte boundary (or possibly an 8-byte
+ * boundary, but ELF64 toolchains seem happy with the current arrangement...
+ * the specifications are mess).
  */
-#define MFT_NOTE_BEGIN \
-const struct mft_note __solo5_manifest_note \
+#define MFT1_NOTE_DECLARE_BEGIN \
+const struct mft1_note __solo5_mft1_note \
 __attribute__ ((section (".note.solo5.manifest"), aligned(4))) \
 = { \
     .h = { \
-        .namesz = sizeof(SOLO5_NOTE_NAME), \
-        .descsz = (sizeof(struct mft_note) - \
-                   sizeof(struct mft_note_header)), \
-        .type = SOLO5_NOTE_MANIFEST, \
-        .name = SOLO5_NOTE_NAME \
+        .n_namesz = sizeof(MFT1_NOTE_NAME), \
+        .n_descsz = (sizeof(struct mft1_note) - \
+                    sizeof(struct mft1_nhdr)), \
+        .n_type = MFT1_NOTE_TYPE, \
+        .n_name = MFT1_NOTE_NAME \
     }, \
     .m = \
 
-#define MFT_NOTE_END };
+#define MFT1_NOTE_DECLARE_END };
 
 #endif /* MFT_ABI_H */
