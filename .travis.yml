@@ -6,3 +6,14 @@ addons:
             - qemu-system-x86
             - libseccomp-dev
 script: ./configure.sh && make && tests/run-tests.sh
+matrix:
+  include:
+    - env: _ARCH_ACTUAL=x86_64
+      os: linux
+    - env: _ARCH_ACTUAL=ppc64le CC=gcc-7
+      os: linux-ppc64le
+      sudo: required
+      before_script:
+        - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+        - sudo apt-get -y update
+        - sudo apt-get -y install gcc-7
