@@ -71,7 +71,7 @@ long sys_write(long fd, const void *buf, long size)
 long sys_pread64(long fd, void *buf, long size, long pos)
 {
     long ret;
-    register long r10 asm("r10") = pos;
+    register long r10 __asm__("r10") = pos;
 
     __asm__ __volatile__ (
             "syscall"
@@ -86,7 +86,7 @@ long sys_pread64(long fd, void *buf, long size, long pos)
 long sys_pwrite64(long fd, const void *buf, long size, long pos)
 {
     long ret;
-    register long r10 asm("r10") = pos;
+    register long r10 __asm__("r10") = pos;
 
     __asm__ __volatile__ (
             "syscall"
@@ -128,9 +128,9 @@ long sys_epoll_pwait(long epfd, void *events, long maxevents, long timeout,
         void *sigmask, long sigsetsize)
 {
     long ret;
-    register long r10 asm("r10") = timeout;
-    register long r8 asm("r8") = (long)sigmask;
-    register long r9 asm("r9") = sigsetsize;
+    register long r10 __asm__("r10") = timeout;
+    register long r8 __asm__("r8") = (long)sigmask;
+    register long r9 __asm__("r9") = sigsetsize;
 
     __asm__ __volatile__ (
             "syscall"
@@ -146,7 +146,7 @@ long sys_epoll_pwait(long epfd, void *events, long maxevents, long timeout,
 long sys_timerfd_settime(long fd, long flags, const void *utmr, void *otmr)
 {
     long ret;
-    register long r10 asm("r10") = (long)otmr;
+    register long r10 __asm__("r10") = (long)otmr;
 
     __asm__ __volatile__ (
             "syscall"
