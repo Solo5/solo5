@@ -30,7 +30,7 @@ include $(TOPDIR)/Makeconf
 # tests (applications).
 #
 CC := $(MAKECONF_CC)
-CFLAGS := -std=gnu99 -Wall -Wextra -Werror -O2 -g
+CFLAGS := -std=c11 -Wall -Wextra -Werror -O2 -g
 CFLAGS += -ffreestanding -fstack-protector-strong $(MAKECONF_CFLAGS)
 CPPFLAGS := -isystem $(TOPDIR)/include/crt -I$(TOPDIR)/include/solo5
 LD := $(MAKECONF_LD)
@@ -64,7 +64,7 @@ endef
 # artifacts built to run on the (Solo5 tender's) *host*.
 #
 HOSTCC := $(MAKECONF_CC)
-HOSTCFLAGS := -Wall -Werror -std=c99 -O2 -g
+HOSTCFLAGS := -Wall -Werror -std=c11 -O2 -g
 HOSTCPPFLAGS := -I$(TOPDIR)/include/solo5
 HOSTLDFLAGS :=
 HOSTLDLIBS :=

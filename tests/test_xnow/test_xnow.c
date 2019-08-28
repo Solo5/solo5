@@ -28,7 +28,7 @@ static void puts(const char *s)
 
 __attribute__((noinline)) void nothing(void)
 {
-    asm ("");
+    __asm__("");
 }
 
 int solo5_app_main(const struct solo5_start_info *si __attribute__((unused)))
