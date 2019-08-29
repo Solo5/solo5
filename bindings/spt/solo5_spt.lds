@@ -21,9 +21,10 @@ SECTIONS {
         *(.rodata)
         *(.rodata.*)
     }
-    .note.solo5 :
+    /* For Spt, the manifest NOTE(s) are read-only. */
+    .note.solo5.manifest :
     {
-        *(.note.solo5*)
+        *(.note.solo5.manifest*)
     }
     .eh_frame :
     {

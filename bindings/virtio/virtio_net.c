@@ -64,7 +64,7 @@ static char virtio_net_mac_str[18];
 static bool net_configured;
 static bool net_acquired;
 static solo5_handle_t net_handle;
-extern struct mft_note __solo5_manifest_note;
+extern struct mft *virtio_manifest;
 
 static int handle_virtio_net_interrupt(void *);
 
@@ -292,7 +292,7 @@ solo5_result_t solo5_net_acquire(const char *name, solo5_handle_t *h,
         return SOLO5_R_EUNSPEC;
 
     unsigned mft_index;
-    struct mft_entry *mft_e = mft_get_by_name(&__solo5_manifest_note.m, name,
+    struct mft_entry *mft_e = mft_get_by_name(virtio_manifest, name,
             MFT_DEV_NET_BASIC, &mft_index);
     if (mft_e == NULL)
         return SOLO5_R_EINVAL;

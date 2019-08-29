@@ -22,10 +22,6 @@ SECTIONS {
         *(.rodata)
         *(.rodata.*)
     }
-    .note.solo5 :
-    {
-        *(.note.solo5*)
-    }
     .eh_frame :
     {
         *(.eh_frame)
@@ -44,6 +40,12 @@ SECTIONS {
     {
         *(.data)
         *(.data.*)
+    }
+    /* For Virtio, the manifest NOTE(s) must be in a read-write section, as they
+     * may be modified in-place by the bindings. */
+    .note.solo5.manifest :
+    {
+        *(.note.solo5.manifest*)
     }
     .tdata :
     {

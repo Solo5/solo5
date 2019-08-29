@@ -25,21 +25,37 @@
 #ifndef COMMON_ELF_H
 #define COMMON_ELF_H
 
-#include "mft_abi.h"
-
 /*
  * Load an ELF binary from (file) into (mem_size) bytes of memory at (*mem).
- * (p_min_loadaddr) is the lowest allowed load address within (*mem). Returns
- * the entry point (p_entry) and last address used by the binary (p_end).
+ * (p_min_loadaddr) is the lowest allowed load address within (*mem). 
+ *
+ * If successful, returns the entry point (*p_entry) and last address used by
+ * the binary (*p_end).
+ *
+ * If the executable is invalid, or on any other error, reports to stderr and
+ * terminates the program.
  */
 void elf_load(const char *file, uint8_t *mem, size_t mem_size,
         uint64_t p_min_loadaddr, uint64_t *p_entry, uint64_t *p_end);
 
 /*
- * Load the Solo5 manifest from the ELF binary (file). Memory for the manifest
- * is allocated with malloc() and returned as (mft), with the manifest size as
- * defined in the ELF binary returned in (mft_size).
+ * Load the Solo5-owned NOTE of (note_type) from the ELF binary (file).
+ * Internal alignment of the note descriptor (content) will be adjusted to
+ * (note_align), and a descriptor with a descsz larger than (max_note_size)
+ * will cause the executable to be rejected.
+ *
+ * Returns / error handling:
+ *
+ * On success: Returns 0 and memory for the note descriptor (content) is
+ * allocated with malloc(), returned in (*note_data), with the note size,
+ * **minus any alignment**, returned in (*note_size).
+ *
+ * If a Solo5-owned NOTE of (note_type) was NOT found, but the executable is
+ * otherwise valid: Returns -1.
+ *
+ * In all other cases, reports any errors to stderr and terminates the program.
  */
-void elf_load_mft(const char *file, struct mft **mft, size_t *mft_size);
+int elf_load_note(const char *file, uint32_t note_type, size_t note_align,
+        size_t max_note_size, void **note_data, size_t *note_size);
 
 #endif /* COMMON_ELF_H */

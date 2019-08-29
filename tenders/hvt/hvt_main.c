@@ -169,7 +169,9 @@ int main(int argc, char **argv)
      */
     struct mft *mft;
     size_t mft_size;
-    elf_load_mft(elffile, &mft, &mft_size);
+    if (elf_load_note(elffile, MFT1_NOTE_TYPE, MFT1_NOTE_ALIGN,
+                MFT1_NOTE_MAX_SIZE, (void **)&mft, &mft_size) == -1)
+        errx(1, "%s: No Solo5 manifest found in executable", elffile);
     if (mft_validate(mft, mft_size) == -1) {
         free(mft);
         errx(1, "%s: Solo5 manifest is invalid", elffile);
