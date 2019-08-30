@@ -26,8 +26,9 @@
 #define COMMON_ELF_H
 
 /*
- * Load an ELF binary from (file) into (mem_size) bytes of memory at (*mem).
- * (p_min_loadaddr) is the lowest allowed load address within (*mem). 
+ * Load an ELF binary from (bin_fd) into (mem_size) bytes of memory at (*mem).
+ * (p_min_loadaddr) is the lowest allowed load address within (*mem). (bin_name)
+ * is the file name of the binary and is used to report errors.
  *
  * If successful, returns the entry point (*p_entry) and last address used by
  * the binary (*p_end).
@@ -35,14 +36,15 @@
  * If the executable is invalid, or on any other error, reports to stderr and
  * terminates the program.
  */
-void elf_load(const char *file, uint8_t *mem, size_t mem_size,
+void elf_load(int bin_fd, const char *bin_name, uint8_t *mem, size_t mem_size,
         uint64_t p_min_loadaddr, uint64_t *p_entry, uint64_t *p_end);
 
 /*
  * Load the Solo5-owned NOTE of (note_type) from the ELF binary (file).
  * Internal alignment of the note descriptor (content) will be adjusted to
  * (note_align), and a descriptor with a descsz larger than (max_note_size)
- * will cause the executable to be rejected.
+ * will cause the executable to be rejected. (bin_name) is the file name of the
+ * binary and is used to report errors.
  *
  * Returns / error handling:
  *
@@ -55,7 +57,8 @@ void elf_load(const char *file, uint8_t *mem, size_t mem_size,
  *
  * In all other cases, reports any errors to stderr and terminates the program.
  */
-int elf_load_note(const char *file, uint32_t note_type, size_t note_align,
-        size_t max_note_size, void **note_data, size_t *note_size);
+int elf_load_note(int bin_fd, const char *bin_name, uint32_t note_type,
+        size_t note_align, size_t max_note_size, void **note_data,
+        size_t *note_size);
 
 #endif /* COMMON_ELF_H */

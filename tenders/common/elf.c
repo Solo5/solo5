@@ -32,18 +32,63 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/mman.h>
 #include <sys/param.h>
-#include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
 
 #include "cc.h"
-#include "mft_abi.h"
+
+/*
+ * Define EM_TARGET, EM_PAGE_SIZE and EI_DATA_TARGET for the architecture we
+ * are compiling on.
+ */
+#if defined(__x86_64__)
+#define EM_TARGET EM_X86_64
+#define EM_PAGE_SIZE 0x1000
+#elif defined(__aarch64__)
+#define EM_TARGET EM_AARCH64
+#define EM_PAGE_SIZE 0x1000
+#elif defined(__powerpc64__)
+#define EM_TARGET EM_PPC64
+#define EM_PAGE_SIZE 0x10000
+#else
+#error Unsupported target
+#endif
+
+#if __BYTE_ORDER == __LITTLE_ENDIAN
+#define EI_DATA_TARGET ELFDATA2LSB
+#else
+#define EI_DATA_TARGET ELFDATA2MSB
+#endif
+
+/*
+ * Solo5-owned ELF notes are identified by an n_name of "Solo5".
+ */
+#define SOLO5_NOTE_NAME "Solo5"
+
+/*
+ * Defines an Elf64_Nhdr with n_name filled in and padded to a 4-byte boundary,
+ * i.e. the common part of a Solo5-owned Nhdr.
+ */
+struct solo5_nhdr {
+    Elf64_Nhdr h;
+    char n_name[(sizeof(SOLO5_NOTE_NAME) + 3) & -4];
+    /*
+     * Note content ("descriptor" in ELF terms) follows in the file here,
+     * possibly with some internal alignment before the first struct member
+     * (see below).
+     */
+};
+
+_Static_assert((sizeof(struct solo5_nhdr)) ==
+        (sizeof(uint32_t) + sizeof(uint32_t) + sizeof(uint32_t) + 8),
+        "struct solo5_nhdr alignment issue");
 
 static ssize_t pread_in_full(int fd, void *buf, size_t count, off_t offset)
 {
@@ -74,25 +119,6 @@ static ssize_t pread_in_full(int fd, void *buf, size_t count, off_t offset)
 
     return total;
 }
-
-#if defined(__x86_64__)
-#define EM_TARGET EM_X86_64
-#define EM_PAGE_SIZE 0x1000
-#elif defined(__aarch64__)
-#define EM_TARGET EM_AARCH64
-#define EM_PAGE_SIZE 0x1000
-#elif defined(__powerpc64__)
-#define EM_TARGET EM_PPC64
-#define EM_PAGE_SIZE 0x10000
-#else
-#error Unsupported target
-#endif
-
-#if __BYTE_ORDER == __LITTLE_ENDIAN
-#define EI_DATA_TARGET ELFDATA2LSB
-#else
-#define EI_DATA_TARGET ELFDATA2MSB
-#endif
 
 static bool ehdr_is_valid(const Elf64_Ehdr *hdr)
 {
@@ -167,24 +193,19 @@ static int align_up(Elf64_Addr addr, Elf64_Xword align, Elf64_Addr *out_result)
         return 1;
 }
 
-void elf_load(const char *file, uint8_t *mem, size_t mem_size,
+void elf_load(int bin_fd, const char *bin_name, uint8_t *mem, size_t mem_size,
        uint64_t p_min_loadaddr, uint64_t *p_entry, uint64_t *p_end)
 {
-    int fd_kernel = -1;
     ssize_t nbytes;
     Elf64_Phdr *phdr = NULL;
     Elf64_Ehdr *ehdr = NULL;
     Elf64_Addr e_entry;                 /* Program entry point */
     Elf64_Addr e_end;                   /* Highest memory address occupied */
 
-    fd_kernel = open(file, O_RDONLY);
-    if (fd_kernel == -1)
-        goto out_error;
-
     ehdr = malloc(sizeof(Elf64_Ehdr));
     if (ehdr == NULL)
         goto out_error;
-    nbytes = pread_in_full(fd_kernel, ehdr, sizeof(Elf64_Ehdr), 0);
+    nbytes = pread_in_full(bin_fd, ehdr, sizeof(Elf64_Ehdr), 0);
     if (nbytes < 0)
         goto out_error;
     if (nbytes != sizeof(Elf64_Ehdr))
@@ -202,7 +223,7 @@ void elf_load(const char *file, uint8_t *mem, size_t mem_size,
     phdr = malloc(ph_size);
     if (!phdr)
         goto out_error;
-    nbytes = pread_in_full(fd_kernel, phdr, ph_size, ehdr->e_phoff);
+    nbytes = pread_in_full(bin_fd, phdr, ph_size, ehdr->e_phoff);
     if (nbytes < 0)
         goto out_error;
     if (nbytes != ph_size)
@@ -290,7 +311,7 @@ void elf_load(const char *file, uint8_t *mem, size_t mem_size,
          * Double check result for host (caller) address space overflow.
          */
         assert(host_vaddr >= (mem + p_min_loadaddr));
-        nbytes = pread_in_full(fd_kernel, host_vaddr, p_filesz,
+        nbytes = pread_in_full(bin_fd, host_vaddr, p_filesz,
                 phdr[ph_i].p_offset);
         if (nbytes < 0)
             goto out_error;
@@ -322,7 +343,7 @@ void elf_load(const char *file, uint8_t *mem, size_t mem_size,
             prot |= PROT_EXEC;
         if (prot & PROT_WRITE && prot & PROT_EXEC) {
             warnx("%s: Error: phdr[%u] requests WRITE and EXEC permissions",
-                  file, ph_i);
+                  bin_name, ph_i);
             goto out_invalid;
         }
         if (mprotect(host_vaddr_start, p_vaddr_end - p_vaddr_start, prot) == -1)
@@ -331,69 +352,37 @@ void elf_load(const char *file, uint8_t *mem, size_t mem_size,
 
     free(ehdr);
     free(phdr);
-    close(fd_kernel);
     *p_entry = e_entry;
     *p_end = e_end;
     return;
 
 out_error:
-    warn("%s", file);
+    warn("%s", bin_name);
     free(ehdr);
     free(phdr);
-    if (fd_kernel != -1)
-        close(fd_kernel);
     exit(1);
 
 out_invalid:
-    warnx("%s: Invalid or unsupported executable", file);
+    warnx("%s: Invalid or unsupported executable", bin_name);
     free(ehdr);
     free(phdr);
-    if (fd_kernel != -1)
-        close(fd_kernel);
     exit(1);
 }
 
-/*
- * Solo5-owned notes are identified by an n_name of "Solo5".
- */
-#define SOLO5_NOTE_NAME "Solo5"
-
-/*
- * Defines an Elf64_Nhdr with n_name filled in and padded to a 4-byte boundary,
- * i.e. the common part of a Solo5-owned Nhdr.
- */
-struct solo5_nhdr {
-    Elf64_Nhdr h;
-    char n_name[(sizeof(SOLO5_NOTE_NAME) + 3) & -4];
-    /*
-     * Note content ("descriptor" in ELF terms) follows in the file here,
-     * possibly with some internal alignment before the first struct member
-     * (see below).
-     */
-};
-
-_Static_assert((sizeof(struct solo5_nhdr)) ==
-        (sizeof(uint32_t) + sizeof(uint32_t) + sizeof(uint32_t) + 8),
-        "struct solo5_nhdr alignment issue");
-
-int elf_load_note(const char *file, uint32_t note_type, size_t note_align,
-        size_t max_note_size, void **out_note_data, size_t *out_note_size)
+int elf_load_note(int bin_fd, const char *bin_name, uint32_t note_type,
+        size_t note_align, size_t max_note_size, void **out_note_data,
+        size_t *out_note_size)
 {
-    int fd_kernel = -1;
     ssize_t nbytes;
     Elf64_Phdr *phdr = NULL;
     Elf64_Ehdr *ehdr = NULL;
     uint8_t *note_data = NULL;
     size_t note_offset, note_size, note_pad;
 
-    fd_kernel = open(file, O_RDONLY);
-    if (fd_kernel == -1)
-        goto out_error;
-
     ehdr = malloc(sizeof(Elf64_Ehdr));
     if (ehdr == NULL)
         goto out_error;
-    nbytes = pread_in_full(fd_kernel, ehdr, sizeof(Elf64_Ehdr), 0);
+    nbytes = pread_in_full(bin_fd, ehdr, sizeof(Elf64_Ehdr), 0);
     if (nbytes < 0)
         goto out_error;
     if (nbytes != sizeof(Elf64_Ehdr))
@@ -405,7 +394,7 @@ int elf_load_note(const char *file, uint32_t note_type, size_t note_align,
     phdr = malloc(ph_size);
     if (!phdr)
         goto out_error;
-    nbytes = pread_in_full(fd_kernel, phdr, ph_size, ehdr->e_phoff);
+    nbytes = pread_in_full(bin_fd, phdr, ph_size, ehdr->e_phoff);
     if (nbytes < 0)
         goto out_error;
     if (nbytes != ph_size)
@@ -433,7 +422,7 @@ int elf_load_note(const char *file, uint32_t note_type, size_t note_align,
              * header, ignore the note.
              */
             continue;
-        nbytes = pread_in_full(fd_kernel, &nhdr, sizeof nhdr,
+        nbytes = pread_in_full(bin_fd, &nhdr, sizeof nhdr,
                 phdr[ph_i].p_offset);
         if (nbytes < 0)
             goto out_error;
@@ -469,7 +458,6 @@ int elf_load_note(const char *file, uint32_t note_type, size_t note_align,
     if (!note_found) {
         free(ehdr);
         free(phdr);
-        close(fd_kernel);
         return -1;
     }
 
@@ -490,7 +478,7 @@ int elf_load_note(const char *file, uint32_t note_type, size_t note_align,
     note_data = malloc(note_size);
     if (note_data == NULL)
         goto out_error;
-    nbytes = pread_in_full(fd_kernel, note_data, note_size,
+    nbytes = pread_in_full(bin_fd, note_data, note_size,
             phdr[ph_i].p_offset + note_offset);
     if (nbytes < 0)
         goto out_error;
@@ -501,24 +489,19 @@ int elf_load_note(const char *file, uint32_t note_type, size_t note_align,
     *out_note_size = note_size;
     free(ehdr);
     free(phdr);
-    close(fd_kernel);
     return 0;
 
 out_error:
-    warn("%s", file);
+    warn("%s", bin_name);
     free(ehdr);
     free(phdr);
     free(note_data);
-    if (fd_kernel != -1)
-        close (fd_kernel);
     exit(1);
 
 out_invalid:
-    warnx("%s: Invalid or unsupported executable", file);
+    warnx("%s: Invalid or unsupported executable", bin_name);
     free(ehdr);
     free(phdr);
     free(note_data);
-    if (fd_kernel != -1)
-        close (fd_kernel);
     exit(1);
 }
