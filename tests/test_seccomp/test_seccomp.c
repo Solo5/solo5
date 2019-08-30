@@ -49,6 +49,16 @@ int solo5_app_main(const struct solo5_start_info *si __attribute__((unused)))
             "svc 0"
             : "=r" (x0) : "r" (x8), "r" (x1) : "cc", "memory"
     );
+#elif defined(__powerpc__)
+    register long r0 __asm__("r0") = 41;
+    register long r3 __asm__("r3") = 0;
+
+    __asm__ __volatile__ (
+            "sc"
+            : "=r" (r3)
+            : "r" (r0), "r" (r3)
+            : "cc", "memory"
+    );
 #else
 #error Unsupported architecture
 #endif

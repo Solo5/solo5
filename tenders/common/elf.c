@@ -81,6 +81,9 @@ static ssize_t pread_in_full(int fd, void *buf, size_t count, off_t offset)
 #elif defined(__aarch64__)
 #define EM_TARGET EM_AARCH64
 #define EM_PAGE_SIZE 0x1000
+#elif defined(__powerpc64__)
+#define EM_TARGET EM_PPC64
+#define EM_PAGE_SIZE 0x10000
 #else
 #error Unsupported target
 #endif
