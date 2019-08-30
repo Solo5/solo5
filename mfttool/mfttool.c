@@ -30,9 +30,12 @@
 #include <assert.h>
 #include <ctype.h>
 #include <err.h>
+#include <fcntl.h>
 #include <libgen.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 #include "json.h"
 #include "mft_abi.h"
@@ -185,15 +188,22 @@ static int mfttool_generate(const char *source, const char *output)
 
 static int mfttool_dump(const char *binary)
 {
+    int bin_fd = open(binary, O_RDONLY);
+    if (bin_fd == -1)
+    if (bin_fd == -1)
+        err(1, "%s: Could not open", binary);
+
     struct mft *mft;
     size_t mft_size;
-    if (elf_load_note(binary, MFT1_NOTE_TYPE, MFT1_NOTE_ALIGN,
+    if (elf_load_note(bin_fd, binary, MFT1_NOTE_TYPE, MFT1_NOTE_ALIGN,
                 MFT1_NOTE_MAX_SIZE, (void **)&mft, &mft_size) == -1) {
         warnx("%s: No Solo5 manifest found in executable", binary);
+        close(bin_fd);
         return EXIT_FAILURE;
     }
     if (mft_validate(mft, mft_size) == -1) {
         free(mft);
+        close(bin_fd);
         warnx("%s: Manifest validation failed", binary);
         return EXIT_FAILURE;
     }
@@ -206,6 +216,7 @@ static int mfttool_dump(const char *binary)
     }
 
     free(mft);
+    close(bin_fd);
     return EXIT_SUCCESS;
 }
 

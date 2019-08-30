@@ -25,13 +25,16 @@
 #define _GNU_SOURCE
 #include <assert.h>
 #include <err.h>
+#include <fcntl.h>
 #include <libgen.h>
 #include <signal.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/mman.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 #include "hvt.h"
 
@@ -128,7 +131,8 @@ int main(int argc, char **argv)
     size_t mem_size = 0x20000000;
     hvt_gpa_t gpa_ep, gpa_kend;
     const char *prog;
-    const char *elffile;
+    const char *elf_filename;
+    int elf_fd = -1;
     int matched;
 
     prog = basename(*argv);
@@ -161,20 +165,24 @@ int main(int argc, char **argv)
         warnx("Missing KERNEL operand");
         usage(prog);
     }
-    elffile = *argv1;
+    elf_filename = *argv1;
 
     /*
      * Now that we have the ELF file name, try and load the manifest from it,
      * as subsequent parsing of the command line in the 2nd pass depends on it.
      */
+    elf_fd = open(elf_filename, O_RDONLY);
+    if (elf_fd == -1)
+        err(1, "%s: Could not open", elf_filename);
+
     struct mft *mft;
     size_t mft_size;
-    if (elf_load_note(elffile, MFT1_NOTE_TYPE, MFT1_NOTE_ALIGN,
+    if (elf_load_note(elf_fd, elf_filename, MFT1_NOTE_TYPE, MFT1_NOTE_ALIGN,
                 MFT1_NOTE_MAX_SIZE, (void **)&mft, &mft_size) == -1)
-        errx(1, "%s: No Solo5 manifest found in executable", elffile);
+        errx(1, "%s: No Solo5 manifest found in executable", elf_filename);
     if (mft_validate(mft, mft_size) == -1) {
         free(mft);
-        errx(1, "%s: Solo5 manifest is invalid", elffile);
+        errx(1, "%s: Solo5 manifest is invalid", elf_filename);
     }
 
     /*
@@ -207,7 +215,7 @@ int main(int argc, char **argv)
             usage(prog);
         }
     }
-    assert(elffile == *argv);
+    assert(elf_filename == *argv);
     argc--;
     argv++;
 
@@ -223,8 +231,9 @@ int main(int argc, char **argv)
     hvt_mem_size(&mem_size);
     struct hvt *hvt = hvt_init(mem_size);
 
-    elf_load(elffile, hvt->mem, hvt->mem_size, HVT_GUEST_MIN_BASE, &gpa_ep,
-            &gpa_kend);
+    elf_load(elf_fd, elf_filename, hvt->mem, hvt->mem_size, HVT_GUEST_MIN_BASE,
+            &gpa_ep, &gpa_kend);
+    close(elf_fd);
 
     hvt_vcpu_init(hvt, gpa_ep);
 
