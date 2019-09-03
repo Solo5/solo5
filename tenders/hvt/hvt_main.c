@@ -232,7 +232,7 @@ int main(int argc, char **argv)
     struct hvt *hvt = hvt_init(mem_size);
 
     elf_load(elf_fd, elf_filename, hvt->mem, hvt->mem_size, HVT_GUEST_MIN_BASE,
-            &gpa_ep, &gpa_kend);
+            hvt_guest_mprotect, hvt, &gpa_ep, &gpa_kend);
     close(elf_fd);
 
     hvt_vcpu_init(hvt, gpa_ep);
