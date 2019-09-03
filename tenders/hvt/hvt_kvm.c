@@ -132,5 +132,16 @@ int hvt_guest_mprotect(void *t, uint64_t addr_start, uint64_t addr_end,
     size_t size = addr_end - addr_start;
     assert(size > 0 && size <= hvt->mem_size);
 
+    /*
+     * Host-side page protections:
+     *
+     * Ensure that guest-executable pages are not also executable in the host.
+     *
+     * Guest-side page protections:
+     *
+     * KVM will propagate guest-side R/W protections to its EPT mappings,
+     * guest-side X/NX protection is currently not supported by the hypervisor.
+     */
+    prot &= ~(PROT_EXEC);
     return mprotect(vaddr_start, size, prot);
 }

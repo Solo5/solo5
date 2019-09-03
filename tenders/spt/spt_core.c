@@ -160,6 +160,11 @@ int spt_guest_mprotect(void *t, uint64_t addr_start, uint64_t addr_end,
     size_t size = addr_end - addr_start;
     assert(size > 0 && size <= spt->mem_size);
 
+    /*
+     * On spt, there is no distinction between host-side and guest-side memory
+     * protection, so just pass through to mprotect() directly, which will do
+     * the right thing.
+     */
     return mprotect(vaddr_start, size, prot);
 }
 
