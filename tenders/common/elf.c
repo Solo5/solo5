@@ -195,8 +195,8 @@ static int align_up(Elf64_Addr addr, Elf64_Xword align, Elf64_Addr *out_result)
 }
 
 void elf_load(int bin_fd, const char *bin_name, uint8_t *mem, size_t mem_size,
-        uint64_t p_min_loadaddr, guest_mprotect_fn_t t_guest_mprotect, void *t,
-        uint64_t *p_entry, uint64_t *p_end)
+        uint64_t p_min_loadaddr, guest_mprotect_fn_t t_guest_mprotect,
+        void *t_guest_mprotect_arg, uint64_t *p_entry, uint64_t *p_end)
 {
     ssize_t nbytes;
     Elf64_Phdr *phdr = NULL;
@@ -344,7 +344,8 @@ void elf_load(int bin_fd, const char *bin_name, uint8_t *mem, size_t mem_size,
             goto out_invalid;
         }
         assert(t_guest_mprotect != NULL);
-        if (t_guest_mprotect(t, p_vaddr_start, p_vaddr_end, prot) == -1)
+        if (t_guest_mprotect(t_guest_mprotect_arg, p_vaddr_start, p_vaddr_end,
+                    prot) == -1)
             goto out_error;
     }
 

@@ -146,10 +146,10 @@ struct spt *spt_init(size_t mem_size)
     return spt;
 }
 
-int spt_guest_mprotect(void *t, uint64_t addr_start, uint64_t addr_end,
+int spt_guest_mprotect(void *t_arg, uint64_t addr_start, uint64_t addr_end,
         int prot)
 {
-    struct spt *spt = t;
+    struct spt *spt = t_arg;
 
     assert(addr_start <= spt->mem_size);
     assert(addr_end <= spt->mem_size);

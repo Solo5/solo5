@@ -118,10 +118,10 @@ void hvt_drop_privileges()
 }
 #endif
 
-int hvt_guest_mprotect(void *t, uint64_t addr_start, uint64_t addr_end,
+int hvt_guest_mprotect(void *t_arg, uint64_t addr_start, uint64_t addr_end,
         int prot)
 {
-    struct hvt *hvt = t;
+    struct hvt *hvt = t_arg;
 
     assert(addr_start <= hvt->mem_size);
     assert(addr_end <= hvt->mem_size);

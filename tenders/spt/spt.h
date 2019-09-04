@@ -45,7 +45,7 @@ struct spt {
 
 struct spt *spt_init(size_t mem_size);
 
-int spt_guest_mprotect(void *t, uint64_t addr_start, uint64_t addr_end,
+int spt_guest_mprotect(void *t_arg, uint64_t addr_start, uint64_t addr_end,
         int prot);
 
 void spt_boot_info_init(struct spt *spt, uint64_t p_end, int cmdline_argc,
