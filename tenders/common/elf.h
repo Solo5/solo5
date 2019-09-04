@@ -26,9 +26,22 @@
 #define COMMON_ELF_H
 
 /*
+ * guest_mprotect_fn() is called by the ELF loader to request that the page
+ * protection flags (prot) as used by the system mprotect(), i.e. PROT_X from
+ * sys/mman.h be applied to the guest memory range (addr_start .. addr_end).
+ * (t_arg) is a pointer to the backend-specific struct (hvt, spt, ...).
+ *
+ * Returns 0 on success, -1 and errno set on failure.
+ */
+typedef int (*guest_mprotect_fn_t)(void *t_arg, uint64_t addr_start,
+        uint64_t addr_end, int prot);
+
+/*
  * Load an ELF binary from (bin_fd) into (mem_size) bytes of memory at (*mem).
  * (p_min_loadaddr) is the lowest allowed load address within (*mem). (bin_name)
  * is the file name of the binary and is used to report errors.
+ * (t_guest_mprotect) is a pointer to the function described above.
+ * (t_guest_mprotect_arg) is passed through to t_guest_mprotect().
  *
  * If successful, returns the entry point (*p_entry) and last address used by
  * the binary (*p_end).
@@ -37,7 +50,8 @@
  * terminates the program.
  */
 void elf_load(int bin_fd, const char *bin_name, uint8_t *mem, size_t mem_size,
-        uint64_t p_min_loadaddr, uint64_t *p_entry, uint64_t *p_end);
+        uint64_t p_min_loadaddr, guest_mprotect_fn_t t_guest_mprotect,
+        void *t_guest_mprotect_arg, uint64_t *p_entry, uint64_t *p_end);
 
 /*
  * Load the Solo5-owned NOTE of (note_type) from the ELF binary (file).

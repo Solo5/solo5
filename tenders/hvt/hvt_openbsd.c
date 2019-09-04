@@ -165,3 +165,31 @@ void hvt_drop_privileges()
         err(errno, "pledge");
 }
 #endif
+
+int hvt_guest_mprotect(void *t_arg, uint64_t addr_start, uint64_t addr_end,
+        int prot)
+{
+    struct hvt *hvt = t_arg;
+
+    assert(addr_start <= hvt->mem_size);
+    assert(addr_end <= hvt->mem_size);
+    assert(addr_start < addr_end);
+
+    uint8_t *vaddr_start = hvt->mem + addr_start;
+    assert(vaddr_start >= hvt->mem);
+    size_t size = addr_end - addr_start;
+    assert(size > 0 && size <= hvt->mem_size);
+
+    /*
+     * Host-side page protections:
+     *
+     * Ensure that guest-executable pages are not also executable in the host.
+     *
+     * Guest-side page protections:
+     *
+     * Manipulating guest-side (EPT) mappings is currently not supported by
+     * OpenBSD vmm, so there is nothing more we can do.
+     */
+    prot &= ~(PROT_EXEC);
+    return mprotect(vaddr_start, size, prot);
+}

@@ -43,6 +43,7 @@
 #include <unistd.h>
 
 #include "cc.h"
+#include "elf.h"
 
 /*
  * Define EM_TARGET, EM_PAGE_SIZE and EI_DATA_TARGET for the architecture we
@@ -194,7 +195,8 @@ static int align_up(Elf64_Addr addr, Elf64_Xword align, Elf64_Addr *out_result)
 }
 
 void elf_load(int bin_fd, const char *bin_name, uint8_t *mem, size_t mem_size,
-       uint64_t p_min_loadaddr, uint64_t *p_entry, uint64_t *p_end)
+        uint64_t p_min_loadaddr, guest_mprotect_fn_t t_guest_mprotect,
+        void *t_guest_mprotect_arg, uint64_t *p_entry, uint64_t *p_end)
 {
     ssize_t nbytes;
     Elf64_Phdr *phdr = NULL;
@@ -329,11 +331,6 @@ void elf_load(int bin_fd, const char *bin_name, uint8_t *mem, size_t mem_size,
             goto out_invalid;
         if (p_vaddr_end & (EM_PAGE_SIZE - 1))
             goto out_invalid;
-        uint8_t *host_vaddr_start = mem + p_vaddr_start;
-        /*
-         * Double check result for host (caller) address space overflow.
-         */
-        assert(host_vaddr_start >= (mem + p_min_loadaddr));
         int prot = PROT_NONE;
         if (phdr[ph_i].p_flags & PF_R)
             prot |= PROT_READ;
@@ -346,7 +343,9 @@ void elf_load(int bin_fd, const char *bin_name, uint8_t *mem, size_t mem_size,
                   bin_name, ph_i);
             goto out_invalid;
         }
-        if (mprotect(host_vaddr_start, p_vaddr_end - p_vaddr_start, prot) == -1)
+        assert(t_guest_mprotect != NULL);
+        if (t_guest_mprotect(t_guest_mprotect_arg, p_vaddr_start, p_vaddr_end,
+                    prot) == -1)
             goto out_error;
     }
 

@@ -221,7 +221,7 @@ int main(int argc, char **argv)
     struct spt *spt = spt_init(mem_size);
 
     elf_load(elf_fd, elf_filename, spt->mem, spt->mem_size, SPT_GUEST_MIN_BASE,
-            &p_entry, &p_end);
+            spt_guest_mprotect, spt, &p_entry, &p_end);
     close(elf_fd);
 
     setup_modules(spt, mft);

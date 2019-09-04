@@ -146,6 +146,28 @@ struct spt *spt_init(size_t mem_size)
     return spt;
 }
 
+int spt_guest_mprotect(void *t_arg, uint64_t addr_start, uint64_t addr_end,
+        int prot)
+{
+    struct spt *spt = t_arg;
+
+    assert(addr_start <= spt->mem_size);
+    assert(addr_end <= spt->mem_size);
+    assert(addr_start < addr_end);
+
+    uint8_t *vaddr_start = spt->mem + addr_start;
+    assert(vaddr_start >= spt->mem);
+    size_t size = addr_end - addr_start;
+    assert(size > 0 && size <= spt->mem_size);
+
+    /*
+     * On spt, there is no distinction between host-side and guest-side memory
+     * protection, so just pass through to mprotect() directly, which will do
+     * the right thing.
+     */
+    return mprotect(vaddr_start, size, prot);
+}
+
 static void setup_cmdline(uint8_t *cmdline, int argc, char **argv)
 {
     size_t cmdline_free = SPT_CMDLINE_SIZE;
