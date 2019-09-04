@@ -33,7 +33,7 @@ all: $(SUBDIRS)
 
 $(SUBDIRS): gen-version-h
 
-.PHONY: gen-version-h
+.PHONY: gen-version-h distrib-gen-version-h
 
 VERSION_H := include/solo5/solo5_version.h
 
@@ -42,6 +42,25 @@ VERSION_H := include/solo5/solo5_version.h
 gen-version-h:
 	@echo "GEN $(VERSION_H)"
 	scripts/gen_version_h.sh $(VERSION_H)
+
+distrib-gen-version-h:
+	@echo "GEN $(VERSION_H).distrib"
+	scripts/gen_version_h.sh $(VERSION_H).distrib
+
+# The following target should be used to generate a release tarball of Solo5.
+.PHONY: distrib
+distrib: GIT_VERSION = $(shell git -C . describe --dirty --tags --always)
+distrib: GIT_OLDBRANCH = $(shell git rev-parse --abbrev-ref HEAD)
+distrib: distrib-gen-version-h
+	git checkout -b distrib/$(GIT_VERSION)
+	git add $(VERSION_H).distrib
+	git commit -m "Release tarball for $(GIT_VERSION)"
+	@echo DISTRIB solo5-$(GIT_VERSION).tar.gz
+	git archive --format=tar.gz --prefix=solo5-$(GIT_VERSION)/ \
+	    distrib/$(GIT_VERSION) >solo5-$(GIT_VERSION).tar.gz
+	git checkout $(GIT_OLDBRANCH)
+	git branch -D distrib/$(GIT_VERSION)
+	$(RM) $(VERSION_H).distrib
 
 $(SUBDIRS):
 	@echo "MAKE $@"
