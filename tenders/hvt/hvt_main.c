@@ -37,6 +37,7 @@
 #include <unistd.h>
 
 #include "hvt.h"
+#include "solo5_version.h"
 
 extern struct hvt_module __start_modules;
 extern struct hvt_module __stop_modules;
@@ -107,6 +108,7 @@ static void usage(const char *prog)
     fprintf(stderr, "Core options:\n");
     fprintf(stderr, "  [ --mem=512 ] (guest memory in MB)\n");
     fprintf(stderr, "    --help (display this help)\n");
+    fprintf(stderr, "    --version (display version information)\n");
     fprintf(stderr, "Compiled-in modules: ");
     for (struct hvt_module *m = &__start_modules; m < &__stop_modules; m++) {
         assert(m->name);
@@ -124,6 +126,12 @@ static void usage(const char *prog)
     if (!nm)
         fprintf(stderr, "    (none)\n");
     exit(1);
+}
+
+static void version(const char *prog)
+{
+    fprintf(stderr, "%s %s\n", prog, SOLO5_VERSION);
+    exit(0);
 }
 
 int main(int argc, char **argv)
@@ -157,6 +165,8 @@ int main(int argc, char **argv)
 
         if (strcmp("--help", *argv1) == 0)
             usage(prog);
+	else if(strcmp("--version", *argv1) == 0)
+	    version(prog);
 
         argc1--;
         argv1++;

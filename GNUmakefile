@@ -31,6 +31,18 @@ tests: bindings mfttool
 all: $(SUBDIRS)
 .DEFAULT_GOAL := all
 
+$(SUBDIRS): gen-version-h
+
+.PHONY: gen-version-h
+
+VERSION_H := include/solo5/solo5_version.h
+
+# (re)generates a version.h on every invocation of "make".
+# This will also get run before a "make [dist]clean", can't be helped.
+gen-version-h:
+	@echo "GEN $(VERSION_H)"
+	scripts/gen_version_h.sh $(VERSION_H)
+
 $(SUBDIRS):
 	@echo "MAKE $@"
 	$(MAKE) -C $@ $(MAKECMDGOALS) $(SUBOVERRIDE)
@@ -47,6 +59,7 @@ clean: before-clean $(SUBDIRS)
 	$(RM) opam/solo5-bindings-virtio.pc
 	$(RM) opam/solo5-bindings-muen.pc
 	$(RM) opam/solo5-bindings-genode.pc
+	$(RM) $(VERSION_H)
 
 .PHONY: distclean
 distclean: MAKECMDGOALS := clean

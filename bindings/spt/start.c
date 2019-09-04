@@ -20,6 +20,7 @@
 
 #include "bindings.h"
 #include "../crt_init.h"
+#include "solo5_version.h"
 
 void _start(void *arg)
 {
@@ -35,6 +36,7 @@ void _start(void *arg)
     log(INFO, "  __|  _ \\  |  _ \\ __ \\\n");
     log(INFO, "\\__ \\ (   | | (   |  ) |\n");
     log(INFO, "____/\\___/ _|\\___/____/\n");
+    log(INFO, "Solo5: Bindings version %s\n", SOLO5_VERSION);
 
     mem_init();
     block_init(arg);
