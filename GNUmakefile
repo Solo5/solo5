@@ -48,6 +48,9 @@ distrib-gen-version-h:
 	scripts/gen_version_h.sh $(VERSION_H).distrib
 
 # The following target should be used to generate a release tarball of Solo5.
+# The tarball will be generated from the currently checked-out branch. Note that
+# some files related to CI or E2E tests are deliberately not included, see
+# .gitattributes for a list.
 .PHONY: distrib
 distrib: GIT_VERSION = $(shell git -C . describe --dirty --tags --always)
 distrib: GIT_OLDBRANCH = $(shell git rev-parse --abbrev-ref HEAD)

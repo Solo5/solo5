@@ -36,11 +36,9 @@ Work in progress. Here be dragons. **Ask @mato before modifying this or
 anything in build.sh that refers to it**.
 
 The `e2e-mirage-solo5` folder contains an "end to end" test for Mirage/Solo5.
+Note that this folder is deliberately not included in release tarballs of Solo5.
 
-This test (well, its driver script) is currently Linux-specific and only tests
-the `hvt` target.
-
-This is a git subtree snapshot of https://github.com/mato/e2e-mirage-solo5,
+The folder is a git subtree snapshot of https://github.com/mato/e2e-mirage-solo5,
 added to this repository with:
 
 ```
@@ -48,6 +46,9 @@ git remote add -f e2e-mirage-solo5 git@github.com:mato/e2e-mirage-solo5
 git subtree add --prefix tests/e2e-mirage-solo5 e2e-mirage-solo5 master --squash
 
 ```
+
+This test (well, its driver script) is currently Linux-specific and only tests
+the `hvt` target.
 
 To run the E2E tests **against a checked out copy of Solo5**, apart from the
 instructions in `e2e-mirage-solo5/README.md`, you need to perform the following
