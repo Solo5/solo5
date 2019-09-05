@@ -61,8 +61,8 @@ distrib: distrib-gen-version-h
 	@echo DISTRIB solo5-$(GIT_VERSION).tar.gz
 	git archive --format=tar.gz --prefix=solo5-$(GIT_VERSION)/ \
 	    distrib/$(GIT_VERSION) >solo5-$(GIT_VERSION).tar.gz
-	git checkout $(GIT_OLDBRANCH)
-	git branch -D distrib/$(GIT_VERSION)
+	-git checkout $(GIT_OLDBRANCH)
+	-git branch -D distrib/$(GIT_VERSION)
 	$(RM) $(VERSION_H).distrib
 
 $(SUBDIRS):
