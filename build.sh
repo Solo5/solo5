@@ -58,6 +58,7 @@ do_basic()
         try ${SURF_SUDO} tests/setup-tests.sh
         try ${SURF_SUDO} tests/run-tests.sh
     fi
+    try ${MAKE} distrib
 }
 
 do_e2e()
