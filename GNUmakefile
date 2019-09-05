@@ -31,6 +31,40 @@ tests: bindings mfttool
 all: $(SUBDIRS)
 .DEFAULT_GOAL := all
 
+$(SUBDIRS): gen-version-h
+
+.PHONY: gen-version-h distrib-gen-version-h
+
+VERSION_H := include/solo5/solo5_version.h
+
+# (re)generates a version.h on every invocation of "make".
+# This will also get run before a "make [dist]clean", can't be helped.
+gen-version-h:
+	@echo "GEN $(VERSION_H)"
+	scripts/gen_version_h.sh $(VERSION_H)
+
+distrib-gen-version-h:
+	@echo "GEN $(VERSION_H).distrib"
+	scripts/gen_version_h.sh $(VERSION_H).distrib
+
+# The following target should be used to generate a release tarball of Solo5.
+# The tarball will be generated from the currently checked-out branch. Note that
+# some files related to CI or E2E tests are deliberately not included, see
+# .gitattributes for a list.
+.PHONY: distrib
+distrib: GIT_VERSION = $(shell git -C . describe --dirty --tags --always)
+distrib: GIT_OLDBRANCH = $(shell git rev-parse --abbrev-ref HEAD)
+distrib: distrib-gen-version-h
+	git checkout -b distrib/$(GIT_VERSION)
+	git add $(VERSION_H).distrib
+	git commit -m "Release tarball for $(GIT_VERSION)"
+	@echo DISTRIB solo5-$(GIT_VERSION).tar.gz
+	git archive --format=tar.gz --prefix=solo5-$(GIT_VERSION)/ \
+	    distrib/$(GIT_VERSION) >solo5-$(GIT_VERSION).tar.gz
+	-git checkout $(GIT_OLDBRANCH)
+	-git branch -D distrib/$(GIT_VERSION)
+	$(RM) $(VERSION_H).distrib
+
 $(SUBDIRS):
 	@echo "MAKE $@"
 	$(MAKE) -C $@ $(MAKECMDGOALS) $(SUBOVERRIDE)
@@ -47,6 +81,7 @@ clean: before-clean $(SUBDIRS)
 	$(RM) opam/solo5-bindings-virtio.pc
 	$(RM) opam/solo5-bindings-muen.pc
 	$(RM) opam/solo5-bindings-genode.pc
+	$(RM) $(VERSION_H)
 
 .PHONY: distclean
 distclean: MAKECMDGOALS := clean

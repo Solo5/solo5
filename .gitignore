@@ -6,6 +6,7 @@
 Makeconf
 tags
 include/crt
+include/solo5/solo5_version.h
 tests/*/*.hvt
 tests/*/*.spt
 tests/*/*.virtio

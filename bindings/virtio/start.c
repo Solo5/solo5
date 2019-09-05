@@ -20,6 +20,7 @@
 
 #include "bindings.h"
 #include "../crt_init.h"
+#include "solo5_version.h"
 
 extern void _newstack(uint64_t stack_start, void (*tramp)(void *), void *arg);
 static void _start2(void *arg) __attribute__((noreturn));
@@ -64,6 +65,7 @@ static void _start2(void *arg __attribute__((unused)))
     log(INFO, "  __|  _ \\  |  _ \\ __ \\\n");
     log(INFO, "\\__ \\ (   | | (   |  ) |\n");
     log(INFO, "____/\\___/ _|\\___/____/\n");
+    log(INFO, "Solo5: Bindings version %s\n", SOLO5_VERSION);
 
     mem_init();
     time_init();
