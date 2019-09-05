@@ -30,6 +30,7 @@
 
 #include "../bindings.h"
 #include "multiboot.h"
+#include "virtio_abi.h"
 
 /* serial.c: console output for debugging */
 void serial_init(void);

@@ -172,7 +172,7 @@ __attribute__ ((section (".note.solo5.manifest"), aligned(4))) \
         .n_type = MFT1_NOTE_TYPE, \
         .n_name = MFT1_NOTE_NAME \
     }, \
-    .m = \
+    .m =
 
 #define MFT1_NOTE_DECLARE_END };
 

@@ -90,3 +90,13 @@ static void _start2(void *arg __attribute__((unused)))
     mem_lock_heap(&si.heap_start, &si.heap_size);
     solo5_exit(solo5_app_main(&si));
 }
+
+/*
+ * The "ABI1" Solo5 ELF note is declared in this module.
+ */
+ABI1_NOTE_DECLARE_BEGIN
+{
+    .abi_target = VIRTIO_ABI_TARGET,
+    .abi_version = VIRTIO_ABI_VERSION
+}
+ABI1_NOTE_DECLARE_END

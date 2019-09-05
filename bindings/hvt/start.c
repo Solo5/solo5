@@ -48,3 +48,16 @@ void _start(void *arg)
     mem_lock_heap(&si.heap_start, &si.heap_size);
     solo5_exit(solo5_app_main(&si));
 }
+
+/*
+ * The "ABI1" Solo5 ELF note is declared in this module.
+ *
+ * TODO: We will want a separate start.c and muen_abi.h for Muen bindings, but
+ * this will work for now.
+ */
+ABI1_NOTE_DECLARE_BEGIN
+{
+    .abi_target = HVT_ABI_TARGET,
+    .abi_version = HVT_ABI_VERSION
+}
+ABI1_NOTE_DECLARE_END
