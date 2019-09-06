@@ -25,6 +25,9 @@
 #define PAGE_SHIFT  16
 #define PAGE_MASK   ~(0xffff)
 
+#define CR0_SO      (0x80000000 >> 3) /* summary overflow;
+                                         indicates syscall error */
+
 #ifndef ASM_FILE
 
 /*
