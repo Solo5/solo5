@@ -32,6 +32,13 @@ setup() {
   else
     skip "timeout(gtimeout) is required"
   fi
+  if [ -x "$(command -v seq)" ]; then
+    SEQ=seq
+  elif [ -x "$(command -v gseq)" ]; then
+    SEQ=gseq
+  else
+    skip "seq(gseq) is required"
+  fi
 
   case "${BATS_TEST_NAME}" in
   *hvt)
@@ -67,13 +74,16 @@ setup() {
   NET0_IP=10.0.0.2
   NET1=tap101
   NET1_IP=10.1.0.2
-  DISK=${BATS_TMPDIR}/disk.img
-  dd if=/dev/zero of=${DISK} bs=4k count=1024
 }
 
 teardown() {
   echo "${output}"
-  rm -f ${DISK}
+  rm -f ${BATS_TMPDIR}/storage*.img
+}
+
+setup_block() {
+  BLOCK=${BATS_TMPDIR}/storage.img
+  dd if=/dev/zero of=${BLOCK} bs=4k count=1024 status=none
 }
 
 hvt_run() {
@@ -310,17 +320,20 @@ virtio_expect_abort() {
 }
 
 @test "blk hvt" {
-  hvt_run --block:storage=${DISK} -- test_blk/test_blk.hvt
+  setup_block
+  hvt_run --block:storage=${BLOCK} -- test_blk/test_blk.hvt
   expect_success
 }
 
 @test "blk virtio" {
-  virtio_run -d ${DISK} -- test_blk/test_blk.virtio
+  setup_block
+  virtio_run -d ${BLOCK} -- test_blk/test_blk.virtio
   virtio_expect_success
 }
 
 @test "blk spt" {
-  spt_run --block:storage=${DISK} -- test_blk/test_blk.spt
+  setup_block
+  spt_run --block:storage=${BLOCK} -- test_blk/test_blk.spt
   expect_success
 }
 
@@ -384,4 +397,36 @@ virtio_expect_abort() {
   [ "$status" -eq 255 ]
   CORE=`echo "$output" | grep -o "core\.solo5-hvt\.[0-9]*$"`
   [ -f "$BATS_TMPDIR"/"$CORE" ]
+}
+
+@test "mft_maxdevices hvt" {
+  for num in $(${SEQ} 0 62); do
+      dd if=/dev/zero of=${BATS_TMPDIR}/storage${num}.img \
+          bs=4k count=1 status=none
+  done
+
+  DEVS=$(
+  for num in $(${SEQ} 0 62); do
+      echo -n "--block:storage${num}=${BATS_TMPDIR}/storage${num}.img "
+  done
+  )
+
+  hvt_run ${DEVS} -- test_mft_maxdevices/test_mft_maxdevices.hvt
+  expect_success
+}
+
+@test "mft_maxdevices spt" {
+  for num in $(${SEQ} 0 62); do
+      dd if=/dev/zero of=${BATS_TMPDIR}/storage${num}.img \
+          bs=4k count=1 status=none
+  done
+
+  DEVS=$(
+  for num in $(${SEQ} 0 62); do
+      echo -n "--block:storage${num}=${BATS_TMPDIR}/storage${num}.img "
+  done
+  )
+
+  spt_run ${DEVS} -- test_mft_maxdevices/test_mft_maxdevices.spt
+  expect_success
 }

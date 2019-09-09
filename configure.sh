@@ -60,6 +60,18 @@ int main(int argc, char *argv[])
 EOM
 }
 
+gcc_check_header()
+{
+    ${CC} -x c -o /dev/null - <<EOM >/dev/null 2>&1
+#include <$@>
+
+int main(int argc, char *argv[])
+{
+    return 0;
+}
+EOM
+}
+
 gcc_check_lib()
 {
     ${CC} -x c -o /dev/null - "$@" <<EOM >/dev/null 2>&1
@@ -73,6 +85,32 @@ EOM
 ld_is_lld()
 {
     ${LD} --version 2>&1 | grep -q '^LLD'
+}
+
+check_libseccomp_version()
+{
+    ${CC} -x c -o /dev/null - "$@" <<EOM >/dev/null 2>&1
+#include <seccomp.h>
+
+#if SCMP_VER_MAJOR >= 2
+  #if SCMP_VER_MINOR >= 3
+    #if SCMP_VER_MICRO >= 3
+      /* Ok */
+    #else
+      #error libseccomp >= 2.3.3 is required
+    #endif
+  #else
+    #error libseccomp >= 2.3.3 is required
+  #endif
+#else
+  #error libseccomp >= 2.3.3 is required
+#endif
+
+int main(int argc, char *argv[])
+{
+    return 0;
+}
+EOM
 }
 
 # Allow external override of CC.
@@ -161,10 +199,18 @@ case "${CONFIG_HOST}" in
         fi
 
         CONFIG_HVT=1
-        if gcc_check_lib -lseccomp; then
-            CONFIG_SPT=1
+        if ! gcc_check_header seccomp.h; then
+            warn "Could not compile with seccomp.h, not building spt target"
+        elif ! gcc_check_lib -lseccomp; then
+            warn "Could not link with -lseccomp, not building spt target"
         else
-            warn "Could not link with -lseccomp, not building spt"
+            # TODO: Replace this with a hard error once we drop Debian 9, and
+            # consider warning on all but the latest supported upstream
+            # libseccomp version.
+            if ! check_libseccomp_version; then
+                warn "libseccomp >= 2.3.3 is required for correct spt operation, expect tests to fail"
+            fi
+            CONFIG_SPT=1
         fi
         [ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_VIRTIO=1
         [ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_MUEN=1
