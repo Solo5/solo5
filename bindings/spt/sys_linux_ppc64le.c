@@ -42,13 +42,17 @@ long sys_read(long fd, void *buf, long size)
     register long r3 __asm__("r3") = fd;
     register long r4 __asm__("r4") = (long)buf;
     register long r5 __asm__("r5") = size;
+    long cr;
 
     __asm__ __volatile__ (
-            "sc"
-            : "=r" (r3)
+            "sc\n\t"
+            "mfcr %1"
+            : "=r" (r3), "=&r" (cr)
             : "r" (r0), "r" (r3), "r" (r4), "r" (r5)
             : "memory", "cc"
     );
+    if (cr & CR0_SO)
+        r3 = -r3;
 
     return r3;
 }
@@ -59,13 +63,17 @@ long sys_write(long fd, const void *buf, long size)
     register long r3 __asm__("r3") = fd;
     register long r4 __asm__("r4") = (long)buf;
     register long r5 __asm__("r5") = size;
+    long cr;
 
     __asm__ __volatile__ (
-            "sc"
-            : "=r" (r3)
+            "sc\n\t"
+            "mfcr %1"
+            : "=r" (r3), "=&r" (cr)
             : "r" (r0), "r" (r3), "r" (r4), "r" (r5)
             : "memory", "cc"
     );
+    if (cr & CR0_SO)
+        r3 = -r3;
 
     return r3;
 }
@@ -77,13 +85,17 @@ long sys_pread64(long fd, void *buf, long size, long pos)
     register long r4 __asm__("r4") = (long)buf;
     register long r5 __asm__("r5") = size;
     register long r6 __asm__("r6") = pos;
+    long cr;
 
     __asm__ __volatile__ (
-            "sc"
-            : "=r" (r3)
+            "sc\n\t"
+            "mfcr %1"
+            : "=r" (r3), "=&r" (cr)
             : "r" (r0), "r" (r3), "r" (r4), "r" (r5), "r" (r6)
             : "memory", "cc"
     );
+    if (cr & CR0_SO)
+        r3 = -r3;
 
     return r3;
 }
@@ -95,13 +107,17 @@ long sys_pwrite64(long fd, const void *buf, long size, long pos)
     register long r4 __asm__("r4") = (long)buf;
     register long r5 __asm__("r5") = size;
     register long r6 __asm__("r6") = pos;
+    long cr;
 
     __asm__ __volatile__ (
-            "sc"
-            : "=r" (r3)
+            "sc\n\t"
+            "mfcr %1"
+            : "=r" (r3), "=&r" (cr)
             : "r" (r0), "r" (r3), "r" (r4), "r" (r5), "r" (r6)
             : "memory", "cc"
     );
+    if (cr & CR0_SO)
+        r3 = -r3;
 
     return r3;
 }
@@ -125,13 +141,17 @@ long sys_clock_gettime(const long which, void *ts)
     register long r0 __asm__("r0") = SYS_clock_gettime;
     register long r3 __asm__("r3") = which;
     register long r4 __asm__("r4") = (long)ts;
+    long cr;
 
     __asm__ __volatile__ (
-            "sc"
-            : "=r" (r3)
+            "sc\n\t"
+            "mfcr %1"
+            : "=r" (r3), "=&r" (cr)
             : "r" (r0), "r" (r3), "r" (r4)
             : "memory", "cc"
     );
+    if (cr & CR0_SO)
+        r3 = -r3;
 
     return r3;
 }
@@ -147,13 +167,17 @@ long sys_epoll_pwait(long epfd, void *events, long maxevents, long timeout,
     register long r6 __asm__("r6") = timeout;
     register long r7 __asm__("r7") = (long)sigmask;
     register long r8 __asm__("r8") = sigsetsize;
+    long cr;
 
     __asm__ __volatile__ (
-            "sc"
-            : "=r" (r3)
+            "sc\n\t"
+            "mfcr %1"
+            : "=r" (r3), "=&r" (cr)
             : "r" (r0), "r" (r3), "r" (r4), "r" (r5), "r" (r6), "r" (r7), "r" (r8)
             : "memory", "cc"
     );
+    if (cr & CR0_SO)
+        r3 = -r3;
 
     return r3;
 }
@@ -165,13 +189,17 @@ long sys_timerfd_settime(long fd, long flags, const void *utmr, void *otmr)
     register long r4 __asm__("r4") = flags;
     register long r5 __asm__("r5") = (long)utmr;
     register long r6 __asm__("r6") = (long)otmr;
+    long cr;
 
     __asm__ __volatile__ (
-            "sc"
-            : "=r" (r3)
+            "sc\n\t"
+            "mfcr %1"
+            : "=r" (r3), "=&r" (cr)
             : "r" (r0), "r" (r3), "r" (r4), "r" (r5), "r" (r6)
             : "memory", "cc"
     );
+    if (cr & CR0_SO)
+        r3 = -r3;
 
     return r3;
 }
