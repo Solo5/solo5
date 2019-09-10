@@ -55,8 +55,9 @@ Experimental:
   kernel and a 64-bit Linux distribution.
 * _hvt_: OpenBSD vmm, using `solo5-hvt` as a tender, on the x86\_64
   architecture.  OpenBSD 6.4 or later is required.
-* _spt_: Linux systems on the x86\_64 and aarch64 architectures, using
-  `solo5-spt` as a tender.
+* _spt_: Linux systems on the x86\_64, ppc64le and aarch64 architectures, using
+  `solo5-spt` as a tender. A Linux distribution with libseccomp >= 2.3.3 is
+  required.
 * _muen_: The Muen Separation Kernel, on the x86\_64 architecture. Please see
   this [article](https://muen.sk/articles.html#mirageos-unikernels) for
   Muen-specific instructions.

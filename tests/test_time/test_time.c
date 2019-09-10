@@ -18,19 +18,41 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#include <stdarg.h>
+#include <stddef.h>
+
 #include "solo5.h"
 #include "../../bindings/lib.c"
+#include "../../bindings/printf.c"
 
-static void puts(const char *s)
+static void printf(const char *fmt, ...)
+    __attribute__ ((format (printf, 1, 2)));
+
+static void printf(const char *fmt, ...)
 {
-    solo5_console_write(s, strlen(s));
+    char buffer[1024];
+    va_list args;
+    size_t size;
+
+    va_start(args, fmt);
+    size = vsnprintf(buffer, sizeof buffer, fmt, args);
+    va_end(args);
+
+    if (size >= sizeof buffer) {
+        const char trunc[] = "(truncated)\n";
+        solo5_console_write(buffer, sizeof buffer - 1);
+        solo5_console_write(trunc, sizeof trunc - 1);
+    }
+    else {
+        solo5_console_write(buffer, size);
+    }
 }
 
 #define NSEC_PER_SEC 1000000000ULL
 
 int solo5_app_main(const struct solo5_start_info *si __attribute__((unused)))
 {
-    puts("\n**** Solo5 standalone test_time ****\n\n");
+    printf("\n**** Solo5 standalone test_time ****\n\n");
 
     /*
      * Verify that monotonic time is passing
@@ -46,7 +68,7 @@ int solo5_app_main(const struct solo5_start_info *si __attribute__((unused)))
     while (ta == tb && iters--)
         tb = solo5_clock_monotonic();
     if (!(tb > ta)) {
-        puts("ERROR: time is not passing\n");
+        printf("ERROR: time is not passing\n");
         return SOLO5_EXIT_FAILURE;
     }
 
@@ -61,7 +83,8 @@ int solo5_app_main(const struct solo5_start_info *si __attribute__((unused)))
      * Verify that we did not sleep less than requested (see above).
      */
     if ((tb - ta) < NSEC_PER_SEC) {
-        puts("ERROR: slept too little\n");
+        printf("ERROR: slept too little (%llu)\n",
+                (unsigned long long)(tb - ta));
         return SOLO5_EXIT_FAILURE;
     }
     /*
@@ -69,7 +92,8 @@ int solo5_app_main(const struct solo5_start_info *si __attribute__((unused)))
      * (scheduling delays, general inaccuracy of the current timing code).
      */
     if ((tb - ta) > (NSEC_PER_SEC + 100000000ULL)) {
-        puts("ERROR: slept too much\n");
+        printf("ERROR: slept too much (%llu)\n",
+                (unsigned long long)(tb - ta));
         return SOLO5_EXIT_FAILURE;
     }
 
@@ -78,10 +102,11 @@ int solo5_app_main(const struct solo5_start_info *si __attribute__((unused)))
      */
     ta = solo5_clock_wall();
     if (ta < (1483228800ULL * NSEC_PER_SEC)) {
-        puts("ERROR: wall time is not 2017 or later\n");
+        printf("ERROR: wall time is not 2017 or later (%llu)\n",
+                (unsigned long long)ta);
         return SOLO5_EXIT_FAILURE;
     }
 
-    puts("SUCCESS\n");
+    printf("SUCCESS\n");
     return SOLO5_EXIT_SUCCESS;
 }
