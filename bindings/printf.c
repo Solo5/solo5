@@ -33,7 +33,12 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+/*
+ * Allow for direct inclusion by the self-tests.
+ */
+#ifdef __SOLO5_BINDINGS__
 #include "printf.h"
+#endif
 
 
 // define this globally (e.g. gcc -DPRINTF_INCLUDE_CONFIG_H ...) to include the
