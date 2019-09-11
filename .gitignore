@@ -16,4 +16,4 @@ tests/*/manifest.c
 tenders/hvt/solo5-hvt
 tenders/hvt/solo5-hvt-debug
 tenders/spt/solo5-spt
-mfttool/solo5-mfttool
+elftool/solo5-elftool

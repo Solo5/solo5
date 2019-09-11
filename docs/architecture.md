@@ -121,7 +121,7 @@ _TYPE_ is the type of device being declared, currently `BLOCK_BASIC` or
 
 Note that there is a maximum limit of 63 devices in the manifest.
 
-At unikernel build time, `manifest.json` is pre-processed by `solo5-mfttool`,
+At unikernel build time, `manifest.json` is pre-processed by `solo5-elftool`,
 generating a C source file with a binary representation. This source file is
 then compiled using `cc` from the Solo5 toolchain, and linked into the
 unikernel binary, where it is represented as an ELF "NOTE".
@@ -153,7 +153,7 @@ The main components of Solo5 are:
 - [tenders/spt](../tenders/spt/): the tender implementation for the _spt_
   target. Tender-internal interfaces are defined in [spt.h](../tenders/spt/spt.h)
   and internal Solo5-facing ABIs in [spt\_abi.h](../include/solo5/spt_abi.h).
-- [mfttool/](../mfttool): `solo5-mfttool`, the _application manifest_ generation
+- [elftool/](../elftool): `solo5-elftool`, the _application manifest_ generation
   tool.
 - [tests/](../tests/): self tests used as part of our CI system.
 - [scripts/](../scripts/): extra tooling and scripts (mainly to support the
