@@ -123,7 +123,8 @@ static void usage(const char *prog)
 
 static void version(const char *prog)
 {
-    fprintf(stderr, "%s %s\n", prog, SOLO5_VERSION);
+    fprintf(stderr, "%s tender, version %s\n", prog, SOLO5_VERSION);
+    fprintf(stderr, "ABI version %u\n", SPT_ABI_VERSION);
     exit(0);
 }
 
@@ -158,8 +159,8 @@ int main(int argc, char **argv)
 
         if (strcmp("--help", *argv1) == 0)
             usage(prog);
-	else if(strcmp("--version", *argv1) == 0)
-	    version(prog);
+        else if(strcmp("--version", *argv1) == 0)
+            version(prog);
 
         argc1--;
         argv1++;
@@ -171,12 +172,27 @@ int main(int argc, char **argv)
     elf_filename = *argv1;
 
     /*
-     * Now that we have the ELF file name, try and load the manifest from it,
-     * as subsequent parsing of the command line in the 2nd pass depends on it.
+     * Now that we have the ELF file name, verify that is binary is
+     * ABI-compatible and load the MFT1 NOTE from it, as subsequent parsing of
+     * the command line in the 2nd pass depends on the application-supplied
+     * manifest.
      */
     elf_fd = open(elf_filename, O_RDONLY);
     if (elf_fd == -1)
         err(1, "%s: Could not open", elf_filename);
+
+    struct abi1_info *abi1;
+    size_t abi1_size;
+    if (elf_load_note(elf_fd, elf_filename, ABI1_NOTE_TYPE, ABI1_NOTE_ALIGN,
+                ABI1_NOTE_MAX_SIZE, (void **)&abi1, &abi1_size) == -1)
+        errx(1, "%s: No Solo5 ABI information found in executable",
+                elf_filename);
+    if (abi1->abi_target != SPT_ABI_TARGET)
+        errx(1, "%s: Executable is not for the solo5-spt target", elf_filename);
+    if (abi1->abi_version != SPT_ABI_VERSION)
+        errx(1, "%s: Executable requests unsupported ABI version %u",
+                elf_filename, abi1->abi_version);
+    free(abi1);
 
     struct mft *mft;
     size_t mft_size;

@@ -60,6 +60,11 @@ void elf_load(int bin_fd, const char *bin_name, uint8_t *mem, size_t mem_size,
  * will cause the executable to be rejected. (bin_name) is the file name of the
  * binary and is used to report errors.
  *
+ * XXX: In order to not have to deal with internal alignment issues and
+ * simplify parsing, this function only supports PT_NOTE headers containing a
+ * *single* NOTE descriptor. Refer to the Solo5 linker scripts for how to
+ * produce ELF binaries using this scheme.
+ *
  * Returns / error handling:
  *
  * On success: Returns 0 and memory for the note descriptor (content) is
