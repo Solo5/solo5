@@ -6,7 +6,7 @@
  * - The 'sanity' functions have been reimplemented using err(3) and internal
  *   calls to err() and die() have been changed to use errx(3).
  * - All public functions are declared as 'static'.
- * - Public functions which are not required by Solo5's mfttool are removed from
+ * - Public functions which are not required by Solo5's elftool are removed from
  *   compilation with #if 0 blocks and marked as UNUSED.
  *
  * The following license applies to this file:

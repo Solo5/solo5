@@ -34,15 +34,15 @@ BINDINGS.muen := $(TOPDIR)/bindings/muen/solo5_muen.o
 LDS.genode := $(TOPDIR)/bindings/genode/genode_dyn.ld
 BINDINGS.genode := $(TOPDIR)/bindings/genode/solo5.lib.so
 
-MFTTOOL := $(TOPDIR)/mfttool/solo5-mfttool
+ELFTOOL := $(TOPDIR)/elftool/solo5-elftool
 
 # As a test is currently a single source file, we don't try to do any 
 # dependency auto-generation here, and just hard-code all expected dependencies
 # as pre-requisites below.
 
-manifest.c: manifest.json ../../include/solo5/mft_abi.h $(MFTTOOL)
-	@echo "MFTTOOL $<"
-	$(MFTTOOL) gen $< $@
+manifest.c: manifest.json ../../include/solo5/mft_abi.h $(ELFTOOL)
+	@echo "ELFTOOL $<"
+	$(ELFTOOL) gen $< $@
 
 %.o: %.c ../../include/solo5/solo5.h
 	@echo "CC $<"

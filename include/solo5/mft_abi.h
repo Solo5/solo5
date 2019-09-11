@@ -85,7 +85,7 @@ struct mft_entry {
 };
 
 /*
- * MFT_ENTRIES is defined by mfttool when a manifest is being *defined*.
+ * MFT_ENTRIES is defined by elftool when a manifest is being *defined*.
  * If it is not defined, then (struct mft).e will become a VLA, this is
  * intentional.
  */

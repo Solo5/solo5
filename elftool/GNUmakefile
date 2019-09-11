@@ -37,23 +37,23 @@ $(V).SILENT:
 %.d: ;
 .PRECIOUS: %.d
 
-mfttool_SRCS := mfttool.c
-mfttool_OBJS := $(patsubst %.c,%.o,$(mfttool_SRCS))
+elftool_SRCS := elftool.c
+elftool_OBJS := $(patsubst %.c,%.o,$(elftool_SRCS))
 
-all_TARGETS += solo5-mfttool
+all_TARGETS += solo5-elftool
 
-solo5-mfttool: $(mfttool_OBJS)
+solo5-elftool: $(elftool_OBJS)
 	$(HOSTLINK)
 
 all: $(all_TARGETS)
 
-all_OBJS := $(mfttool_OBJS)
+all_OBJS := $(elftool_OBJS)
 all_DEPS := $(patsubst %.o,%.d,$(all_OBJS))
 
 .PHONY: clean
 
 clean:
-	@echo "CLEAN mfttool"
+	@echo "CLEAN elftool"
 	$(RM) $(all_TARGETS) $(all_OBJS) $(all_DEPS)
 
 include $(wildcard $(all_DEPS))
