@@ -38,6 +38,7 @@
 #include <unistd.h>
 
 #include "json.h"
+#include "elf_abi.h"
 #include "mft_abi.h"
 #include "solo5_version.h"
 
@@ -93,6 +94,8 @@ static void usage(const char *prog)
     fprintf(stderr, "usage: %s COMMAND ...\n", prog);
     fprintf(stderr, "%s version %s\n\n", prog, SOLO5_VERSION);
     fprintf(stderr, "COMMAND is:\n");
+    fprintf(stderr, "    abi BINARY:\n");
+    fprintf(stderr, "        Dump the ABI target and version from BINARY.\n");
     fprintf(stderr, "    dump BINARY:\n");
     fprintf(stderr, "        Dump the application manifest from BINARY.\n");
     fprintf(stderr, "    gen SOURCE OUTPUT:\n");
@@ -210,14 +213,62 @@ static int elftool_dump(const char *binary)
         return EXIT_FAILURE;
     }
 
-    printf("%s: Manifest contains %d entries.\n", binary, mft->entries);
+    printf("{\n"
+	   "    \"version\": %u,\n"
+	   "    \"devices\": [\n", MFT_VERSION);
+
     for (unsigned i = 0; i != mft->entries; i++) {
-        printf("%s[%u]: Name: '%s', Type: %s\n", binary, i,
-                (mft->e[i].type >= MFT_RESERVED_FIRST) ? "N/A" : mft->e[i].name,
-                mft_type_to_string(mft->e[i].type));
+	if (mft->e[i].type >= MFT_RESERVED_FIRST)
+	    continue;
+
+	printf("        { \"name\": \"%s\", \"type\": \"%s\" }%s\n",
+		mft->e[i].name, mft_type_to_string(mft->e[i].type),
+		(i == (mft->entries -1) ? "" : ","));
     }
 
+    printf("    ]\n"
+	   "}\n");
+
     free(mft);
+    close(bin_fd);
+    return EXIT_SUCCESS;
+}
+
+static const char *abi_target_to_string(int abi_target)
+{
+    switch(abi_target) {
+	case HVT_ABI_TARGET:
+	    return "hvt";
+	case SPT_ABI_TARGET:
+	    return "spt";
+	case VIRTIO_ABI_TARGET:
+	    return "virtio";
+	case MUEN_ABI_TARGET:
+	    return "muen";
+	case GENODE_ABI_TARGET:
+	    return "genode";
+	default:
+	    return "unknown";
+    }
+}
+
+static int elftool_abi(const char *binary)
+{
+    int bin_fd = open(binary, O_RDONLY);
+    if (bin_fd == -1)
+    if (bin_fd == -1)
+        err(1, "%s: Could not open", binary);
+
+    struct abi1_info *abi1;
+    size_t abi1_size;
+    if (elf_load_note(bin_fd, binary, ABI1_NOTE_TYPE, ABI1_NOTE_ALIGN,
+		ABI1_NOTE_MAX_SIZE, (void **)&abi1, &abi1_size) == -1)
+        errx(1, "%s: No Solo5 ABI information found in executable",
+                binary);
+    printf("ABI target: %s\n", abi_target_to_string(abi1->abi_target));
+    printf("ABI version: %u\n", abi1->abi_version);
+    
+    free(abi1);
     close(bin_fd);
     return EXIT_SUCCESS;
 }
@@ -239,6 +290,11 @@ int main(int argc, char *argv[])
         if (argc != 3)
             usage(prog);
         return elftool_dump(argv[2]);
+    }
+    else if (strcmp(argv[1], "abi") == 0) {
+        if (argc != 3)
+            usage(prog);
+        return elftool_abi(argv[2]);
     }
     else
         usage(prog);
