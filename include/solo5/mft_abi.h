@@ -77,7 +77,10 @@ struct mft_entry {
         struct mft_block_basic block_basic;
         struct mft_net_basic net_basic;
     } u;
-    int hostfd;                 /* Backing host descriptor */
+    union {
+        int hostfd;             /* Backing host descriptor OR */
+        void *data;             /* backing object / structure */
+    } b;
     bool attached;              /* Device attached? */
 };
 

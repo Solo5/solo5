@@ -61,7 +61,7 @@ solo5_result_t solo5_net_read(solo5_handle_t handle, uint8_t *buf, size_t size,
     if (e == NULL)
         return SOLO5_R_EINVAL;
 
-    long nbytes = sys_read(e->hostfd, (char *)buf, size);
+    long nbytes = sys_read(e->b.hostfd, (char *)buf, size);
     if (nbytes < 0) {
         if (nbytes == SYS_EAGAIN)
             return SOLO5_R_AGAIN;
@@ -80,7 +80,7 @@ solo5_result_t solo5_net_write(solo5_handle_t handle, const uint8_t *buf,
     if (e == NULL)
         return SOLO5_R_EINVAL;
 
-    long nbytes = sys_write(e->hostfd, (const char *)buf, size);
+    long nbytes = sys_write(e->b.hostfd, (const char *)buf, size);
 
     return (nbytes == (int)size) ? SOLO5_R_OK : SOLO5_R_EUNSPEC;
 }

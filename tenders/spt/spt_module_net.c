@@ -75,7 +75,7 @@ static int handle_cmdarg(char *cmdarg, struct mft *mft)
          * setup().
          */
         e->u.net_basic.mtu = 1500; /* TODO */
-        e->hostfd = fd;
+        e->b.hostfd = fd;
         e->attached = true;
         module_in_use = true;
     }
@@ -121,21 +121,21 @@ static int setup(struct spt *spt, struct mft *mft)
          * by epoll() as part of any received event.
          */
         ev.data.u64 = i;
-        rc = epoll_ctl(spt->epollfd, EPOLL_CTL_ADD, mft->e[i].hostfd, &ev);
+        rc = epoll_ctl(spt->epollfd, EPOLL_CTL_ADD, mft->e[i].b.hostfd, &ev);
         if (rc == -1)
             err(1, "epoll_ctl(EPOLL_CTL_ADD, hostfd=%d) failed",
-                    mft->e[i].hostfd);
+                    mft->e[i].b.hostfd);
 
         rc = seccomp_rule_add(spt->sc_ctx, SCMP_ACT_ALLOW, SCMP_SYS(read), 1,
-                SCMP_A0(SCMP_CMP_EQ, mft->e[i].hostfd));
+                SCMP_A0(SCMP_CMP_EQ, mft->e[i].b.hostfd));
         if (rc != 0)
             errx(1, "seccomp_rule_add(read, fd=%d) failed: %s",
-                    mft->e[i].hostfd, strerror(-rc));
+                    mft->e[i].b.hostfd, strerror(-rc));
         rc = seccomp_rule_add(spt->sc_ctx, SCMP_ACT_ALLOW, SCMP_SYS(write), 1,
-                SCMP_A0(SCMP_CMP_EQ, mft->e[i].hostfd));
+                SCMP_A0(SCMP_CMP_EQ, mft->e[i].b.hostfd));
         if (rc != 0)
             errx(1, "seccomp_rule_add(write, fd=%d) failed: %s",
-                    mft->e[i].hostfd, strerror(-rc));
+                    mft->e[i].b.hostfd, strerror(-rc));
     }
 
     return 0;

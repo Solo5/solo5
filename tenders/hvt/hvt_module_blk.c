@@ -64,8 +64,8 @@ static void hypercall_block_write(struct hvt *hvt, hvt_gpa_t gpa)
         return;
     }
 
-    ret = pwrite(e->hostfd, HVT_CHECKED_GPA_P(hvt, wr->data, wr->len), wr->len,
-            pos);
+    ret = pwrite(e->b.hostfd, HVT_CHECKED_GPA_P(hvt, wr->data, wr->len),
+            wr->len, pos);
     assert(ret == wr->len);
     wr->ret = SOLO5_R_OK;
 }
@@ -96,7 +96,7 @@ static void hypercall_block_read(struct hvt *hvt, hvt_gpa_t gpa)
         return;
     }
 
-    ret = pread(e->hostfd, HVT_CHECKED_GPA_P(hvt, rd->data, rd->len), rd->len,
+    ret = pread(e->b.hostfd, HVT_CHECKED_GPA_P(hvt, rd->data, rd->len), rd->len,
             pos);
     assert(ret == rd->len);
     rd->ret = SOLO5_R_OK;
@@ -124,7 +124,7 @@ static int handle_cmdarg(char *cmdarg, struct mft *mft)
     int fd = block_attach(path, &capacity);
     e->u.block_basic.capacity = capacity;
     e->u.block_basic.block_size = 512;
-    e->hostfd = fd;
+    e->b.hostfd = fd;
     e->attached = true;
     module_in_use = true;
 

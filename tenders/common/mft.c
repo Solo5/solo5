@@ -72,9 +72,9 @@ int mft_validate(struct mft *mft, size_t mft_size)
         /*
          * Sanitize private fields (to be used by the tender/bindings):
          *
-         * 1. hostfd must be set to an invalid value, attached to false.
+         * 1. b.hostfd must be set to an invalid value, attached to false.
          */
-        mft->e[i].hostfd = -1;
+        mft->e[i].b.hostfd = -1;
         mft->e[i].attached = false;
         /*
          * 2. Device properties are initialised to zero.
