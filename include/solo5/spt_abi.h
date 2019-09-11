@@ -119,6 +119,8 @@ _Static_assert((sizeof(struct abi1_nhdr)) ==
 struct abi1_info {
     uint32_t abi_target;
     uint32_t abi_version;
+    uint32_t reserved0;
+    uint32_t reserved1;
 };
 
 struct abi1_note {

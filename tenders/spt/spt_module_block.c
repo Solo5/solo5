@@ -59,7 +59,7 @@ static int handle_cmdarg(char *cmdarg, struct mft *mft)
     int fd = block_attach(path, &capacity);
     e->u.block_basic.capacity = capacity;
     e->u.block_basic.block_size = 512;
-    e->hostfd = fd;
+    e->b.hostfd = fd;
     e->attached = true;
     module_in_use = true;
 
@@ -89,22 +89,22 @@ static int setup(struct spt *spt, struct mft *mft)
          */
         rc = seccomp_rule_add(spt->sc_ctx, SCMP_ACT_ALLOW,
                 SCMP_SYS(pread64), 3,
-                SCMP_A0(SCMP_CMP_EQ, mft->e[i].hostfd),
+                SCMP_A0(SCMP_CMP_EQ, mft->e[i].b.hostfd),
                 SCMP_A2(SCMP_CMP_EQ, mft->e[i].u.block_basic.block_size),
                 SCMP_A3(SCMP_CMP_LE,
                     (mft->e[i].u.block_basic.capacity - mft->e[i].u.block_basic.block_size)));
         if (rc != 0)
             errx(1, "seccomp_rule_add(pread64, fd=%d) failed: %s",
-                    mft->e[i].hostfd, strerror(-rc));
+                    mft->e[i].b.hostfd, strerror(-rc));
         rc = seccomp_rule_add(spt->sc_ctx, SCMP_ACT_ALLOW,
                 SCMP_SYS(pwrite64), 3,
-                SCMP_A0(SCMP_CMP_EQ, mft->e[i].hostfd),
+                SCMP_A0(SCMP_CMP_EQ, mft->e[i].b.hostfd),
                 SCMP_A2(SCMP_CMP_EQ, mft->e[i].u.block_basic.block_size),
                 SCMP_A3(SCMP_CMP_LE,
                     (mft->e[i].u.block_basic.capacity - mft->e[i].u.block_basic.block_size)));
         if (rc != 0)
             errx(1, "seccomp_rule_add(pwrite64, fd=%d) failed: %s",
-                    mft->e[i].hostfd, strerror(-rc));
+                    mft->e[i].b.hostfd, strerror(-rc));
     }
 
     return 0;

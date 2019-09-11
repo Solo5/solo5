@@ -61,7 +61,7 @@ solo5_result_t solo5_block_read(solo5_handle_t handle, solo5_off_t offset,
     if(offset > (e->u.block_basic.capacity - e->u.block_basic.block_size))
         return SOLO5_R_EINVAL;
 
-    long nbytes = sys_pread64(e->hostfd, (char *)buf, size, offset);
+    long nbytes = sys_pread64(e->b.hostfd, (char *)buf, size, offset);
 
     return (nbytes == (int)size) ? SOLO5_R_OK : SOLO5_R_EUNSPEC;
 }
@@ -84,7 +84,7 @@ solo5_result_t solo5_block_write(solo5_handle_t handle, solo5_off_t offset,
     if(offset > (e->u.block_basic.capacity - e->u.block_basic.block_size))
         return SOLO5_R_EINVAL;
 
-    long nbytes = sys_pwrite64(e->hostfd, (const char *)buf, size, offset);
+    long nbytes = sys_pwrite64(e->b.hostfd, (const char *)buf, size, offset);
 
     return (nbytes == (int)size) ? SOLO5_R_OK : SOLO5_R_EUNSPEC;
 }

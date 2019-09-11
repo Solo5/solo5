@@ -51,7 +51,8 @@ static void hypercall_net_write(struct hvt *hvt, hvt_gpa_t gpa)
 
     int ret;
 
-    ret = write(e->hostfd, HVT_CHECKED_GPA_P(hvt, wr->data, wr->len), wr->len);
+    ret = write(e->b.hostfd, HVT_CHECKED_GPA_P(hvt, wr->data, wr->len),
+            wr->len);
     assert(wr->len == ret);
     wr->ret = SOLO5_R_OK;
 }
@@ -69,7 +70,7 @@ static void hypercall_net_read(struct hvt *hvt, hvt_gpa_t gpa)
 
     int ret;
 
-    ret = read(e->hostfd, HVT_CHECKED_GPA_P(hvt, rd->data, rd->len), rd->len);
+    ret = read(e->b.hostfd, HVT_CHECKED_GPA_P(hvt, rd->data, rd->len), rd->len);
     if ((ret == 0) ||
         (ret == -1 && errno == EAGAIN)) {
         rd->ret = SOLO5_R_AGAIN;
@@ -119,7 +120,7 @@ static int handle_cmdarg(char *cmdarg, struct mft *mft)
          * setup().
          */
         e->u.net_basic.mtu = 1500; /* TODO */
-        e->hostfd = fd;
+        e->b.hostfd = fd;
         e->attached = true;
         module_in_use = true;
     }
@@ -162,7 +163,7 @@ static int setup(struct hvt *hvt, struct mft *mft)
         char no_mac[6] = { 0 };
         if (memcmp(mft->e[i].u.net_basic.mac, no_mac, sizeof no_mac) == 0)
             tap_attach_genmac(mft->e[i].u.net_basic.mac);
-        assert(hvt_core_register_pollfd(mft->e[i].hostfd, i) == 0);
+        assert(hvt_core_register_pollfd(mft->e[i].b.hostfd, i) == 0);
     }
 
     return 0;
