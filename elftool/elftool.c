@@ -94,17 +94,17 @@ static void usage(const char *prog)
     fprintf(stderr, "usage: %s COMMAND ...\n", prog);
     fprintf(stderr, "%s version %s\n\n", prog, SOLO5_VERSION);
     fprintf(stderr, "COMMAND is:\n");
-    fprintf(stderr, "    abi BINARY:\n");
-    fprintf(stderr, "        Dump the ABI target and version from BINARY.\n");
-    fprintf(stderr, "    dump BINARY:\n");
-    fprintf(stderr, "        Dump the application manifest from BINARY.\n");
-    fprintf(stderr, "    gen SOURCE OUTPUT:\n");
+    fprintf(stderr, "    gen-manifest SOURCE OUTPUT:\n");
     fprintf(stderr, "        Generate application manifest from SOURCE, "
             "writing to OUTPUT.\n");
+    fprintf(stderr, "    query-abi BINARY:\n");
+    fprintf(stderr, "        Display the ABI target and version from BINARY.\n");
+    fprintf(stderr, "    query-manifest BINARY:\n");
+    fprintf(stderr, "        Display the application manifest from BINARY.\n");
     exit(EXIT_FAILURE);
 }
 
-static int elftool_generate(const char *source, const char *output)
+static int elftool_gen_mft(const char *source, const char *output)
 {
     FILE *sfp = fopen(source, "r");
     if (sfp == NULL)
@@ -120,15 +120,19 @@ static int elftool_generate(const char *source, const char *output)
     fclose(sfp);
     jexpect(jobject, root, "(root)");
 
-    jvalue *jversion = NULL, *jdevices = NULL;
+    jvalue *jtype = NULL, *jversion = NULL, *jdevices = NULL;
     /*
-     * The manifest always has at least 1 entry of type MFT_RESERVED_FIRST
-     * which is added implicitly by us.
+     * The generated manifest always contains 1 entry of type
+     * MFT_RESERVED_FIRST which is added implicitly by us.
      */
     int entries = 1;
 
     for(jvalue **i = root->u.v; *i; ++i) {
-        if (strcmp((*i)->n, "version") == 0) {
+	if (strcmp((*i)->n, "type") == 0) {
+            jexpect(jstring, *i, ".type");
+            jtype = *i;
+	}
+	else if (strcmp((*i)->n, "version") == 0) {
             jexpect(jint, *i, ".version");
             jversion = *i;
         }
@@ -144,11 +148,15 @@ static int elftool_generate(const char *source, const char *output)
             errx(1, "(root): unknown key: %s", (*i)->n);
     }
 
+    if (jtype == NULL)
+        errx(1, "missing .type");
     if (jversion == NULL)
         errx(1, "missing .version");
     if (jdevices == NULL)
         errx(1, "missing .devices[]");
 
+    if (strcmp("solo5.manifest", jtype->u.s) != 0)
+	errx(1, ".type: invalid value, expected \"solo5.manifest\"");
     if (jversion->u.i != MFT_VERSION)
         errx(1, ".version: invalid version %lld, expected %d", jversion->u.i,
                 MFT_VERSION);
@@ -191,12 +199,13 @@ static int elftool_generate(const char *source, const char *output)
     return EXIT_SUCCESS;
 }
 
-static int elftool_dump(const char *binary)
+static int elftool_query_mft(const char *binary)
 {
     int bin_fd = open(binary, O_RDONLY);
-    if (bin_fd == -1)
-    if (bin_fd == -1)
-        err(1, "%s: Could not open", binary);
+    if (bin_fd == -1) {
+        warn("%s: Could not open", binary);
+        return EXIT_FAILURE;
+    }
 
     struct mft *mft;
     size_t mft_size;
@@ -206,70 +215,78 @@ static int elftool_dump(const char *binary)
         close(bin_fd);
         return EXIT_FAILURE;
     }
+    close(bin_fd);
     if (mft_validate(mft, mft_size) == -1) {
         free(mft);
-        close(bin_fd);
         warnx("%s: Manifest validation failed", binary);
         return EXIT_FAILURE;
     }
 
     printf("{\n"
-	   "    \"version\": %u,\n"
-	   "    \"devices\": [\n", MFT_VERSION);
+           "  \"type\": \"solo5.manifest\",\n"
+           "  \"version\": %u,\n"
+           "  \"devices\": [\n", MFT_VERSION);
 
     for (unsigned i = 0; i != mft->entries; i++) {
-	if (mft->e[i].type >= MFT_RESERVED_FIRST)
-	    continue;
+        if (mft->e[i].type >= MFT_RESERVED_FIRST)
+            continue;
 
-	printf("        { \"name\": \"%s\", \"type\": \"%s\" }%s\n",
-		mft->e[i].name, mft_type_to_string(mft->e[i].type),
-		(i == (mft->entries -1) ? "" : ","));
+        printf("    { \"name\": \"%s\", \"type\": \"%s\" }%s\n",
+                mft->e[i].name, mft_type_to_string(mft->e[i].type),
+                (i == (mft->entries -1) ? "" : ","));
     }
 
-    printf("    ]\n"
-	   "}\n");
+    printf("  ]\n"
+           "}\n");
 
     free(mft);
-    close(bin_fd);
     return EXIT_SUCCESS;
 }
 
 static const char *abi_target_to_string(int abi_target)
 {
     switch(abi_target) {
-	case HVT_ABI_TARGET:
-	    return "hvt";
-	case SPT_ABI_TARGET:
-	    return "spt";
-	case VIRTIO_ABI_TARGET:
-	    return "virtio";
-	case MUEN_ABI_TARGET:
-	    return "muen";
-	case GENODE_ABI_TARGET:
-	    return "genode";
-	default:
-	    return "unknown";
+        case HVT_ABI_TARGET:
+            return "hvt";
+        case SPT_ABI_TARGET:
+            return "spt";
+        case VIRTIO_ABI_TARGET:
+            return "virtio";
+        case MUEN_ABI_TARGET:
+            return "muen";
+        case GENODE_ABI_TARGET:
+            return "genode";
+        default:
+            return "unknown";
     }
 }
 
-static int elftool_abi(const char *binary)
+static int elftool_query_abi(const char *binary)
 {
     int bin_fd = open(binary, O_RDONLY);
-    if (bin_fd == -1)
-    if (bin_fd == -1)
-        err(1, "%s: Could not open", binary);
+    if (bin_fd == -1) {
+        warn("%s: Could not open", binary);
+        return EXIT_FAILURE;
+    }
 
     struct abi1_info *abi1;
     size_t abi1_size;
     if (elf_load_note(bin_fd, binary, ABI1_NOTE_TYPE, ABI1_NOTE_ALIGN,
-		ABI1_NOTE_MAX_SIZE, (void **)&abi1, &abi1_size) == -1)
-        errx(1, "%s: No Solo5 ABI information found in executable",
-                binary);
-    printf("ABI target: %s\n", abi_target_to_string(abi1->abi_target));
-    printf("ABI version: %u\n", abi1->abi_version);
-    
-    free(abi1);
+                ABI1_NOTE_MAX_SIZE, (void **)&abi1, &abi1_size) == -1) {
+        warnx("%s: No Solo5 ABI information found in executable", binary);
+        close(bin_fd);
+        return EXIT_FAILURE;
+    }
     close(bin_fd);
+
+    printf("{\n"
+           "  \"type\": \"solo5.abi\",\n"
+           "  \"target\": \"%s\",\n"
+           "  \"version\": %u\n"
+           "}\n",
+           abi_target_to_string(abi1->abi_target), abi1->abi_version);
+
+    free(abi1);
     return EXIT_SUCCESS;
 }
 
@@ -281,20 +298,20 @@ int main(int argc, char *argv[])
 
     if (argc < 2)
         usage(prog);
-    if (strcmp(argv[1], "gen") == 0) {
+    if (strcmp(argv[1], "gen-manifest") == 0) {
         if (argc != 4)
             usage(prog);
-        return elftool_generate(argv[2], argv[3]);
+        return elftool_gen_mft(argv[2], argv[3]);
     }
-    else if (strcmp(argv[1], "dump") == 0) {
+    else if (strcmp(argv[1], "query-manifest") == 0) {
         if (argc != 3)
             usage(prog);
-        return elftool_dump(argv[2]);
+        return elftool_query_mft(argv[2]);
     }
-    else if (strcmp(argv[1], "abi") == 0) {
+    else if (strcmp(argv[1], "query-abi") == 0) {
         if (argc != 3)
             usage(prog);
-        return elftool_abi(argv[2]);
+        return elftool_query_abi(argv[2]);
     }
     else
         usage(prog);

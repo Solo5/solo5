@@ -101,6 +101,7 @@ customarily named `manifest.json`:
 
 ```
 {
+    "type" = "solo5.manifest",
     "version" = 1,
     "devices" = [
         { "name" = "<NAME>", "type" = "<TYPE>" },
@@ -109,9 +110,9 @@ customarily named `manifest.json`:
 }
 ```
 
-_NAME_ is a human-readable unique identifier for the device. The intention is
-that the name conveys some meaning of the intended use ("wiring") of the
-device, eg. `frontend` for a network or `storage` for a block device.
+_NAME_ is a unique logical identifier (a.k.a. "pet name") for the device. The
+intention is that the name conveys some meaning of the intended use ("wiring")
+of the device, eg. `frontend` for a network or `storage` for a block device.
 
 _NAME_ must be composed of alphanumeric characters only, and within 1..67
 characters in length.
@@ -125,6 +126,9 @@ At unikernel build time, `manifest.json` is pre-processed by `solo5-elftool`,
 generating a C source file with a binary representation. This source file is
 then compiled using `cc` from the Solo5 toolchain, and linked into the
 unikernel binary, where it is represented as an ELF "NOTE".
+
+Additionally, `solo5-elftool` provides the `query-manifest` subcommand to
+extract the binary manifest from a unikernel binary and display it as JSON.
 
 ## Public API, _Tenders_ and _Bindings_
 

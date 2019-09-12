@@ -42,7 +42,7 @@ ELFTOOL := $(TOPDIR)/elftool/solo5-elftool
 
 manifest.c: manifest.json ../../include/solo5/mft_abi.h $(ELFTOOL)
 	@echo "ELFTOOL $<"
-	$(ELFTOOL) gen $< $@
+	$(ELFTOOL) gen-manifest $< $@
 
 %.o: %.c ../../include/solo5/solo5.h
 	@echo "CC $<"
