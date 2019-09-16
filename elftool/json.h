@@ -95,6 +95,11 @@ typedef struct jvalue {
      *  correspond to one of the #u members as described below. */
     enum jtypes d;
 
+    /** To allow for better error reporting by application code after
+     *  calling jparse(file), we store the line number where this jvalue
+     *  begins in the file. */
+    size_t line;
+
     /** Some values have a name associated with them; in a JSON
      *  object, for example, the value is assigned to a specific name.
      *  When #d is jobject, this string should point to the name of a
@@ -1196,6 +1201,7 @@ readvalue( ifile *f )
 {
     int c;
     jvalue *j = jnew();
+    j->line = f->line;
 
     switch(( c = skipws( f ))) {
     case EOF:

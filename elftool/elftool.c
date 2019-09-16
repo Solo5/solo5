@@ -64,10 +64,12 @@ static const char *jtypestr(enum jtypes t)
     }
 }
 
-static void jexpect(enum jtypes t, jvalue *v, const char *loc)
+static void jexpect(enum jtypes t, jvalue *v, const char *filename,
+        const char *loc)
 {
     if (v->d != t)
-        errx(1, "%s: expected %s, got %s", loc, jtypestr(t), jtypestr(v->d));
+        errx(1, "%s:%zu: %s: expected %s, got %s", filename, v->line, loc,
+                jtypestr(t), jtypestr(v->d));
 }
 
 static const char out_header[] = \
@@ -108,17 +110,17 @@ static int elftool_gen_mft(const char *source, const char *output)
 {
     FILE *sfp = fopen(source, "r");
     if (sfp == NULL)
-        err(1, "Could not open %s", source);
+        err(1, "%s: Could not open for reading", source);
     FILE *ofp = fopen(output, "w");
     if (ofp == NULL)
-        err(1, "Could not open %s", output);
+        err(1, "%s: Could not open for writing", output);
 
     jvalue *root = jparse(sfp);
     if (root == NULL)
         errx(1, "%s: JSON parse error", source);
     jupdate(root);
     fclose(sfp);
-    jexpect(jobject, root, "(root)");
+    jexpect(jobject, root, source, "(root)");
 
     jvalue *jtype = NULL, *jversion = NULL, *jdevices = NULL;
     /*
@@ -128,69 +130,76 @@ static int elftool_gen_mft(const char *source, const char *output)
     int entries = 1;
 
     for(jvalue **i = root->u.v; *i; ++i) {
-	if (strcmp((*i)->n, "type") == 0) {
-            jexpect(jstring, *i, ".type");
+        if (strcmp((*i)->n, "type") == 0) {
+            jexpect(jstring, *i, source, ".type");
             jtype = *i;
-	}
-	else if (strcmp((*i)->n, "version") == 0) {
-            jexpect(jint, *i, ".version");
+        }
+        else if (strcmp((*i)->n, "version") == 0) {
+            jexpect(jint, *i, source, ".version");
             jversion = *i;
         }
         else if (strcmp((*i)->n, "devices") == 0) {
-            jexpect(jarray, *i, ".devices");
+            jexpect(jarray, *i, source, ".devices");
             for (jvalue **j = (*i)->u.v; *j; ++j) {
-                jexpect(jobject, *j, ".devices[]");
+                jexpect(jobject, *j, source, ".devices[]");
                 entries++;
             }
             jdevices = *i;
         }
         else
-            errx(1, "(root): unknown key: %s", (*i)->n);
+            errx(1, "%s:%zu: (root): unknown key: %s", source, (*i)->line,
+                    (*i)->n);
     }
 
     if (jtype == NULL)
-        errx(1, "missing .type");
+        errx(1, "%s:%zu: missing .type", source, root->line);
     if (jversion == NULL)
-        errx(1, "missing .version");
+        errx(1, "%s:%zu: missing .version", source, root->line);
     if (jdevices == NULL)
-        errx(1, "missing .devices[]");
+        errx(1, "%s:%zu: missing .devices[]", source, root->line);
 
     if (strcmp("solo5.manifest", jtype->u.s) != 0)
-	errx(1, ".type: invalid value, expected \"solo5.manifest\"");
+        errx(1, "%s:%zu: .type: invalid value, expected \"solo5.manifest\"",
+                source, jtype->line);
     if (jversion->u.i != MFT_VERSION)
-        errx(1, ".version: invalid version %lld, expected %d", jversion->u.i,
-                MFT_VERSION);
+        errx(1, "%s:%zu: .version: invalid version %lld, expected %d",
+                source, jversion->line, jversion->u.i, MFT_VERSION);
     if (entries > MFT_MAX_ENTRIES)
-        errx(1, ".devices[]: too many entries, maximum %d", MFT_MAX_ENTRIES);
+        errx(1, "%s:%zu: .devices[]: too many entries, maximum %d",
+                source, jdevices->line, MFT_MAX_ENTRIES);
 
     fprintf(ofp, out_header, SOLO5_VERSION, entries, entries);
     for (jvalue **i = jdevices->u.v; *i; ++i) {
-        jexpect(jobject, *i, ".devices[]");
-        char *r_name = NULL, *r_type = NULL;
+        jexpect(jobject, *i, source, ".devices[]");
+        jvalue *jdevname = NULL, *jdevtype = NULL;
         for (jvalue **j = (*i)->u.v; *j; ++j) {
             if (strcmp((*j)->n, "name") == 0) {
-                jexpect(jstring, *j, ".devices[...]");
-                r_name = (*j)->u.s;
+                jexpect(jstring, *j, source, ".devices[...]");
+                jdevname = *j;
             }
             else if (strcmp((*j)->n, "type") == 0) {
-                jexpect(jstring, *j, ".devices[...]");
-                r_type = (*j)->u.s;
+                jexpect(jstring, *j, source, ".devices[...]");
+                jdevtype = *j;
             }
             else
-                errx(1, ".devices[...]: unknown key: %s", (*j)->n);
+                errx(1, "%s:%zu: .devices[...]: unknown key: %s", source,
+                        (*j)->line, (*j)->n);
         }
-        if (r_name == NULL)
-            errx(1, ".devices[...]: missing .name");
-        if (r_name[0] == 0)
-            errx(1, ".devices[...]: .name may not be empty");
-        if (strlen(r_name) > MFT_NAME_MAX)
-            errx(1, ".devices[...]: name too long");
-        for (char *p = r_name; *p; p++)
+        if (jdevname == NULL)
+            errx(1, "%s:%zu: .devices[...]: missing .name", source, (*i)->line);
+        if (jdevname->u.s[0] == 0)
+            errx(1, "%s:%zu: .devices[...]: .name may not be empty", source,
+                    jdevname->line);
+        if (strlen(jdevname->u.s) > MFT_NAME_MAX)
+            errx(1, "%s:%zu: .devices[...]: name too long", source,
+                    jdevname->line);
+        for (char *p = jdevname->u.s; *p; p++)
             if (!isalnum((unsigned char)*p))
-                errx(1, ".devices[...]: name is not alphanumeric");
-        if (r_type == NULL)
-            errx(1, ".devices[...]: missing .type");
-        fprintf(ofp, out_entry, r_name, r_type);
+                errx(1, "%s:%zu: .devices[...]: name is not alphanumeric",
+                        source, jdevname->line);
+        if (jdevtype == NULL)
+            errx(1, "%s:%zu: .devices[...]: missing .type", source, (*i)->line);
+        fprintf(ofp, out_entry, jdevname->u.s, jdevtype->u.s);
     }
     fprintf(ofp, out_footer);
 
