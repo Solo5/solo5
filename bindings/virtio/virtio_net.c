@@ -296,12 +296,12 @@ solo5_result_t solo5_net_acquire(const char *name, solo5_handle_t *h,
             MFT_DEV_NET_BASIC, &mft_index);
     if (mft_e == NULL)
         return SOLO5_R_EINVAL;
-    net_handle = (solo5_handle_t)mft_index;
+    net_handle = mft_index;
     net_acquired = true;
 
     memcpy(info->mac_address, virtio_net_mac, sizeof info->mac_address);
     info->mtu = 1500;
-    *h = (solo5_handle_t)mft_index;
+    *h = mft_index;
     log(INFO, "Solo5: Application acquired '%s' as network device\n", name);
     return SOLO5_R_OK;
 }
