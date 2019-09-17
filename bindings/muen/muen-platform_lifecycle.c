@@ -18,7 +18,7 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include "../hvt/bindings.h"
+#include "bindings.h"
 
 struct mft *muen_manifest = NULL;
 

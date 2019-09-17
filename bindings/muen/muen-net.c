@@ -18,8 +18,7 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include "mft_abi.h"
-#include "../hvt/bindings.h"
+#include "bindings.h"
 #include "sinfo.h"
 #include "reader.h"
 #include "writer.h"

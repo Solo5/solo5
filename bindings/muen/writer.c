@@ -18,7 +18,7 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include "../bindings.h"
+#include "bindings.h"
 #include "writer.h"
 #include "util.h"
 

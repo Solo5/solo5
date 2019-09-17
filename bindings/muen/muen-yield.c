@@ -18,7 +18,7 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include "../bindings.h"
+#include "bindings.h"
 #include "muen-net.h"
 
 void solo5_yield(solo5_time_t deadline, solo5_handle_set_t *ready_set)

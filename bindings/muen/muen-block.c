@@ -18,7 +18,7 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include "../hvt/bindings.h"
+#include "bindings.h"
 
 solo5_result_t solo5_block_acquire(const char *name __attribute__((unused)),
         solo5_handle_t *handle __attribute__((unused)),
