@@ -62,11 +62,22 @@ SECTIONS {
     _etext = .;
 
     /* Read-only data */
+
+    /* For Muen, the ABI and MFT NOTEs are read-only and can be in :text. */
+    .note.solo5.manifest :
+    {
+        *(.note.solo5.manifest*)
+    } :text :note.manifest
+    .note.solo5.abi :
+    {
+        *(.note.solo5.abi*)
+    } :text :note.abi
+
     .rodata :
     {
         *(.rodata)
         *(.rodata.*)
-    }
+    } :text
     .eh_frame :
     {
         *(.eh_frame)
@@ -78,17 +89,6 @@ SECTIONS {
     /*
      * :data: The following input sections are placed in the R/W :data segment.
      */
-
-    /* For Muen, the ABI and MFT NOTEs must be in an R/W segment, as they may
-     * be modified in-place by the bindings. */
-    .note.solo5.manifest :
-    {
-        *(.note.solo5.manifest*)
-    } :data :note.manifest
-    .note.solo5.abi :
-    {
-        *(.note.solo5.abi*)
-    } :data :note.abi
 
     /* Read-write data (initialized) */
     .got :
@@ -123,4 +123,10 @@ SECTIONS {
     . = ALIGN(CONSTANT(MAXPAGESIZE));
     _ebss = .;
     _end = .;
+
+    /* We are not building a GNU executable, so discard any default NOTEs the
+       toolchain might generate to prevent any surprises in the final layout. */
+    /DISCARD/ : {
+        *(.note.gnu.*)
+    }
 }

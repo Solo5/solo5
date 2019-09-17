@@ -52,6 +52,17 @@ SECTIONS {
      */
     _stext = .;
 
+    .text :
+    {
+        *(.text)
+        *(.text.*)
+    } :text
+
+    . = ALIGN(CONSTANT(MAXPAGESIZE));
+    _etext = .;
+
+    /* Read-only data */
+
     /* For Spt, the ABI and MFT NOTEs are read-only and can be in :text. */
     .note.solo5.manifest :
     {
@@ -63,21 +74,11 @@ SECTIONS {
         *(.note.solo5.abi*)
     } :text :note.abi
 
-    .text :
-    {
-        *(.text)
-        *(.text.*)
-    } :text
-
-    . = ALIGN(CONSTANT(MAXPAGESIZE));
-    _etext = .;
-
-    /* Read-only data */
     .rodata :
     {
         *(.rodata)
         *(.rodata.*)
-    }
+    } :text
     .eh_frame :
     {
         *(.eh_frame)
@@ -123,4 +124,10 @@ SECTIONS {
     . = ALIGN(CONSTANT(MAXPAGESIZE));
     _ebss = .;
     _end = .;
+
+    /* We are not building a GNU executable, so discard any default NOTEs the
+       toolchain might generate to prevent any surprises in the final layout. */
+    /DISCARD/ : {
+        *(.note.gnu.*)
+    }
 }

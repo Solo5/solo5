@@ -124,4 +124,10 @@ SECTIONS {
     . = ALIGN(CONSTANT(MAXPAGESIZE));
     _ebss = .;
     _end = .;
+
+    /* We are not building a GNU executable, so discard any default NOTEs the
+       toolchain might generate to prevent any surprises in the final layout. */
+    /DISCARD/ : {
+        *(.note.gnu.*)
+    }
 }
