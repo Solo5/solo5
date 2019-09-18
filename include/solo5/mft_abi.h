@@ -85,12 +85,27 @@ struct mft_entry {
 };
 
 /*
+ * Maximum supported number of manifest entires.
+ */
+#define MFT_MAX_ENTRIES 64
+
+/*
+ * Ensure that MFT_MAX_ENTRIES is not larger than the number of bits in a
+ * solo5_handle_set_t (actually a uint64_t in disguise, but we don't want to
+ * depend on solo5.h here).
+ */
+_Static_assert(MFT_MAX_ENTRIES <= (sizeof(uint64_t) * 8),
+        "MFT_MAX_ENTRIES too large for solo5_handle_set_t");
+
+/*
  * MFT_ENTRIES is defined by elftool when a manifest is being *defined*.
  * If it is not defined, then (struct mft).e will become a VLA, this is
  * intentional.
  */
 #ifndef MFT_ENTRIES
 #define MFT_ENTRIES
+#else
+_Static_assert(MFT_ENTRIES <= MFT_MAX_ENTRIES, "MFT_ENTRIES out of range");
 #endif
 
 /*
@@ -101,11 +116,6 @@ struct mft {
     uint32_t entries;
     struct mft_entry e[MFT_ENTRIES];
 };
-
-/*
- * Maximum supported number of manifest entires.
- */
-#define MFT_MAX_ENTRIES 64
 
 /*
  * HERE BE DRAGONS.
