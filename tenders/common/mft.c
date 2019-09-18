@@ -85,6 +85,18 @@ int mft_validate(struct mft *mft, size_t mft_size)
     return 0;
 }
 
+void mft_get_builtin_mft1(struct mft1_note *note, struct mft **out_mft,
+        size_t *out_mft_size)
+{
+    /*
+     * Get the built-in manifest out of the ELF NOTE. Note that the size must
+     * be adjusted from n_descsz to remove any internal alignment.
+     */
+    *out_mft = &note->m;
+    *out_mft_size = note->h.n_descsz -
+        (offsetof(struct mft1_note, m) - sizeof (struct mft1_nhdr));
+}
+
 struct mft_entry *mft_get_by_name(struct mft *mft, const char *name,
         mft_type_t type, unsigned *index)
 {

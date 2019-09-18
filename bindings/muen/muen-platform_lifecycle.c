@@ -36,14 +36,12 @@ void platform_init(void *arg)
     fpu_init();
 
     /*
-     * Get the built-in manifest "out of" the ELF NOTE and validate it. Note
-     * that the size must be adjusted from n_descsz to remove any internal
-     * alignment. Once validated, it is available for access globally by the
-     * bindings.
+     * Get the built-in manifest out of the ELF NOTE and validate it.
+     * Once validated, it is available for access globally by the bindings.
      */
-    struct mft *mft = &__solo5_mft1_note.m;
-    size_t mft_size = __solo5_mft1_note.h.n_descsz -
-        (offsetof(struct mft1_note, m) - sizeof (struct mft1_nhdr));
+    struct mft *mft;
+    size_t mft_size;
+    mft_get_builtin_mft1(&__solo5_mft1_note, &mft, &mft_size);
     if (mft_validate(mft, mft_size) != 0) {
         log(ERROR, "Solo5: Built-in manifest validation failed. Aborting.\n");
         solo5_abort();

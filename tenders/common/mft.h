@@ -40,6 +40,17 @@
 int mft_validate(struct mft *mft, size_t mft_size);
 
 /*
+ * Given the address of a MFT1 ELF note at (note), returns the address of the
+ * embedded struct mft in (*out_mft) and its expected size in (*out_size).
+ *
+ * This is intended for use by bindings implementations that wish to access the
+ * built-in copy of the application manifest in-place. You should call
+ * mft_validate() on the returned values before using them.
+ */
+void mft_get_builtin_mft1(struct mft1_note *note, struct mft **out_mft,
+        size_t *out_mft_size);
+
+/*
  * Return the manifest entry matching (name), of type (type), or NULL if none
  * found.
  */
