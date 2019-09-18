@@ -48,7 +48,7 @@ void _start(void *arg)
     _newstack(platform_mem_size(), _start2, 0);
 }
 
-extern struct mft1_note __solo5_mft1_note;
+extern const struct mft1_note __solo5_mft1_note;
 /*
  * Will be initialised at start-up, and used by bindings to access (and
  * modify!) the in-built manifest.
@@ -73,7 +73,7 @@ static void _start2(void *arg __attribute__((unused)))
      */
     struct mft *mft;
     size_t mft_size;
-    mft_get_builtin_mft1(&__solo5_mft1_note, &mft, &mft_size);
+    mft_get_builtin_mft1_unconst(&__solo5_mft1_note, &mft, &mft_size);
     if (mft_validate(mft, mft_size) != 0) {
 	log(ERROR, "Solo5: Built-in manifest validation failed. Aborting.\n");
 	solo5_abort();

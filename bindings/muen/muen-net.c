@@ -39,7 +39,7 @@ struct muen_net_device {
     struct muchannel_reader net_rdr;
 };
 
-extern struct mft *muen_manifest;
+extern const struct mft *muen_manifest;
 
 static struct muen_net_device net_devices[MFT_MAX_ENTRIES];
 

@@ -20,7 +20,7 @@
 
 #include "bindings.h"
 
-struct mft *muen_manifest = NULL;
+const struct mft *muen_manifest = NULL;
 
 void fpu_init(void)
 {
@@ -28,7 +28,7 @@ void fpu_init(void)
     __asm__ __volatile__("ldmxcsr %0" : : "m"(default_mxcsr));
 }
 
-extern struct mft1_note __solo5_mft1_note;
+extern const struct mft1_note __solo5_mft1_note;
 
 void platform_init(void *arg)
 {
@@ -39,7 +39,7 @@ void platform_init(void *arg)
      * Get the built-in manifest out of the ELF NOTE and validate it.
      * Once validated, it is available for access globally by the bindings.
      */
-    struct mft *mft;
+    const struct mft *mft;
     size_t mft_size;
     mft_get_builtin_mft1(&__solo5_mft1_note, &mft, &mft_size);
     if (mft_validate(mft, mft_size) != 0) {
