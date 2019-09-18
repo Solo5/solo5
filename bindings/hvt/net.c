@@ -20,7 +20,7 @@
 
 #include "bindings.h"
 
-static struct mft *mft;
+static const struct mft *mft;
 
 solo5_result_t solo5_net_write(solo5_handle_t handle, const uint8_t *buf,
         size_t size)
@@ -57,7 +57,8 @@ solo5_result_t solo5_net_acquire(const char *name, solo5_handle_t *handle,
         struct solo5_net_info *info)
 {
     unsigned index;
-    struct mft_entry *e = mft_get_by_name(mft, name, MFT_DEV_NET_BASIC, &index);
+    const struct mft_entry *e =
+        mft_get_by_name(mft, name, MFT_DEV_NET_BASIC, &index);
     if (e == NULL)
         return SOLO5_R_EINVAL;
     assert(e->attached);
@@ -69,7 +70,7 @@ solo5_result_t solo5_net_acquire(const char *name, solo5_handle_t *handle,
     return SOLO5_R_OK;
 }
 
-void net_init(struct hvt_boot_info *bi)
+void net_init(const struct hvt_boot_info *bi)
 {
     mft = bi->mft;
 }

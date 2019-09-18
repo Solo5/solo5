@@ -23,9 +23,9 @@
 static const char *cmdline;
 static uint64_t mem_size;
 
-void platform_init(void *arg)
+void platform_init(const void *arg)
 {
-    struct spt_boot_info *bi = arg;
+    const struct spt_boot_info *bi = arg;
 
     cmdline = bi->cmdline;
     mem_size = bi->mem_size;

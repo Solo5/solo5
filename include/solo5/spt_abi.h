@@ -52,8 +52,8 @@
 struct spt_boot_info {
     uint64_t mem_size;                  /* Memory size in bytes */
     uint64_t kernel_end;                /* Address of end of kernel */
-    const char * cmdline;               /* Address of command line (C string) */
-    void *mft;                          /* Address of application manifest */
+    const char *cmdline;                /* Address of command line (C string) */
+    const void *mft;                    /* Address of application manifest */
     int epollfd;                        /* epoll() set for yield() */
     int timerfd;                        /* internal timerfd for yield() */
 };

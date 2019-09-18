@@ -154,8 +154,8 @@ struct hvt_boot_info {
     uint64_t mem_size;                  /* Memory size in bytes */
     uint64_t kernel_end;                /* Address of end of kernel */
     uint64_t cpu_cycle_freq;            /* CPU cycle counter frequency, Hz */
-    HVT_GUEST_PTR(char *) cmdline;      /* Address of command line (C string) */
-    HVT_GUEST_PTR(void *) mft;          /* Address of application manifest */
+    HVT_GUEST_PTR(const char *) cmdline;/* Address of command line (C string) */
+    HVT_GUEST_PTR(const void *) mft;    /* Address of application manifest */
 };
 
 /*
