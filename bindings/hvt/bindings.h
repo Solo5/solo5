@@ -31,16 +31,16 @@
 #include "../bindings.h"
 #include "hvt_abi.h"
 
-void time_init(struct hvt_boot_info *bi);
+void time_init(const struct hvt_boot_info *bi);
 void console_init(void);
-void net_init(struct hvt_boot_info *bi);
-void block_init(struct hvt_boot_info *bi);
+void net_init(const struct hvt_boot_info *bi);
+void block_init(const struct hvt_boot_info *bi);
 
 /* tscclock.c: TSC-based clock */
 uint64_t tscclock_monotonic(void);
 int tscclock_init(uint64_t tsc_freq);
 uint64_t tscclock_epochoffset(void);
 
-void process_bootinfo(void *arg);
+void process_bootinfo(const void *arg);
 
 #endif /* __HVT_BINDINGS_H__ */

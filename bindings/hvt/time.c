@@ -20,7 +20,7 @@
 
 #include "bindings.h"
 
-void time_init(struct hvt_boot_info *bi)
+void time_init(const struct hvt_boot_info *bi)
 {
     assert(tscclock_init(bi->cpu_cycle_freq) == 0);
 }

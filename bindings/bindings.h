@@ -113,7 +113,7 @@ int isspace(int c);
 #include "printf.h"
 
 /* platform.c: specifics for hvt or virito platform */
-void platform_init(void *arg);
+void platform_init(const void *arg);
 const char *platform_cmdline(void);
 uint64_t platform_mem_size(void);
 void platform_exit(int status, void *cookie) __attribute__((noreturn));

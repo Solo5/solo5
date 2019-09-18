@@ -43,6 +43,6 @@ solo5_result_t solo5_block_read(solo5_handle_t handle __attribute__((unused)),
     return SOLO5_R_EUNSPEC;
 }
 
-void block_init(struct hvt_boot_info *bi __attribute__((unused)))
+void block_init(const struct hvt_boot_info *bi __attribute__((unused)))
 {
 }

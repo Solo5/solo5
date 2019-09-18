@@ -97,7 +97,7 @@ solo5_result_t solo5_net_acquire(const char *name, solo5_handle_t *h,
 {
     solo5_handle_t handle = 0;
     unsigned mft_index;
-    struct mft_entry *mft_e = mft_get_by_name(muen_manifest, name,
+    const struct mft_entry *mft_e = mft_get_by_name(muen_manifest, name,
             MFT_DEV_NET_BASIC, &mft_index);
     if (mft_e == NULL)
         return SOLO5_R_EINVAL;
@@ -217,7 +217,7 @@ static bool muen_net_dev_init(const char *name, struct muen_net_device *device,
     return true;
 }
 
-void net_init(struct hvt_boot_info *bi __attribute__((unused)))
+void net_init(const struct hvt_boot_info *bi __attribute__((unused)))
 {
     for (solo5_handle_t i = 0U; i < MFT_MAX_ENTRIES; ++i) {
         net_devices[i].acquired = false;

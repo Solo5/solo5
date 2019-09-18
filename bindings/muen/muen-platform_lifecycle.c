@@ -30,7 +30,7 @@ void fpu_init(void)
 
 extern const struct mft1_note __solo5_mft1_note;
 
-void platform_init(void *arg)
+void platform_init(const void *arg)
 {
     process_bootinfo(arg);
     fpu_init();

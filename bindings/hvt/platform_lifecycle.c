@@ -20,7 +20,7 @@
 
 #include "bindings.h"
 
-void platform_init(void *arg)
+void platform_init(const void *arg)
 {
     process_bootinfo(arg);
 }

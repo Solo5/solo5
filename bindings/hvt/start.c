@@ -22,7 +22,7 @@
 #include "../crt_init.h"
 #include "solo5_version.h"
 
-void _start(void *arg)
+void _start(const void *arg)
 {
     crt_init_ssp();
     crt_init_tls();
