@@ -22,43 +22,16 @@
 #include "../crt_init.h"
 #include "solo5_version.h"
 
-extern void _newstack(uint64_t stack_start, void (*tramp)(void *), void *arg);
-static void _start2(void *arg) __attribute__((noreturn));
-
 void _start(void *arg)
 {
     crt_init_ssp();
     crt_init_tls();
 
-    volatile int gdb = 1;
-
-    serial_init();
-
-    if (!gdb)
-        log(INFO, "Solo5: Waiting for gdb...\n");
-    while (gdb == 0)
-        ;
-
-    cpu_init();
-    platform_init(arg);
-
-    /*
-     * Switch away from the bootstrap stack (in boot.S) as early as possible.
-     */
-    _newstack(platform_mem_size(), _start2, 0);
-}
-
-extern struct mft1_note __solo5_mft1_note;
-/*
- * Will be initialised at start-up, and used by bindings to access (and
- * modify!) the in-built manifest.
- */
-struct mft *virtio_manifest = NULL;
-
-static void _start2(void *arg __attribute__((unused)))
-{
     static struct solo5_start_info si;
 
+    console_init();
+    cpu_init();
+    platform_init(arg);
     si.cmdline = cmdline_parse(platform_cmdline());
 
     log(INFO, "            |      ___|\n");
@@ -68,24 +41,9 @@ static void _start2(void *arg __attribute__((unused)))
     log(INFO, "Solo5: Bindings version %s\n", SOLO5_VERSION);
 
     mem_init();
-    time_init();
-    pci_enumerate();
-    cpu_intr_enable();
-
-    /*
-     * Get the built-in manifest "out of" the ELF NOTE and validate it. Note
-     * that the size must be adjusted from n_descsz to remove any internal
-     * alignment. Once validated, it is available for access globally by the
-     * bindings.
-     */
-    struct mft *mft = &__solo5_mft1_note.m;
-    size_t mft_size = __solo5_mft1_note.h.n_descsz -
-        (offsetof(struct mft1_note, m) - sizeof (struct mft1_nhdr));
-    if (mft_validate(mft, mft_size) != 0) {
-	log(ERROR, "Solo5: Built-in manifest validation failed. Aborting.\n");
-	solo5_abort();
-    }
-    virtio_manifest = mft;
+    time_init(arg);
+    block_init(arg);
+    net_init(arg);
 
     mem_lock_heap(&si.heap_start, &si.heap_size);
     solo5_exit(solo5_app_main(&si));
@@ -94,12 +52,11 @@ static void _start2(void *arg __attribute__((unused)))
 /*
  * The "ABI1" Solo5 ELF note is declared in this module.
  *
- * Virtio does not have an ABI contract (in the Solo5 sense) or use a tender,
- * so the ABI version here is always 1.
+ * Muen currently has no formal Solo5 ABI contract, so the version is always 1.
  */
 ABI1_NOTE_DECLARE_BEGIN
 {
-    .abi_target = VIRTIO_ABI_TARGET,
+    .abi_target = MUEN_ABI_TARGET,
     .abi_version = 1
 }
 ABI1_NOTE_DECLARE_END

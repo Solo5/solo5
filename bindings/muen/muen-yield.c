@@ -18,23 +18,25 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include "../bindings.h"
+#include "bindings.h"
 #include "muen-net.h"
 
-bool solo5_yield(uint64_t deadline)
+void solo5_yield(solo5_time_t deadline, solo5_handle_set_t *ready_set)
 {
-    bool rc = false;
+    solo5_handle_set_t tmp_ready_set = 0;
+
     do {
-        if (muen_net_pending_data()) {
-            rc = true;
-            break;
+        for (solo5_handle_t i = 0U; i < MFT_MAX_ENTRIES; ++i) {
+            if (muen_net_pending_data(i))
+                tmp_ready_set |= 1UL << i;
         }
+
+        if (tmp_ready_set > 0)
+            break;
+
         __asm__ __volatile__("pause");
     } while (solo5_clock_monotonic() < deadline);
 
-    if (muen_net_pending_data()) {
-        rc = true;
-    }
-
-    return rc;
+    if (ready_set)
+        *ready_set = tmp_ready_set;
 }

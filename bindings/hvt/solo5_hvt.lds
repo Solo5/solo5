@@ -52,16 +52,6 @@ SECTIONS {
      */
     _stext = .;
 
-    /* For Hvt, the ABI and MFT NOTEs are read-only and can be in :text. */
-    .note.solo5.manifest :
-    {
-        *(.note.solo5.manifest*)
-    } :text :note.manifest
-    .note.solo5.abi :
-    {
-        *(.note.solo5.abi*)
-    } :text :note.abi
-
     .text :
     {
         *(.text)
@@ -72,11 +62,22 @@ SECTIONS {
     _etext = .;
 
     /* Read-only data */
+
+    /* For Hvt, the ABI and MFT NOTEs are read-only and can be in :text. */
+    .note.solo5.manifest :
+    {
+        *(.note.solo5.manifest*)
+    } :text :note.manifest
+    .note.solo5.abi :
+    {
+        *(.note.solo5.abi*)
+    } :text :note.abi
+
     .rodata :
     {
         *(.rodata)
         *(.rodata.*)
-    }
+    } :text
     .eh_frame :
     {
         *(.eh_frame)
@@ -122,4 +123,10 @@ SECTIONS {
     . = ALIGN(CONSTANT(MAXPAGESIZE));
     _ebss = .;
     _end = .;
+
+    /* We are not building a GNU executable, so discard any default NOTEs the
+       toolchain might generate to prevent any surprises in the final layout. */
+    /DISCARD/ : {
+        *(.note.gnu.*)
+    }
 }

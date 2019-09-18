@@ -19,24 +19,31 @@
  */
 
 /*
- * virtio_abi.h: virtio ABI definitions.
+ * bindings.h: Solo5 bindings, muen implementation additions.
  *
- * This header file must be kept self-contained with no external dependencies
- * other than C99 headers.
+ * This header file includes (supersedes) the common bindings.h for the muen
+ * implementation.
  *
- * Virtio does not have an ABI contract (in the Solo5 sense) or use a tender, so
- * all we need to define here is an ABI version to go in the Solo5 ABI1 NOTE.
+ * TODO: Remove the dependency on hvt_abi.h entirely?
  */
 
-#ifndef VIRTIO_ABI_H
-#define VIRTIO_ABI_H
+#ifndef __MUEN_BINDINGS_H__
+#define __MUEN_BINDINGS_H__
 
+#include "../bindings.h"
+#include "hvt_abi.h"
 #include "elf_abi.h"
 
-/*
- * ABI version. For virtio, this is always 1.
- */
+void time_init(struct hvt_boot_info *bi);
+void console_init(void);
+void net_init(struct hvt_boot_info *bi);
+void block_init(struct hvt_boot_info *bi);
 
-#define VIRTIO_ABI_VERSION 1
+/* muen-clock.c: TSC-based clock */
+uint64_t tscclock_monotonic(void);
+int tscclock_init(uint64_t tsc_freq);
+uint64_t tscclock_epochoffset(void);
 
-#endif /* VIRTIO_ABI_H */
+void process_bootinfo(void *arg);
+
+#endif /* __MUEN_BINDINGS_H__ */

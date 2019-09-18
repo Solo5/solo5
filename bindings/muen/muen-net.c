@@ -18,7 +18,7 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include "../hvt/bindings.h"
+#include "bindings.h"
 #include "sinfo.h"
 #include "reader.h"
 #include "writer.h"
@@ -31,15 +31,31 @@ struct net_msg {
     uint16_t length;
 } __attribute__((packed));
 
-static struct muchannel *net_in;
-static struct muchannel *net_out;
-static struct muchannel_reader net_rdr;
+struct muen_net_device {
+    bool acquired;
+    uint8_t mac_addr[SOLO5_NET_ALEN];
+    struct muchannel *net_in;
+    struct muchannel *net_out;
+    struct muchannel_reader net_rdr;
+};
 
-static uint8_t mac_addr[6];
+extern struct mft *muen_manifest;
 
-solo5_result_t solo5_net_write(const uint8_t *buf, size_t size)
+static struct muen_net_device net_devices[MFT_MAX_ENTRIES];
+
+/**
+ * Initialize Muen network device with given name.
+ */
+static bool muen_net_dev_init(const char *name, struct muen_net_device *device,
+        struct solo5_net_info *info);
+
+solo5_result_t solo5_net_write(solo5_handle_t handle,
+        const uint8_t *buf, size_t size)
 {
     struct net_msg pkt;
+
+    if (handle >= MFT_MAX_ENTRIES || !net_devices[handle].acquired)
+        return SOLO5_R_EINVAL;
 
     if (size > PACKET_SIZE)
         return SOLO5_R_EINVAL;
@@ -48,20 +64,25 @@ solo5_result_t solo5_net_write(const uint8_t *buf, size_t size)
     cc_barrier();
     pkt.length = size;
     memcpy(&pkt.data, buf, size);
-    muen_channel_write(net_out, &pkt);
+    muen_channel_write(net_devices[handle].net_out, &pkt);
 
     return SOLO5_R_OK;
 }
 
-solo5_result_t solo5_net_read(uint8_t *buf, size_t size, size_t *read_size)
+solo5_result_t solo5_net_read(solo5_handle_t handle,
+        uint8_t *buf, size_t size, size_t *read_size)
 {
     enum muchannel_reader_result result;
     struct net_msg pkt;
 
+    if (handle >= MFT_MAX_ENTRIES || !net_devices[handle].acquired)
+        return SOLO5_R_EINVAL;
+
     if (size < PACKET_SIZE)
         return SOLO5_R_EINVAL;
 
-    result = muen_channel_read(net_in, &net_rdr, &pkt);
+    result = muen_channel_read(net_devices[handle].net_in,
+                               &net_devices[handle].net_rdr, &pkt);
     if (result == MUCHANNEL_SUCCESS) {
         memcpy(buf, &pkt.data, pkt.length);
         *read_size = pkt.length;
@@ -71,19 +92,41 @@ solo5_result_t solo5_net_read(uint8_t *buf, size_t size, size_t *read_size)
     }
 }
 
-bool muen_net_pending_data()
+solo5_result_t solo5_net_acquire(const char *name, solo5_handle_t *h,
+        struct solo5_net_info *info)
 {
-    return muen_channel_has_pending_data(net_in, &net_rdr);
+    solo5_handle_t handle = 0;
+    unsigned mft_index;
+    struct mft_entry *mft_e = mft_get_by_name(muen_manifest, name,
+            MFT_DEV_NET_BASIC, &mft_index);
+    if (mft_e == NULL)
+        return SOLO5_R_EINVAL;
+
+    handle = mft_index;
+
+    if (net_devices[handle].acquired) {
+        log(WARN, "Solo5: Net: Device '%s' already acquired\n", name);
+        return SOLO5_R_EINVAL;
+    }
+
+    if (!muen_net_dev_init(name, &net_devices[handle], info))
+        return SOLO5_R_EINVAL;
+
+    *h = handle;
+    net_devices[handle].acquired = true;
+    log(INFO, "Solo5: Application acquired '%s' as network device\n", name);
+    return SOLO5_R_OK;
 }
 
-/* TODO: Support configured MAC address */
-void solo5_net_info(struct solo5_net_info *info)
+bool muen_net_pending_data(solo5_handle_t handle)
 {
-    memcpy(info->mac_address, mac_addr, sizeof info->mac_address);
-    info->mtu = 1500;
+    return handle < MFT_MAX_ENTRIES
+        && net_devices[handle].acquired
+        && muen_channel_has_pending_data(net_devices[handle].net_in,
+                                         &net_devices[handle].net_rdr);
 }
 
-void generate_mac_addr(uint8_t *addr)
+static void generate_mac_addr(uint8_t *addr)
 {
     const char *subject_name = muen_get_subject_name();
     uint64_t data;
@@ -103,62 +146,82 @@ void generate_mac_addr(uint8_t *addr)
     addr[0] |= 0x02;
 }
 
-void net_init(void)
+static bool muen_net_dev_init(const char *name, struct muen_net_device *device,
+        struct solo5_net_info *info)
 {
-    char mac_str[18];
+    assert(!device->acquired);
     const uint64_t epoch = muen_get_sched_start();
+    char mac_str[18];
+    char buffer[64];
+    const int retval = snprintf(buffer, sizeof buffer, "%s|out", name);
+    assert(retval > 0 && (unsigned)retval < sizeof buffer);
     const struct muen_resource_type *const
-        chan_out = muen_get_resource("net_out", MUEN_RES_MEMORY);
+        chan_out = muen_get_resource(buffer, MUEN_RES_MEMORY);
+	snprintf(buffer, sizeof buffer, "%s|in", name);
     const struct muen_resource_type *const
-        chan_in = muen_get_resource("net_in", MUEN_RES_MEMORY);
+        chan_in = muen_get_resource(buffer, MUEN_RES_MEMORY);
 
     if (!chan_out) {
-        log(WARN, "Solo5: Net: No output channel\n");
-        return;
+        log(WARN, "Solo5: Net: '%s': No output channel\n", name);
+        return false;
     }
     if (!(chan_out->data.mem.flags & MEM_CHANNEL_FLAG)) {
-        log(WARN, "Solo5: Net: Memory '%s' is not a channel\n",
-            chan_out->name.data);
-        return;
+        log(WARN, "Solo5: Net: '%s': Memory '%s' is not a channel\n",
+            name, chan_out->name.data);
+        return false;
     }
     if (!(chan_out->data.mem.flags & MEM_WRITABLE_FLAG)) {
-        log(WARN, "Solo5: Net: Output channel '%s' not writable\n",
-            chan_out->name.data);
-        return;
+        log(WARN, "Solo5: Net: '%s': Output channel '%s' not writable\n",
+            name, chan_out->name.data);
+        return false;
     }
 
-    net_out = (struct muchannel *)(chan_out->data.mem.address);
-    muen_channel_init_writer(net_out, MUENNET_PROTO, sizeof(struct net_msg),
+    if (!chan_in) {
+        log(WARN, "Solo5: Net: '%s': No input channel\n", name);
+        return false;
+    }
+    if (!(chan_in->data.mem.flags & MEM_CHANNEL_FLAG)) {
+        log(WARN, "Solo5: Net: '%s': Memory '%s' is not a channel\n",
+            name, chan_in->name.data);
+        return false;
+    }
+    if (chan_in->data.mem.flags & MEM_WRITABLE_FLAG) {
+        log(DEBUG, "Solo5: Net: '%s': Input channel '%s' is writable\n",
+            name, chan_in->name.data);
+    }
+
+    device->net_out = (struct muchannel *)(chan_out->data.mem.address);
+    muen_channel_init_writer(device->net_out, MUENNET_PROTO, sizeof(struct net_msg),
                              chan_out->data.mem.size, epoch);
-    log(INFO, "Solo5: Net: Muen shared memory stream, protocol 0x%llx\n",
-        MUENNET_PROTO);
-    log(INFO, "Solo5: Net: Output channel @ 0x%llx, size 0x%llx, epoch 0x%llx\n",
+    log(INFO, "Solo5: Net: '%s': Muen shared memory stream, protocol 0x%llx\n",
+        name, MUENNET_PROTO);
+    log(INFO, "Solo5: Net: '%s': Output channel @ 0x%llx, size 0x%llx, epoch 0x%llx\n",
+        name,
         (unsigned long long)chan_out->data.mem.address,
         (unsigned long long)chan_out->data.mem.size, (unsigned long long)epoch);
 
-    if (!chan_in) {
-        log(WARN, "Solo5: Net: No input channel\n");
-        return;
-    }
-    if (!(chan_in->data.mem.flags & MEM_CHANNEL_FLAG)) {
-        log(WARN, "Solo5: Net: Memory '%s' is not a channel\n",
-            chan_in->name.data);
-        return;
-    }
-    if (chan_in->data.mem.flags & MEM_WRITABLE_FLAG) {
-        log(DEBUG, "Solo5: Net: Input channel '%s' is writable\n",
-            chan_in->name.data);
-    }
-
-    net_in = (struct muchannel *)(chan_in->data.mem.address);
-    muen_channel_init_reader(&net_rdr, MUENNET_PROTO);
-    log(INFO, "Solo5: Net: Input  channel @ 0x%llx, size 0x%llx\n",
+    device->net_in = (struct muchannel *)(chan_in->data.mem.address);
+    muen_channel_init_reader(&device->net_rdr, MUENNET_PROTO);
+    log(INFO, "Solo5: Net: '%s': Input  channel @ 0x%llx, size 0x%llx\n",
+        name,
         (unsigned long long)chan_in->data.mem.address,
         (unsigned long long)chan_in->data.mem.size);
 
-    generate_mac_addr(mac_addr);
+    generate_mac_addr(device->mac_addr);
     snprintf(mac_str, sizeof(mac_str), "%02x:%02x:%02x:%02x:%02x:%02x",
-             mac_addr[0], mac_addr[1], mac_addr[2],
-             mac_addr[3], mac_addr[4], mac_addr[5]);
-    log(INFO, "Solo5: Net: Using MAC address %s\n", mac_str);
+             device->mac_addr[0], device->mac_addr[1], device->mac_addr[2],
+             device->mac_addr[3], device->mac_addr[4], device->mac_addr[5]);
+    memcpy(info->mac_address, device->mac_addr, sizeof info->mac_address);
+    info->mtu = 1500;
+    log(INFO, "Solo5: Net: '%s': Using MAC address %s\n", name, mac_str);
+    return true;
+}
+
+void net_init(struct hvt_boot_info *bi __attribute__((unused)))
+{
+    for (solo5_handle_t i = 0U; i < MFT_MAX_ENTRIES; ++i) {
+        net_devices[i].acquired = false;
+        net_devices[i].net_in = NULL;
+        net_devices[i].net_out = NULL;
+    }
 }

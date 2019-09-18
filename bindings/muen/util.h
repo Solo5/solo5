@@ -21,7 +21,7 @@
 #ifndef MUEN_UTIL_H
 #define MUEN_UTIL_H
 
-#include "../bindings.h"
+#include "bindings.h"
 
 static inline void serialized_copy(const uint64_t * const src, uint64_t *dst)
 {

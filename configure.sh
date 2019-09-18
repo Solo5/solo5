@@ -292,12 +292,6 @@ case "${CONFIG_HOST}" in
         ;;
 esac
 
-# TODO: Re-enable muen once multiple-device support is available.
-if [ "${CONFIG_MUEN}" = "1" ]; then
-    warn "Disabling support for 'muen', not updated to new APIs yet"
-    CONFIG_MUEN=
-fi
-
 # WARNING:
 #
 # The generated Makeconf is dual-use! It is both sourced by GNU make, and by

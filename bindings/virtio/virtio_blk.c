@@ -210,12 +210,12 @@ solo5_result_t solo5_block_acquire(const char *name, solo5_handle_t *h,
         MFT_DEV_BLOCK_BASIC, &mft_index);
     if (mft_e == NULL)
         return SOLO5_R_EINVAL;
-    blk_handle = (solo5_handle_t)mft_index;
+    blk_handle = mft_index;
     blk_acquired = true;
 
     info->block_size = VIRTIO_BLK_SECTOR_SIZE;
     info->capacity = virtio_blk_sectors * VIRTIO_BLK_SECTOR_SIZE;
-    *h = (solo5_handle_t)mft_index;
+    *h = mft_index;
     log(INFO, "Solo5: Application acquired '%s' as block device\n", name);
     return SOLO5_R_OK;
 }
