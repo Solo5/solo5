@@ -126,7 +126,7 @@ bool muen_net_pending_data(solo5_handle_t handle)
                                          &net_devices[handle].net_rdr);
 }
 
-void generate_mac_addr(uint8_t *addr)
+static void generate_mac_addr(uint8_t *addr)
 {
     const char *subject_name = muen_get_subject_name();
     uint64_t data;
