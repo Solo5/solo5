@@ -12,7 +12,7 @@ operating system or hypervisor in a way that is designed to:
 - be as "legacy-free" and "thin"(\*) as possible, thus having a _minimal attack
   surface_, making it much easier to reason about the isolation properties of
   Solo5-based applications,
-  
+
   (\*) compared to existing interfaces, such as that exposed to a Linux process
   by the kernel, or to a full-system virtual machine by QEMU
 
@@ -93,20 +93,18 @@ We expect to provide a stable ABI (binary compatibility) in the future.
 
 ## Application manifest
 
-_TODO: Expand this._
-
 Solo5 introduces the concept of an _application manifest_, which is defined by
 the developer at unikernel build time, using the following JSON format and
 customarily named `manifest.json`:
 
-```
+```jsonc
 {
-    "type" = "solo5.manifest",
-    "version" = 1,
-    "devices" = [
-        { "name" = "<NAME>", "type" = "<TYPE>" },
-        ...
-    ]
+  "type": "solo5.manifest",
+  "version": 1,
+  "devices": [
+    { "name": "NAME", "type": "TYPE" }
+    // ... up to 63 user-specified devices ...
+  ]
 }
 ```
 
@@ -120,7 +118,7 @@ characters in length.
 _TYPE_ is the type of device being declared, currently `BLOCK_BASIC` or
 `NET_BASIC`.
 
-Note that there is a maximum limit of 63 devices in the manifest.
+Note that there is a maximum limit of 63 user-specified devices in the manifest.
 
 At unikernel build time, `manifest.json` is pre-processed by `solo5-elftool`,
 generating a C source file with a binary representation. This source file is
@@ -147,18 +145,19 @@ The main components of Solo5 are:
 - [bindings/](../bindings/): the Solo5 _bindings_ to (implementation of) the
   unikernel-facing interface for the various supported targets, as defined in
   [solo5.h](../include/solo5/solo5.h).
-- [tenders/common/](../tenders/common): common code shared by tender
+- [tenders/common/](../tenders/common): common code shared by _tender_
   implementations, notably including the ELF loader and _application manifest_
-  validation routines.
-- [tenders/hvt/](../tenders/hvt/): the tender implementation for the _hvt_
+  validation routines. The latter is also indirectly included by the bindings
+  implementation.
+- [tenders/hvt/](../tenders/hvt/): the _tender_ implementation for the _hvt_
   target, with tender-internal interfaces defined in
   [hvt.h](../tenders/hvt/hvt.h) and the internal "hypercall" ABI
   to Solo5 defined in [hvt\_abi.h](../include/solo5/hvt_abi.h).
-- [tenders/spt](../tenders/spt/): the tender implementation for the _spt_
+- [tenders/spt](../tenders/spt/): the _tender_ implementation for the _spt_
   target. Tender-internal interfaces are defined in [spt.h](../tenders/spt/spt.h)
   and internal Solo5-facing ABIs in [spt\_abi.h](../include/solo5/spt_abi.h).
-- [elftool/](../elftool): `solo5-elftool`, the _application manifest_ generation
-  tool.
+- [elftool/](../elftool): a tool for _application manifest_ generation and
+  extracting information from Solo5 binaries.
 - [tests/](../tests/): self tests used as part of our CI system.
 - [scripts/](../scripts/): extra tooling and scripts (mainly to support the
   _virtio_ target).
