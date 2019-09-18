@@ -127,6 +127,14 @@ void solo5_exit(int status) __attribute__((noreturn));
 void solo5_abort(void) __attribute__((noreturn));
 
 /*
+ * Set the architecture-specific TLS base register to (base).
+ *
+ * Solo5 implementations may return SOLO5_R_EINVAL if the (base) does not
+ * satisfy architecture-specific requirements.
+ */
+solo5_result_t solo5_set_tls_base(uintptr_t base);
+
+/*
  * Time.
  */
 
@@ -201,7 +209,8 @@ struct solo5_net_info {
  * Acquires a handle to the network device declared as (name) in the
  * application manifest. The returned handle is stored in (*handle), and
  * properties of the network device are stored in (*info). Caller must supply
- * space for struct solo5_net_info in (info).
+ * space for struct solo5_net_info in (info). This function may only be called
+ * once for each device (name). Subsequent calls will return SOLO5_R_EINVAL.
  */
 solo5_result_t solo5_net_acquire(const char *name, solo5_handle_t *handle,
         struct solo5_net_info *info);
@@ -236,10 +245,10 @@ solo5_result_t solo5_net_read(solo5_handle_t handle, uint8_t *buf,
  *
  * The minimum unit of I/O which can be performed on a block device is defined
  * by solo5_block_info.block_size. In practice we currently also limit the
- * *maximum* unit of I/O to the block size.
+ * *maximum* unit of I/O to a single block.
  *
- * These interfaces, depending on atomicity guarantees, may be extended to
- * support I/O operations of >1 block per call.
+ * These interfaces, depending on atomicity guarantees, may be extended in the
+ * future to support I/O operations of >1 block per call.
  */
 
 /*
@@ -253,10 +262,11 @@ struct solo5_block_info {
 };
 
 /*
- * Acquires a handle to the block device declared as (name) in the
- * application manifest. The returned handle is stored in (*handle), and
- * properties of the block device are stored in (*info). Caller must supply
- * space for struct solo5_block_info in (info).
+ * Acquires a handle to the block device declared as (name) in the application
+ * manifest. The returned handle is stored in (*handle), and properties of the
+ * block device are stored in (*info). Caller must supply space for struct
+ * solo5_block_info in (info). This function may only be called once for each
+ * device (name). Subsequent calls will return SOLO5_R_EINVAL.
  */
 solo5_result_t solo5_block_acquire(const char *name, solo5_handle_t *handle,
         struct solo5_block_info *info);
@@ -288,14 +298,5 @@ solo5_result_t solo5_block_write(solo5_handle_t handle, solo5_off_t offset,
  */
 solo5_result_t solo5_block_read(solo5_handle_t handle, solo5_off_t offset,
         uint8_t *buf, size_t size);
-
-/*
- * Set the TLS base register. This sets the %fs segment register on
- * x86_64 or the TPIDR_EL0 register on aarch64.
- *
- * Solo5 implementations may return SOLO5_R_EINVAL if the (base) does not
- * satisfy arch-specific requirements.
- */
-solo5_result_t solo5_set_tls_base(uintptr_t base);
 
 #endif
