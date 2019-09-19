@@ -1,3 +1,16 @@
+## 0.6.1 (2019-09-19)
+
+This release fixes OPAM/MirageOS installation problems found by CI. No
+functional changes.
+
+Additionally, the following entry was missed from the changes for 0.6.0:
+
+* Solo5 tenders, tools and bindings now have an embedded version number, using
+  the well-known convention "v0.6.0-4-gc9786d87". Bindings will log the version
+  number during start-up. As a consequence of this, Solo5 now needs to be built
+  from either a Git tree or a tarball produced by "make distrib". Suitable
+  tarballs are uploaded to Github during the release process.
+
 ## 0.6.0 (2019-09-19)
 
 This is a major feature release which introduces the concept of an "application
