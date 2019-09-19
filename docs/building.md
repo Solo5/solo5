@@ -18,24 +18,43 @@ unikernel -- about building Solo5, and running Solo5-based unikernels.
 
 Solo5 itself has the following build dependencies:
 
-* a 64-bit Linux, FreeBSD or OpenBSD system (see also below under "Supported
-  targets" for further requirements),
-* a C99 compiler; recent versions of GCC and clang are supported,
+* a 64-bit Linux, FreeBSD or OpenBSD system (see also [Supported
+  targets](#supported-targets) for further requirements),
+* a C11 compiler; recent versions of GCC and clang are supported,
 * GNU make,
 * full host system headers (on Linux, kernel headers are not always installed
   by default).
 
-To build Solo5 from the Git repository, it is sufficient to run `make` (`gmake`
-on BSD systems). This will build all _targets_ supported on the host system.
-
-To run the built-in self-tests:
-
-    tests/setup-tests.sh # As root, sets up `tap100` for networking
-    tests/run-tests.sh   # Root required to run network tests
-
-Note that Solo5 does not support cross-compilation; with the exception of the
+Note that Solo5 does not support cross-compilation. With the exception of the
 _muen_ and _genode_ targets (which are not self-hosting), you should build
-Solo5 and unikernels on a system matching the host you will be running them on.
+Solo5 and unikernels on a build system matching the host system and processor
+architecture you will be running them on.
+
+To build Solo5, run:
+
+```sh
+./configure.sh
+make # gmake on BSD systems
+```
+
+This will build all _targets_ supported by the host system. If you would like
+to disable some _targets_, you can either use:
+
+```sh
+make CONFIG_HVT= # disables hvt
+```
+
+or edit the generated `Makeconf` before running `make`.
+
+Note that the Solo5 Makefiles do not support building arbitrary `make` targets
+(e.g. `bindings` or `tests`).
+
+To run the built-in self-tests (requires `bash` and `coreutils`):
+
+```sh
+tests/setup-tests.sh # As root, sets up `tap100` for networking
+tests/run-tests.sh   # Root required to run network tests
+```
 
 ## Supported targets
 
@@ -44,19 +63,20 @@ architectures:
 
 Production:
 
-* _hvt_: Linux/KVM, using `solo5-hvt` as a tender, on the x86\_64 architecture.
-* _hvt_; FreeBSD vmm, using `solo5-hvt` as a tender, on the x86\_64
+* _hvt_: Linux/KVM, using `solo5-hvt` as a _tender_, on the x86\_64
+  architecture.
+* _hvt_: FreeBSD vmm, using `solo5-hvt` as a _tender_, on the x86\_64
   architecture.  FreeBSD 11-RELEASE or later is required.
 
 Experimental:
 
-* _hvt_: Linux/KVM, using `solo5-hvt` as a tender, on the aarch64 architecture.
-  You will need hardware capable of running a recent (v4.14+) 64-bit mainline
-  kernel and a 64-bit Linux distribution.
-* _hvt_: OpenBSD vmm, using `solo5-hvt` as a tender, on the x86\_64
+* _hvt_: Linux/KVM, using `solo5-hvt` as a _tender_, on the aarch64
+  architecture.  You will need hardware capable of running a recent (v4.14+)
+  64-bit mainline kernel and a 64-bit Linux distribution.
+* _hvt_: OpenBSD vmm, using `solo5-hvt` as a _tender_, on the x86\_64
   architecture.  OpenBSD 6.4 or later is required.
 * _spt_: Linux systems on the x86\_64, ppc64le and aarch64 architectures, using
-  `solo5-spt` as a tender. A Linux distribution with libseccomp >= 2.3.3 is
+  `solo5-spt` as a _tender_. A Linux distribution with libseccomp >= 2.3.3 is
   required.
 * _muen_: The Muen Separation Kernel, on the x86\_64 architecture. Please see
   this [article](https://muen.sk/articles.html#mirageos-unikernels) for
@@ -82,44 +102,45 @@ If you are coming from Linux containers you can think of Solo5 as conceptually
 occupying the same space in the stack as, for example, `runc`.
 
 If you are looking for a high-level stack for deploying unikernels, one such
-project is [Albatross](https://hannes.nqsb.io/Posts/VMM).
+project is [Albatross](https://github.com/hannesm/albatross).
+
+## Setting up
 
 The following examples use the standalone
 [test\_net](../tests/test_net/test_net.c) unikernel which is
 built as part of the normal Solo5 build process.
-
-~~The products of building a Solo5 unikernel are, depending on the _target_, one
-or two artifacts: (...)~~
-
-_TODO: Tie in / link to application manifest documentation?._
 
 `test_net` is a minimalist network test which will respond only to ARP
 and ICMP echo requests sent to the hard-coded IP address of `10.0.0.2`. It
 accepts two possible command line arguments: Either `verbose` for verbose
 operation or `limit` to terminate after having sent 100,000 ICMP echo replies.
 
-## Setting up
-
 By convention, we will use the `tap100` interface to talk to the unikernel.
 
 To set up the `tap100` interface on Linux, run (as root):
 
-    ip tuntap add tap100 mode tap
-    ip addr add 10.0.0.1/24 dev tap100
-    ip link set dev tap100 up
+```sh
+ip tuntap add tap100 mode tap
+ip addr add 10.0.0.1/24 dev tap100
+ip link set dev tap100 up
+```
 
 To set up vmm and the `tap100` interface on FreeBSD, run (as root):
 
-    kldload vmm
-    kldload if_tap
-    sysctl -w net.link.tap.up_on_open=1
-    ifconfig tap100 create 10.0.0.1/24 link0
+```sh
+kldload vmm
+kldload if_tap
+sysctl -w net.link.tap.up_on_open=1
+ifconfig tap100 create 10.0.0.1/24 link0
+```
 
 To set up vmm and the `tap100` interface on OpenBSD, run (as root):
 
-    cd /dev
-    ./MAKEDEV tap100
-    ifconfig tap100 inet 10.0.0.1 netmask 255.255.255.0
+```sh
+cd /dev
+./MAKEDEV tap100
+ifconfig tap100 inet 10.0.0.1 netmask 255.255.255.0
+```
 
 ## _hvt_: Running on Linux, FreeBSD and OpenBSD with hardware virtualization
 
@@ -129,18 +150,41 @@ unikernel.
 
 On Linux, the `solo5-hvt` _tender_ only requires access to `/dev/kvm` and
 `/dev/net/tun`, and thus does NOT need to run as `root` provided your have
-granted the user in question the correct permissions.
+granted the user in question the correct permissions. Most recent Linux
+distributions provide a `kvm` group for this purpose, and `/dev/net/tun` is
+normally world-writable.
 
-On FreeBSD and OpenBSD, `root` privileges are currently required in order to
-access the `vmm` APIs. However, before starting the unikernel, the _tender_
-will drop privileges to an unprivileged user and, in the case of OpenBSD, use
-`pledge(2)` to further lower its privileges.
+On FreeBSD, `root` privileges are currently required to run the `solo5-hvt`
+_tender_ in order to access the `vmm` APIs.
 
-To launch the unikernel:
+On OpenBSD, the `solo5-hvt` _tender_ must be started as `root`, however it will
+drop privileges to the standard `_vmd` user and further use `pledge(2)` to
+lower its privileges.
 
-    ../tenders/hvt/solo5-hvt --net:service=tap100 -- test_net.hvt verbose
+To launch the unikernel, in `tests/test_net/` run:
+
+```sh
+../../tenders/hvt/solo5-hvt --mem=2 --net:service0=tap100 -- test_net.hvt verbose
+```
 
 Use `^C` to terminate the unikernel.
+
+The option `--mem=2` requests that 2 MB of host memory be allocated, but not
+committed, to the unikernel. If it is not specified, a default of of 512 MB is
+used.
+
+The option `--net:service0=tap100` requests that the _tender_ attach the network
+device with the logical name `service0`, declared in the unikernel's
+[application manifest](architecture.md#application-manifest), to the host's TAP
+interface named `tap100`.
+
+All devices declared by the unikernel _must_ be attached for it to be allowed
+to run. To query a unikernel's _application manifest_ from an existing binary,
+you can use `solo5-elftool`:
+
+```sh
+../../elftool/solo5-elftool query-manifest test_net.hvt
+```
 
 ## _spt_: Running on Linux with a strict seccomp sandbox
 
@@ -148,23 +192,31 @@ The _spt_ ("sandboxed process tender") target currently supports Linux systems
 only, and uses a _strict_ (minimal whitelist) seccomp sandbox to isolate the
 guest unikernel, which runs as a user process on the host.
 
-The `solo5-spt` tender is built as part of Solo5, and does not require any
-special privileges to run.
+The `solo5-spt` _tender_ does not require any special privileges to run.
 
-To launch the unikernel:
+To launch the unikernel, in `tests/test_net/` run:
 
-    ../tenders/spt/solo5-spt --net:service=tap100 -- test_net.spt verbose
+```sh
+../../tenders/spt/solo5-spt --mem=2 --net:service0=tap100 -- test_net.spt verbose
+```
+
+Use `^C` to terminate the unikernel.
+
+The `solo5-spt` _tender_ has the same common options as `solo5-hvt`. Refer to
+the hvt example in the previous section for a brief description.
 
 ## _virtio_: Running with KVM/QEMU on Linux, or bhyve on FreeBSD
 
-The [solo5-virtio-run](../scripts/virtio-run/solo5-virtio-run.sh) script provides a wrapper
-to correctly launch `qemu-system-x86_64` or `bhyve` on the host system.  Using
-it is not required; by default it will print the commands used to setup and
-launch the guest VM. You can run these manually if desired.
+The [solo5-virtio-run](../scripts/virtio-run/solo5-virtio-run.sh) script
+provides a wrapper to correctly launch `qemu-system-x86_64` or `bhyve` on the
+host system.  Using it is not required; by default it will print the commands
+used to setup and launch the guest VM. You can run these manually if desired.
 
-To launch the unikernel:
+To launch the unikernel, in `tests/test_net/` run:
 
-    ../scripts/virtio-run/solo5-virtio-run.sh -n tap100 -- test_net.virtio verbose
+```sh
+../../scripts/virtio-run/solo5-virtio-run.sh -n tap100 -- test_net.virtio verbose
+```
 
 Use `^C` to terminate the unikernel.
 
@@ -175,7 +227,8 @@ protocol for booting. If your hypervisor can boot a multiboot-compliant
 kernel directly then this is the preferred method.
 
 If your hypervisor requires a full disk image to boot, you can use the
-[solo5-virtio-mkimage](../scripts/virtio-mkimage/solo5-virtio-mkimage.sh) tool to build one.
+[solo5-virtio-mkimage](../scripts/virtio-mkimage/solo5-virtio-mkimage.sh) tool
+to build one.
 
 `solo5-virtio-mkimage` supports the following image formats:
 
@@ -190,14 +243,15 @@ keeping it around as it is useful to some users, it is essentially a
 virtualization. As the goals of Solo5 have since evolved, we do not expect to
 devote a substantial amount of time to the further development of _virtio_.
 
-Therefore, we recommend that new deployments use the _hvt_ target instead.
+Therefore, we recommend that new deployments use the _hvt_ or _spt_ target
+instead.
 
 As the _virtio_ bindings internally support only a single network and/or block
-device, if multiple such devices are declared in the application manifest, only
-the first valid "acquire" call of each device type will succeed. Conversely, if
-multiple such virtual hardware devices are presented to the VM by the
-hypervisor, only the first instance of each device will be used by the
-unikernel.
+device, if multiple such devices are declared in the [application
+manifest](architecture.md#application-manifest), only the first valid "acquire"
+call of each device type will succeed. Conversely, if multiple such virtual
+hardware devices are presented to the VM by the hypervisor, only the first
+instance of each device type can be used by the unikernel.
 
 The following virtual hardware devices are supported by the _virtio_ target:
 

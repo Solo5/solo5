@@ -1,19 +1,95 @@
-## dev
+## 0.6.0 (2019-09-19)
 
-TODO: Complete this before release.
+This is a major feature release which introduces the concept of an "application
+manifest", which enables support for multiple network and block devices.
 
-Rough list of changes on master since 0.4.1:
+This release removes the compile-time specialization of the "hvt" tender. While
+this was a nice experiment, it is not practical for real-world deployment
+scenarios where it is expected that the party supplying the tender (i.e. the
+operator / user) will be different to the party supplying the unikernel (i.e.
+the developer).
 
-* Support for stack smashing protection, build with -fstack-protector-strong.
-* Unmap low memory and zero page on hvt and virtio.
-* New target "spt" (Linux seccomp for isolation).
-* Replace ee\_printf() with a better implementation.
-* Remove hvt compile-time specialization.
-* Add `solo5_set_tls_base()`.
-* W^X: Add tests, enforce on those targets where support is working/available.
-* hvt: Change --dumpcore option to --dumpcore=DIR.
-* Introduce application manifest and support for multiple (block, network)
-  devices.
+Due to these and other changes, both the public Solo5 APIs (as defined and
+documented in solo5.h) and internal tenders/bindings ABI have changed.
+Likewise, the build process for Solo5-based unikernels has changed, and
+downstream projects will need to be updated.
+
+Please refer to the following list of changes and the Solo5 documentation in
+docs/ for details.
+
+New features:
+
+* Application manifest and support for multiple devices. New APIs have been
+  added and existing APIs changed. See solo5.h for details. A new tool,
+  "solo5-elftool" has been added to generate the binary application manifest
+  from JSON source.
+* New "spt" (sandboxed process tender) target, allows running Solo5-based
+  unikernels as user processes on Linux, using a minimal, strict seccomp-BPF
+  sandbox for isolation. Runs on the x86\_64, aarch64 and ppc64le processor
+  architectures.
+* Compile-time specialization of the "hvt" (hardware virtualized tender) target
+  has been removed. Two variants of the "hvt" tender are built, "solo5-hvt" and
+  "solo5-hvt-debug" with support for GDB and guest coredumps where available.
+* Both the "hvt" and "spt" tenders and bindings now have an internal ABI
+  version, and this ABI version is embedded into the unikernel binary. Tenders
+  will not run a binary whose ABI version or target does not match.
+* Downsteam libOS projects using custom linker scripts for Solo5 will need to
+  be updated to handle the ELF NOTEs used to embed the ABI version and
+  application manifest in a Solo5 binary.
+
+Security improvements:
+
+* Stack smashing protection is now supported and all bindings, tenders and
+  other host tools are built with -fstack-protector-strong. This setting is
+  also passed down to MirageOS unikernels via OPAM/pkg-config.
+* On Linux, tenders are built with -z noexecstack to enforce a non-executable
+  stack.
+* Low memory, including the zero page, is now unmapped on "hvt", "spt" and
+  "virtio" targets. Tender-internal structures in this memory range are mapped
+  read-only.
+* Tests for W^X / guest-side page protections have been added and are enforced
+  on those targets where this is supported.
+* The ELF loader used by tenders has undergone extensive review and
+  re-factoring, and fixes for a number of potential security issues have been
+  put in place.
+
+Other changes:
+
+* The "hvt" tender now uses epoll(7) on Linux and kqueue(2) on the BSDs for
+  network I/O.
+* The "hvt" tender "--dumpcore" option now requires a directory, which must
+  exist at run time.
+* The printf() implementation used by bindings has been replaced with a much
+  better implementation from https://github.com/mpaland/printf.
+* The `solo5_set_tls_base()` API has been added to give language runtimes that
+  wish to manipulate the architecture-specific TLS base register an interface
+  for it.
+* Many bug fixes, improvements and a lot of code review throughout.
+* A C11 compiler is now required, to allow for the use of `_Static_assert()`.
+
+Known issues:
+
+* Full W^X support is currently only possible on the "spt" target. Partial
+  support is possible for the "hvt" target running on Linux/KVM hosts. (#303)
+* On OpenBSD, "hvt" operation with multiple network devices results in packet
+  loss. This appears to be a bug in kqueue(2) but we have no confirmation from
+  upstream. (#374)
+
+Acknowledgements:
+
+Thanks to the following new contributors to this release:
+
+* Frithjof Schulze (@schulze)
+* Haibo Xu (@xiaobo55x)
+* Stefan Berger (@stefanberger)
+
+And finally, a special thank you to C For C's Sake (@cfcs) for extensive code
+review.
+
+## 0.5.0 (N/A)
+
+* Skipped for version numbering consistency with downstream MirageOS/Solo5
+  components.
 
 ## 0.4.1 (2018-11-08)
 
@@ -29,8 +105,8 @@ Acknowledgements:
 
 Thanks to the following new contributors to this release:
 
-* Emery Hemingway
-* Stefan Grundmann
+* Emery Hemingway (@ehmry)
+* Stefan Grundmann (@sg2342)
 
 ## 0.4.0 (2018-09-14)
 
@@ -76,8 +152,8 @@ Minor point release with build fixes:
 
 Thanks to the following new contributors to this release:
 
-* Rolf Sommerhalder
-* Sven Anderson
+* Rolf Sommerhalder (@hb9cwp)
+* Sven Anderson (@ansiwen)
 
 ## 0.3.0 (2018-06-15)
 
@@ -107,9 +183,9 @@ Acknowledgements:
 
 Thanks to the following new contributors to this release:
 
-* Adam Steen
-* Nikhil AP
-* Wei Chen
+* Adam Steen (@adamsteen)
+* Nikhil AP (@niks3089)
+* Wei Chen (@Weichen81)
 
 ## 0.2.2 (2017-04-04)
 
@@ -130,9 +206,9 @@ Acknowledgements:
 
 Thanks to the following new contributors to this release:
 
-* Adrian-Ken Rueegsegger
-* Michael LeMay
-* Gabriel Jaldon
+* Adrian-Ken Rueegsegger (@Kensan)
+* Michael LeMay (@mdlemay)
+* Gabriel Jaldon (@gjaldon)
 
 ## 0.2.1 (2017-02-21)
 
@@ -173,9 +249,10 @@ Acknowledgements:
 The following people helped by filing valuable issues, testing and other
 non-code contributions to this release:
 
-* David Kaloper
-* Hannes Mehnert
-* Sean Grove
+* David Kaloper (@pqwy)
+* Hannes Mehnert (@hannesm)
+* Ian Campbell (@ijc25)
+* Sean Grove (@sgrove)
 
 Thank you!
 
