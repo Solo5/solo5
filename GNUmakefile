@@ -101,8 +101,13 @@ install-opam-%: all opam/solo5-bindings-%.pc force-install
 	    $(PREFIX)/include/solo5-bindings-$*/solo5 \
 	    $(PREFIX)/include/solo5-bindings-$*/crt
 	cp -R include/solo5 include/crt $(PREFIX)/include/solo5-bindings-$*
+ifndef CONFIG_GENODE
 	cp bindings/$*/solo5_$*.o bindings/$*/solo5_$*.lds \
 	    $(PREFIX)/lib/solo5-bindings-$*
+else
+	cp bindings/$*/solo5.lib.so bindings/$*/genode_dyn.ld \
+	    $(PREFIX)/lib/solo5-bindings-$*
+endif
 	cp opam/solo5-bindings-$*.pc $(PREFIX)/lib/pkgconfig
 	cp elftool/solo5-elftool $(PREFIX)/bin
 ifdef CONFIG_HVT
@@ -143,6 +148,9 @@ uninstall-opam-%: force-uninstall
 # CONFIG_VIRTIO
 	$(RM) $(PREFIX)/bin/solo5-virtio-mkimage
 	$(RM) $(PREFIX)/bin/solo5-virtio-run
+# CONFIG_GENODE
+	$(RM) $(PREFIX)/lib/solo5-bindings-$*/solo5.lib.so \
+	    $(PREFIX)/lib/solo5-bindings-$*/genode_dyn.ld
 
 # The following targets are kept for backwards compatibility, as otherwise
 # upgrading existing OPAM switches will fail. They should be removed at some
