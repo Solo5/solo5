@@ -164,7 +164,7 @@ lower its privileges.
 To launch the unikernel, in `tests/test_net/` run:
 
 ```sh
-../../tenders/hvt/solo5-hvt --mem=2 --net:service=tap100 -- test_net.hvt verbose
+../../tenders/hvt/solo5-hvt --mem=2 --net:service0=tap100 -- test_net.hvt verbose
 ```
 
 Use `^C` to terminate the unikernel.
@@ -173,8 +173,8 @@ The option `--mem=2` requests that 2 MB of host memory be allocated, but not
 committed, to the unikernel. If it is not specified, a default of of 512 MB is
 used.
 
-The option `--net:service=tap100` requests that the _tender_ attach the network
-device with the logical name `service`, declared in the unikernel's
+The option `--net:service0=tap100` requests that the _tender_ attach the network
+device with the logical name `service0`, declared in the unikernel's
 [application manifest](architecture.md#application-manifest), to the host's TAP
 interface named `tap100`.
 
@@ -197,7 +197,7 @@ The `solo5-spt` _tender_ does not require any special privileges to run.
 To launch the unikernel, in `tests/test_net/` run:
 
 ```sh
-../../tenders/spt/solo5-spt --mem=2 --net:service=tap100 -- test_net.spt verbose
+../../tenders/spt/solo5-spt --mem=2 --net:service0=tap100 -- test_net.spt verbose
 ```
 
 Use `^C` to terminate the unikernel.
