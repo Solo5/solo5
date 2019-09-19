@@ -87,11 +87,11 @@ setup_block() {
 }
 
 hvt_run() {
-  run ${TIMEOUT} --foreground 60s ${HVT_TENDER} "$@"
+  run ${TIMEOUT} --foreground 60s ${HVT_TENDER} --mem=2 "$@"
 }
 
 spt_run() {
-  run ${TIMEOUT} --foreground 60s ${SPT_TENDER} "$@"
+  run ${TIMEOUT} --foreground 60s ${SPT_TENDER} --mem=2 "$@"
 }
 
 virtio_run() {
