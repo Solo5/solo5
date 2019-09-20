@@ -130,7 +130,7 @@ case ${CC_MACHINE} in
         CONFIG_ARCH=aarch64 CONFIG_HOST=Linux
         CONFIG_GUEST_PAGE_SIZE=0x1000
         ;;
-    powerpc64le-*linux*)
+    powerpc64le-*linux*|ppc64le-*linux*)
         CONFIG_ARCH=ppc64le CONFIG_HOST=Linux
         CONFIG_GUEST_PAGE_SIZE=0x10000
         ;;
