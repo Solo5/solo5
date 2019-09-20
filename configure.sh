@@ -94,7 +94,7 @@ check_libseccomp_version()
 
 #if SCMP_VER_MAJOR >= 2
   #if SCMP_VER_MINOR >= 3
-    #if SCMP_VER_MICRO >= 3
+    #if SCMP_VER_MINOR > 3 || SCMP_VER_MICRO >= 3
       /* Ok */
     #else
       #error libseccomp >= 2.3.3 is required
