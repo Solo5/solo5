@@ -1,3 +1,13 @@
+## 0.6.2 (2019-09-23)
+
+This release fixes further OPAM/MirageOS installation problems found by CI, and
+the following build problems:
+
+* spt: Support ppc64le on RedHat (thanks to Stefan Berger, @stefanberger).
+* Fix check/warning for libseccomp >= 2.3.3 (thanks to Mechiel Lukkien, @mjl-).
+
+No functional changes.
+
 ## 0.6.1 (2019-09-19)
 
 This release fixes OPAM/MirageOS installation problems found by CI. No
