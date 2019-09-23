@@ -87,19 +87,25 @@ define HOSTLINK
 	$(HOSTCC) $(HOSTLDFLAGS) $^ $(HOSTLDLIBS) -o $@
 endef
 
+#
+# The following CFLAGS and LDFLAGS are passed downstream to MirageOS via OPAM
+# and pkg-config.
+#
 PC_CFLAGS := -ffreestanding -fstack-protector-strong $(MAKECONF_CFLAGS)
-PC_GENODE_CFLAGS := $(GENODE_APP_CFLAGS)
 PC_LD := $(MAKECONF_LD)
 PC_LDFLAGS := $(LDFLAGS)
+
+# Genode application compiling and linking is a special case
+PC_GENODE_CFLAGS := -ffreestanding -fstack-protector-strong -fPIC $(MAKECONF_CFLAGS)
 PC_GENODE_LDFLAGS := $(GENODE_APP_LDFLAGS)
 
 %.pc: %.pc.in
 	@echo SUBST $@
 	sed <$< > $@ \
 	    -e 's#!PC_CFLAGS!#$(PC_CFLAGS)#g;' \
-	    -e 's#!PC_GENODE_CFLAGS!#$(PC_GENODE_CFLAGS)#g;' \
 	    -e 's#!PC_LD!#$(PC_LD)#g;' \
 	    -e 's#!PC_LDFLAGS!#$(PC_LDFLAGS)#g;' \
+	    -e 's#!PC_GENODE_CFLAGS!#$(PC_GENODE_CFLAGS)#g;' \
 	    -e 's#!PC_GENODE_LDFLAGS!#$(PC_GENODE_LDFLAGS)#g;' \
 
 .PRECIOUS: %.pc
