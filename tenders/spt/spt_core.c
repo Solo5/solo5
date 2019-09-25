@@ -58,6 +58,8 @@ extern long __executable_start;
 
 static bool use_exec_heap = false;
 
+static bool is_dry_run = false;
+
 struct spt *spt_init(size_t mem_size)
 {
     struct spt *spt = malloc(sizeof (struct spt));
@@ -239,6 +241,10 @@ void spt_run(struct spt *spt, uint64_t p_entry)
     if (rc != 0)
         errx(1, "seccomp_load() failed: %s", strerror(-rc));
 
+    if (is_dry_run) {
+        exit(EXIT_SUCCESS);
+    }
+
     spt_launch(sp, start_fn, spt->mem + SPT_BOOT_INFO_BASE);
 
     abort(); /* spt_launch() does not return */
@@ -250,6 +256,9 @@ static int handle_cmdarg(char *cmdarg, struct mft *mft)
         warnx("WARNING: The use of --x-exec-heap is dangerous and not"
               " recommended as it makes the heap and stack executable.");
         use_exec_heap = true;
+        return 0;
+    } else if (!strncmp("--dry-run", cmdarg, 9)) {
+        is_dry_run = true;
         return 0;
     }
     return -1;
@@ -297,7 +306,8 @@ static int setup(struct spt *spt, struct mft *mft)
 
 static char *usage(void)
 {
-    return "--x-exec-heap (make the heap executable)."
+    return "--dry-run (load and validate, but do not actually execute).\n"
+       "    --x-exec-heap (make the heap executable)."
            " WARNING: This option is dangerous and not recommended as it"
            " makes the heap and stack executable.";
 }
