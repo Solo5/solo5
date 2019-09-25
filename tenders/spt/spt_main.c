@@ -222,6 +222,7 @@ int main(int argc, char **argv)
             matched = 1;
             argc--;
             argv++;
+	    continue;
         }
         if (handle_cmdarg(*argv, mft) == 0) {
             /* Handled by module, consume and go on to next arg */
