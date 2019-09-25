@@ -116,6 +116,7 @@ EOM
 # Allow external override of CC.
 CC=${CC:-cc}
 LD=${LD:-ld}
+HOSTCC=${HOSTCC:-$CC}
 
 CC_MACHINE=$(${CC} -dumpmachine)
 [ $? -ne 0 ] &&
@@ -292,6 +293,46 @@ case "${CONFIG_HOST}" in
         ;;
 esac
 
+while [ $# -ne 0 ]
+do
+  arg="$1"
+  case "$arg" in
+    --without-genode)
+      CONFIG_GENODE=
+      ;;
+    --without-hvt)
+      CONFIG_HVT=
+      ;;
+    --without-muen)
+      CONFIG_MUEN=
+      ;;
+    --without-spt)
+      CONFIG_SPT=
+      ;;
+    --without-virtio)
+      CONFIG_VIRTIO=
+      ;;
+    --with-afl-gcc)
+      # Build tenders with afl-gcc tooling.
+      HOSTCC=afl-gcc
+      # TODO before merge detect/check this
+      ;;
+    *)
+    printf '%s\n' 'Accepted flags for configure.sh:'
+    printf '%s\n' '--without-genode: Build without Genode support'
+    printf '%s\n' '--without-hvt: Build without HVT support'
+    printf '%s\n' '--without-muen: Build without Muen-SK support'
+    printf '%s\n' '--without-spt: Build without SPT (Linux Seccomp) support'
+    printf '%s\n' '--without-virtio: Build without Virtio support'
+    printf '%s\n' '--with-afl-gcc: Build tenders with afl-gcc instrumentation'
+    printf '%s\n' '               (equivalent to HOSTCC=afl-gcc ./configure.sh)'
+    exit 1
+    ;;
+  esac
+  # Check next argument:
+  shift
+done
+
 # WARNING:
 #
 # The generated Makeconf is dual-use! It is both sourced by GNU make, and by
@@ -323,10 +364,12 @@ CONFIG_HOST=${CONFIG_HOST}
 CONFIG_GUEST_PAGE_SIZE=${CONFIG_GUEST_PAGE_SIZE}
 MAKECONF_CC=${CC}
 MAKECONF_LD=${LD}
+MAKECONF_HOSTCC=${HOSTCC}
 CONFIG_SPT_NO_PIE=${CONFIG_SPT_NO_PIE}
 EOM
 
-echo "${prog_NAME}: Configured for ${CC_MACHINE}."
+echo "${prog_NAME}: Configured for ${CC_MACHINE} using ${HOSTCC}."
+[ "${CC}" = "${HOSTCC}" ] || printf '(tender) HOSTCC=%s   (unikernel) CC=%s\n' "${HOSTCC}" "${CC}"
 echo -n "${prog_NAME}: Enabled targets:"
 [ -n "${CONFIG_HVT}" ]    && echo -n " hvt"
 [ -n "${CONFIG_SPT}" ]    && echo -n " spt"

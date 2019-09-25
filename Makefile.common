@@ -63,7 +63,7 @@ endef
 # The following variables and recpies apply to building tenders, i.e.
 # artifacts built to run on the (Solo5 tender's) *host*.
 #
-HOSTCC := $(MAKECONF_CC)
+HOSTCC := $(MAKECONF_HOSTCC)
 HOSTCFLAGS := -Wall -Werror -std=c11 -fstack-protector-strong -O2 -g
 HOSTCPPFLAGS := -I$(TOPDIR)/include/solo5
 HOSTLDFLAGS :=
