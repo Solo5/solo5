@@ -49,7 +49,7 @@ static void puts(const char *s)
     solo5_console_write(s, strlen(s));
 }
 
-#if defined(__OpenBSD__)
+#if defined(__OpenBSD__) || defined(__FreeBSD__)
 /* __thread is not supported in OpenBSD (this test fails on it). */
 volatile uint64_t _data;
 #else
