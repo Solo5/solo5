@@ -378,7 +378,7 @@ struct Solo5::Platform
 	 *
 	 * TODO: periodic RTC synchronization
 	 */
-	Genode::uint64_t _initial_epoch { rtc_epoch(env) };
+	Genode::uint64_t _initial_epoch { 0 };
 
 	/**
 	 * Commandline buffer
@@ -424,6 +424,15 @@ struct Solo5::Platform
 	/********************
 	 ** Solo5 bindings **
 	 ********************/
+
+	solo5_time_t clock_wall()
+	{
+		if (_initial_epoch == 0)
+			_initial_epoch = rtc_epoch(env);
+
+		return _initial_epoch * 1000000000ULL
+		     + timer.curr_time().trunc_to_plain_us().value * 1000ULL;
+	}
 
 	void
 	yield(solo5_time_t deadline_ns, solo5_handle_set_t *ready_set)
@@ -529,9 +538,7 @@ solo5_time_t solo5_clock_monotonic(void)
 
 solo5_time_t solo5_clock_wall(void)
 {
-	return Platform::instance->_initial_epoch * 1000000000ULL
-	     + Platform::instance->timer.curr_time()
-	     	.trunc_to_plain_us().value * 1000ULL;
+	return Platform::instance->clock_wall();
 }
 
 
