@@ -21,6 +21,6 @@ let main =
 
 let stack = generic_stackv4 default_network
 
-let img = block_of_file "disk.img"
+let img = block_of_file "storage"
 
 let () = register "test" [main $ default_console $ stack $ img]
