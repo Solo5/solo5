@@ -90,9 +90,7 @@ case "${SURF_BUILD_TYPE}" in
         do_basic
         ;;
     e2e)
-        # TODO: Re-enable once MirageOS branches are settled.
-        # do_e2e
-        echo "WARNING: E2E tests currently disabled"
+        do_e2e
         ;;
     *)
         echo "WARNING: SURF_BUILD_TYPE not set, assuming 'basic'"
