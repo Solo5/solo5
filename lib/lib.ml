@@ -22,7 +22,7 @@ let prep_setup_switch =
       >> chdir switch_path (call [ "tar"; "-xzf"; "../switch.tar.gz" ])
     | false ->
       call [ "mkdir"; "-p"; switch_path ]
-      >> call [ "opam"; "switch"; "create"; switch_path; "4.07.1" ]
+      >> call [ "opam"; "switch"; "create"; switch_path; "4.09.0" ]
       >> chdir switch_path (call [ "tar"; "-czf"; "../switch.tar.gz"; "." ])
 
 (* Prepare: Install root packages ------------------------------------------- *)
@@ -99,35 +99,20 @@ let run_setup_block =
 
 (* Run: Initialise smoketest ------------------------------------------------ *)
 
-(* Determine if Solo5 is using the soon-to-be-old-style hvt tender build at
- * unikernel build time, or if we should run using the solo5-hvt binary
- * installed by OPAM.
- * TODO: This required adding with_switch to the following run_ steps which is
- * slow, re-work this to use "opam config --switch=... var bin" instead.
- *)
-let hvt_tender_path =
-  file_exists (src_path ^ "/solo5-hvt") >>= fun hvt_is_local ->
-  if hvt_is_local then
-    return (src_path ^ "/solo5-hvt")
-  else
-    return ("solo5-hvt")
-
 let run_init_smoketest =
-  hvt_tender_path >>= fun hvt_tender_path' ->
   call (with_switch @
-        [ hvt_tender_path';
-          "--net=tap100";
-          "--disk=" ^ block_path;
+        [ "solo5-hvt";
+          "--net:service=tap100";
+          "--block:storage=" ^ block_path;
           src_path ^ "/test.hvt"; "--init" ])
 
 (* Run: Run smoketest ------------------------------------------------------- *)
 
 let run_smoketest_server =
-  hvt_tender_path >>= fun hvt_tender_path' ->
   call (with_switch @
-        [ hvt_tender_path';
-          "--net=tap100";
-          "--disk=" ^ block_path;
+        [ "solo5-hvt";
+          "--net:service=tap100";
+          "--block:storage=" ^ block_path;
           src_path ^ "/test.hvt" ])
 
 let run_smoketest_client =
