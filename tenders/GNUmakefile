@@ -96,7 +96,8 @@ HOSTLDFLAGS += -Wl,-Ttext-segment=0x40000000
 
 endif
 
-HOSTLDLIBS += -lseccomp
+HOSTCFLAGS += $(MAKECONF_SPT_CFLAGS)
+HOSTLDLIBS += $(MAKECONF_SPT_LDLIBS)
 
 spt_SRCS := spt/spt_main.c spt/spt_core.c spt/spt_launch_$(CONFIG_ARCH).S \
     spt/spt_module_net.c spt/spt_module_block.c

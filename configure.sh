@@ -62,7 +62,7 @@ EOM
 
 gcc_check_header()
 {
-    ${CC} -x c -o /dev/null - <<EOM >/dev/null 2>&1
+    ${CC} ${PKG_CFLAGS} -x c -o /dev/null - <<EOM >/dev/null 2>&1
 #include <$@>
 
 int main(int argc, char *argv[])
@@ -74,7 +74,7 @@ EOM
 
 gcc_check_lib()
 {
-    ${CC} -x c -o /dev/null - "$@" <<EOM >/dev/null 2>&1
+    ${CC} -x c -o /dev/null - "$@" ${PKG_LIBS} <<EOM >/dev/null 2>&1
 int main(int argc, char *argv[])
 {
     return 0;
@@ -85,32 +85,6 @@ EOM
 ld_is_lld()
 {
     ${LD} --version 2>&1 | grep -q '^LLD'
-}
-
-check_libseccomp_version()
-{
-    ${CC} -x c -o /dev/null - "$@" <<EOM >/dev/null 2>&1
-#include <seccomp.h>
-
-#if SCMP_VER_MAJOR >= 2
-  #if SCMP_VER_MINOR >= 3
-    #if SCMP_VER_MINOR > 3 || SCMP_VER_MICRO >= 3
-      /* Ok */
-    #else
-      #error libseccomp >= 2.3.3 is required
-    #endif
-  #else
-    #error libseccomp >= 2.3.3 is required
-  #endif
-#else
-  #error libseccomp >= 2.3.3 is required
-#endif
-
-int main(int argc, char *argv[])
-{
-    return 0;
-}
-EOM
 }
 
 # Allow external override of CC.
@@ -159,6 +133,8 @@ CONFIG_MUEN=
 CONFIG_GENODE=
 MAKECONF_CFLAGS=
 MAKECONF_LDFLAGS=
+MAKECONF_SPT_CFLAGS=
+MAKECONF_SPT_LDLIBS=
 CONFIG_SPT_NO_PIE=
 
 case "${CONFIG_HOST}" in
@@ -199,18 +175,30 @@ case "${CONFIG_HOST}" in
         fi
 
         CONFIG_HVT=1
-        if ! gcc_check_header seccomp.h; then
-            warn "Could not compile with seccomp.h, not building spt target"
-        elif ! gcc_check_lib -lseccomp; then
-            warn "Could not link with -lseccomp, not building spt target"
+        CONFIG_SPT=1
+        if ! command -v pkg-config >/dev/null; then
+            die "pkg-config is required"
+        fi
+        if ! pkg-config libseccomp; then
+            die "libseccomp development headers are required"
         else
-            # TODO: Replace this with a hard error once we drop Debian 9, and
-            # consider warning on all but the latest supported upstream
-            # libseccomp version.
-            if ! check_libseccomp_version; then
-                warn "libseccomp >= 2.3.3 is required for correct spt operation, expect tests to fail"
+            if ! pkg-config --atleast-version=2.3.3 libseccomp; then
+                # TODO Make this a hard error once there are no distros with
+                # libseccomp < 2.3.3 in the various CIs.
+                warn "libseccomp >= 2.3.3 is required for correct spt operation"
+                warn "Proceeding anyway, expect tests to fail"
+            elif ! pkg-config --atleast-version=2.4.1 libseccomp; then
+                warn "libseccomp < 2.4.1 has known vulnerabilities"
+                warn "Proceeding anyway, but consider upgrading"
             fi
-            CONFIG_SPT=1
+            MAKECONF_SPT_CFLAGS=$(pkg-config --cflags libseccomp)
+            MAKECONF_SPT_LDLIBS=$(pkg-config --libs libseccomp)
+        fi
+        if ! PKG_CFLAGS=${MAKECONF_SPT_CFLAGS} gcc_check_header seccomp.h; then
+            die "Could not compile with seccomp.h"
+        fi
+        if ! PKG_LIBS=${MAKECONF_SPT_LIBS} gcc_check_lib -lseccomp; then
+            die "Could not link with -lseccomp"
         fi
         [ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_VIRTIO=1
         [ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_MUEN=1
@@ -323,6 +311,8 @@ CONFIG_HOST=${CONFIG_HOST}
 CONFIG_GUEST_PAGE_SIZE=${CONFIG_GUEST_PAGE_SIZE}
 MAKECONF_CC=${CC}
 MAKECONF_LD=${LD}
+MAKECONF_SPT_CFLAGS=${MAKECONF_SPT_CFLAGS}
+MAKECONF_SPT_LDLIBS=${MAKECONF_SPT_LDLIBS}
 CONFIG_SPT_NO_PIE=${CONFIG_SPT_NO_PIE}
 EOM
 
