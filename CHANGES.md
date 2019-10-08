@@ -1,3 +1,11 @@
+## 0.6.3 (2019-10-08)
+
+This release fixes a build problem with Linux distributions such as OpenSUSE
+which install libseccomp headers into subdirectories of /usr/include. Note that
+this introduces pkg-config as a dependency for building Solo5 on Linux.
+
+No functional changes.
+
 ## 0.6.2 (2019-09-23)
 
 This release fixes further OPAM/MirageOS installation problems found by CI, and
