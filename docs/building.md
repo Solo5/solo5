@@ -23,7 +23,8 @@ Solo5 itself has the following build dependencies:
 * a C11 compiler; recent versions of GCC and clang are supported,
 * GNU make,
 * full host system headers (on Linux, kernel headers are not always installed
-  by default).
+  by default),
+* on Linux only, pkg-config and libseccomp >= 2.3.3 are required.
 
 Note that Solo5 does not support cross-compilation. With the exception of the
 _muen_ and _genode_ targets (which are not self-hosting), you should build
