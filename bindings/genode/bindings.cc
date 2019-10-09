@@ -35,10 +35,12 @@
 #include <base/component.h>
 #include <base/sleep.h>
 
+#define restrict __restrict__
+
 /* Solo5 includes */
 extern "C" {
 #include "../bindings.h"
-extern struct mft_note __solo5_manifest_note;
+extern struct mft1_note __solo5_mft1_note;
 }
 
 // Compile the MFT utilities as C++
@@ -162,7 +164,7 @@ struct Solo5::Net_device final : Device
 	Net_device(struct mft_entry &me,
 	           Genode::Env &env,
 	           Range_allocator &alloc,
-	           solo5_handle_set_t ready_set,
+	           solo5_handle_set_t &ready_set,
 	           solo5_handle_t handle)
 	: _nic(env, &alloc, NIC_BUFFER_SIZE, NIC_BUFFER_SIZE, me.name)
 	, _signal_handler(env.ep(), *this, &Net_device::_handle_signal)
@@ -330,7 +332,7 @@ struct Solo5::Platform
 	static Platform *instance;
 	static Device   *devices[MFT_MAX_ENTRIES];
 
-	struct mft &mft;
+	struct mft const &mft;
 
 	/**
 	 * Reference to the Genode base enviroment
@@ -376,7 +378,7 @@ struct Solo5::Platform
 	 *
 	 * TODO: periodic RTC synchronization
 	 */
-	Genode::uint64_t _initial_epoch { rtc_epoch(env) };
+	Genode::uint64_t _initial_epoch { 0 };
 
 	/**
 	 * Commandline buffer
@@ -387,7 +389,8 @@ struct Solo5::Platform
 	/**
 	 * Constructor
 	 */
-	Platform(struct mft &mft, Genode::Env &env) : mft(mft), env(env)
+	Platform(struct mft const &mft, Genode::Env &env)
+	: mft(mft), env(env)
 	{
 		/**
 		 * Acquire and attach a ROM dataspace (shared
@@ -400,7 +403,7 @@ struct Solo5::Platform
 
 		// Copy-out the cmdline if configured.
 		try { cmdline = config.sub_node("cmdline").decoded_content<Cmdline>(); }
-		catch (...) { }
+		catch (Genode::Xml_node::Nonexistent_sub_node) { }
 
 		for (solo5_handle_t i = 0U; i < MFT_MAX_ENTRIES; ++i) {
 			devices[i] = &invalid_device;
@@ -421,6 +424,15 @@ struct Solo5::Platform
 	/********************
 	 ** Solo5 bindings **
 	 ********************/
+
+	solo5_time_t clock_wall()
+	{
+		if (_initial_epoch == 0)
+			_initial_epoch = rtc_epoch(env);
+
+		return _initial_epoch * 1000000000ULL
+		     + timer.curr_time().trunc_to_plain_us().value * 1000ULL;
+	}
 
 	void
 	yield(solo5_time_t deadline_ns, solo5_handle_set_t *ready_set)
@@ -526,9 +538,7 @@ solo5_time_t solo5_clock_monotonic(void)
 
 solo5_time_t solo5_clock_wall(void)
 {
-	return Platform::instance->_initial_epoch * 1000000000ULL
-	     + Platform::instance->timer.curr_time()
-	     	.trunc_to_plain_us().value * 1000ULL;
+	return Platform::instance->clock_wall();
 }
 
 
@@ -616,16 +626,19 @@ solo5_set_tls_base(uintptr_t base)
 void Component::construct(Genode::Env &env)
 {
 	/* Validate the device manifest */
-	struct mft &mft = __solo5_manifest_note.m;
-	size_t mft_size = __solo5_manifest_note.h.descsz;
-	if (mft_validate(&mft, mft_size) != 0) {
-		Genode::error("Solo5: Built-in manifest validation failed. Aborting");
+	const struct mft *mft;
+	size_t mft_size;
+
+	mft_get_builtin_mft1(&__solo5_mft1_note, &mft, &mft_size);
+
+	if (mft_validate(mft, mft_size) != 0) {
+		Genode::error("Solo5: ", res, " Built-in manifest validation failed. Aborting.");
 		env.parent().exit(~0);
 		return;
 	}
 
 	/* Construct a statically allocated platform object */
-	static Solo5::Platform inst(mft, env);
+	static Solo5::Platform inst(*mft, env);
 	Platform::instance = &inst;
 
 	static struct solo5_start_info si {
@@ -641,12 +654,14 @@ void Component::construct(Genode::Env &env)
 	if (si.heap_size > 1<<20)
 		si.heap_size -= 1<<19;
 
-	/* allocate a contiguous memory region for the application */
-	Genode::Dataspace_capability heap_ds =
-		env.pd().alloc(si.heap_size);
+	{
+		/* allocate a contiguous memory region for the application */
+		Genode::Dataspace_capability heap_ds =
+			env.pd().alloc(si.heap_size);
 
-	/* attach into our address-space */
-	si.heap_start = env.rm().attach(heap_ds);
+		/* attach into our address-space */
+		si.heap_start = env.rm().attach(heap_ds);
+	}
 
 	/* block for application then exit */
 	env.parent().exit(solo5_app_main(&si));
