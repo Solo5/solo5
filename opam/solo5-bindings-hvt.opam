@@ -18,7 +18,10 @@ remove: [
   ["touch" "./Makeconf"]
   [make "V=1" "uninstall-opam-hvt" "PREFIX=%{prefix}%"]
 ]
-depends: "conf-pkg-config"
+depends: [
+  "conf-pkg-config"
+  "conf-libseccomp" {build & os = "linux"}
+]
 depexts: [
   ["linux-headers"] {os-distribution = "alpine"}
   ["linux-libc-dev"] {os-distribution = "debian"}

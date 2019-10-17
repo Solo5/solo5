@@ -16,7 +16,10 @@ remove: [
   ["touch" "./Makeconf"]
   [make "V=1" "uninstall-opam-genode" "PREFIX=%{prefix}%"]
 ]
-depends: "conf-pkg-config"
+depends: [
+  "conf-pkg-config"
+  "conf-libseccomp" {build & os = "linux"}
+]
 conflicts: [
   "solo5-bindings-hvt"
   "solo5-bindings-spt"

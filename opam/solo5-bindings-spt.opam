@@ -18,18 +18,16 @@ remove: [
   ["touch" "./Makeconf"]
   [make "V=1" "uninstall-opam-spt" "PREFIX=%{prefix}%"]
 ]
-depends: "conf-pkg-config"
+depends: [
+  "conf-pkg-config"
+  "conf-libseccomp" {os = "linux"}
+]
 depexts: [
   ["linux-headers"] {os-distribution = "alpine"}
   ["linux-libc-dev"] {os-distribution = "debian"}
   ["kernel-headers"] {os-distribution = "fedora"}
   ["kernel-headers"] {os-distribution = "rhel"}
   ["linux-libc-dev"] {os-distribution = "ubuntu"}
-  ["libseccomp-dev"] {os-distribution = "alpine"}
-  ["libseccomp-dev"] {os-distribution = "debian"}
-  ["libseccomp-devel"] {os-distribution = "fedora"}
-  ["libseccomp-devel"] {os-distribution = "rhel"}
-  ["libseccomp-dev"] {os-distribution = "ubuntu"}
 ]
 conflicts: [
   "solo5-bindings-hvt"
