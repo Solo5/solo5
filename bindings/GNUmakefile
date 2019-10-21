@@ -57,7 +57,7 @@ muen_SRCS := muen/start.c $(common_SRCS) $(common_hvt_SRCS) \
     muen/muen-clock.c muen/muen-console.c muen/muen-net.c \
     muen/muen-platform_lifecycle.c muen/muen-yield.c muen/muen-sinfo.c
 
-genode_SRCS := genode/stubs.c
+genode_SRCS := genode/bindings.cc
 
 CPPFLAGS+=-D__SOLO5_BINDINGS__
 
@@ -69,6 +69,9 @@ endif
 
 %.o: %.c %.d
 	$(COMPILE.c)
+
+%.o: %.cc %.d
+	$(COMPILE.cc)
 
 %.o: %.S %.d
 	$(COMPILE.S)
@@ -139,9 +142,7 @@ muen/solo5_muen.o: $(muen_OBJS)
 endif
 
 ifdef CONFIG_GENODE
-    genode_OBJS := $(patsubst %.c,%.o,$(patsubst %.S,%.o,$(genode_SRCS)))
-
-$(genode_OBJS): CFLAGS += -Wno-unused-parameter
+    genode_OBJS := $(patsubst %.cc,%.o,$(patsubst %.S,%.o,$(genode_SRCS)))
 
 GENODE_LDFLAGS := -nostdlib -z max-page-size=$(CONFIG_GUEST_PAGE_SIZE) -shared \
     -gc-sections --eh-frame-hdr --entry=0x0 -T genode/genode_rel.ld

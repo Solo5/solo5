@@ -111,32 +111,32 @@ struct Solo5::Device
 {
 	virtual
 	solo5_result_t
-	net_info(solo5_net_info &info) {
+	net_info(solo5_net_info &) {
 		return SOLO5_R_EINVAL; }
 
 	virtual
 	solo5_result_t
-	net_write(const uint8_t *buf, size_t size) {
+	net_write(const uint8_t *, size_t) {
 		return SOLO5_R_EINVAL; }
 
 	virtual
 	solo5_result_t
-	net_read(uint8_t *buf, size_t size, size_t &read_size) {
+	net_read(uint8_t *, size_t, size_t &) {
 		return SOLO5_R_EINVAL; }
 
 	virtual
 	solo5_result_t
-	block_info(solo5_block_info &info) {
+	block_info(solo5_block_info &) {
 		return SOLO5_R_EINVAL; }
 
 	virtual
 	solo5_result_t
-	block_write(solo5_off_t offset, const uint8_t *buf, size_t size) {
+	block_write(solo5_off_t, const uint8_t *, size_t) {
 		return SOLO5_R_EINVAL; }
 
 	virtual
 	solo5_result_t
-	block_read(solo5_off_t offset, uint8_t *buf, size_t size) {
+	block_read(solo5_off_t, uint8_t *, size_t) {
 		return SOLO5_R_EINVAL; }
 };
 
@@ -610,7 +610,7 @@ solo5_block_read(solo5_handle_t handle, solo5_off_t offset,
 
 
 solo5_result_t
-solo5_set_tls_base(uintptr_t base)
+solo5_set_tls_base(uintptr_t)
 {
     return SOLO5_R_EUNSPEC;
 }
@@ -632,7 +632,7 @@ void Component::construct(Genode::Env &env)
 	mft_get_builtin_mft1(&__solo5_mft1_note, &mft, &mft_size);
 
 	if (mft_validate(mft, mft_size) != 0) {
-		Genode::error("Solo5: ", res, " Built-in manifest validation failed. Aborting.");
+		Genode::error("Solo5: Built-in manifest validation failed. Aborting.");
 		env.parent().exit(~0);
 		return;
 	}

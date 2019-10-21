@@ -89,6 +89,7 @@ ld_is_lld()
 
 # Allow external override of CC.
 CC=${CC:-cc}
+CXX=${CXX:-c++}
 LD=${LD:-ld}
 
 CC_MACHINE=$(${CC} -dumpmachine)
@@ -116,6 +117,10 @@ case ${CC_MACHINE} in
         CONFIG_ARCH=x86_64 CONFIG_HOST=OpenBSD
         CONFIG_GUEST_PAGE_SIZE=0x1000
         ;;
+    x86_64-*genode*)
+        CONFIG_ARCH=x86_64 CONFIG_HOST=Genode
+        CONFIG_GUEST_PAGE_SIZE=0x1000
+        ;;
     *)
         die "Unsupported toolchain target: ${CC_MACHINE}"
         ;;
@@ -131,6 +136,7 @@ CONFIG_SPT=
 CONFIG_VIRTIO=
 CONFIG_MUEN=
 CONFIG_GENODE=
+CONFIG_HOST_CRT=
 MAKECONF_CFLAGS=
 MAKECONF_LDFLAGS=
 MAKECONF_SPT_CFLAGS=
@@ -143,6 +149,8 @@ case "${CONFIG_HOST}" in
         cc_is_gcc || die "Only 'gcc' 4.x+ is supported on Linux"
         CC_INCDIR=$(${CC} -print-file-name=include)
         [ -d "${CC_INCDIR}" ] || die "Cannot determine gcc include directory"
+
+        CONFIG_HOST_CRT=1
         mkdir -p ${HOST_INCDIR}
         cp -R ${CC_INCDIR}/. ${HOST_INCDIR}
 
@@ -202,8 +210,8 @@ case "${CONFIG_HOST}" in
         fi
         [ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_VIRTIO=1
         [ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_MUEN=1
-        [ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_GENODE=1
         [ "${CONFIG_ARCH}" = "ppc64le" ] && CONFIG_HVT=
+        CONFIG_GENODE=
         ;;
     FreeBSD)
         # On FreeBSD/clang we use -nostdlibinc which gives us access to the
@@ -221,6 +229,7 @@ case "${CONFIG_HOST}" in
             x86/_types.h x86/_limits.h"
         SRCS="float.h osreldate.h stddef.h stdint.h stdbool.h stdarg.h"
 
+        CONFIG_HOST_CRT=1
         mkdir -p ${HOST_INCDIR}
         mkdir -p ${HOST_INCDIR}/machine ${HOST_INCDIR}/sys ${HOST_INCDIR}/x86
         for f in ${SRCS_MACH}; do cp -f ${INCDIR}/$f ${HOST_INCDIR}/machine; done
@@ -239,6 +248,21 @@ case "${CONFIG_HOST}" in
         [ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_VIRTIO=1
         [ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_MUEN=1
         CONFIG_GENODE=
+        ;;
+    Genode)
+        cc_is_clang || die "Only 'clang' is supported on Genode"
+        [ "${CONFIG_ARCH}" = "x86_64" ] ||
+            die "Only 'x86_64' is supported on Genode"
+        ld_is_lld || die "Using GNU 'ld' is not supported on Genode"
+
+        MAKECONF_CFLAGS="-mno-retpoline -nostdlibinc"
+        MAKECONF_LDFLAGS="-nopie"
+
+        CONFIG_HVT=
+        CONFIG_SPT=
+        CONFIG_VIRTIO=
+        CONFIG_MUEN=
+        CONFIG_GENODE=1
         ;;
     OpenBSD)
         # On OpenBSD/clang we use -nostdlibinc which gives us access to the
@@ -259,6 +283,7 @@ case "${CONFIG_HOST}" in
         SRCS_AMD64="amd64/_float.h amd64/stdarg.h amd64/endian.h"
         SRCS="float.h stddef.h stdint.h stdbool.h stdarg.h"
 
+        CONFIG_HOST_CRT=1
         mkdir -p ${HOST_INCDIR}
         mkdir -p ${HOST_INCDIR}/machine ${HOST_INCDIR}/sys ${HOST_INCDIR}/amd64
         for f in ${SRCS_MACH}; do cp -f ${INCDIR}/$f ${HOST_INCDIR}/machine; done
@@ -304,13 +329,16 @@ CONFIG_SPT=${CONFIG_SPT}
 CONFIG_VIRTIO=${CONFIG_VIRTIO}
 CONFIG_MUEN=${CONFIG_MUEN}
 CONFIG_GENODE=${CONFIG_GENODE}
+CONFIG_HOST_CRT=${CONFIG_HOST_CRT}
 MAKECONF_CFLAGS=${MAKECONF_CFLAGS}
 MAKECONF_LDFLAGS=${MAKECONF_LDFLAGS}
 CONFIG_ARCH=${CONFIG_ARCH}
 CONFIG_HOST=${CONFIG_HOST}
 CONFIG_GUEST_PAGE_SIZE=${CONFIG_GUEST_PAGE_SIZE}
 MAKECONF_CC=${CC}
+MAKECONF_CXX=${CXX}
 MAKECONF_LD=${LD}
+MAKECONF_HOSTCC=${HOSTCC:-$CC}
 MAKECONF_SPT_CFLAGS=${MAKECONF_SPT_CFLAGS}
 MAKECONF_SPT_LDLIBS=${MAKECONF_SPT_LDLIBS}
 CONFIG_SPT_NO_PIE=${CONFIG_SPT_NO_PIE}

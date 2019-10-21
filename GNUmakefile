@@ -98,9 +98,11 @@ install-opam-%: all opam/solo5-bindings-%.pc force-install
 	    (echo "error: PREFIX not set or incorrect"; false)
 	mkdir -p $(PREFIX)/lib/pkgconfig \
 	    $(PREFIX)/lib/solo5-bindings-$* \
-	    $(PREFIX)/include/solo5-bindings-$*/solo5 \
-	    $(PREFIX)/include/solo5-bindings-$*/crt
-	cp -R include/solo5 include/crt $(PREFIX)/include/solo5-bindings-$*
+	    $(PREFIX)/include/solo5-bindings-$*
+	cp -R include/solo5 $(PREFIX)/include/solo5-bindings-$*
+ifdef CONFIG_HOST_CRT
+	cp -R include/crt $(PREFIX)/include/solo5-bindings-$*
+endif
 ifndef CONFIG_GENODE
 	cp bindings/$*/solo5_$*.o bindings/$*/solo5_$*.lds \
 	    $(PREFIX)/lib/solo5-bindings-$*

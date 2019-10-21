@@ -30,8 +30,10 @@ include $(TOPDIR)/Makeconf
 # tests (applications).
 #
 CC := $(MAKECONF_CC)
+CXX := $(MAKECONF_CXX)
 CFLAGS := -std=c11 -Wall -Wextra -Werror -O2 -g
 CFLAGS += -ffreestanding -fstack-protector-strong $(MAKECONF_CFLAGS)
+CXXFLAGS += -Wall -Wextra -Werror -O2 -g
 CPPFLAGS := -isystem $(TOPDIR)/include/crt -I$(TOPDIR)/include/solo5
 LD := $(MAKECONF_LD)
 LDFLAGS := -nostdlib -z max-page-size=$(CONFIG_GUEST_PAGE_SIZE) -static \
@@ -53,6 +55,12 @@ define COMPILE.c
 	mv -f $*.Td $*.d && touch $@
 endef
 
+define COMPILE.cc
+	@echo "CXX $<"
+	$(CXX) $(DEPFLAGS) $(CXXFLAGS) $(CPPFLAGS) -c $< -o $@
+	mv -f $*.Td $*.d && touch $@
+endef
+
 define COMPILE.S
 	@echo "AS $<"
 	$(CC) $(DEPFLAGS) $(CFLAGS) $(CPPFLAGS) -DASM_FILE -c $< -o $@
@@ -63,7 +71,7 @@ endef
 # The following variables and recpies apply to building tenders, i.e.
 # artifacts built to run on the (Solo5 tender's) *host*.
 #
-HOSTCC := $(MAKECONF_CC)
+HOSTCC := $(MAKECONF_HOSTCC)
 HOSTCFLAGS := -Wall -Werror -std=c11 -fstack-protector-strong -O2 -g
 HOSTCPPFLAGS := -I$(TOPDIR)/include/solo5
 HOSTLDFLAGS :=
