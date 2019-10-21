@@ -154,7 +154,8 @@ struct mft1_note {
  * Internal alignment of (m) within struct mft1_note. Must be passed to
  * elf_load_note() as note_align when loading.
  */
-#define MFT1_NOTE_ALIGN offsetof(struct { char c; struct mft m; }, m)
+struct _mft1_note_aligned { char c; struct mft m; };
+#define MFT1_NOTE_ALIGN offsetof(struct _mft1_note_aligned, m)
 
 _Static_assert((offsetof(struct mft1_note, m) & (MFT1_NOTE_ALIGN - 1)) == 0,
         "struct mft1_note.m is not aligned to a MFT1_NOTE_ALIGN boundary");
