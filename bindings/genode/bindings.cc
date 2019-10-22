@@ -44,8 +44,6 @@ extern struct mft1_note __solo5_mft1_note;
 }
 
 // Compile the MFT utilities as C++
-#define memset Genode::memset
-#define strncmp Genode::strcmp
 #include "../../tenders/common/mft.c"
 
 namespace Solo5
@@ -614,6 +612,39 @@ solo5_set_tls_base(uintptr_t)
 {
     return SOLO5_R_EUNSPEC;
 }
+
+
+void *memcpy(void *restrict dest, const void *restrict src, size_t n)
+{
+	return Genode::memcpy(dest, src, n);
+}
+
+
+void *memset(void *dest, int c, size_t n)
+{
+	return Genode::memset(dest, c, n);
+}
+
+
+int strncmp(const char *l, const char *r, size_t n)
+{
+	return Genode::strcmp(l, r, n);
+}
+
+
+void _assert_fail(const char *file, const char *line, const char *e)
+{
+	Genode::error("Solo5: ABORT: ", file, ":", line, ": Assertion `", e, "' failed");
+	Platform::instance->exit(SOLO5_EXIT_ABORT, nullptr);
+}
+
+
+void _abort(const char *file, const char *line, const char *s, void *regs_hint)
+{
+	Genode::error("Solo5: ABORT: ", file, ":", line, ": ", s);
+	Platform::instance->exit(SOLO5_EXIT_ABORT, regs_hint);
+}
+
 
 } // extern "C"
 
