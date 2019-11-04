@@ -15,3 +15,8 @@ solo5-hvt
 *.virtio
 *.muen
 *.genode
+.merlin
+dune
+dune-project
+dune.build
+dune.config
