@@ -1,9 +1,9 @@
 open Lwt.Infix
 
 module Main
-    (C: Mirage_types_lwt.CONSOLE)
-    (S: Mirage_stack_lwt.V4)
-    (B: Mirage_types_lwt.BLOCK) = struct
+    (C: Mirage_types.CONSOLE)
+    (S: Mirage_stack.V4)
+    (B: Mirage_types.BLOCK) = struct
 
   let align i n = (i + n - 1) / n * n
 
