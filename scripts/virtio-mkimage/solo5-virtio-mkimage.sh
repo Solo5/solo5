@@ -195,7 +195,7 @@ SERIAL 0 115200
 DEFAULT unikernel
 LABEL unikernel
   KERNEL mboot.c32
-  APPEND unikernel.bin $@
+  APPEND -aout unikernel.bin $@
 EOM
 # Ugh, mtools complains about filesystem size not being a multiple of
 # what it thinks the sectors-per-track are, ignore.
