@@ -5,7 +5,7 @@ addons:
         packages:
             - qemu-system-x86
             - libseccomp-dev
-script: ./configure.sh && make && tests/run-tests.sh && make distrib
+script: SURF_BUILD_TYPE=basic SURF_SUDO=sudo SURF_RUN_TESTS=yes ./build.sh
 matrix:
   include:
     - env: _ARCH_ACTUAL=x86_64
