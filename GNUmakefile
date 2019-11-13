@@ -90,7 +90,20 @@ distclean: clean
 	-[ -d include/crt ] && $(RM) -r include/crt
 	$(RM) Makeconf
 
-.PHONY: force-install
+.PHONY: force-install force-uninstall
+
+install-tools: MAKECMDGOALS :=
+install-tools: DESTDIR ?= /usr/local
+install-tools: all force-install
+	@echo INSTALL solo5
+	mkdir -p $(DESTDIR)/bin
+	cp elftool/solo5-elftool $(DESTDIR)/bin
+
+uninstall-tools: DESTDIR ?= /usr/local
+uninstall-tools: force-uninstall
+	@echo UNINSTALL solo5
+	$(RM) $(DESTDIR)/bin/solo5-elftool
+
 install-opam-%: MAKECMDGOALS :=
 install-opam-%: all opam/solo5-bindings-%.pc force-install
 	@echo INSTALL solo5
@@ -127,7 +140,6 @@ endif
 
 # uninstall-opam-% may not have a Makeconf available, so should always uninstall
 # all build products from all solo5-bindings variants regardless.
-.PHONY: force-uninstall
 uninstall-opam-%: force-uninstall
 	@echo UNINSTALL solo5
 	@[ -d "$(PREFIX)" -a -d "$(PREFIX)/bin" ] || \

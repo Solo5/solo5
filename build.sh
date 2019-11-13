@@ -1,18 +1,14 @@
 #!/bin/sh
 #
-# THIS IS NOT THE BUILD SCRIPT FOR Solo5.
+# THIS IS NOT THE BUILD SCRIPT FOR SOLO5.
 #
-# This script is used for automated builds with surf-build.
+# This script is used for automated builds with surf-build and Travis CI.
 # See https://github.com/Solo5/solo5-ci for details.
 #
 if type gmake >/dev/null 2>&1; then
     MAKE=gmake
 else
     MAKE=make
-fi
-
-if [ -z "${SURF_SUDO}" ]; then
-    SURF_SUDO=sudo
 fi
 
 message()
@@ -58,7 +54,13 @@ do_basic()
         try ${SURF_SUDO} tests/setup-tests.sh
         try ${SURF_SUDO} tests/run-tests.sh
     fi
+    message "Testing 'make distrib'."
     try ${MAKE} distrib
+    message "Testing tools only build."
+    try ${MAKE} distclean
+    try ./configure.sh --only-tools
+    try ${MAKE}
+    try ${SURF_SUDO} ${MAKE} install-tools
 }
 
 do_e2e()
@@ -93,8 +95,8 @@ case "${SURF_BUILD_TYPE}" in
         do_e2e
         ;;
     *)
-        echo "WARNING: SURF_BUILD_TYPE not set, assuming 'basic'"
-        do_basic
+        echo "ERROR: SURF_BUILD_TYPE not set"
+        exit 1
         ;;
 esac
 
