@@ -243,8 +243,8 @@ virtio_expect_abort() {
 }
 
 @test "tls hvt" {
-  if [ "${CONFIG_HOST}" = "OpenBSD" ]; then
-    skip "tls tests not run for OpenBSD"
+  if [ "${CONFIG_HOST}" != "Linux" ]; then
+    skip "not supported on ${CONFIG_HOST}"
   fi
 
   hvt_run test_tls/test_tls.hvt
@@ -252,8 +252,8 @@ virtio_expect_abort() {
 }
 
 @test "tls virtio" {
-  if [ "${CONFIG_HOST}" = "OpenBSD" ]; then
-    skip "tls tests not run for OpenBSD"
+  if [ "${CONFIG_HOST}" != "Linux" ]; then
+    skip "not supported on ${CONFIG_HOST}"
   fi
 
   virtio_run test_tls/test_tls.virtio
@@ -261,10 +261,6 @@ virtio_expect_abort() {
 }
 
 @test "tls spt" {
-  if [ "${CONFIG_HOST}" = "OpenBSD" ]; then
-    skip "tls tests not run for OpenBSD"
-  fi
-
   spt_run test_tls/test_tls.spt
   expect_success
 }
@@ -301,6 +297,16 @@ virtio_expect_abort() {
 
 @test "time hvt" {
   hvt_run test_time/test_time.hvt
+  # XXX:
+  # On Debian 10 CI nodes, this test is flaky and fails too often with
+  # "slept too little". Ignore that (and only that) case.
+  if [ "${CONFIG_HOST}" = "Linux" ]; then
+    if gcc --version | grep -q Debian; then
+      if [ "$status" -eq 1 ] && [[ "$output" == *"slept too little"* ]]; then
+        skip flaky, ignored
+      fi
+    fi
+  fi
   expect_success
 }
 

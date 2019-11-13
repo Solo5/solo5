@@ -21,6 +21,31 @@
 #include "solo5.h"
 #include "../../bindings/lib.c"
 
+/*
+ * XXX TODO: This test contains a bad, incomplete implementation of TLS.
+ * It's unclear what we should be testing here, and what "TLS support" in
+ * the context of Solo5 means at all.
+ */
+
+/*
+ * FreeBSD clang toolchain post 8.0.1/12.1-RELEASE fails to build this test
+ * with:
+ *
+ * ld: error: test_tls.o has an STT_TLS symbol but doesn't have an SHF_TLS section
+ *
+ * OpenBSD clang toolchains have unspecified non-support for TLS.
+ *
+ * In both cases just compile a dummy and disable this test in tests.bats.
+ */
+#if defined(__OpenBSD__) || defined(__FreeBSD__)
+
+int solo5_app_main(const struct solo5_start_info *si __attribute__((unused)))
+{
+    return SOLO5_EXIT_FAILURE;
+}
+
+#else
+
 #if defined(__x86_64__) || defined(__powerpc64__)
 /* Variant II */
 struct tcb {
@@ -49,12 +74,7 @@ static void puts(const char *s)
     solo5_console_write(s, strlen(s));
 }
 
-#if defined(__OpenBSD__)
-/* __thread is not supported in OpenBSD (this test fails on it). */
-volatile uint64_t _data;
-#else
 __thread volatile uint64_t _data;
-#endif
 
 uint64_t __attribute__ ((noinline)) get_data()
 {
@@ -99,3 +119,5 @@ int solo5_app_main(const struct solo5_start_info *si __attribute__((unused)))
     puts("SUCCESS\n");
     return SOLO5_EXIT_SUCCESS;
 }
+
+#endif /* defined(__FreeBSD__) || defined(__OpenBSD__) */
