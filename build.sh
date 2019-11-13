@@ -53,6 +53,31 @@ do_basic()
         fi
         try ${SURF_SUDO} tests/setup-tests.sh
         try ${SURF_SUDO} tests/run-tests.sh
+        # On Linux x86_64 Debian VMs only, also test solo5-virtio-mkimage.
+        # Specifically don't run this on Ubuntu (Travis) as their syslinux
+        # package is broken and incomplete. The following seems as good a way
+        # as any to tell we're on actual Debian as opposed to Ubuntu.
+        if gcc --version | grep -q Debian; then
+            if [ "$(uname -s)" = "Linux" -a "$(uname -m)" = "x86_64" ]; then
+                message "Testing solo5-virtio-mkimage.sh:"
+                try scripts/virtio-mkimage/solo5-virtio-mkimage.sh \
+                    test.img tests/test_hello/test_hello.virtio
+                # XXX Can't use try() here due to 83 == OK
+                timeout 10s \
+                    qemu-system-x86_64 -machine q35 \
+                    -display none -serial file:serial.out \
+                    -drive file=test.img,if=virtio,format=raw \
+                    -device isa-debug-exit
+                if grep -q 'solo5_exit(0) called' serial.out; then
+                    echo "SUCCESS"
+                    rm -f test.img serial.out
+                else
+                    echo "FAILURE. Log follows:"
+                    cat serial.out
+                    exit 1
+                fi
+            fi
+        fi
     fi
     message "Testing 'make distrib'."
     try ${MAKE} distrib
