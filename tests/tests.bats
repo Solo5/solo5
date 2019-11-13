@@ -243,8 +243,8 @@ virtio_expect_abort() {
 }
 
 @test "tls hvt" {
-  if [ "${CONFIG_HOST}" = "OpenBSD" ]; then
-    skip "tls tests not run for OpenBSD"
+  if [ "${CONFIG_HOST}" != "Linux" ]; then
+    skip "not supported on ${CONFIG_HOST}"
   fi
 
   hvt_run test_tls/test_tls.hvt
@@ -252,8 +252,8 @@ virtio_expect_abort() {
 }
 
 @test "tls virtio" {
-  if [ "${CONFIG_HOST}" = "OpenBSD" ]; then
-    skip "tls tests not run for OpenBSD"
+  if [ "${CONFIG_HOST}" != "Linux" ]; then
+    skip "not supported on ${CONFIG_HOST}"
   fi
 
   virtio_run test_tls/test_tls.virtio
@@ -261,10 +261,6 @@ virtio_expect_abort() {
 }
 
 @test "tls spt" {
-  if [ "${CONFIG_HOST}" = "OpenBSD" ]; then
-    skip "tls tests not run for OpenBSD"
-  fi
-
   spt_run test_tls/test_tls.spt
   expect_success
 }
