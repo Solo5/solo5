@@ -131,6 +131,7 @@ if [ -n "${RUN_IN_DOCKER}" ]; then
     fi
 
     exec docker run --rm \
+        --user $(id -u) \
         ${TMPFS} \
         -v ${SRCDIR}:/host/src -v ${DESTDIR}:/host/dest \
         mato/solo5-virtio-mkimage -f ${FORMAT} \
