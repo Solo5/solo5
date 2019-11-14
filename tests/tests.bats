@@ -303,7 +303,7 @@ virtio_expect_abort() {
   if [ "${CONFIG_HOST}" = "Linux" ]; then
     if gcc --version | grep -q Debian; then
       if [ "$status" -eq 1 ] && [[ "$output" == *"slept too little"* ]]; then
-        skip flaky, ignored
+        skip "flaky, ignored"
       fi
     fi
   fi
