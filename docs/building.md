@@ -68,20 +68,18 @@ Production:
   architecture.
 * _hvt_: FreeBSD vmm, using `solo5-hvt` as a _tender_, on the x86\_64
   architecture.  FreeBSD 11-RELEASE or later is required.
-
-Experimental:
-
 * _hvt_: Linux/KVM, using `solo5-hvt` as a _tender_, on the aarch64
   architecture.  You will need hardware capable of running a recent (v4.14+)
   64-bit mainline kernel and a 64-bit Linux distribution.
+
+Experimental:
+
 * _hvt_: OpenBSD vmm, using `solo5-hvt` as a _tender_, on the x86\_64
   architecture.  OpenBSD 6.4 or later is required.
 * _spt_: Linux systems on the x86\_64, ppc64le and aarch64 architectures, using
   `solo5-spt` as a _tender_. A Linux distribution with libseccomp >= 2.3.3 is
   required.
-* _muen_: The Muen Separation Kernel, on the x86\_64 architecture. Please see
-  this [article](https://muen.sk/articles.html#mirageos-unikernels) for
-  Muen-specific instructions.
+* _muen_: The Muen Separation Kernel, on the x86\_64 architecture.
 * _genode_: The Genode Operating System Framework on the x86\_64 architecture.
   Unikernels may be linked against a shared library containing Solo5 bindings
   and executed as a native Genode component. The bindings library is provided
@@ -284,6 +282,13 @@ The following virtual hardware devices are supported by the _virtio_ target:
 Note that _virtio_ does not support ACPI power-off. This can manifest itself in
 delays shutting down Solo5 guests running on hypervisors which wait for the
 guest to respond to ACPI power-off before performing a hard shutdown.
+
+## _muen_: Running on the Muen Separation Kernel
+
+The _muen_ target provides bindings to run Solo5-based unikernels as native
+subjects on the [Muen Separation Kernel](https://muen.sk). Building systems
+with Muen is outside of the scope of this guide, for details refer to this
+in-depth [article](https://muen.sk/articles.html#mirageos-unikernels).
 
 ----
 
