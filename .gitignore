@@ -17,3 +17,5 @@ tenders/hvt/solo5-hvt
 tenders/hvt/solo5-hvt-debug
 tenders/spt/solo5-spt
 elftool/solo5-elftool
+opam/release
+solo5-*.tar.gz
