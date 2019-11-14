@@ -236,6 +236,26 @@ to build one.
 * `raw`: A raw disk image, written out as a sparse file.
 * `tar`: A disk image suitable for [uploading to](https://cloud.google.com/compute/docs/tutorials/building-images#publishingimage) Google Compute Engine.
 
+Note that `solo5-virtio-mkimage` has a fairly specific set of requirements on
+the host system, and in general runs only on Linux distributions with
+non-broken `syslinux` packages available. For this reason, the script has
+built-in support for running as a Docker container using the `-d` option.
+
+For example, to produce a raw disk image containing
+the [test\_hello](../tests/test_hello/test_hello.c) unikernel and supply a kernel command line of "Hello, Solo5!", in `tests/test_hello` run:
+
+```sh
+../../scripts/virtio-mkimage/solo5-virtio-mkimage.sh -d -f raw test_hello.img test_hello.virtio "Hello, Solo5!"
+```
+
+A QEMU command line suitable for booting this image is:
+
+```sh
+qemu-system-x86_64 -machine q35 -display none -serial stdio -drive file=test_hello.img,if=virtio,format=raw
+```
+
+Use `^C` to terminate the unikernel.
+
 ## _virtio_: Limitations
 
 The _virtio_ target was the initial target supported by Solo5 -- while we are
