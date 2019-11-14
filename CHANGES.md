@@ -1,3 +1,26 @@
+## 0.6.4 (2019-11-14)
+
+This release updates the Genode and Muen bindings, and fixes the following
+notable issues:
+
+* Disk images produced by solo5-virtio-mkimage were not bootable due to changes
+  in recent SYSLINUX versions (thanks to Ricardo Koller, @ricarkol for finding
+  the fix).
+* Build failure on FreeBSD 12.1+ (clang 8.0.1) due to issues with TLS in the
+  toolchain.
+
+New features:
+
+* "configure.sh" has a new "--only-tools" option, which builds no tenders or
+  bindings. In conjunction with "make install-tools", this can be used to
+  install "solo5-elftool" only. This is intended for downstream systems which
+  need to make use of "solo5-elftool" to query manifest information.
+* A "scripts/opam-release.sh" tool has been added to generate OPAM repository
+  metadata as part of the Solo5 release process.
+
+Apart from that, this release contains documentation updates and the "hvt"
+tender on the aarch64 architecture is now considered production-quality.
+
 ## 0.6.3 (2019-10-08)
 
 This release fixes a build problem with Linux distributions such as OpenSUSE
