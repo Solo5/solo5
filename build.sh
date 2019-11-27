@@ -22,10 +22,14 @@ do_info()
 {
     message "System information:"
     uname -a
-    echo "Compiler version:"
-    cc --version
+    CC=${CC:-cc}
+    LD=${LD:-ld}
+    echo "Compiler (${CC}) version:"
+    ${CC} --version
     echo "Compiler version detail:"
-    cc -v
+    ${CC} -v
+    echo "Linker (${LD}) version:"
+    ${LD} -v
 }
 
 try()
