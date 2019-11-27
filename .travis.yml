@@ -1,19 +1,33 @@
 language: c
 dist: xenial
+sudo: required
 addons:
-    apt:
-        packages:
-            - qemu-system-x86
-            - libseccomp-dev
-script: SURF_BUILD_TYPE=basic SURF_SUDO=sudo SURF_RUN_TESTS=yes ./build.sh
-matrix:
+  apt:
+    packages:
+      - qemu-system-x86
+      - libseccomp-dev
+env:
+  global:
+    - SURF_BUILD_TYPE=basic
+    - SURF_SUDO=sudo
+    - SURF_RUN_TESTS=yes
+before_script:
+  - git config user.email travis@example.com
+  - git config user.name "Travis CI"
+script: ./build.sh
+jobs:
   include:
-    - env: _ARCH_ACTUAL=x86_64
+    - name: Build and test spt, virtio
       os: linux
-    - env: _ARCH_ACTUAL=ppc64le CC=gcc-7
-      os: linux-ppc64le
-      sudo: required
-      before_script:
+      arch: amd64
+    - name: Build and test spt
+      os: linux
+      arch: arm64
+    - name: Build and test spt
+      env: CC=gcc-7
+      os: linux
+      arch: ppc64le
+      before_install:
         - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
         - sudo apt-get -y update
         - sudo apt-get -y install gcc-7
