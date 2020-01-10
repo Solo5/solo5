@@ -69,8 +69,9 @@ manifest.c: manifest.json ../../include/solo5/mft_abi.h $(ELFTOOL)
 	$(CC) $(GENODE_APP_CFLAGS) $(CPPFLAGS) -c $< -o $@
 
 %.genode: %.genode.o manifest.genode.o $(LDS.genode) $(BINDINGS.genode)
+	ln -sf $(BINDINGS.genode) solo5.lib.so
 	@echo "LD $@"
-	$(LD) $(GENODE_APP_LDFLAGS) -T $(LDS.genode) $(BINDINGS.genode) \
+	$(LD) $(GENODE_APP_LDFLAGS) -T $(LDS.genode) solo5.lib.so \
 	    $< manifest.genode.o -o $@
 
 ifdef CONFIG_HVT
