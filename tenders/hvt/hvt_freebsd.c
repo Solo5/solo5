@@ -82,7 +82,6 @@ static void cleanup_vm(void)
     }
 }
 
-
 static void cleanup_vmfd(void)
 {
     if (cleanup_hvt != NULL && cleanup_hvt->b->vmfd != -1)
