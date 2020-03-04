@@ -121,4 +121,20 @@ __attribute__ ((section (".note.solo5.abi"), aligned(4))) \
 
 #define ABI1_NOTE_DECLARE_END };
 
+/*
+ * Declare the contents of the .interp section / PT_INTERP.
+ *
+ * This mechanism is used by bindings to ensure that Solo5 ELF executables will
+ * not be loaded by a host system kernel.
+ *
+ * The string "/nonexistent/solo5/" with the trailing slash is used
+ * intentionally to ensure that loading will still fail even in the unlikely
+ * presence of a valid ELF executable at "/nonexistent/solo5".
+ *
+ */
+#define DECLARE_ELF_INTERP \
+const char __fake_interp[24] \
+__attribute__ ((section (".interp"), aligned(8))) \
+= "/nonexistent/solo5/";
+
 #endif /* ELF_ABI_H */

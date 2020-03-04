@@ -90,6 +90,12 @@ static void _start2(void *arg __attribute__((unused)))
 }
 
 /*
+ * Place the .interp section in this module, as it comes first in the link
+ * order.
+ */
+DECLARE_ELF_INTERP
+
+/*
  * The "ABI1" Solo5 ELF note is declared in this module.
  *
  * Virtio does not have an ABI contract (in the Solo5 sense) or use a tender,
