@@ -47,6 +47,12 @@ void _start(void *arg)
 }
 
 /*
+ * Place the .interp section in this module, as it comes first in the link
+ * order.
+ */
+DECLARE_ELF_INTERP
+
+/*
  * The "ABI1" Solo5 ELF note is declared in this module.
  */
 ABI1_NOTE_DECLARE_BEGIN

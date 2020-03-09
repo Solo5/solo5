@@ -50,6 +50,12 @@ void _start(void *arg)
 }
 
 /*
+ * Place the .interp section in this module, as it comes first in the link
+ * order.
+ */
+DECLARE_ELF_INTERP
+
+/*
  * The "ABI1" Solo5 ELF note is declared in this module.
  *
  * Muen currently has no formal Solo5 ABI contract, so the version is always 1.

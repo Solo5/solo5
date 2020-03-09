@@ -34,6 +34,7 @@ ENTRY(_start)
  * into a separate PT_NOTE header, we need to lay these out explicitly.
  */
 PHDRS {
+    interp PT_INTERP;
     text PT_LOAD FLAGS(5); /* No FILEHDR or PHDRS, force R/E only.
                               FLAGS values come from PF_x in elf.h */
     data PT_LOAD;
@@ -51,6 +52,10 @@ SECTIONS {
      * :text: The following input sections are placed in the R/E :text segment.
      */
     _stext = .;
+
+    .interp : {
+        *(.interp)
+    } :interp :text
 
     .text :
     {
