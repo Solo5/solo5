@@ -169,7 +169,7 @@ static bool muen_net_dev_init(const char *name, struct muen_net_device *device,
         log(WARN, "Solo5: Net: '%s': No output channel\n", name);
         return false;
     }
-    if (!(chan_out->data.mem.flags & MEM_CHANNEL_FLAG)) {
+    if (chan_out->data.mem.kind != MUEN_MEM_SUBJ_CHANNEL) {
         log(WARN, "Solo5: Net: '%s': Memory '%s' is not a channel\n",
             name, chan_out->name.data);
         return false;
@@ -184,7 +184,7 @@ static bool muen_net_dev_init(const char *name, struct muen_net_device *device,
         log(WARN, "Solo5: Net: '%s': No input channel\n", name);
         return false;
     }
-    if (!(chan_in->data.mem.flags & MEM_CHANNEL_FLAG)) {
+    if (chan_in->data.mem.kind != MUEN_MEM_SUBJ_CHANNEL) {
         log(WARN, "Solo5: Net: '%s': Memory '%s' is not a channel\n",
             name, chan_in->name.data);
         return false;
