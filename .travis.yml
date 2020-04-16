@@ -1,6 +1,6 @@
 language: c
+os: linux
 dist: xenial
-sudo: required
 addons:
   apt:
     packages:
@@ -17,15 +17,12 @@ before_script:
 script: ./build.sh
 jobs:
   include:
-    - name: Build and test spt, virtio
-      os: linux
+    - name: Build and test spt, virtio (amd64)
       arch: amd64
-    - name: Build and test spt
-      os: linux
+    - name: Build and test spt (arm64)
       arch: arm64
-    - name: Build and test spt
+    - name: Build and test spt (ppc64le)
       env: CC=gcc-7
-      os: linux
       arch: ppc64le
       before_install:
         - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
