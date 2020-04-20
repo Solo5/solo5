@@ -153,8 +153,8 @@ config_host_linux()
     fi
     [ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_VIRTIO=1
     [ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_MUEN=1
-    [ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_GENODE=1
     [ "${CONFIG_ARCH}" = "ppc64le" ] && CONFIG_HVT=
+    CONFIG_GENODE=
 }
 
 config_host_freebsd()
