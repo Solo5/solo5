@@ -45,7 +45,9 @@ to disable some _targets_, you can either use:
 make CONFIG_HVT= # disables hvt
 ```
 
-or edit the generated `Makeconf` before running `make`.
+or edit the generated `Makeconf` before running `make`. Conversely, using
+`CONFIG_TARGET=1` will enable a _target_ that was not explicitly enabled by
+configure.sh (for example, Genode).
 
 Note that the Solo5 Makefiles do not support building arbitrary `make` targets
 (e.g. `bindings` or `tests`).
@@ -85,7 +87,9 @@ Experimental:
   and executed as a native Genode component. The bindings library is provided
   here in the form of a stub library that can be built using a stock C
   toolchain along with the C++ implementation that must be built using the
-  Genode toolchain.
+  Genode toolchain. Note that the Genode _target_ must be enabled explicitly
+  using `CONFIG_GENODE=1`, and may not build with standard toolchains. If in
+  doubt, please consult with Genode developers.
 
 Limited:
 
