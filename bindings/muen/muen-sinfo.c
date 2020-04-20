@@ -35,8 +35,8 @@ static const struct subject_info_type *sinfo =
 static volatile struct scheduling_info_type *sched_info =
     (struct scheduling_info_type *)(SCHED_INFO_ADDR);
 
-static bool names_equal(const struct muen_name_type *const n1,
-                        const char *const n2)
+bool muen_names_equal(const struct muen_name_type *const n1,
+                      const char *const n2)
 {
     return n1->length == strlen(n2)
         && strncmp(n1->data, n2, n1->length) == 0;
@@ -93,7 +93,7 @@ muen_get_resource(const char *const name, enum muen_resource_kind kind)
     struct iterator i = { NULL, 0 };
 
     while (iterate_resources(&i))
-        if (i.res->kind == kind && names_equal(&i.res->name, name))
+        if (i.res->kind == kind && muen_names_equal(&i.res->name, name))
             return i.res;
 
     return NULL;

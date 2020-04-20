@@ -58,11 +58,11 @@ DECLARE_ELF_INTERP
 /*
  * The "ABI1" Solo5 ELF note is declared in this module.
  *
- * Muen currently has no formal Solo5 ABI contract, so the version is always 1.
+ * Solo5/Muen uses ABI version 2 as of Muen commit 2a64844.
  */
 ABI1_NOTE_DECLARE_BEGIN
 {
     .abi_target = MUEN_ABI_TARGET,
-    .abi_version = 1
+    .abi_version = 2
 }
 ABI1_NOTE_DECLARE_END
