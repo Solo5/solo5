@@ -170,6 +170,7 @@ int hvt_guest_mprotect(void *t_arg, uint64_t addr_start, uint64_t addr_end,
         int prot)
 {
     struct hvt *hvt = t_arg;
+    int ret;
 
     assert(addr_start <= hvt->mem_size);
     assert(addr_end <= hvt->mem_size);
@@ -184,12 +185,34 @@ int hvt_guest_mprotect(void *t_arg, uint64_t addr_start, uint64_t addr_end,
      * Host-side page protections:
      *
      * Ensure that guest-executable pages are not also executable in the host.
-     *
-     * Guest-side page protections:
-     *
-     * Manipulating guest-side (EPT) mappings is currently not supported by
-     * OpenBSD vmm, so there is nothing more we can do.
      */
-    prot &= ~(PROT_EXEC);
-    return mprotect(vaddr_start, size, prot);
+    if(mprotect(vaddr_start, size, prot & ~(PROT_EXEC)) == -1)
+        return -1;
+
+    ret = 0;
+#if defined(VMM_IOC_MPROTECT_EPT)
+    /*
+     * Guest-side page protections:
+     */
+    struct hvt_b *hvb = hvt->b;
+    struct vm_mprotect_ept_params *vmep;
+
+    vmep = calloc(1, sizeof (struct vm_mprotect_ept_params));
+    if (vmep == NULL) {
+        warn("calloc");
+        return -1;
+    }
+
+    vmep->vmep_vm_id = hvb->vcp_id;
+    vmep->vmep_vcpu_id = hvb->vcpu_id;
+
+    vmep->vmep_sgpa = addr_start;
+    vmep->vmep_size = size;
+    vmep->vmep_prot = prot;
+
+    if (ioctl(hvb->vmd_fd, VMM_IOC_MPROTECT_EPT, vmep) < 0) {
+       err(1, "mprotect ept vmm ioctl failed - exiting");
+    }
+#endif
+    return ret;
 }
