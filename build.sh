@@ -1,6 +1,7 @@
 #!/bin/sh
 #
-# THIS IS NOT THE BUILD SCRIPT FOR SOLO5.
+# THIS IS NOT THE BUILD SCRIPT FOR SOLO5. DO NOT RUN THIS SCRIPT MANUALLY
+# UNLESS YOU KNOW WHAT YOU ARE DOING, AND WHAT THE SCRIPT DOES.
 #
 # This script is used for automated builds with surf-build and Travis CI.
 # See https://github.com/Solo5/solo5-ci for details.
@@ -66,7 +67,7 @@ do_basic()
         # Specifically don't run this on Ubuntu (Travis) as their syslinux
         # package is broken and incomplete. The following seems as good a way
         # as any to tell we're on actual Debian as opposed to Ubuntu.
-        if gcc --version | grep -q Debian; then
+        if gcc --version 2>/dev/null | grep -q Debian; then
             if [ "$(uname -s)" = "Linux" -a "$(uname -m)" = "x86_64" ]; then
                 message "Testing solo5-virtio-mkimage.sh:"
                 try scripts/virtio-mkimage/solo5-virtio-mkimage.sh \
@@ -120,16 +121,26 @@ do_e2e()
     try $(opam env) dune exec bin/main.exe
 }
 
-do_info
 case "${SURF_BUILD_TYPE}" in
     basic)
+        # Squash warnings from Git if not configured.
+        if [ ! -f "${HOME}/.gitconfig" ]; then
+            git config --local user.name "Solo5 CI"
+            git config --local user.email build@example.com
+        fi
+
+        do_info
         do_basic
         ;;
     e2e)
+        do_info
         do_e2e
         ;;
     *)
-        echo "ERROR: SURF_BUILD_TYPE not set"
+        echo "ERROR: SURF_BUILD_TYPE not set."
+        echo "NOTE: This is not the build script for Solo5."
+        echo "NOTE: Do not run this script manually, unless you know what you are doing,"
+        echo "NOTE: and you know what the script does."
         exit 1
         ;;
 esac
