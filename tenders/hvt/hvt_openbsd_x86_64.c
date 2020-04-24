@@ -190,6 +190,14 @@ int hvt_vcpu_loop(struct hvt *hvt)
                     hvt_gpa_t gpa = vei->vei.vei_data;
                     fn(hvt, gpa);
                     break;
+#if defined(VMM_IOC_MPROTECT_EPT)
+                case VMX_EXIT_EPT_VIOLATION:
+                    if(vei->vee.vee_fault_type == VEE_FAULT_PROTECT) { 
+                        errx(1, "VMM: host/guest translation fault: rip=0x%llx",
+                            vei->vrs.vrs_gprs[VCPU_REGS_RIP]);
+                    }
+                    break;
+#endif
                 case VMX_EXIT_TRIPLE_FAULT:
                 case SVM_VMEXIT_SHUTDOWN:
                     /* reset VM */
