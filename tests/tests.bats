@@ -17,11 +17,17 @@
 # NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
 # CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
+fatal()
+{
+  echo "ERROR: $@" 1>&2
+  exit 1
+}
+
 setup() {
   cd ${BATS_TEST_DIRNAME}
 
   MAKECONF=../Makeconf
-  [ ! -f ${MAKECONF} ] && skip "Can't find Makeconf, looked in ${MAKECONF}"
+  [ ! -f ${MAKECONF} ] && fatal "Can't find Makeconf, looked in ${MAKECONF}"
   # This is subtle; see the comments in configure.sh.
   eval $(grep -E ^CONFIG_ ${MAKECONF})
 
@@ -30,19 +36,19 @@ setup() {
   elif [ -x "$(command -v gtimeout)" ]; then
     TIMEOUT=gtimeout
   else
-    skip "timeout(gtimeout) is required"
+    fatal "timeout(gtimeout) is required"
   fi
   if [ -x "$(command -v seq)" ]; then
     SEQ=seq
   elif [ -x "$(command -v gseq)" ]; then
     SEQ=gseq
   else
-    skip "seq(gseq) is required"
+    fatal "seq(gseq) is required"
   fi
 
   case "${BATS_TEST_NAME}" in
   *hvt)
-    [ -z "${CONFIG_HVT}" ] && skip "hvt not configured"
+    [ -z "${CONFIG_HVT}" ] && skip
     case "${CONFIG_HOST}" in
     Linux)
       [ -c /dev/kvm -a -w /dev/kvm ] || skip "no access to /dev/kvm or not present"
@@ -58,14 +64,12 @@ setup() {
     HVT_TENDER_DEBUG=../tenders/hvt/solo5-hvt-debug
     ;;
   *virtio)
-    if [ "${CONFIG_HOST}" = "OpenBSD" ]; then
-      skip "virtio tests not run for OpenBSD"
-    fi
-    [ -z "${CONFIG_VIRTIO}" ] && skip "virtio not configured"
+    [ -z "${CONFIG_VIRTIO}" ] && skip
+    [ "${CONFIG_HOST}" = "OpenBSD" ] && skip
     VIRTIO=../scripts/virtio-run/solo5-virtio-run.sh
     ;;
   *spt)
-    [ -z "${CONFIG_SPT}" ] && skip "spt not configured"
+    [ -z "${CONFIG_SPT}" ] && skip
     SPT_TENDER=../tenders/spt/solo5-spt
     ;;
   esac
