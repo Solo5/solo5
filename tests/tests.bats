@@ -17,11 +17,17 @@
 # NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
 # CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
+fatal()
+{
+  echo "ERROR: $@" 1>&2
+  exit 1
+}
+
 setup() {
   cd ${BATS_TEST_DIRNAME}
 
   MAKECONF=../Makeconf
-  [ ! -f ${MAKECONF} ] && skip "Can't find Makeconf, looked in ${MAKECONF}"
+  [ ! -f ${MAKECONF} ] && fatal "Can't find Makeconf, looked in ${MAKECONF}"
   # This is subtle; see the comments in configure.sh.
   eval $(grep -E ^CONFIG_ ${MAKECONF})
 
@@ -30,19 +36,19 @@ setup() {
   elif [ -x "$(command -v gtimeout)" ]; then
     TIMEOUT=gtimeout
   else
-    skip "timeout(gtimeout) is required"
+    fatal "timeout(gtimeout) is required"
   fi
   if [ -x "$(command -v seq)" ]; then
     SEQ=seq
   elif [ -x "$(command -v gseq)" ]; then
     SEQ=gseq
   else
-    skip "seq(gseq) is required"
+    fatal "seq(gseq) is required"
   fi
 
   case "${BATS_TEST_NAME}" in
   *hvt)
-    [ -z "${CONFIG_HVT}" ] && skip "hvt not configured"
+    [ -z "${CONFIG_HVT}" ] && skip
     case "${CONFIG_HOST}" in
     Linux)
       [ -c /dev/kvm -a -w /dev/kvm ] || skip "no access to /dev/kvm or not present"
@@ -58,14 +64,12 @@ setup() {
     HVT_TENDER_DEBUG=../tenders/hvt/solo5-hvt-debug
     ;;
   *virtio)
-    if [ "${CONFIG_HOST}" = "OpenBSD" ]; then
-      skip "virtio tests not run for OpenBSD"
-    fi
-    [ -z "${CONFIG_VIRTIO}" ] && skip "virtio not configured"
+    [ -z "${CONFIG_VIRTIO}" ] && skip
+    [ "${CONFIG_HOST}" = "OpenBSD" ] && skip
     VIRTIO=../scripts/virtio-run/solo5-virtio-run.sh
     ;;
   *spt)
-    [ -z "${CONFIG_SPT}" ] && skip "spt not configured"
+    [ -z "${CONFIG_SPT}" ] && skip
     SPT_TENDER=../tenders/spt/solo5-spt
     ;;
   esac
@@ -98,6 +102,48 @@ virtio_run() {
   run ${TIMEOUT} --foreground 60s ${VIRTIO} "$@"
 }
 
+# Given a list of arguments in the format HOST[_RELEASE], returns true iff CONFIG_HOST
+# matches at least one HOST. If a RELEASE is specified, additionally checks that the
+# running host kernel release (uname -r) matches RELEASE *exactly*.
+match_hostrelease() {
+  local arg=
+  local host=
+  local release=
+  local found=1 # false
+  for arg in "$@"; do
+    release="${arg#*_}"
+    if [ "${release}" = "${arg}" ]; then
+      host="${arg}" # just host
+      release=      # don't care about release
+    else
+      host="${arg%_*}" # just host
+                       # release got set by the initial ${arg#*_}
+    fi
+
+    if [ "${CONFIG_HOST}" = "${host}" ]; then
+      if [ -n "${release}" ]; then
+        [ "$(uname -r)" = "${release}" ] && found=0 && break
+      else
+        found=0 && break
+      fi
+    fi
+  done
+  return ${found}
+}
+
+skip_if_host_is() {
+  match_hostrelease "$@" && skip "not supported on ${CONFIG_HOST}"
+}
+
+skip_unless_host_is() {
+  match_hostrelease "$@" || skip "not supported on ${CONFIG_HOST}"
+}
+
+skip_unless_root() {
+  [ $(id -u) -ne 0 ] && skip "need root to run this test"
+  return 0
+}
+
 expect_success() {
   [ "$status" -eq 0 ] && [[ "$output" == *"SUCCESS"* ]]
 }
@@ -123,6 +169,26 @@ virtio_expect_abort() {
 # ------------------------------------------------------------------------------
 # Tests start here
 # ------------------------------------------------------------------------------
+
+@test "noexec host" {
+  skip_unless_host_is Linux FreeBSD
+
+  # Here be dragons.
+  run test_hello/test_hello.hvt
+  case "${CONFIG_HOST}" in
+  Linux)
+    [ "$status" -eq 127 ] && [[ "$output" == *"No such file or directory"* ]]
+    ;;
+  FreeBSD)
+    # XXX: imgact_elf.c:load_interp() outputs the "ELF interpreter ... not
+    # found" using uprintf() here, so we can't test for it. Boo.
+    [ "$status" -eq 134 ]
+    ;;
+  *)
+    skip "not implemented for ${CONFIG_HOST}"
+    ;;
+  esac
+}
 
 @test "hello hvt" {
   hvt_run test_hello/test_hello.hvt Hello_Solo5
@@ -204,9 +270,8 @@ virtio_expect_abort() {
 }
 
 @test "xnow hvt" {
-  if [ "${CONFIG_HOST}" != "Linux" ]; then
-    skip "not supported on ${CONFIG_HOST}"
-  fi
+  skip_unless_host_is Linux OpenBSD_6.7
+
   hvt_run test_xnow/test_xnow.hvt
   [ "$status" -eq 1 ] && [[ "$output" == *"host/guest translation fault"* ]]
 }
@@ -217,9 +282,10 @@ virtio_expect_abort() {
 }
 
 @test "wnox hvt" {
-  skip "not supported on ${CONFIG_HOST}"
+  skip_unless_host_is OpenBSD_6.7
+
   hvt_run test_wnox/test_wnox.hvt
-  expect_abort
+  [ "$status" -eq 1 ] && [[ "$output" == *"host/guest translation fault"* ]]
 }
 
 @test "wnox spt" {
@@ -243,18 +309,14 @@ virtio_expect_abort() {
 }
 
 @test "tls hvt" {
-  if [ "${CONFIG_HOST}" != "Linux" ]; then
-    skip "not supported on ${CONFIG_HOST}"
-  fi
+  skip_unless_host_is Linux
 
   hvt_run test_tls/test_tls.hvt
   expect_success
 }
 
 @test "tls virtio" {
-  if [ "${CONFIG_HOST}" != "Linux" ]; then
-    skip "not supported on ${CONFIG_HOST}"
-  fi
+  skip_unless_host_is Linux # XXX is this necessary for virtio?
 
   virtio_run test_tls/test_tls.virtio
   virtio_expect_success
@@ -344,7 +406,7 @@ virtio_expect_abort() {
 }
 
 @test "net hvt" {
-  [ $(id -u) -ne 0 ] && skip "Need root to run this test, for ping -f"
+  skip_unless_root
 
   ( sleep 1; ${TIMEOUT} 60s ping -fq -c 100000 ${NET0_IP} ) &
   hvt_run --net:service0=${NET0} -- test_net/test_net.hvt limit
@@ -352,7 +414,7 @@ virtio_expect_abort() {
 }
 
 @test "net virtio" {
-  [ $(id -u) -ne 0 ] && skip "Need root to run this test, for ping -f"
+  skip_unless_root
 
   ( sleep 3; ${TIMEOUT} 60s ping -fq -c 100000 ${NET0_IP} ) &
   virtio_run -n ${NET0} -- test_net/test_net.virtio limit
@@ -360,7 +422,7 @@ virtio_expect_abort() {
 }
 
 @test "net spt" {
-  [ $(id -u) -ne 0 ] && skip "Need root to run this test, for ping -f"
+  skip_unless_root
 
   ( sleep 1; ${TIMEOUT} 60s ping -fq -c 100000 ${NET0_IP} ) &
   spt_run --net:service0=${NET0} -- test_net/test_net.spt limit
@@ -368,7 +430,7 @@ virtio_expect_abort() {
 }
 
 @test "net_2if hvt" {
-  [ $(id -u) -ne 0 ] && skip "Need root to run this test, for ping -f"
+  skip_unless_root
   [ "${CONFIG_HOST}" = "OpenBSD" ] && skip "breaks on OpenBSD due to #374"
 
   ( sleep 1; ${TIMEOUT} 60s ping -fq -c 50000 ${NET0_IP} ) &
@@ -379,7 +441,7 @@ virtio_expect_abort() {
 }
 
 @test "net_2if spt" {
-  [ $(id -u) -ne 0 ] && skip "Need root to run this test, for ping -f"
+  skip_unless_root
 
   ( sleep 1; ${TIMEOUT} 60s ping -fq -c 50000 ${NET0_IP} ) &
   ( sleep 1; ${TIMEOUT} 60s ping -fq -c 50000 ${NET1_IP} ) &
@@ -390,13 +452,7 @@ virtio_expect_abort() {
 
 @test "dumpcore hvt" {
   [ "${CONFIG_ARCH}" = "x86_64" ] || skip "not implemented for ${CONFIG_ARCH}"
-  case "${CONFIG_HOST}" in
-    Linux|FreeBSD)
-      ;;
-    *)
-      skip "not implemented for ${CONFIG_HOST}"
-      ;;
-  esac
+  skip_unless_host_is Linux FreeBSD
 
   run ${TIMEOUT} --foreground 60s ${HVT_TENDER_DEBUG} \
      --dumpcore="$BATS_TMPDIR" test_dumpcore/test_dumpcore.hvt
