@@ -170,6 +170,26 @@ virtio_expect_abort() {
 # Tests start here
 # ------------------------------------------------------------------------------
 
+@test "noexec host" {
+  skip_unless_host_is Linux FreeBSD
+
+  # Here be dragons.
+  run test_hello/test_hello.hvt
+  case "${CONFIG_HOST}" in
+  Linux)
+    [ "$status" -eq 127 ] && [[ "$output" == *"No such file or directory"* ]]
+    ;;
+  FreeBSD)
+    # XXX: imgact_elf.c:load_interp() outputs the "ELF interpreter ... not
+    # found" using uprintf() here, so we can't test for it. Boo.
+    [ "$status" -eq 134 ]
+    ;;
+  *)
+    skip "not implemented for ${CONFIG_HOST}"
+    ;;
+  esac
+}
+
 @test "hello hvt" {
   hvt_run test_hello/test_hello.hvt Hello_Solo5
   expect_success
