@@ -40,6 +40,7 @@ PHDRS {
     data PT_LOAD;
     note.abi PT_NOTE;
     note.manifest PT_NOTE;
+    note.not-openbsd PT_NOTE;
 }
 
 /*
@@ -73,11 +74,14 @@ SECTIONS {
     {
         *(.note.solo5.manifest*)
     } :text :note.manifest
-
     .note.solo5.abi :
     {
         *(.note.solo5.abi*)
     } :text :note.abi
+    .note.solo5.not-openbsd :
+    {
+        *(.note.solo5.not-openbsd*)
+    } :text :note.not-openbsd
 
     .rodata :
     {

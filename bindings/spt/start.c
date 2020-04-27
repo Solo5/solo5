@@ -61,3 +61,8 @@ ABI1_NOTE_DECLARE_BEGIN
     .abi_version = SPT_ABI_VERSION
 }
 ABI1_NOTE_DECLARE_END
+
+/*
+ * Pretend that we are an OpenBSD executable. See elf_abi.h for details.
+ */
+DECLARE_OPENBSD_NOTE

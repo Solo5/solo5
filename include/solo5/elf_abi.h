@@ -137,4 +137,39 @@ const char __fake_interp[24] \
 __attribute__ ((section (".interp"), aligned(8))) \
 = "/nonexistent/solo5/";
 
+/*
+ * This is the format of an OpenBSD "identification" NOTE (see elf(5) and
+ * lib/csu/os-note-elf.h). Unlike the Solo5 ABI1 note above, since the contents
+ * of this NOTE are always of a fixed size, we can simplify the definition
+ * significantly.
+ */
+struct openbsd_note {
+    uint32_t n_namesz; /* Always 8 */
+    uint32_t n_descsz; /* Always 4 (sizeof data) */
+    uint32_t n_type;   /* Always 1 (NT_VERSION) */
+    char n_name[8];    /* Always "OpenBSD\0" */
+    uint32_t data;     /* Always 0 / unused */
+};
+
+/*
+ * Declare that we are an OpenBSD executable. This is necessary for the above
+ * PT_INTERP trick to work on OpenBSD hosts, otherwise the host ELF loader
+ * fails and the binary gets run via "/bin/sh" (!).
+ *
+ * Note that the section name does not matter, the OpenBSD kernel only checks
+ * n_name and n_type from the PT_NOTE. We deliberately don't use
+ * .note.openbsd.ident to make the purpose more obvious to someone inspecting
+ * the ELF file "in anger".
+ */
+#define DECLARE_OPENBSD_NOTE \
+const struct openbsd_note __solo5_openbsd_note \
+__attribute__ ((section (".note.solo5.not-openbsd"), aligned(4))) \
+= { \
+    .n_namesz = 8, \
+    .n_descsz = 4, \
+    .n_type = 1, \
+    .n_name = "OpenBSD", \
+    .data = 0 \
+};
+
 #endif /* ELF_ABI_H */
