@@ -166,12 +166,11 @@ config_host_freebsd()
     [ "${CONFIG_ARCH}" = "x86_64" ] ||
         die "Only 'x86_64' is supported on FreeBSD"
     INCDIR=/usr/include
-    SRCS_MACH="machine/_stdint.h machine/_types.h machine/endian.h \
-        machine/_limits.h"
+    SRCS_MACH="machine/_stdint.h machine/_types.h machine/_limits.h"
     SRCS_SYS="sys/_null.h sys/_stdint.h sys/_types.h sys/cdefs.h \
-        sys/endian.h sys/_stdarg.h"
-    SRCS_X86="x86/float.h x86/_stdint.h x86/stdarg.h x86/endian.h \
-        x86/_types.h x86/_limits.h"
+        sys/_stdarg.h"
+    SRCS_X86="x86/float.h x86/_stdint.h x86/stdarg.h x86/_types.h \
+        x86/_limits.h"
     SRCS="float.h osreldate.h stddef.h stdint.h stdbool.h stdarg.h"
 
     mkdir -p ${HOST_INCDIR}
@@ -210,9 +209,9 @@ config_host_openbsd()
         [ -e ${LD} ] || die "/usr/bin/ld.lld does not exist"
     fi
     INCDIR=/usr/include
-    SRCS_MACH="machine/_float.h machine/endian.h machine/cdefs.h machine/_types.h"
-    SRCS_SYS="sys/_null.h sys/cdefs.h sys/_endian.h sys/endian.h sys/_types.h"
-    SRCS_AMD64="amd64/_float.h amd64/stdarg.h amd64/endian.h"
+    SRCS_MACH="machine/_float.h machine/cdefs.h machine/_types.h"
+    SRCS_SYS="sys/_null.h sys/cdefs.h sys/_types.h"
+    SRCS_AMD64="amd64/_float.h amd64/stdarg.h"
     SRCS="float.h stddef.h stdint.h stdbool.h stdarg.h"
 
     mkdir -p ${HOST_INCDIR}
