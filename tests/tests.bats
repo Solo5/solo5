@@ -171,8 +171,6 @@ virtio_expect_abort() {
 # ------------------------------------------------------------------------------
 
 @test "noexec host" {
-  skip_unless_host_is Linux FreeBSD
-
   # Here be dragons.
   run test_hello/test_hello.hvt
   case "${CONFIG_HOST}" in
@@ -182,6 +180,10 @@ virtio_expect_abort() {
   FreeBSD)
     # XXX: imgact_elf.c:load_interp() outputs the "ELF interpreter ... not
     # found" using uprintf() here, so we can't test for it. Boo.
+    [ "$status" -eq 134 ]
+    ;;
+  OpenBSD)
+    # XXX: Unclear why the "Abort trap" is not showing up in the output.
     [ "$status" -eq 134 ]
     ;;
   *)
