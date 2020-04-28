@@ -156,10 +156,14 @@ struct openbsd_note {
  * PT_INTERP trick to work on OpenBSD hosts, otherwise the host ELF loader
  * fails and the binary gets run via "/bin/sh" (!).
  *
- * Note that the section name does not matter, the OpenBSD kernel only checks
+ * Note 1: the section name does not matter, the OpenBSD kernel only checks
  * n_name and n_type from the PT_NOTE. We deliberately don't use
  * .note.openbsd.ident to make the purpose more obvious to someone inspecting
  * the ELF file "in anger".
+ *
+ * Note 2: for this to work on OpenBSD < 6.7 which has a buggy ELF NOTE parser,
+ * the "pretend to be an OpenBSD executable" NOTE must go in the *first*
+ * PT_NOTE.  See the linker scripts for that.
  */
 #define DECLARE_OPENBSD_NOTE \
 const struct openbsd_note __solo5_openbsd_note \

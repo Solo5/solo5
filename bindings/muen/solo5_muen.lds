@@ -39,9 +39,9 @@ PHDRS {
                               FLAGS values come from PF_x in elf.h */
     rodata PT_LOAD;
     data PT_LOAD;
+    note.not-openbsd PT_NOTE; /* Must come first. */
     note.abi PT_NOTE;
     note.manifest PT_NOTE;
-    note.not-openbsd PT_NOTE;
 }
 
 /*

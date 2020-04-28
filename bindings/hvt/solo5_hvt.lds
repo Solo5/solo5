@@ -38,9 +38,9 @@ PHDRS {
     text PT_LOAD FLAGS(5); /* No FILEHDR or PHDRS, force R/E only.
                               FLAGS values come from PF_x in elf.h */
     data PT_LOAD;
+    note.not-openbsd PT_NOTE; /* Must come first. */
     note.abi PT_NOTE;
     note.manifest PT_NOTE;
-    note.not-openbsd PT_NOTE;
 }
 
 /*
