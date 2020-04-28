@@ -22,18 +22,11 @@
 
 const struct mft *muen_manifest = NULL;
 
-void fpu_init(void)
-{
-    const unsigned default_mxcsr = 0x1f80;
-    __asm__ __volatile__("ldmxcsr %0" : : "m"(default_mxcsr));
-}
-
 extern const struct mft1_note __solo5_mft1_note;
 
 void platform_init(const void *arg)
 {
     process_bootinfo(arg);
-    fpu_init();
 
     /*
      * Get the built-in manifest out of the ELF NOTE and validate it.
