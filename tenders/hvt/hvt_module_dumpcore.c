@@ -266,7 +266,7 @@ static int setup(struct hvt *hvt, struct mft *mft)
 #if HVT_FREEBSD_ENABLE_CAPSICUM
     cap_rights_t rights;
     cap_rights_init(&rights, CAP_CREATE, CAP_WRITE, CAP_LOOKUP, CAP_SEEK);
-    if (cap_rights_limit(dir, &rights) == -1 && errno != ENOSYS)
+    if (cap_rights_limit(dir, &rights) == -1)
         err(1, "cap_rights_limit() failed");
 #endif
 

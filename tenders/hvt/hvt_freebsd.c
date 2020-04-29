@@ -156,9 +156,9 @@ struct hvt *hvt_init(size_t mem_size)
                                  VM_SET_REGISTER, VM_GET_REGISTER,
                                  VM_ACTIVATE_CPU };
     cap_rights_init(&rights, CAP_IOCTL, CAP_MMAP_RW);
-    if (cap_rights_limit(hvb->vmfd, &rights) == -1 && errno != ENOSYS)
+    if (cap_rights_limit(hvb->vmfd, &rights) == -1)
         err(1, "cap_rights_limit() failed");
-    if (cap_ioctls_limit(hvb->vmfd, cmds, nitems(cmds)) == -1 && errno != ENOSYS)
+    if (cap_ioctls_limit(hvb->vmfd, cmds, nitems(cmds)) == -1)
         err(1, "cap_ioctls_limit() failed");
 
     cap_channel_t *capcas;
@@ -191,7 +191,7 @@ void hvt_drop_privileges()
 {
 #if HVT_FREEBSD_ENABLE_CAPSICUM
     if (caph_enter() == -1)
-        err(1, "cap_enter() failed");
+        err(1, "Unable to enter sandbox: cap_enter() failed");
 #endif
 }
 #endif
