@@ -100,8 +100,7 @@ get_header_deps()
         temp="$(mktemp)"
         cd ${path} || exit 1
         ${CC} -M "$@" >${temp} || exit 1
-        cat ${temp} \
-            | sed -e 's!.*\.o:!!g' -e "s!${path}/!!g" \
+        sed -e 's!.*\.o:!!g' -e "s!${path}/!!g" ${temp} \
             | tr ' \\' '\n' \
             | sort \
             | uniq
@@ -196,7 +195,7 @@ config_host_freebsd()
     # cpio will fail if HOST_INCDIR is below a symlink, so squash that
     mkdir -p ${HOST_INCDIR}
     HOST_INCDIR="$(readlink -f ${HOST_INCDIR})"
-    (cd ${INCDIR} && cpio -Lpdm ${HOST_INCDIR} <${DEPS}) || \
+    (cd ${INCDIR} && cpio --quiet -Lpdm ${HOST_INCDIR} <${DEPS}) || \
         die "Failure copying host headers"
     rm ${DEPS}
 
