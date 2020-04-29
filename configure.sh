@@ -96,12 +96,16 @@ get_header_deps()
     local path="$1"
     shift
     (
-        set -o pipefail &&
-        cd ${path} &&
-        ${CC} -M "$@" | \
-            sed -e 's!.*\.o:!!g' -e "s!${path}/!!g" | \
-            tr ' \\' '\n' | \
-            sort | uniq
+        # XXX This will leak ${temp} on failure, too bad.
+        temp="$(mktemp)"
+        cd ${path} || exit 1
+        ${CC} -M "$@" >${temp} || exit 1
+        cat ${temp} \
+            | sed -e 's!.*\.o:!!g' -e "s!${path}/!!g" \
+            | tr ' \\' '\n' \
+            | sort \
+            | uniq
+        rm ${temp}
     )
 }
 
