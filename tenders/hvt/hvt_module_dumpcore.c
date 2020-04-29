@@ -50,6 +50,9 @@ typedef unsigned char *host_mvec_t;
 
 #elif defined(__FreeBSD__) && defined(__x86_64__)
 
+#if HVT_FREEBSD_ENABLE_CAPSICUM
+#include <sys/capsicum.h>
+#endif
 #include "hvt_dumpcore_freebsd_x86_64.c"
 #define EM_HOST EM_X86_64
 typedef char *host_mvec_t;
@@ -259,6 +262,13 @@ static int setup(struct hvt *hvt, struct mft *mft)
 
     if (hvt_dumpcore_supported() == -1)
         errx(1, "dumpcore: not implemented for this backend/architecture");
+
+#if HVT_FREEBSD_ENABLE_CAPSICUM
+    cap_rights_t rights;
+    cap_rights_init(&rights, CAP_CREATE, CAP_WRITE, CAP_LOOKUP, CAP_SEEK);
+    if (cap_rights_limit(dir, &rights) == -1)
+        err(1, "cap_rights_limit() failed");
+#endif
 
     return 0;
 }

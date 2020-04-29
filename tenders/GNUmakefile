@@ -68,6 +68,10 @@ else ifeq ($(CONFIG_HOST), FreeBSD)
     hvt_SRCS += hvt/hvt_freebsd.c hvt/hvt_freebsd_$(CONFIG_ARCH).c
     hvt_debug_MODULES ?= gdb dumpcore
     all_TARGETS += hvt/solo5-hvt hvt/solo5-hvt-debug
+ifeq ($(CONFIG_HVT_FREEBSD_ENABLE_CAPSICUM), 1)
+    HOSTLDLIBS += -lnv
+    CFLAGS += -DDHVT_FREEBSD_ENABLE_CAPSICUM=1
+endif
 else ifeq ($(CONFIG_HOST), OpenBSD)
     hvt_SRCS += hvt/hvt_openbsd.c hvt/hvt_openbsd_$(CONFIG_ARCH).c
     all_TARGETS += hvt/solo5-hvt

@@ -187,6 +187,9 @@ config_host_freebsd()
     # default on x86_64, so there is nothing special we need to do here.
     MAKECONF_CFLAGS="-nostdlibinc"
 
+    # enable capsicum(4) sandbox if FreeBSD kernel is new enough
+    [ "$(uname -K)" -ge 1200086 ] && CONFIG_HVT_FREEBSD_ENABLE_CAPSICUM=1
+
     [ -n "${OPT_ONLY_TOOLS}" ] && return
     CONFIG_HVT=1
     CONFIG_SPT=
@@ -292,6 +295,7 @@ MAKECONF_LDFLAGS=
 MAKECONF_SPT_CFLAGS=
 MAKECONF_SPT_LDLIBS=
 CONFIG_SPT_NO_PIE=
+CONFIG_HVT_FREEBSD_ENABLE_CAPSICUM=
 
 case "${CONFIG_HOST}" in
     Linux)
@@ -342,6 +346,7 @@ MAKECONF_LD=${LD}
 MAKECONF_SPT_CFLAGS=${MAKECONF_SPT_CFLAGS}
 MAKECONF_SPT_LDLIBS=${MAKECONF_SPT_LDLIBS}
 CONFIG_SPT_NO_PIE=${CONFIG_SPT_NO_PIE}
+CONFIG_HVT_FREEBSD_ENABLE_CAPSICUM=${CONFIG_HVT_FREEBSD_ENABLE_CAPSICUM}
 EOM
 
 echo "${prog_NAME}: Configured for ${CC_MACHINE}."

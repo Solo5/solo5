@@ -31,6 +31,10 @@
 #include <string.h>
 #include <unistd.h>
 
+#if HVT_FREEBSD_ENABLE_CAPSICUM
+#include <sys/capsicum.h>
+#endif
+
 #include "../common/block_attach.h"
 #include "hvt.h"
 #include "solo5.h"
@@ -141,6 +145,13 @@ static int setup(struct hvt *hvt, struct mft *mft)
                 hypercall_block_write) == 0);
     assert(hvt_core_register_hypercall(HVT_HYPERCALL_BLOCK_READ,
                 hypercall_block_read) == 0);
+
+#if HVT_FREEBSD_ENABLE_CAPSICUM
+    cap_rights_t rights;
+    cap_rights_init(&rights, CAP_READ, CAP_WRITE, CAP_SEEK);
+    if (cap_rights_limit(diskfd, &rights) == -1)
+       err(1, "cap_rights_limit() failed");
+#endif
 
     return 0;
 }
