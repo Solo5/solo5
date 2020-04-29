@@ -202,6 +202,14 @@ static const struct x86_sreg hvt_x86_sreg_unusable = {
 #define X86_PDE_SIZE            0x1000
 #define X86_PT0E_BASE           0x5000
 #define X86_PTE_SIZE            0x1000
+#define X86_PDPTE_DMA_BASE      0x6000
+#define X86_PDPTE_DMA_SIZE      0x1000
+#define X86_PDE_DMA_BASE        0x7000
+#define X86_PDE_DMA_SIZE        0x1000
+#define X86_PDPTE_PCI_BASE      0x8000
+#define X86_PDPTE_PCI_SIZE      0x1000
+#define X86_PDE_PCI_BASE        0x9000
+#define X86_PDE_PCI_SIZE        0x1000
 #define X86_BOOT_INFO_BASE      0x10000
 #define X86_PT0_MAP_START       X86_BOOT_INFO_BASE
 #define X86_GUEST_MIN_BASE      HVT_GUEST_MIN_BASE

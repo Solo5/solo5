@@ -39,22 +39,22 @@ common_hvt_SRCS := hvt/platform.c hvt/platform_intr.c hvt/time.c
 #
 hvt_SRCS := hvt/start.c $(common_SRCS) $(common_hvt_SRCS) \
     hvt/platform_lifecycle.c hvt/yield.c hvt/tscclock.c hvt/console.c \
-    hvt/net.c hvt/block.c
+    hvt/net.c hvt/block.c hvt/pci.c
 
 spt_SRCS := spt/start.c \
     abort.c crt.c printf.c lib.c mem.c exit.c log.c cmdline.c tls.c mft.c \
-    spt/bindings.c spt/block.c spt/net.c spt/platform.c \
+    spt/bindings.c spt/block.c spt/net.c spt/pci.c spt/platform.c \
     spt/sys_linux_$(CONFIG_ARCH).c
 
 virtio_SRCS := virtio/boot.S virtio/start.c $(common_SRCS) \
     virtio/platform.c virtio/platform_intr.c \
     virtio/pci.c virtio/serial.c virtio/time.c virtio/virtio_ring.c \
     virtio/virtio_net.c virtio/virtio_blk.c virtio/tscclock.c \
-    virtio/clock_subr.c virtio/pvclock.c 
+    virtio/clock_subr.c virtio/pvclock.c virtio/pci-stubs.c
 
 muen_SRCS := muen/start.c $(common_SRCS) $(common_hvt_SRCS) \
     muen/channel.c muen/reader.c muen/writer.c muen/muen-block.c \
-    muen/muen-clock.c muen/muen-console.c muen/muen-net.c \
+    muen/muen-clock.c muen/muen-console.c muen/muen-net.c muen/muen-pci.c \
     muen/muen-platform_lifecycle.c muen/muen-yield.c muen/muen-sinfo.c
 
 genode_SRCS := genode/stubs.c
@@ -108,6 +108,8 @@ endif
 ifdef CONFIG_SPT
     spt_OBJS := $(patsubst %.c,%.o,$(patsubst %.S,%.o,$(spt_SRCS)))
 
+spt/pci.o: CFLAGS += -Wno-unused-parameter
+
 spt/solo5_spt.o: $(spt_OBJS)
 	$(LINK.bindings)
 
@@ -119,6 +121,8 @@ endif
 ifdef CONFIG_VIRTIO
     virtio_OBJS := $(patsubst %.c,%.o,$(patsubst %.S,%.o,$(virtio_SRCS)))
 
+virtio/pci-stubs.o: CFLAGS += -Wno-unused-parameter
+
 virtio/solo5_virtio.o: $(virtio_OBJS)
 	$(LINK.bindings)
 
@@ -129,6 +133,8 @@ endif
 
 ifdef CONFIG_MUEN
     muen_OBJS := $(patsubst %.c,%.o,$(patsubst %.S,%.o,$(muen_SRCS)))
+
+muen/muen-pci.o: CFLAGS += -Wno-unused-parameter
 
 muen/solo5_muen.o: $(muen_OBJS)
 	$(LINK.bindings)

@@ -1,6 +1,7 @@
 {
     "type": "solo5.manifest",
     "version": 1,
+    "dma_size": 0,
     "devices": [
         { "name": "service0", "type": "NET_BASIC" },
         { "name": "service1", "type": "NET_BASIC" }

@@ -55,7 +55,7 @@ void hvt_x86_setup_pagetables(uint8_t *mem, size_t mem_size)
 
     /*
      * For simplicity we currently use 2MB pages and only a single
-     * PML4/PDPTE/PDE.  Sanity check that the guest size is a multiple of the
+     * PML4/PDPTE/PDE. Sanity check that the guest size is a multiple of the
      * page size and will fit in a single PDE (512 entries). Additionally,
      * check that the guest size is at least 2MB.
      */
@@ -86,14 +86,14 @@ void hvt_x86_setup_pagetables(uint8_t *mem, size_t mem_size)
          */
         if (paddr < X86_PT0_MAP_START)
             continue;
-	/*
-	 * Map the remainder of the pages below X86_GUEST_MIN_BASE as read-only;
-	 * these are used for input from hvt to the guest only, with the rest
-	 * reserved for future use.
-	 */
+        /*
+         * Map the remainder of the pages below X86_GUEST_MIN_BASE as read-only;
+         * these are used for input from hvt to the guest only, with the rest
+         * reserved for future use.
+         */
         if (paddr < X86_GUEST_MIN_BASE)
             *pt0e = paddr | X86_PDPT_P;
-	else
+        else
             *pt0e = paddr | (X86_PDPT_P | X86_PDPT_RW);
     }
     assert(paddr == X86_GUEST_PAGE_SIZE);

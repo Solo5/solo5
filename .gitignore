@@ -19,3 +19,4 @@ tenders/spt/solo5-spt
 elftool/solo5-elftool
 opam/release
 solo5-*.tar.gz
+.vscode

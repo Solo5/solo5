@@ -45,6 +45,7 @@
 typedef enum mft_type {
     MFT_DEV_BLOCK_BASIC = 1,
     MFT_DEV_NET_BASIC,
+    MFT_DEV_PCI_BASIC,
     MFT_RESERVED_FIRST = (1U << 30)
 } mft_type_t;
 
@@ -64,6 +65,33 @@ struct mft_net_basic {
     uint16_t mtu;
 };
 
+#define SOLO5_MAX_PCI_REGIONS 6
+
+/*
+ * MFT_DEV_PCI_BASIC (basic PCIe device) properties.
+ */
+struct mft_pci_basic {
+    bool bus_master_enable;
+    bool map_bar0;
+    size_t bar0_size;
+    bool map_bar1;
+    size_t bar1_size;
+    bool map_bar2;
+    size_t bar2_size;
+    bool map_bar3;
+    size_t bar3_size;
+    bool map_bar4;
+    size_t bar4_size;
+    bool map_bar5;
+    size_t bar5_size;
+    uint8_t class_code;
+    uint8_t subclass_code;
+    uint8_t progif;
+    uint16_t vendor;
+    uint16_t device_id;
+    uint8_t device_index;
+};
+
 #define MFT_NAME_SIZE 68        /* Bytes, including string terminator */
 #define MFT_NAME_MAX  67        /* Characters */
 
@@ -76,6 +104,7 @@ struct mft_entry {
     union {
         struct mft_block_basic block_basic;
         struct mft_net_basic net_basic;
+        struct mft_pci_basic pci_basic;
     } u;
     union {
         int hostfd;             /* Backing host descriptor OR */
@@ -114,6 +143,7 @@ _Static_assert(MFT_ENTRIES <= MFT_MAX_ENTRIES, "MFT_ENTRIES out of range");
 struct mft {
     uint32_t version;
     uint32_t entries;
+    size_t dma_size;
     struct mft_entry e[MFT_ENTRIES];
 };
 

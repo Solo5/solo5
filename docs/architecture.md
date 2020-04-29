@@ -97,12 +97,32 @@ Solo5 introduces the concept of an _application manifest_, which is defined by
 the developer at unikernel build time, using the following JSON format and
 customarily named `manifest.json`:
 
-```jsonc
+```json
 {
   "type": "solo5.manifest",
   "version": 1,
+  "dma_size": 16777216,
   "devices": [
-    { "name": "NAME", "type": "TYPE" }
+    {
+      "name": "NAME",
+      "type": "TYPE"
+    },
+    {
+      "name": "pci0",
+      "type": "PCI_BASIC",
+      "class": 2,
+      "subclass": 0,
+      "progif": 0,
+      "vendor": 32902,
+      "device_id": 4347,
+      "bus_master_enable": true,
+      "map_bar0": true,
+      "map_bar1": false,
+      "map_bar2": false,
+      "map_bar3": false,
+      "map_bar4": false,
+      "map_bar5": false
+    }
     // ... up to 63 user-specified devices ...
   ]
 }
@@ -115,8 +135,20 @@ of the device, eg. `frontend` for a network or `storage` for a block device.
 _NAME_ must be composed of alphanumeric characters only, and within 1..67
 characters in length.
 
-_TYPE_ is the type of device being declared, currently `BLOCK_BASIC` or
-`NET_BASIC`.
+_TYPE_ is the type of device being declared, currently `BLOCK_BASIC`,
+`NET_BASIC`, `PCI_BASIC` or `DMA_BASIC`.
+
+`dma_size` is the amount of required DMA-ready memory to be mapped into the
+unikernel in bytes.
+
+`PCI_BASIC` contains additional fields besides `name` and `type`:
+* `class` - PCI device's expected class code
+* `subclass` - PCI device's expected subclass code
+* `progif` - PCI device's expected programming interface
+* `vendor` - PCI device's expected vendor
+* `device_id` - PCI device's expected device ID
+* `bus_master_enable` - `true` if the device should be a bus master
+* `map_barN` - `true` if the `N`th `BAR` should be mapped into the unikernel
 
 Note that there is a maximum limit of 63 user-specified devices in the manifest.
 

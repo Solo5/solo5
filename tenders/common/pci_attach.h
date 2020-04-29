@@ -19,29 +19,22 @@
  */
 
 /*
- * bindings.h: Solo5 bindings, hvt implementation additions.
- *
- * This header file includes (supersedes) the common bindings.h for the hvt
- * implementation.
+ * pci_attach.h: Common functions for attaching PCIe devices.
  */
 
-#ifndef __HVT_BINDINGS_H__
-#define __HVT_BINDINGS_H__
+#ifndef COMMON_PCI_ATTACH_H
+#define COMMON_PCI_ATTACH_H
 
-#include "../bindings.h"
-#include "hvt_abi.h"
+#include <inttypes.h>
 
-void time_init(const struct hvt_boot_info *bi);
-void console_init(void);
-void net_init(const struct hvt_boot_info *bi);
-void block_init(const struct hvt_boot_info *bi);
-void pci_init(const struct hvt_boot_info *bi);
+int pci_attach(const char *pci_addr);
 
-/* tscclock.c: TSC-based clock */
-uint64_t tscclock_monotonic(void);
-int tscclock_init(uint64_t tsc_freq);
-uint64_t tscclock_epochoffset(void);
+void pci_enable_dma(int vfio_fd);
 
-void process_bootinfo(const void *arg);
+void *pci_map_region(int vfio_fd, int region_index, size_t *size);
 
-#endif /* __HVT_BINDINGS_H__ */
+void *pci_allocate_dma(size_t size);
+
+int get_vfio_container();
+
+#endif /* COMMON_PCI_ATTACH_H */

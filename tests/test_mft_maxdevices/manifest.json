@@ -1,6 +1,7 @@
 {
     "type": "solo5.manifest",
     "version": 1,
+    "dma_size": 0,
     "devices": [
         { "name": "storage0", "type": "BLOCK_BASIC" },
         { "name": "storage1", "type": "BLOCK_BASIC" },

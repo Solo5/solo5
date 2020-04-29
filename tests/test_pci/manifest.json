@@ -1,0 +1,23 @@
+{
+    "type": "solo5.manifest",
+    "version": 1,
+    "dma_size": 4194304,
+    "devices": [
+        {
+            "name": "pci0",
+            "type": "PCI_BASIC",
+            "class": 2,
+            "subclass": 0,
+            "progif": 0,
+            "vendor": 32902,
+            "device_id": 4347,
+            "bus_master_enable": true,
+            "map_bar0": true,
+            "map_bar1": false,
+            "map_bar2": false,
+            "map_bar3": false,
+            "map_bar4": false,
+            "map_bar5": false
+        }
+    ]
+}
