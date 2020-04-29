@@ -87,6 +87,24 @@ ld_is_lld()
     ${LD} --version 2>&1 | grep -q '^LLD'
 }
 
+# Arguments: PATH, FILES...
+# For the header FILES..., all of which must be relative to PATH, resolve their
+# dependencies using the C preprocessor and output a list of FILES... plus all
+# their unique dependencies, also relative to PATH.
+get_header_deps()
+{
+    local path="$1"
+    shift
+    (
+        set -o pipefail &&
+        cd ${path} &&
+        ${CC} -M "$@" | \
+            sed -e 's!.*\.o:!!g' -e "s!${path}/!!g" | \
+            tr ' \\' '\n' | \
+            sort | uniq
+    )
+}
+
 config_host_linux()
 {
     # On Linux/gcc we use -nostdinc and copy all the gcc-provided headers.
@@ -159,26 +177,24 @@ config_host_linux()
 
 config_host_freebsd()
 {
-    # On FreeBSD/clang we use -nostdlibinc which gives us access to the
-    # clang-provided headers for compiler instrinsics. We copy the rest
-    # (std*.h, float.h and their dependencies) from the host.
     cc_is_clang || die "Only 'clang' is supported on FreeBSD"
     [ "${CONFIG_ARCH}" = "x86_64" ] ||
         die "Only 'x86_64' is supported on FreeBSD"
-    INCDIR=/usr/include
-    SRCS_MACH="machine/_stdint.h machine/_types.h machine/_limits.h"
-    SRCS_SYS="sys/_null.h sys/_stdint.h sys/_types.h sys/cdefs.h \
-        sys/_stdarg.h"
-    SRCS_X86="x86/float.h x86/_stdint.h x86/stdarg.h x86/_types.h \
-        x86/_limits.h"
-    SRCS="float.h osreldate.h stddef.h stdint.h stdbool.h stdarg.h"
 
+    # On FreeBSD/clang we use -nostdlibinc which gives us access to the
+    # clang-provided headers for compiler instrinsics. We copy the rest
+    # (std*.h, float.h and their dependencies) from the host.
+    INCDIR=/usr/include
+    SRCS="float.h stddef.h stdint.h stdbool.h stdarg.h"
+    DEPS="$(mktemp)"
+    get_header_deps ${INCDIR} ${SRCS} >${DEPS} || \
+        die "Failure getting dependencies of host headers"
+    # cpio will fail if HOST_INCDIR is below a symlink, so squash that
     mkdir -p ${HOST_INCDIR}
-    mkdir -p ${HOST_INCDIR}/machine ${HOST_INCDIR}/sys ${HOST_INCDIR}/x86
-    for f in ${SRCS_MACH}; do cp -f ${INCDIR}/$f ${HOST_INCDIR}/machine; done
-    for f in ${SRCS_SYS}; do cp -f ${INCDIR}/$f ${HOST_INCDIR}/sys; done
-    for f in ${SRCS_X86}; do cp -f ${INCDIR}/$f ${HOST_INCDIR}/x86; done
-    for f in ${SRCS}; do cp -f ${INCDIR}/$f ${HOST_INCDIR}; done
+    HOST_INCDIR="$(readlink -f ${HOST_INCDIR})"
+    (cd ${INCDIR} && cpio -Lpdm ${HOST_INCDIR} <${DEPS}) || \
+        die "Failure copying host headers"
+    rm ${DEPS}
 
     # Stack smashing protection:
     #
@@ -199,9 +215,6 @@ config_host_freebsd()
 
 config_host_openbsd()
 {
-    # On OpenBSD/clang we use -nostdlibinc which gives us access to the
-    # clang-provided headers for compiler instrinsics. We copy the rest
-    # (std*.h, cdefs.h and their dependencies) from the host.
     cc_is_clang || die "Only 'clang' is supported on OpenBSD"
     [ "${CONFIG_ARCH}" = "x86_64" ] ||
         die "Only 'x86_64' is supported on OpenBSD"
@@ -211,18 +224,21 @@ config_host_openbsd()
         warn "Falling back to 'ld.lld'"
         [ -e ${LD} ] || die "/usr/bin/ld.lld does not exist"
     fi
-    INCDIR=/usr/include
-    SRCS_MACH="machine/_float.h machine/cdefs.h machine/_types.h"
-    SRCS_SYS="sys/_null.h sys/cdefs.h sys/_types.h"
-    SRCS_AMD64="amd64/_float.h amd64/stdarg.h"
-    SRCS="float.h stddef.h stdint.h stdbool.h stdarg.h"
 
+    # On OpenBSD/clang we use -nostdlibinc which gives us access to the
+    # clang-provided headers for compiler instrinsics. We copy the rest
+    # (std*.h, cdefs.h and their dependencies) from the host.
+    INCDIR=/usr/include
+    SRCS="float.h stddef.h stdint.h stdbool.h stdarg.h"
+    DEPS="$(mktemp)"
+    get_header_deps ${INCDIR} ${SRCS} >${DEPS} || \
+        die "Failure getting dependencies of host headers"
+    # cpio will fail if HOST_INCDIR is below a symlink, so squash that
     mkdir -p ${HOST_INCDIR}
-    mkdir -p ${HOST_INCDIR}/machine ${HOST_INCDIR}/sys ${HOST_INCDIR}/amd64
-    for f in ${SRCS_MACH}; do cp -f ${INCDIR}/$f ${HOST_INCDIR}/machine; done
-    for f in ${SRCS_SYS}; do cp -f ${INCDIR}/$f ${HOST_INCDIR}/sys; done
-    for f in ${SRCS_AMD64}; do cp -f ${INCDIR}/$f ${HOST_INCDIR}/amd64; done
-    for f in ${SRCS}; do cp -f ${INCDIR}/$f ${HOST_INCDIR}; done
+    HOST_INCDIR="$(readlink -f ${HOST_INCDIR})"
+    (cd ${INCDIR} && cpio -Lpdm ${HOST_INCDIR} <${DEPS}) || \
+        die "Failure copying host headers"
+    rm ${DEPS}
 
     MAKECONF_CFLAGS="-mno-retpoline -fno-ret-protector -nostdlibinc"
     MAKECONF_LDFLAGS="-nopie"
