@@ -188,7 +188,7 @@ config_host_freebsd()
     # clang-provided headers for compiler instrinsics. We copy the rest
     # (std*.h, float.h and their dependencies) from the host.
     INCDIR=/usr/include
-    SRCS="float.h stddef.h stdint.h stdbool.h stdarg.h"
+    SRCS="float.h osreldate.h stddef.h stdint.h stdbool.h stdarg.h"
     DEPS="$(mktemp)"
     get_header_deps ${INCDIR} ${SRCS} >${DEPS} || \
         die "Failure getting dependencies of host headers"
