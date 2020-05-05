@@ -32,7 +32,7 @@ warn()
 
 cc_maybe_gcc()
 {
-    ${CC} -dM -E - </dev/null | grep -Eq '^#define __GNUC__ [4-9]$'
+    ${CC} -dM -E - </dev/null | grep -Eq '^#define __GNUC__ ([4-9]$|[1-9][0-9]+$)'
 }
 
 cc_is_clang()
