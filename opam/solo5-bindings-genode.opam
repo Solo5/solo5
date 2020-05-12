@@ -21,6 +21,7 @@ depends: [
   "conf-libseccomp" {build & os = "linux"}
 ]
 conflicts: [
+  "ocaml-freestanding" {< "0.6.0"}
   "solo5-bindings-hvt"
   "solo5-bindings-spt"
   "solo5-bindings-virtio"
