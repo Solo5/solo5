@@ -30,6 +30,7 @@ depexts: [
   ["linux-libc-dev"] {os-distribution = "ubuntu"}
 ]
 conflicts: [
+  "ocaml-freestanding" {< "0.6.0"}
   "solo5-bindings-hvt"
   "solo5-bindings-virtio"
   "solo5-bindings-muen"
