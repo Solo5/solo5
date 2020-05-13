@@ -224,6 +224,12 @@ static void hypercall_poll(struct hvt *hvt, hvt_gpa_t gpa)
             .tv_nsec = t->timeout_nsecs % 1000000000ULL
         }
     };
+    /*
+     * Ensure that it.it_value is always non-zero, otherwise the following
+     * epoll_wait() will hang if there are no other descriptors in the waitset
+     * due to the timer never firing. See timefd_settime(2).
+     */
+    it.it_value.tv_nsec |= 1;
     if (timerfd_settime(timerfd, 0, &it, NULL) == -1)
         err(1, "timerfd_settime() failed");
     /*
