@@ -108,7 +108,7 @@ void solo5_yield(solo5_time_t deadline, solo5_handle_set_t *ready_set)
     };
     /*
      * On spt, given that Solo5 monotonic time is identical to CLOCK_MONOTONIC,
-     * we can just pass the deadline into the timerfd as an abosulte timeout,
+     * we can just pass the deadline into the timerfd as an absolute timeout,
      * saving a clock_gettime() call in the process.
      */
     assert(sys_timerfd_settime(timerfd, SYS_TFD_TIMER_ABSTIME, &it, NULL) != -1);
