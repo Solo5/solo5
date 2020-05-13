@@ -84,34 +84,52 @@ int solo5_app_main(const struct solo5_start_info *si __attribute__((unused)))
     ta = solo5_clock_monotonic();
     solo5_yield(ta, NULL);
     tb = solo5_clock_monotonic();
-    printf("overhead of solo5_yield(): %llu ns\n",
+    printf("Overhead of solo5_yield(): %llu ns\n",
             (unsigned long long)(tb - ta));
+
     /*
-     * Now sleep for one second, and check the results.
+     * Always run the following test 5 times, to get more information in CI/
+     * when debugging. Fail the test case as a whole if any iteration fails.
      */
-    ta = solo5_clock_monotonic();
-    solo5_yield(ta + NSEC_PER_SEC, NULL);
-    tb = solo5_clock_monotonic();
-    solo5_time_t delta = tb - ta;
-    printf("Slept for %llu ns\n", (unsigned long long)delta);
-    /*
-     * Verify that we did not sleep less than requested (see above).
-     */
-    if (delta < NSEC_PER_SEC) {
-        printf("ERROR: slept too little (expected at least %llu ns)\n",
-                (unsigned long long)NSEC_PER_SEC);
-        return SOLO5_EXIT_FAILURE;
+    bool failed = false;
+    for (iters = 5; iters > 0; iters--) {
+        printf("[%d] Sleeping for one second...\n", iters);
+        /*
+         * Sleep for one second, and check the results.
+         */
+        ta = solo5_clock_monotonic();
+        solo5_yield(ta + NSEC_PER_SEC, NULL);
+        tb = solo5_clock_monotonic();
+        if (tb < ta) {
+            printf("[%d] ERROR: time is not passing\n", iters);
+            failed = true;
+            continue;
+        }
+        solo5_time_t delta = tb - ta;
+        printf("[%d] Slept for %llu ns\n", iters, (unsigned long long)delta);
+        /*
+         * Verify that we did not sleep less than requested (see above).
+         */
+        if (delta < NSEC_PER_SEC) {
+            printf("[%d] ERROR: slept too little (expected at least %llu ns)\n",
+                    iters, (unsigned long long)NSEC_PER_SEC);
+            failed = true;
+            continue;
+        }
+        /*
+         * Verify that we did not sleep more than requested, within reason
+         * (scheduling delays, general inaccuracy of the current timing code).
+         */
+        const solo5_time_t slack = 100000000ULL;
+        if (delta > (NSEC_PER_SEC + slack)) {
+            printf("[%d] ERROR: slept too much (expected at most %llu ns)\n",
+                    iters, (unsigned long long)slack);
+            failed = true;
+            continue;
+        }
     }
-    /*
-     * Verify that we did not sleep more than requested, within reason
-     * (scheduling delays, general inaccuracy of the current timing code).
-     */
-    const solo5_time_t slack = 100000000ULL;
-    if (delta > (NSEC_PER_SEC + slack)) {
-        printf("ERROR: slept too much (expected at most %llu ns)\n",
-                (unsigned long long)slack);
+    if (failed)
         return SOLO5_EXIT_FAILURE;
-    }
 
     /*
      * Verify that wall time is 2017 or later
