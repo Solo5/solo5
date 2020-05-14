@@ -43,7 +43,7 @@ instructions provided by the unikernel project you intend to develop
 applications with:
 
 - MirageOS: https://mirage.io/wiki/install
-- IncludeOS: http://www.includeos.org/get-started.html
+- IncludeOS: http://www.includeos.org/
 
 That said, we provide the following documentation, not specific to any
 unikernel in particular:

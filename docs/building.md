@@ -69,7 +69,8 @@ Production:
 * _hvt_: Linux/KVM, using `solo5-hvt` as a _tender_, on the x86\_64
   architecture.
 * _hvt_: FreeBSD vmm, using `solo5-hvt` as a _tender_, on the x86\_64
-  architecture.  FreeBSD 11-RELEASE or later is required.
+  architecture.  FreeBSD 11 or later is required, FreeBSD 12 or later is
+  recommended for `capsicum(4)` support.
 * _hvt_: Linux/KVM, using `solo5-hvt` as a _tender_, on the aarch64
   architecture.  You will need hardware capable of running a recent (v4.14+)
   64-bit mainline kernel and a 64-bit Linux distribution.
@@ -77,22 +78,24 @@ Production:
 Experimental:
 
 * _hvt_: OpenBSD vmm, using `solo5-hvt` as a _tender_, on the x86\_64
-  architecture.  OpenBSD 6.4 or later is required.
+  architecture.  OpenBSD 6.4 or later is required, 6.7 or later is recommended
+  for full W^X support.
 * _spt_: Linux systems on the x86\_64, ppc64le and aarch64 architectures, using
   `solo5-spt` as a _tender_. A Linux distribution with libseccomp >= 2.3.3 is
   required.
-* _muen_: The Muen Separation Kernel, on the x86\_64 architecture.
-* _genode_: The Genode Operating System Framework on the x86\_64 architecture.
-  Unikernels may be linked against a shared library containing Solo5 bindings
-  and executed as a native Genode component. The bindings library is provided
-  here in the form of a stub library that can be built using a stock C
-  toolchain along with the C++ implementation that must be built using the
-  Genode toolchain. Note that the Genode _target_ must be enabled explicitly
-  using `CONFIG_GENODE=1`, and may not build with standard toolchains. If in
-  doubt, please consult with Genode developers.
+* _muen_: The [Muen Separation Kernel](https://muen.sk/), on the x86\_64
+  architecture. Muen commit `f10bd6b` or later is required.
 
 Limited:
 
+* _genode_: The [Genode Operating System Framework](https://genode.org/) on the
+  x86\_64 architecture.  Unikernels may be linked against a shared library
+  containing Solo5 bindings and executed as a native Genode component. The
+  bindings library is provided here in the form of a stub library that can be
+  built using a stock C toolchain along with the C++ implementation that must
+  be built using the Genode toolchain. Note that the Genode _target_ must be
+  enabled explicitly using `CONFIG_GENODE=1`, and may not build with standard
+  toolchains. If in doubt, please consult with Genode developers.
 * _virtio_: Any hypervisor which virtualizes an x86\_64 system with virtio
   devices (e.g.  Linux/KVM with QEMU as a monitor, Google Compute Engine). See
   below under "_virtio_: Limitations" for details.
