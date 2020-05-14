@@ -1,3 +1,61 @@
+## 0.6.5 (2020-05-14)
+
+New features:
+
+* Stop host kernels from attempting to execute Solo5 binaries. This improves
+  both the user experience on some hosts (e.g. "No such file or directory" vs.
+  "Segmentation fault" on Linux) and overall security posture by forcing the
+  host kernel ELF loader to bail out earlier rather than actually jumping to
+  the unikernel code. (#442)
+* hvt: Full support for W^X and correct guest-side page protections on OpenBSD
+  6.7+ systems with EPT. (#447)
+* hvt: capsicum(4) sandbox for the hvt tender on FreeBSD 12+. (#366)
+
+Bug fixes:
+
+* hvt: Fix hang in `HVT_HYPERCALL_POLL`. On Linux hosts, if `solo5_yield()` was
+  called with a deadline that has already passed and the unikernel was not using
+  any network devices then the underlying hypercall would hang forever. Not
+  known to affect any existing code in production. (#460)
+
+Other notable changes:
+
+* muen: Muen ABI updates, now uses ABI version 2 on the Solo5 side. Muen
+  commit f10bd6b or later is required. (#454, #448)
+* genode: Support for Genode is limited by toolchain issues and Genode bindings
+  are no longer built by default. (#446, see also ocaml/opam-repository#16368)
+* Improvements to the build system on BSD/clang hosts. System headers
+  (sys/endian.h, osreldate.h) that were mistakenly being installed into the
+  Solo5-provided include paths have been removed. For OCaml/MirageOS users,
+  ocaml-freestanding 0.6.0 or later is now required. (#453, #455, #457, #461,
+  see also mirage/ocaml-freestanding#77)
+* Improvements to built-in self tests. (#451)
+* Fix build failures with GCC >= 10. (#459)
+
+Known issues:
+
+* Full W^X support / correct guest-side page protections are currently only
+  available on the "spt" target on Linux, and the "hvt" target on OpenBSD 6.7
+  or later. (#303)
+* On OpenBSD, "hvt" operation with multiple network devices results in packet
+  loss. This appears to be a bug in kqueue(2) but we have no confirmation from
+  upstream. (#374)
+* virtio-net is not functional on at least QEMU 5.0 and possibly earlier
+  versions. QEMU versions up to and including 3.1.0 are known to work. (#463)
+
+Acknowledgements:
+
+* Thanks to Adam Steen (@adamsteen) for pushing for OpenBSD kernel support for
+  manipulating guest EPT mappings, bringing full W^X to hvt on OpenBSD 6.7 or
+  later.
+* Thanks to Adrian-Ken Rueegsegger (@kensan) for the Muen updates.
+* Thanks to Anurag Soni (@anuragsoni) for diagnosing and fixing the build on
+  systems with GCC >= 10.
+* Thanks to Hannes Mehnert (@hannesm) for diagnosing #460 and for help with
+  testing BSD/clang build system changes and generally helping out.
+* Thanks to Stefan Grundmann (@sg2342) for the capsicum(4) hvt tender sandbox
+  on FreeBSD.
+
 ## 0.6.4 (2019-11-14)
 
 This release updates the Genode and Muen bindings, and fixes the following
