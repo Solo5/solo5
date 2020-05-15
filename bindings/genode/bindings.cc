@@ -104,6 +104,12 @@ namespace Solo5
 
 		return epoch;
 	}
+
+	static Microseconds from_ns(solo5_time_t ns) {
+		return Microseconds { ns / 1000ULL }; }
+
+	static solo5_time_t to_ns(Microseconds us) {
+		return us.value * 1000ULL; }
 }
 
 
@@ -431,20 +437,19 @@ struct Solo5::Platform
 			_initial_epoch = rtc_epoch(env);
 
 		return _initial_epoch * 1000000000ULL
-		     + timer.curr_time().trunc_to_plain_us().value * 1000ULL;
+		     + to_ns(timer.curr_time().trunc_to_plain_us());
 	}
 
 	void
 	yield(solo5_time_t deadline_ns, solo5_handle_set_t *ready_set)
 	{
 		if (!nic_ready) {
-			solo5_time_t deadline_us = deadline_ns / 1000;
-			solo5_time_t now_us = timer.curr_time()
-				.trunc_to_plain_us().value;
+			Microseconds deadline = from_ns(deadline_ns);
+			Microseconds now = timer.curr_time().trunc_to_plain_us();
+			if (deadline.value <= now.value) return;
 
 			// schedule a timeout signal
-			yield_timeout.schedule(
-				Genode::Microseconds{deadline_us - now_us});
+			yield_timeout.schedule(Microseconds {deadline.value - now.value});
 
 			/*
 			 * Block for Nic and Timer signals until a packet is
@@ -531,8 +536,8 @@ void solo5_abort(void)
 
 solo5_time_t solo5_clock_monotonic(void)
 {
-	return Platform::instance->timer.curr_time()
-		.trunc_to_plain_us().value*1000;
+	return Solo5::to_ns(Platform::instance->
+		timer.curr_time().trunc_to_plain_us());
 }
 
 
