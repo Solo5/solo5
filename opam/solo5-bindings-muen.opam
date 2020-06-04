@@ -14,10 +14,6 @@ build: [
   [make "V=1" "CONFIG_HVT=" "CONFIG_SPT=" "CONFIG_VIRTIO=" "CONFIG_GENODE="]
 ]
 install: [make "V=1" "CONFIG_HVT=" "CONFIG_SPT=" "CONFIG_VIRTIO=" "CONFIG_GENODE=" "install-opam-muen" "PREFIX=%{prefix}%"]
-remove: [
-  ["touch" "./Makeconf"]
-  [make "V=1" "uninstall-opam-muen" "PREFIX=%{prefix}%"]
-]
 depends: [
   "conf-pkg-config"
   "conf-libseccomp" {build & os = "linux"}
