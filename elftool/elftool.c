@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2019 Contributors as noted in the AUTHORS file
+ * Copyright (c) 2015-2020 Contributors as noted in the AUTHORS file
  *
  * This file is part of Solo5, a sandboxed execution environment.
  *
@@ -265,6 +265,8 @@ static const char *abi_target_to_string(int abi_target)
             return "muen";
         case GENODE_ABI_TARGET:
             return "genode";
+        case XEN_ABI_TARGET:
+            return "xen";
         default:
             return "unknown";
     }

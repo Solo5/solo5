@@ -1,5 +1,5 @@
 #!/usr/bin/env bats
-# Copyright (c) 2015-2019 Contributors as noted in the AUTHORS file
+# Copyright (c) 2015-2020 Contributors as noted in the AUTHORS file
 #
 # This file is part of Solo5, a sandboxed execution environment.
 #
@@ -72,6 +72,10 @@ setup() {
     [ -z "${CONFIG_SPT}" ] && skip
     SPT_TENDER=../tenders/spt/solo5-spt
     ;;
+  *xen)
+    [ -z "${CONFIG_XEN}" ] && skip
+    [ ! -x "$(command -v xl)" ] && skip "xl not available"
+    [ $(id -u) -ne 0 ] && skip "need root to run Xen tests"
   esac
 
   NET0=tap100
@@ -100,6 +104,17 @@ spt_run() {
 
 virtio_run() {
   run ${TIMEOUT} --foreground 60s ${VIRTIO} "$@"
+}
+
+xen_run() {
+  # "xl create" is really amenable to automation, oh yeah!
+  local TEST_DIR=$(dirname "$1")
+  local TEST_NAME=$(basename "$1" .xen)
+  shift
+  run ${TIMEOUT} --foreground 60s \
+    xl create -F -c /dev/null \
+      name=\"${TEST_NAME}\" kernel=\"${TEST_DIR}/${TEST_NAME}.xen\" \
+      type=\"pvh\" memory=32 cmdline=\"$@\"
 }
 
 # Given a list of arguments in the format HOST[_RELEASE], returns true iff CONFIG_HOST
@@ -166,6 +181,10 @@ virtio_expect_abort() {
     [[ "$output" == *"ABORT"* ]]
 }
 
+xen_expect_abort() {
+  [ "$status" -eq 0 ] && [[ "$output" == *"ABORT"* ]]
+}
+
 # ------------------------------------------------------------------------------
 # Tests start here
 # ------------------------------------------------------------------------------
@@ -207,6 +226,11 @@ virtio_expect_abort() {
   expect_success
 }
 
+@test "hello xen" {
+  xen_run test_hello/test_hello.xen Hello_Solo5
+  expect_success
+}
+
 @test "quiet hvt" {
   hvt_run -- test_quiet/test_quiet.hvt --solo5:quiet
   expect_success
@@ -226,6 +250,14 @@ virtio_expect_abort() {
   [[ "$output" != *"Solo5:"* ]]
 }
 
+# Don't run this for now, as we have a message that is always output in
+# console.c.
+# @test "quiet xen" {
+#   xen_run test_quiet/test_quiet.xen --solo5:quiet
+#   expect_success
+#   [[ "$output" != *"Solo5:"* ]]
+# }
+
 @test "globals hvt" {
   hvt_run test_globals/test_globals.hvt
   expect_success
@@ -238,6 +270,11 @@ virtio_expect_abort() {
 
 @test "globals spt" {
   spt_run test_globals/test_globals.spt
+  expect_success
+}
+
+@test "globals xen" {
+  xen_run test_globals/test_globals.xen
   expect_success
 }
 
@@ -256,6 +293,11 @@ virtio_expect_abort() {
   [ "$status" -eq 139 ] # SIGSEGV
 }
 
+@test "exception xen" {
+  xen_run test_exception/test_exception.xen
+  xen_expect_abort
+}
+
 @test "zeropage hvt" {
   hvt_run test_zeropage/test_zeropage.hvt
   expect_abort
@@ -269,6 +311,11 @@ virtio_expect_abort() {
 @test "zeropage spt" {
   spt_run test_zeropage/test_zeropage.spt
   [ "$status" -eq 139 ] # SIGSEGV
+}
+
+@test "zeropage xen" {
+  xen_run test_zeropage/test_zeropage.xen
+  xen_expect_abort
 }
 
 @test "xnow hvt" {
@@ -310,6 +357,11 @@ virtio_expect_abort() {
   expect_segfault
 }
 
+@test "notls xen" {
+  xen_run test_notls/test_notls.xen
+  xen_expect_abort
+}
+
 @test "tls hvt" {
   skip_unless_host_is Linux
 
@@ -329,6 +381,11 @@ virtio_expect_abort() {
   expect_success
 }
 
+@test "tls xen" {
+  xen_run test_tls/test_tls.xen
+  expect_success
+}
+
 @test "ssp hvt" {
   hvt_run test_ssp/test_ssp.hvt
   expect_abort
@@ -344,6 +401,11 @@ virtio_expect_abort() {
   expect_abort
 }
 
+@test "ssp xen" {
+  xen_run test_ssp/test_ssp.xen
+  xen_expect_abort
+}
+
 @test "fpu hvt" {
   hvt_run test_fpu/test_fpu.hvt
   expect_success
@@ -356,6 +418,11 @@ virtio_expect_abort() {
 
 @test "fpu spt" {
   spt_run test_fpu/test_fpu.spt
+  expect_success
+}
+
+@test "fpu xen" {
+  xen_run test_fpu/test_fpu.xen
   expect_success
 }
 
@@ -381,6 +448,11 @@ virtio_expect_abort() {
 
 @test "time spt" {
   spt_run test_time/test_time.spt
+  expect_success
+}
+
+@test "time xen" {
+  xen_run test_time/test_time.xen
   expect_success
 }
 

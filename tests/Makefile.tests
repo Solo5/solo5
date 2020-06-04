@@ -1,4 +1,4 @@
-# Copyright (c) 2015-2019 Contributors as noted in the AUTHORS file
+# Copyright (c) 2015-2020 Contributors as noted in the AUTHORS file
 #
 # This file is part of Solo5, a sandboxed execution environment.
 #
@@ -33,6 +33,8 @@ LDS.muen := $(TOPDIR)/bindings/muen/solo5_muen.lds
 BINDINGS.muen := $(TOPDIR)/bindings/muen/solo5_muen.o
 LDS.genode := $(TOPDIR)/bindings/genode/genode_dyn.ld
 BINDINGS.genode := $(TOPDIR)/bindings/genode/solo5.lib.so
+LDS.xen := $(TOPDIR)/bindings/xen/solo5_xen.lds
+BINDINGS.xen := $(TOPDIR)/bindings/xen/solo5_xen.o
 
 ELFTOOL := $(TOPDIR)/elftool/solo5-elftool
 
@@ -73,6 +75,16 @@ manifest.c: manifest.json ../../include/solo5/mft_abi.h $(ELFTOOL)
 	$(LD) $(GENODE_APP_LDFLAGS) -T $(LDS.genode) $(BINDINGS.genode) \
 	    $< manifest.genode.o -o $@
 
+%.xen: %.o manifest.o $(LDS.xen) $(BINDINGS.xen)
+	@echo "LD $@"
+	$(LD) $(LDFLAGS) -T $(LDS.xen) $(BINDINGS.xen) $< manifest.o -o $@
+
+%.xl: %.xen
+	@echo "XL $@"
+	sed -e s/@@NAME@@/$(test_NAME)/ \
+	    -e s/@@KERNEL@@/$(test_NAME).xen/ \
+	    ../config.xl.in >$@
+
 ifdef CONFIG_HVT
     all_TARGETS += $(test_NAME).hvt
 endif
@@ -91,6 +103,10 @@ endif
 
 ifdef CONFIG_GENODE
     all_TARGETS += $(test_NAME).genode
+endif
+
+ifdef CONFIG_XEN
+    all_TARGETS += $(test_NAME).xen $(test_NAME).xl
 endif
 
 .PRECIOUS: $(test_NAME).o $(test_NAME).genode.o manifest.o manifest.genode.o

@@ -1,0 +1,4 @@
+name = '@@NAME@@'
+kernel = '@@KERNEL@@'
+type = 'pvh'
+memory = 32
