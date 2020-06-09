@@ -54,7 +54,11 @@ manifest.c: manifest.json ../../include/solo5/mft_abi.h $(ELFTOOL)
 
 %.spt: %.o manifest.o $(LDS.spt) $(BINDINGS.spt)
 	@echo "LD $@"
+ifeq ($(CONFIG_ARCH), arm)
+	$(LD) $(LDFLAGS) -T $(LDS.spt) $(BINDINGS.spt) $< manifest.o $(TOPDIR)/lib32/aeabi/libaeabi.a -o $@
+else
 	$(LD) $(LDFLAGS) -T $(LDS.spt) $(BINDINGS.spt) $< manifest.o -o $@
+endif
 
 %.virtio: %.o manifest.o $(LDS.virtio) $(BINDINGS.virtio)
 	@echo "LD $@"

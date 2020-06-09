@@ -56,6 +56,29 @@ int solo5_app_main(const struct solo5_start_info *si __attribute__((unused)))
         : "m" (c)
         : "q0", "q1", "v0"
     );
+#elif defined(__arm__)
+    /* We focus on only the first half of the array c[] */
+    float *addr = &c[0];
+    __asm__(
+        "ldr r0, %0\n"
+        "vld1.32 {d0}, [r0]\n"
+        "vld1.32 {d1}, [r0]\n"
+        "vmul.f32 d0, d1, d0\n"
+        "vst1.32 {d0}, [r0]\n"
+        : "=m" (addr)
+        : "m" (addr)
+        : "r0", "d0", "d1"
+    );
+    /* TODO: This is a workaround for arm-linux-gnueabihf-gcc */
+    int i;
+    for (i = 0; i < 6; i++) {
+        __asm__(
+            "nop\n"
+            :
+            :
+            :
+        );
+    }
 #elif defined(__powerpc64__)
 #define DOMUL(VAR) 			\
     __asm__(				\
@@ -79,7 +102,11 @@ int solo5_app_main(const struct solo5_start_info *si __attribute__((unused)))
     b = 5.0;
     a *= b;
 
+#if defined(__arm__)
+    if (a == 7.5 && c[0] == 4.0 && c[1] == 25.0 && c[2] == 3.0 && c[3] == 8.0)
+#else
     if (a == 7.5 && c[0] == 4.0 && c[1] == 25.0 && c[2] == 9.0 && c[3] == 64.0)
+#endif
         puts("SUCCESS\n");
     else
         return SOLO5_EXIT_FAILURE;

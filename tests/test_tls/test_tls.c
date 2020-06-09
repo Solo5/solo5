@@ -62,6 +62,13 @@ struct tcb {
     void *pad;
     volatile uint64_t _data;
 };
+#elif defined(__arm__)
+/* Variant I */
+struct tcb {
+    void *tp;
+    void *pad;
+    volatile uint32_t _data;
+};
 #else
 #error Unsupported architecture
 #endif
@@ -74,6 +81,19 @@ static void puts(const char *s)
     solo5_console_write(s, strlen(s));
 }
 
+#if defined(__BITS_32__)
+__thread volatile uint32_t _data;
+
+uint32_t __attribute__ ((noinline)) get_data()
+{
+    return _data;
+}
+
+void __attribute__ ((noinline)) set_data(uint32_t data)
+{
+    _data = data;
+}
+#elif defined(__BITS_64__)
 __thread volatile uint64_t _data;
 
 uint64_t __attribute__ ((noinline)) get_data()
@@ -85,6 +105,9 @@ void __attribute__ ((noinline)) set_data(uint64_t data)
 {
     _data = data;
 }
+#else
+#error Unsupported architecture bits
+#endif
 
 int solo5_app_main(const struct solo5_start_info *si __attribute__((unused)))
 {
