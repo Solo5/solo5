@@ -32,7 +32,7 @@ conflicts: [
   "solo5-bindings-genode"
 ]
 available: [
-  (arch = "x86_64" | arch = "arm64") & os = "linux"
+  (arch = "x86_64" | arch = "arm32" | arch = "arm64") & os = "linux"
 ]
 synopsis: "Solo5 sandboxed execution environment (spt target)"
 description: """
@@ -44,4 +44,4 @@ This package provides the Solo5 components needed to build
 MirageOS unikernels on the "spt" target and the "solo5-spt" tender
 binary used to run such unikernels.
 
-The "spt" target is supported on 64-bit Linux systems only."""
+The "spt" target is supported on 64-bit Linux systems or 32-bit Linux ARM systems only."""
