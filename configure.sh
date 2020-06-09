@@ -117,7 +117,7 @@ config_host_linux()
     mkdir -p ${HOST_INCDIR}
     cp -R ${CC_INCDIR}/. ${HOST_INCDIR}
 
-    MAKECONF_CFLAGS="-nostdinc"
+    MAKECONF_CFLAGS="-nostdinc -D${CONFIG_BITS}"
     # Recent distributions now default to PIE enabled. Disable it explicitly
     # if that's the case here.
     # XXX: This breaks MirageOS in (at least) the build of mirage-solo5 due
@@ -134,6 +134,23 @@ config_host_linux()
         gcc_check_option -mstack-protector-guard=global || \
             die "GCC 4.9.0 or newer is required for -mstack-protector-guard= support"
         MAKECONF_CFLAGS="${MAKECONF_CFLAGS} -mstack-protector-guard=global"
+    fi
+
+    # 32-bit ARM specific configuration:
+    #
+    # 1. We are mainly focusing on ARMv7-a architecture and assuming that 
+    #    target processors have the NEON SIMD feature.
+    # 2. We asssme a target system has libaebai.a as a library to solve 
+    #    the following problems.
+    #    - ARMv7-a based processors does not support instructions related to 
+    #      several arithmetic operations.
+    #    - GCC tries to use the TPIDRURO register rather than TPIDRURW for TLS 
+    #      (Thread Local Storage). We need to put the "-mtp=soft" flag to make 
+    #      GCC to use an external __aeabi_read_tp funtion provided in 
+    #      libaeabi.a.
+    if [ "${CONFIG_ARCH}" = "arm" ];
+    then
+        MAKECONF_CFLAGS="${MAKECONF_CFLAGS} -mfpu=neon -mtp=soft"
     fi
 
     # If the host toolchain is NOT configured to build PIE exectuables by
@@ -175,6 +192,7 @@ config_host_linux()
     [ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_VIRTIO=1
     [ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_MUEN=1
     [ "${CONFIG_ARCH}" = "ppc64le" ] && CONFIG_HVT=
+    [ "${CONFIG_ARCH}" = "arm" ] && CONFIG_HVT=
     CONFIG_GENODE=
 }
 
@@ -274,23 +292,33 @@ CC_MACHINE=$(${CC} -dumpmachine)
 # Determine HOST and ARCH based on what the toolchain reports.
 case ${CC_MACHINE} in
     x86_64-*linux*)
-        CONFIG_ARCH=x86_64 CONFIG_HOST=Linux
+        CONFIG_ARCH=x86_64 CONFIG_BITS=__BITS_64__
+        CONFIG_HOST=Linux
         CONFIG_GUEST_PAGE_SIZE=0x1000
         ;;
     aarch64-*linux*)
-        CONFIG_ARCH=aarch64 CONFIG_HOST=Linux
+        CONFIG_ARCH=aarch64 CONFIG_BITS=__BITS_64__
+        CONFIG_HOST=Linux
+        CONFIG_GUEST_PAGE_SIZE=0x1000
+        ;;
+    arm-*linux*)
+        CONFIG_ARCH=arm CONFIG_BITS=__BITS_32__
+        CONFIG_HOST=Linux
         CONFIG_GUEST_PAGE_SIZE=0x1000
         ;;
     powerpc64le-*linux*|ppc64le-*linux*)
-        CONFIG_ARCH=ppc64le CONFIG_HOST=Linux
+        CONFIG_ARCH=ppc64le CONFIG_BITS=__BITS_64__
+        CONFIG_HOST=Linux
         CONFIG_GUEST_PAGE_SIZE=0x10000
         ;;
     x86_64-*freebsd*)
-        CONFIG_ARCH=x86_64 CONFIG_HOST=FreeBSD
+        CONFIG_ARCH=x86_64 CONFIG_BITS=__BITS_64__
+        CONFIG_HOST=FreeBSD
         CONFIG_GUEST_PAGE_SIZE=0x1000
         ;;
     amd64-*openbsd*)
-        CONFIG_ARCH=x86_64 CONFIG_HOST=OpenBSD
+        CONFIG_ARCH=x86_64 CONFIG_BITS=__BITS_64__
+        CONFIG_HOST=OpenBSD
         CONFIG_GUEST_PAGE_SIZE=0x1000
         ;;
     *)
@@ -357,6 +385,7 @@ CONFIG_GENODE=${CONFIG_GENODE}
 MAKECONF_CFLAGS=${MAKECONF_CFLAGS}
 MAKECONF_LDFLAGS=${MAKECONF_LDFLAGS}
 CONFIG_ARCH=${CONFIG_ARCH}
+CONFIG_BITS=${CONFIG_BITS}
 CONFIG_HOST=${CONFIG_HOST}
 CONFIG_GUEST_PAGE_SIZE=${CONFIG_GUEST_PAGE_SIZE}
 MAKECONF_CC=${CC}
