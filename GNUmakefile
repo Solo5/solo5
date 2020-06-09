@@ -21,7 +21,12 @@ $(TOPDIR)/Makeconf:
 	$(error Makeconf not found, please run ./configure.sh)
 include Makefile.common
 
-SUBDIRS := bindings tenders elftool tests
+ifeq ($(CONFIG_BITS), __BITS_32__)
+SUBDIRS := lib32
+else
+SUBDIRS :=
+endif
+SUBDIRS += bindings tenders elftool tests
 
 tests: bindings elftool
 
@@ -130,6 +135,9 @@ ifdef CONFIG_HVT
 endif
 ifdef CONFIG_SPT
 	cp tenders/spt/solo5-spt $(PREFIX)/bin
+ifeq ($(CONFIG_ARCH), arm)
+	cp lib32/aeabi/libaeabi.a $(PREFIX)/lib/solo5-bindings-spt
+endif
 endif
 ifdef CONFIG_VIRTIO
 	cp scripts/virtio-mkimage/solo5-virtio-mkimage.sh \
@@ -157,6 +165,9 @@ uninstall-opam-%: force-uninstall
 	    $(PREFIX)/bin/solo5-hvt-configure
 # CONFIG_SPT
 	$(RM) $(PREFIX)/bin/solo5-spt
+ifeq ($(CONFIG_ARCH), arm)
+	$(RM) $(PREFIX)/lib/solo5-bindings-spt/libaeabi.a 
+endif
 # CONFIG_VIRTIO
 	$(RM) $(PREFIX)/bin/solo5-virtio-mkimage
 	$(RM) $(PREFIX)/bin/solo5-virtio-run
