@@ -43,6 +43,7 @@
 #include <asm/prctl.h>
 #endif
 
+#include "../common/types.h"
 #include "spt.h"
 
 /*
@@ -70,9 +71,9 @@ struct spt *spt_init(size_t mem_size)
      * On systems where we are built as a PIE executable:
      *
      * The kernel will apply ASLR and map the tender at a high virtual address
-     * (see ELF_ET_DYN_BASE in the kernel source for the arch-specific value,
-     * as we only support 64-bit architectures for now where this should always
-     * be >= 4 GB).
+     * for 64-bit architectures (see ELF_ET_DYN_BASE in the kernel source 
+     * for the arch-specific value). It will apply only ASLR for 32-bit 
+     * architectures.
      *
      * Therefore, rather than mislead the user with an incorrect error message,
      * assert that a) the tender has been loaded with a base address of at
@@ -80,17 +81,24 @@ struct spt *spt_init(size_t mem_size)
      * address space. We can re-visit this if it turns out that users run on
      * systems where this does not hold (e.g. kernel ASLR is disabled).
      */
-    assert((uint64_t)&__executable_start >= (1ULL << 32));
-    assert((uint64_t)(mem_size - 1) < (uint64_t)&__executable_start);
+#if defined(__BITS_32__)
+#define ELF_ET_DYN_BASE 0x400000UL /* Derived from the kernel 5.6 */
+    assert((addr_t)&__executable_start >= ELF_ET_DYN_BASE);
+#elif defined(__BITS_64__)
+    assert((addr_t)&__executable_start >= (1ULL << 32));
 #else
+#error Unsupported architecture bits
+#endif
+    assert((addr_t)(mem_size - 1) < (addr_t)&__executable_start);
+#else /* !defined(__PIE__) */
     /*
      * On systems where we are NOT built as a PIE executable, first assert that
      * -Ttext-segment has been correctly passed at the link step (see
      * configure.sh), and then check that guest memory size is within limits.
      */
-    assert((uint64_t)&__executable_start >= (1ULL << 30));
-    if ((uint64_t)(mem_size - 1) >= (uint64_t)&__executable_start) {
-        uint64_t max_mem_size_mb = (uint64_t)&__executable_start >> 20;
+    assert((addr_t)&__executable_start >= (1ULL << 30));
+    if ((addr_t)(mem_size - 1) >= (addr_t)&__executable_start) {
+        addr_t max_mem_size_mb = (addr_t)&__executable_start >> 20;
         warnx("Maximum guest memory size (%lu MB) exceeded.",
                 max_mem_size_mb);
         errx(1, "Either decrease --mem-size, or recompile solo5-spt"
@@ -146,7 +154,7 @@ struct spt *spt_init(size_t mem_size)
     return spt;
 }
 
-int spt_guest_mprotect(void *t_arg, uint64_t addr_start, uint64_t addr_end,
+int spt_guest_mprotect(void *t_arg, addr_t addr_start, addr_t addr_end,
         int prot)
 {
     struct spt *spt = t_arg;
@@ -187,10 +195,10 @@ static void setup_cmdline(uint8_t *cmdline, int argc, char **argv)
     }
 }
 
-void spt_boot_info_init(struct spt *spt, uint64_t p_end, int cmdline_argc,
+void spt_boot_info_init(struct spt *spt, addr_t p_end, int cmdline_argc,
         char **cmdline_argv, struct mft *mft, size_t mft_size)
 {
-    uint64_t lowmem_pos = SPT_BOOT_INFO_BASE;
+    addr_t lowmem_pos = SPT_BOOT_INFO_BASE;
 
     struct spt_boot_info *bi =
         (struct spt_boot_info *)(spt->mem + lowmem_pos);
@@ -212,9 +220,9 @@ void spt_boot_info_init(struct spt *spt, uint64_t p_end, int cmdline_argc,
 /*
  * Defined in spt_lauch_<arch>.S.
  */
-extern void spt_launch(uint64_t stack_start, void (*fn)(void *), void *arg);
+extern void spt_launch(addr_t stack_start, void (*fn)(void *), void *arg);
 
-void spt_run(struct spt *spt, uint64_t p_entry)
+void spt_run(struct spt *spt, addr_t p_entry)
 {
     typedef void (*start_fn_t)(void *arg);
     start_fn_t start_fn = (start_fn_t)(spt->mem + p_entry);
@@ -222,14 +230,16 @@ void spt_run(struct spt *spt, uint64_t p_entry)
      * Set initial stack alignment based on arch-specific ABI requirements.
      */
 #if defined(__x86_64__)
-    uint64_t sp = spt->mem_size - 0x8;
+    addr_t sp = spt->mem_size - 0x8;
 #elif defined(__aarch64__)
-    uint64_t sp = spt->mem_size - 0x10;
+    addr_t sp = spt->mem_size - 0x10;
+#elif defined(__arm__)
+    addr_t sp = spt->mem_size - 0x8;
 #elif defined(__powerpc64__)
     /*
      * Stack alignment on PPC64 is 0x10, minimum stack frame size is 112 bytes.
      */
-    uint64_t sp = spt->mem_size - 112;
+    addr_t sp = spt->mem_size - 112;
 #else
 #error Unsupported architecture
 #endif

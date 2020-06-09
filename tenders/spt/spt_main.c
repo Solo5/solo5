@@ -35,6 +35,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include "../common/types.h"
 #include "spt.h"
 #include "solo5_version.h"
 
@@ -131,7 +132,7 @@ static void version(const char *prog)
 int main(int argc, char **argv)
 {
     size_t mem_size = 0x20000000;
-    uint64_t p_entry, p_end;
+    addr_t p_entry, p_end;
     const char *prog;
     const char *elf_filename;
     int elf_fd = -1;

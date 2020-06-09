@@ -72,7 +72,7 @@ HOSTAR := ar
 
 define HOSTCOMPILE.c
 	@echo "HOSTCC $<"
-	$(HOSTCC) $(DEPFLAGS) $(HOSTCFLAGS) $(HOSTCPPFLAGS) -c $< -o $@
+	$(HOSTCC) $(DEPFLAGS) $(HOSTCFLAGS) $(HOSTCPPFLAGS) -D$(CONFIG_BITS) -c $< -o $@
 	mv -f $*.Td $*.d && touch $@
 endef
 
@@ -82,8 +82,9 @@ define HOSTCOMPILE.S
 	mv -f $*.Td $*.d && touch $@
 endef
 
+#	@echo "HOSTLINK $@"
 define HOSTLINK
-	@echo "HOSTLINK $@"
+	@echo "$(HOSTCC) $(HOSTLDFLAGS) $^ $(HOSTLDLIBS) -o $@"
 	$(HOSTCC) $(HOSTLDFLAGS) $^ $(HOSTLDLIBS) -o $@
 endef
 

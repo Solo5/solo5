@@ -25,6 +25,8 @@
 #ifndef COMMON_ELF_H
 #define COMMON_ELF_H
 
+#include "types.h"
+
 /*
  * guest_mprotect_fn() is called by the ELF loader to request that the page
  * protection flags (prot) as used by the system mprotect(), i.e. PROT_X from
@@ -33,8 +35,8 @@
  *
  * Returns 0 on success, -1 and errno set on failure.
  */
-typedef int (*guest_mprotect_fn_t)(void *t_arg, uint64_t addr_start,
-        uint64_t addr_end, int prot);
+typedef int (*guest_mprotect_fn_t)(void *t_arg, addr_t addr_start,
+        addr_t addr_end, int prot);
 
 /*
  * Load an ELF binary from (bin_fd) into (mem_size) bytes of memory at (*mem).
@@ -50,8 +52,8 @@ typedef int (*guest_mprotect_fn_t)(void *t_arg, uint64_t addr_start,
  * terminates the program.
  */
 void elf_load(int bin_fd, const char *bin_name, uint8_t *mem, size_t mem_size,
-        uint64_t p_min_loadaddr, guest_mprotect_fn_t t_guest_mprotect,
-        void *t_guest_mprotect_arg, uint64_t *p_entry, uint64_t *p_end);
+        addr_t p_min_loadaddr, guest_mprotect_fn_t t_guest_mprotect,
+        void *t_guest_mprotect_arg, addr_t *p_entry, addr_t *p_end);
 
 /*
  * Load the Solo5-owned NOTE of (note_type) from the ELF binary (file).
