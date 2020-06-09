@@ -78,7 +78,7 @@ long sys_write(long fd, const void *buf, long size)
     return r3;
 }
 
-long sys_pread64(long fd, void *buf, long size, long pos)
+long sys_pread64(long fd, void *buf, long size, solo5_off_t pos)
 {
     register long r0 __asm__("r0") = SYS_pread64;
     register long r3 __asm__("r3") = fd;

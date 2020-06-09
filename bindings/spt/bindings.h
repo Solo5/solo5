@@ -35,13 +35,19 @@
 
 long sys_read(long fd, void *buf, long size);
 long sys_write(long fd, const void *buf, long size);
-long sys_pread64(long fd, void *buf, long size, long pos);
-long sys_pwrite64(long fd, const void *buf, long size, long pos);
+long sys_pread64(long fd, void *buf, long size, solo5_off_t pos);
+long sys_pwrite64(long fd, const void *buf, long size, solo5_off_t pos);
 
 void sys_exit_group(long status) __attribute__((noreturn));
 
 struct sys_timespec {
+#if defined(__BITS_32__)
+    uint32_t tv_sec;
+#elif defined(__BITS_64__)
     uint64_t tv_sec;
+#else
+#error Unsupported architecture bits
+#endif
     long tv_nsec;
 };
 

@@ -102,8 +102,15 @@ void solo5_yield(solo5_time_t deadline, solo5_handle_set_t *ready_set)
     struct sys_itimerspec it = {
         .it_interval = { 0 },
         .it_value = {
+#if defined(__BITS_32__)
+            .tv_sec = (uint32_t)(deadline / 1000000000ULL),
+            .tv_nsec = (long)(deadline % 1000000000ULL)
+#elif defined(__BITS_64__)
             .tv_sec = deadline / 1000000000ULL,
             .tv_nsec = deadline % 1000000000ULL
+#else
+#error Unsupported architecture bits
+#endif
         }
     };
     /*

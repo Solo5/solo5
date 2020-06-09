@@ -25,7 +25,13 @@
  * crt_init_early(), keep an easily recognisable "terminator" value here to
  * flag if that did not happen as expected.
  */
+#if (__BITS_32__)
+uintptr_t SSP_GUARD = 0xdeadbeef;
+#elif (__BITS_64__)
 uintptr_t SSP_GUARD = 0x00deadbeef0d0a00;
+#else
+#error Unsupported architecture bits
+#endif
 
 /*
  * Called by compiler-generated code when corruption of the canary value is

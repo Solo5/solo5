@@ -41,9 +41,14 @@ hvt_SRCS := hvt/start.c $(common_SRCS) $(common_hvt_SRCS) \
     hvt/platform_lifecycle.c hvt/yield.c hvt/tscclock.c hvt/console.c \
     hvt/net.c hvt/block.c
 
-spt_SRCS := spt/start.c \
-    abort.c crt.c printf.c lib.c mem.c exit.c log.c cmdline.c tls.c mft.c \
-    spt/bindings.c spt/block.c spt/net.c spt/platform.c \
+ifeq ($(CONFIG_BITS), __BITS_32__)
+spt_SRCS := mem32.c
+else ifeq ($(CONFIG_BITS), __BITS_64__)
+spt_SRCS := mem64.c
+endif
+spt_SRCS += spt/start.c \
+    abort.c crt.c printf.c lib.c exit.c log.c cmdline.c tls.c \
+    mft.c spt/bindings.c spt/block.c spt/net.c spt/platform.c \
     spt/sys_linux_$(CONFIG_ARCH).c
 
 virtio_SRCS := virtio/boot.S virtio/start.c $(common_SRCS) \

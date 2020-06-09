@@ -21,7 +21,13 @@
 #include "bindings.h"
 
 static const char *cmdline;
+#if defined(__BITS_32__)
+static uint32_t mem_size;
+#elif defined(__BITS_64__)
 static uint64_t mem_size;
+#else
+#error Unsupported architecture bits
+#endif
 
 void platform_init(const void *arg)
 {
@@ -52,12 +58,18 @@ int platform_puts(const char *buf, int n)
     return n;
 }
 
+#if defined(__BITS_32__)
+int platform_set_tls_base(uint32_t base)
+#elif defined(__BITS_64__)
 int platform_set_tls_base(uint64_t base)
+#else
+#error Unsupported architecture bits
+#endif
 {
 #if defined(__x86_64__)
     /* In x86 we need to ask the host kernel to change %fs for us. */
     return sys_arch_prctl(SYS_ARCH_SET_FS, base);
-#elif defined(__aarch64__)
+#elif defined(__aarch64__) || defined(__arm__)
     cpu_set_tls_base(base);
     return 0;
 #elif defined(__powerpc64__)
