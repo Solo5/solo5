@@ -52,12 +52,18 @@ unikernel in particular:
 - [Debugging Solo5-based unikernels](docs/debugging.md)
 - [Technical overview, goals and limitations, and architecture of Solo5](docs/architecture.md)
 
-# Contributing and community
+# License, contributing and community
 
-Solo5 is developed on GitHub and licensed under a liberal ISC license. We
-accept contributions via GitHub pull requests. When submitting a contribution,
-please add your details to the `AUTHORS` file, and if your contribution adds
-new source files copy the copyright header from an existing source file.
+Solo5 is developed on GitHub and its original contributions are licensed under
+a liberal ISC license.
+
+This package incorporates components derived or copied from LLVM compiler-rt.
+For full details of the licenses of the components, refer to each source file.
+
+We accept contributions via GitHub pull requests. When submitting a
+contribution, please add your details to the `AUTHORS` file, and if your
+contribution adds new source files copy the copyright header from an existing
+source file.
 
 The coding style for the project is "as for the Linux kernel, but with 4
 spaces instead of tabs". When in doubt, please follow style in existing source
