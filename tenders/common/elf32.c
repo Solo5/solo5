@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2019 Contributors as noted in the AUTHORS file
+ * Copyright (c) 2015-2020 Contributors as noted in the AUTHORS file
  *
  * This file is part of Solo5, a sandboxed execution environment.
  *
@@ -49,17 +49,11 @@
  * Define EM_TARGET, EM_PAGE_SIZE and EI_DATA_TARGET for the architecture we
  * are compiling on.
  */
-#if defined(__x86_64__)
-#define EM_TARGET EM_X86_64
+#if defined(__arm__)
+#define EM_TARGET EM_ARM
 #define EM_PAGE_SIZE 0x1000
-#elif defined(__aarch64__)
-#define EM_TARGET EM_AARCH64
-#define EM_PAGE_SIZE 0x1000
-#elif defined(__powerpc64__)
-#define EM_TARGET EM_PPC64
-#define EM_PAGE_SIZE 0x10000
 #else
-#error Unsupported target
+#error Unsupported target architecture
 #endif
 
 #if __BYTE_ORDER == __LITTLE_ENDIAN
@@ -74,11 +68,11 @@
 #define SOLO5_NOTE_NAME "Solo5"
 
 /*
- * Defines an Elf64_Nhdr with n_name filled in and padded to a 4-byte boundary,
+ * Defines an Elf32_Nhdr with n_name filled in and padded to a 4-byte boundary,
  * i.e. the common part of a Solo5-owned Nhdr.
  */
 struct solo5_nhdr {
-    Elf64_Nhdr h;
+    Elf32_Nhdr h;
     char n_name[(sizeof(SOLO5_NOTE_NAME) + 3) & -4];
     /*
      * Note content ("descriptor" in ELF terms) follows in the file here,
@@ -121,10 +115,10 @@ static ssize_t pread_in_full(int fd, void *buf, size_t count, off_t offset)
     return total;
 }
 
-static bool ehdr_is_valid(const Elf64_Ehdr *hdr)
+static bool ehdr_is_valid(const Elf32_Ehdr *hdr)
 {
     /*
-     * 1. Validate that this is an ELF64 header we support.
+     * 1. Validate that this is an ELF32 header we support.
      *
      * Note: e_ident[EI_OSABI] and e_ident[EI_ABIVERSION] are deliberately NOT
      * checked as compilers do not provide a way to override this without
@@ -134,19 +128,19 @@ static bool ehdr_is_valid(const Elf64_Ehdr *hdr)
             && hdr->e_ident[EI_MAG1] == ELFMAG1
             && hdr->e_ident[EI_MAG2] == ELFMAG2
             && hdr->e_ident[EI_MAG3] == ELFMAG3
-            && hdr->e_ident[EI_CLASS] == ELFCLASS64
+            && hdr->e_ident[EI_CLASS] == ELFCLASS32
             && hdr->e_ident[EI_DATA] == EI_DATA_TARGET
             && hdr->e_version == EV_CURRENT))
         return false;
     /*
-     * 2. Validate ELF64 header internal sizes match what we expect, and that
+     * 2. Validate ELF32 header internal sizes match what we expect, and that
      * at least one program header entry is present.
      */
-    if (hdr->e_ehsize != sizeof (Elf64_Ehdr))
+    if (hdr->e_ehsize != sizeof (Elf32_Ehdr))
         return false;
     if (hdr->e_phnum < 1)
         return false;
-    if (hdr->e_phentsize != sizeof (Elf64_Phdr))
+    if (hdr->e_phentsize != sizeof (Elf32_Phdr))
         return false;
     /*
      * 3. Validate that this is an executable for our target architecture.
@@ -163,8 +157,8 @@ static bool ehdr_is_valid(const Elf64_Ehdr *hdr)
  * Align (addr) down to (align) boundary. Returns 1 if (align) is not a
  * non-zero power of 2.
  */
-static int align_down(Elf64_Addr addr, Elf64_Xword align,
-        Elf64_Addr *out_result)
+static int align_down(Elf32_Addr addr, Elf32_Xword align,
+        Elf32_Addr *out_result)
 {
     if (align > 0 && (align & (align - 1)) == 0) {
         *out_result = addr & -align;
@@ -179,9 +173,9 @@ static int align_down(Elf64_Addr addr, Elf64_Xword align,
  * (align) is not a non-zero power of 2, otherwise result in (*out_result) and
  * 0.
  */
-static int align_up(Elf64_Addr addr, Elf64_Xword align, Elf64_Addr *out_result)
+static int align_up(Elf32_Addr addr, Elf32_Xword align, Elf32_Addr *out_result)
 {
-    Elf64_Addr result;
+    Elf32_Addr result;
 
     if (align > 0 && (align & (align - 1)) == 0) {
         if (add_overflow(addr, (align - 1), result))
@@ -195,22 +189,22 @@ static int align_up(Elf64_Addr addr, Elf64_Xword align, Elf64_Addr *out_result)
 }
 
 void elf_load(int bin_fd, const char *bin_name, uint8_t *mem, size_t mem_size,
-        uint64_t p_min_loadaddr, guest_mprotect_fn_t t_guest_mprotect,
-        void *t_guest_mprotect_arg, uint64_t *p_entry, uint64_t *p_end)
+        addr_t p_min_loadaddr, guest_mprotect_fn_t t_guest_mprotect,
+        void *t_guest_mprotect_arg, addr_t *p_entry, addr_t *p_end)
 {
     ssize_t nbytes;
-    Elf64_Phdr *phdr = NULL;
-    Elf64_Ehdr *ehdr = NULL;
-    Elf64_Addr e_entry;                 /* Program entry point */
-    Elf64_Addr e_end;                   /* Highest memory address occupied */
+    Elf32_Phdr *phdr = NULL;
+    Elf32_Ehdr *ehdr = NULL;
+    Elf32_Addr e_entry;                 /* Program entry point */
+    Elf32_Addr e_end;                   /* Highest memory address occupied */
 
-    ehdr = malloc(sizeof(Elf64_Ehdr));
+    ehdr = malloc(sizeof(Elf32_Ehdr));
     if (ehdr == NULL)
         goto out_error;
-    nbytes = pread_in_full(bin_fd, ehdr, sizeof(Elf64_Ehdr), 0);
+    nbytes = pread_in_full(bin_fd, ehdr, sizeof(Elf32_Ehdr), 0);
     if (nbytes < 0)
         goto out_error;
-    if (nbytes != sizeof(Elf64_Ehdr))
+    if (nbytes != sizeof(Elf32_Ehdr))
         goto out_invalid;
     if (!ehdr_is_valid(ehdr))
         goto out_invalid;
@@ -235,13 +229,13 @@ void elf_load(int bin_fd, const char *bin_name, uint8_t *mem, size_t mem_size,
      * Load all program segments with the PT_LOAD directive.
      */
     e_end = 0;
-    Elf64_Addr plast_vaddr = 0;
-    for (Elf64_Half ph_i = 0; ph_i < ehdr->e_phnum; ph_i++) {
-        Elf64_Addr p_vaddr = phdr[ph_i].p_vaddr;
-        Elf64_Xword p_filesz = phdr[ph_i].p_filesz;
-        Elf64_Xword p_memsz = phdr[ph_i].p_memsz;
-        Elf64_Xword p_align = phdr[ph_i].p_align;
-        Elf64_Addr temp, p_vaddr_start, p_vaddr_end;
+    Elf32_Addr plast_vaddr = 0;
+    for (Elf32_Half ph_i = 0; ph_i < ehdr->e_phnum; ph_i++) {
+        Elf32_Addr p_vaddr = phdr[ph_i].p_vaddr;
+        Elf32_Xword p_filesz = phdr[ph_i].p_filesz;
+        Elf32_Xword p_memsz = phdr[ph_i].p_memsz;
+        Elf32_Xword p_align = phdr[ph_i].p_align;
+        Elf32_Addr temp, p_vaddr_start, p_vaddr_end;
 
         if (phdr[ph_i].p_type != PT_LOAD)
             continue;
@@ -373,18 +367,18 @@ int elf_load_note(int bin_fd, const char *bin_name, uint32_t note_type,
         size_t *out_note_size)
 {
     ssize_t nbytes;
-    Elf64_Phdr *phdr = NULL;
-    Elf64_Ehdr *ehdr = NULL;
+    Elf32_Phdr *phdr = NULL;
+    Elf32_Ehdr *ehdr = NULL;
     uint8_t *note_data = NULL;
     size_t note_offset, note_size, note_pad;
 
-    ehdr = malloc(sizeof(Elf64_Ehdr));
+    ehdr = malloc(sizeof(Elf32_Ehdr));
     if (ehdr == NULL)
         goto out_error;
-    nbytes = pread_in_full(bin_fd, ehdr, sizeof(Elf64_Ehdr), 0);
+    nbytes = pread_in_full(bin_fd, ehdr, sizeof(Elf32_Ehdr), 0);
     if (nbytes < 0)
         goto out_error;
-    if (nbytes != sizeof(Elf64_Ehdr))
+    if (nbytes != sizeof(Elf32_Ehdr))
         goto out_invalid;
     if (!ehdr_is_valid(ehdr))
         goto out_invalid;
@@ -404,12 +398,12 @@ int elf_load_note(int bin_fd, const char *bin_name, uint32_t note_type,
      * check its headers.
      */
     bool note_found = false;
-    Elf64_Half ph_i;
+    Elf32_Half ph_i;
     struct solo5_nhdr nhdr;
     for (ph_i = 0; ph_i < ehdr->e_phnum; ph_i++) {
         if (phdr[ph_i].p_type != PT_NOTE)
             continue;
-        if (phdr[ph_i].p_filesz < sizeof (Elf64_Nhdr))
+        if (phdr[ph_i].p_filesz < sizeof (Elf32_Nhdr))
             /*
              * p_filesz is less than minimum possible size of a NOTE header,
              * reject the executable.

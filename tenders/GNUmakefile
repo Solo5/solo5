@@ -31,7 +31,12 @@ $(V).SILENT:
 ifneq ($(filter 1,$(CONFIG_HVT) $(CONFIG_SPT)),)
 
 common_LIB := common/libcommon.a
-common_SRCS := common/elf.c common/mft.c common/block_attach.c \
+ifeq ($(CONFIG_BITS), __BITS_32__)
+common_SRCS := common/elf32.c
+else ifeq ($(CONFIG_BITS), __BITS_64__)
+common_SRCS := common/elf64.c
+endif
+common_SRCS += common/mft.c common/block_attach.c \
     common/tap_attach.c
 common_OBJS := $(patsubst %.c,%.o,$(common_SRCS))
 
@@ -92,7 +97,12 @@ endif # CONFIG_HVT
 
 ifdef CONFIG_SPT
 
+ifeq ($(CONFIG_BITS), __BITS_32__)
+# TODO: 1GB size good enough for 32-bit arch?
+HOSTLDFLAGS += -Wl,-z -Wl,noexecstack -Wl,-Ttext-segment=0x40000000
+else ifeq ($(CONFIG_BITS), __BITS_64__)
 HOSTLDFLAGS += -Wl,-z -Wl,noexecstack
+endif
 
 ifdef CONFIG_SPT_NO_PIE
 
@@ -100,7 +110,7 @@ HOSTLDFLAGS += -Wl,-Ttext-segment=0x40000000
 
 endif
 
-HOSTCFLAGS += $(MAKECONF_SPT_CFLAGS)
+HOSTCFLAGS += $(MAKECONF_SPT_CFLAGS) -D$(CONFIG_BITS) -g
 HOSTLDLIBS += $(MAKECONF_SPT_LDLIBS)
 
 spt_SRCS := spt/spt_main.c spt/spt_core.c spt/spt_launch_$(CONFIG_ARCH).S \

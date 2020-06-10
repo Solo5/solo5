@@ -47,7 +47,13 @@
  * code directly to simplify the build.
  */
 #include "../tenders/common/mft.c"
-#include "../tenders/common/elf.c"
+#if defined(__BITS_32__)
+#include "../tenders/common/elf32.c"
+#elif defined(__BITS_64__)
+#include "../tenders/common/elf64.c"
+#else
+#error "Unsupported architecture bits"
+#endif
 
 static const char *jtypestr(enum jtypes t)
 {

@@ -41,6 +41,8 @@
 #include "cpu_x86_64.h"
 #elif defined(__aarch64__)
 #include "cpu_aarch64.h"
+#elif defined(__arm__)
+#include "cpu_arm.h"
 #elif defined(__powerpc64__)
 #include "cpu_ppc64.h"
 #else
@@ -91,7 +93,13 @@ extern int cpu_intr_depth;
 
 /* intr.c: interrupt handling */
 void intr_register_irq(unsigned irq, int (*handler)(void *), void *arg);
+#if defined(__BITS_32__)
+void intr_irq_handler(uint32_t irq);
+#elif defined(__BITS_64__)
 void intr_irq_handler(uint64_t irq);
+#else
+#error Unsupported architecture bits
+#endif
 
 /* mem.c: low-level page alloc routines */
 void mem_init(void);
@@ -118,7 +126,12 @@ const char *platform_cmdline(void);
 uint64_t platform_mem_size(void);
 void platform_exit(int status, void *cookie) __attribute__((noreturn));
 int platform_puts(const char *buf, int n);
+
+#if defined(__BITS_32__)
+int platform_set_tls_base(uint32_t base);
+#else
 int platform_set_tls_base(uint64_t base);
+#endif
 
 /* platform_intr.c: platform-specific interrupt handling */
 void platform_intr_init(void);

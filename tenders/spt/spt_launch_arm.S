@@ -18,32 +18,17 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include "bindings.h"
+#define ENTRY(x) .text; .globl x; .type x,%function; x:
+#define END(x)   .size x, . - x
 
-/*
- * The stack canary value will be initialised to a pseudo-random value by
- * crt_init_early(), keep an easily recognisable "terminator" value here to
- * flag if that did not happen as expected.
- */
-#if (__BITS_32__)
-uintptr_t SSP_GUARD = 0xdeadbeef;
-#elif (__BITS_64__)
-uintptr_t SSP_GUARD = 0x00deadbeef0d0a00;
-#else
-#error Unsupported architecture bits
-#endif
+/* TODO/XXX: This calling convention is probably not 100% correct */
 
-/*
- * Called by compiler-generated code when corruption of the canary value is
- * detected. There is very little we can do here safely, so just print a
- * message and abort, taking care to make minimal use of the stack.
- */
-static const char
-stack_chk_fail_message[] = "Solo5: ABORT: Stack corruption detected\n";
+ENTRY(spt_launch)
+        mov  sp, r0
+        mov  r0, r2
+        mov  r14, #0
 
-__attribute__((noreturn))
-void SSP_FAIL(void)
-{
-    platform_puts(stack_chk_fail_message, sizeof stack_chk_fail_message);
-    platform_exit(SOLO5_EXIT_ABORT, NULL);
-}
+        blx  r1
+        
+        bx lr
+END(spt_launch)

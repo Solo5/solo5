@@ -16,7 +16,7 @@ unikernel -- about building Solo5, and running Solo5-based unikernels.
 
 ## Building Solo5
 
-Solo5 itself has the following build dependencies:
+Solo5 itself has the following build dependencies on 64-bit architectures:
 
 * a 64-bit Linux, FreeBSD or OpenBSD system (see also [Supported
   targets](#supported-targets) for further requirements),
@@ -25,6 +25,16 @@ Solo5 itself has the following build dependencies:
 * full host system headers (on Linux, kernel headers are not always installed
   by default),
 * on Linux only, pkg-config and libseccomp >= 2.3.3 are required.
+
+Solo5 with the _spt_ target can be built experimentally on a 32-bit ARM 
+architecture with the following build dependencies: 
+
+* a 32-bit Linux system with ARMv7-A architecture supporitng NEON v1 or newer,
+* a C11 compiler; only arm-linux-gnueabihf-gcc supported,
+* GNU make,
+* full host system headers (on Linux, kernel headers are not always installed
+  by default),
+* pkg-config and libseccomp >= 2.3.3 are required.
 
 Note that Solo5 does not support cross-compilation. With the exception of the
 _muen_ and _genode_ targets (which are not self-hosting), you should build
@@ -80,9 +90,9 @@ Experimental:
 * _hvt_: OpenBSD vmm, using `solo5-hvt` as a _tender_, on the x86\_64
   architecture.  OpenBSD 6.4 or later is required, 6.7 or later is recommended
   for full W^X support.
-* _spt_: Linux systems on the x86\_64, ppc64le and aarch64 architectures, using
-  `solo5-spt` as a _tender_. A Linux distribution with libseccomp >= 2.3.3 is
-  required.
+* _spt_: Linux systems on the x86\_64, ppc64le, aarch64 and aarch32
+  architectures, using `solo5-spt` as a _tender_. A Linux distribution with
+  libseccomp >= 2.3.3 is required.
 * _muen_: The [Muen Separation Kernel](https://muen.sk/), on the x86\_64
   architecture. Muen commit `f10bd6b` or later is required.
 

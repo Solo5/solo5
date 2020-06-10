@@ -49,6 +49,15 @@ int solo5_app_main(const struct solo5_start_info *si __attribute__((unused)))
             "svc 0"
             : "=r" (x0) : "r" (x8), "r" (x1) : "cc", "memory"
     );
+#elif defined(__arm__)
+    register long r7 __asm__("r7") = 41;
+    register long r0 __asm__("r0");
+    register long r1 __asm__("r1") = 1;
+
+    __asm__ __volatile__ (
+            "svc 0"
+            : "=r" (r0) : "r" (r7), "r" (r1) : "cc", "memory"
+    );
 #elif defined(__powerpc__)
     register long r0 __asm__("r0") = 41;
     register long r3 __asm__("r3") = 0;

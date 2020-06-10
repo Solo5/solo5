@@ -26,12 +26,21 @@
 #ifndef SPT_H
 #define SPT_H
 
+#if defined(__BITS_32__)
+#define ALIGN_SIZE 4
+#elif defined(__BITS_64__)
+#define ALIGN_SIZE 8
+#else
+#error Unsupported architecture
+#endif
+
 #include <inttypes.h>
 #include <err.h>
 
 #include "../common/cc.h"
 #include "../common/elf.h"
 #include "../common/mft.h"
+#include "../common/types.h"
 #include "spt_abi.h"
 
 struct spt {
@@ -45,13 +54,13 @@ struct spt {
 
 struct spt *spt_init(size_t mem_size);
 
-int spt_guest_mprotect(void *t_arg, uint64_t addr_start, uint64_t addr_end,
+int spt_guest_mprotect(void *t_arg, addr_t addr_start, addr_t addr_end,
         int prot);
 
-void spt_boot_info_init(struct spt *spt, uint64_t p_end, int cmdline_argc,
+void spt_boot_info_init(struct spt *spt, addr_t p_end, int cmdline_argc,
 	char **cmdline_argv, struct mft *mft, size_t mft_size);
 
-void spt_run(struct spt *spt, uint64_t p_entry);
+void spt_run(struct spt *spt, addr_t p_entry);
 
 /*
  * Operations provided by a module. (setup) is required, all other functions
@@ -80,7 +89,7 @@ struct spt_module {
  */
 #define DECLARE_MODULE(module_name, ...) \
     static struct spt_module __module_ ##module_name \
-    __attribute((section("modules"), aligned(8))) \
+    __attribute((section("modules"), aligned(ALIGN_SIZE))) \
     __attribute((used)) = { \
 	.name = #module_name, \
 	.ops = { __VA_ARGS__ } \
