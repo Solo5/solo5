@@ -120,7 +120,7 @@ void evtchn_unmask(evtchn_port_t port)
     int pending = 0;
 
     atomic_sync_btc(port, &s->evtchn_mask[0]);
-    pending = sync_bt(port, &s->evtchn_mask[0]);
+    pending = sync_bt(port, &s->evtchn_pending[0]);
     if (pending) {
         /*
          * Slow path:
