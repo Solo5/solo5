@@ -215,12 +215,15 @@ void evtchn_init(void)
         atomic_sync_bts(e, &s->evtchn_mask[0]);
 
     /*
-     * Register to receive event channel upcalls via "IRQ" 0, which corresponds
-     * to interrupt vector #32 as seen by Xen.
+     * Register to receive event channel upcalls from Xen via IPI vector #32 which
+     * corresponds to IRQ 0 as understood by intr.c.
      */
     intr_register_irq(0, solo5__xen_evtchn_vector_handler, NULL);
-    uint64_t val = 32ULL;
-    val |= (uint64_t)HVM_PARAM_CALLBACK_TYPE_VECTOR << 56;
-    int rc = hypercall_hvm_set_param(HVM_PARAM_CALLBACK_IRQ, val);
+    int rc = hypercall_set_evtchn_upcall_vector(0, 32);
+    assert(rc == 0);
+    /*
+     * See init_evtchn() in Xen xen/arch/x86/guest/xen/xen.c.
+     */
+    rc = hypercall_hvm_set_param(HVM_PARAM_CALLBACK_IRQ, 1);
     assert(rc == 0);
 }

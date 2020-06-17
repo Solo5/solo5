@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2019 Contributors as noted in the AUTHORS file
+ * Copyright (c) 2015-2020 Contributors as noted in the AUTHORS file
  *
  * This file is part of Solo5, a sandboxed execution environment.
  *
@@ -20,96 +20,117 @@
 
 #include "bindings.h"
 
-#define PIC1 0x20        /* IO base address for master PIC */
-#define PIC2 0xA0        /* IO base address for slave PIC */
-#define PIC1_COMMAND     PIC1
-#define PIC1_DATA        (PIC1 + 1)
-#define PIC2_COMMAND     PIC2
-#define PIC2_DATA        (PIC2 + 1)
-#define IRQ_ON_MASTER(n) ((n) < 8)
-#define IRQ_PORT(n)      (IRQ_ON_MASTER(n) ? PIC1_DATA : PIC2_DATA)
-#define IRQ_OFFSET(n)    (IRQ_ON_MASTER(n) ? (n) : ((n) - 8))
+#if !defined(__x86_64__)
+#error Not implemented
+#endif
 
-#define PIC_EOI         0x20 /* End-of-interrupt command code */
-#define ICW1_ICW4       0x01 /* ICW4 (not) needed */
-#define ICW1_SINGLE     0x02 /* Single (cascade) mode */
-#define ICW1_INTERVAL   0x04 /* Call address interval 4 (8) */
-#define ICW1_LEVEL      0x08 /* Level triggered (edge) mode */
-#define ICW1_INIT       0x10 /* Initialization - required! */
-#define ICW4_8086       0x01 /* 8086/88 (MCS-80/85) mode */
-#define ICW4_AUTO       0x02 /* Auto (normal) EOI */
-#define ICW4_BUF_SLAVE  0x08 /* Buffered mode/slave */
-#define ICW4_BUF_MASTER 0x0C /* Buffered mode/master */
-#define ICW4_SFN        0x10 /* Special fully nested (not) */
+#define MSR_IA32_APIC_BASE        0x1b
+#define MSR_IA32_APIC_BASE_BSP    (1UL << 8)
+#define MSR_IA32_APIC_BASE_ENABLE (1UL << 11)
+#define MSR_IA32_APIC_BASE_MASK   (0xffffffUL << 12)
+#define APIC_BASE                 0xfee00000UL
 
-#define io_wait() do { } while (0)
+#define DECLARE_MMIO32_REG(name, addr) \
+    static uint32_t * const name = (uint32_t *)(addr)
 
-/*
- * arguments:
- * offset1 - vector offset for master PIC vectors on the master become
- *           offset1..offset1+7
- * offset2 - same for slave PIC: offset2..offset2+7
- */
-static void PIC_remap(int offset1, int offset2)
+DECLARE_MMIO32_REG(APIC_VERSION, APIC_BASE + 0x30);
+DECLARE_MMIO32_REG(APIC_SVR,     APIC_BASE + 0xf0);
+#define APIC_SVR_ENABLE          (1U << 8)
+DECLARE_MMIO32_REG(APIC_EOI,     APIC_BASE + 0xb0);
+
+static inline uint32_t mmio_readl(const uint32_t *addr)
 {
-    unsigned char a1, a2;
+    return __atomic_load_n(addr, __ATOMIC_SEQ_CST);
+}
 
-    /* save masks */
-    a1 = inb(PIC1_DATA);
-    a2 = inb(PIC2_DATA);
+static inline void mmio_writel(uint32_t *addr, uint32_t val)
+{
+    __atomic_store_n(addr, val, __ATOMIC_SEQ_CST);
+}
 
-    /* start init seq (cascade) */
-    outb(PIC1_COMMAND, ICW1_INIT+ICW1_ICW4);
-    io_wait();
-    outb(PIC2_COMMAND, ICW1_INIT+ICW1_ICW4);
-    io_wait();
-    /* ICW2: Master PIC vector off */
-    outb(PIC1_DATA, offset1);
-    io_wait();
-    /* ICW2: Slave PIC vector off */
-    outb(PIC2_DATA, offset2);
-    io_wait();
-    /* ICW3: tell Master PIC there is a slave PIC at IRQ2 (0000 0100) */
-    outb(PIC1_DATA, 4);
-    io_wait();
-    /* ICW3: tell Slave PIC its cascade identity (0000 0010) */
-    outb(PIC2_DATA, 2);
-    io_wait();
+static inline uint64_t rdmsrq(uint32_t base)
+{
+    uint32_t low, high;
 
-    outb(PIC1_DATA, ICW4_8086);
-    io_wait();
-    outb(PIC2_DATA, ICW4_8086);
-    io_wait();
+    __asm__ __volatile__(
+            "rdmsr" :
+            "=a" (low),
+            "=d" (high) :
+            "c" (base)
+    );
+    return ((uint64_t)high << 32) | low;
+}
 
-    outb(PIC1_DATA, a1);   /* restore saved masks. */
-    outb(PIC2_DATA, a2);
+static inline void wrmsrq(uint32_t base, uint64_t val)
+{
+    __asm__ __volatile__(
+            "wrmsr" ::
+            "c" (base),
+            "a" ((uint32_t)val),
+            "d" ((uint32_t)(val >> 32))
+    );
+}
+
+static int spurious_vector_handler(void *arg __attribute__((unused)))
+{
+    return 1;
 }
 
 void platform_intr_init(void)
 {
-    PIC_remap(32, 40);
+    /*
+     * Globally enable the APIC and verify that APIC_BASE is set to the
+     * architecturally-defined value. This will always hold for Xen, and we do
+     * not support relocating APIC_BASE to a non-default value.
+     *
+     * N.B.: Technically we should also check CPUID for the presence of an
+     * APIC, but we can assume that we won't be running on a CPU/hypervisor
+     * that is that old.
+     */
+    uint64_t apic_base = rdmsrq(MSR_IA32_APIC_BASE);
+    wrmsrq(MSR_IA32_APIC_BASE, apic_base | MSR_IA32_APIC_BASE_ENABLE);
+    apic_base = rdmsrq(MSR_IA32_APIC_BASE);
+    if (!(apic_base & MSR_IA32_APIC_BASE_ENABLE) ||
+            ((apic_base & MSR_IA32_APIC_BASE_MASK) != APIC_BASE)) {
+        log(ERROR, "Solo5: Could not enable APIC or not present\n");
+        assert(false);
+    }
+    /*
+     * Additional sanity checks: The CPU should be a BSP and something sane
+     * should show in the APIC_VERSION register.
+     */
+    assert(apic_base & MSR_IA32_APIC_BASE_BSP);
+    uint32_t apic_version = mmio_readl(APIC_VERSION) & 0xff;
+    assert(apic_version);
+
+    /*
+     * Locally enable the APIC, and set the spurious interrupt vector to
+     * IRQ 15 (vector #47), since that is the highest vector we have support
+     * in our IDT for.
+     */
+    intr_register_irq(15, spurious_vector_handler, NULL);
+    uint32_t apic_svr = mmio_readl(APIC_SVR);
+    apic_svr |= (32 + 15) | APIC_SVR_ENABLE;
+    mmio_writel(APIC_SVR, apic_svr);
 }
 
-void platform_intr_ack_irq(unsigned irq)
+void platform_intr_ack_irq(unsigned irq __attribute__((unused)))
 {
-    if (!IRQ_ON_MASTER(irq))
-        outb(PIC2_COMMAND, PIC_EOI);
-
-    outb(PIC1_COMMAND, PIC_EOI);
+    /*
+     * Intel SDM doesn't say what to write here, so presumably any write
+     * is fine.
+     */
+    mmio_writel(APIC_EOI, 1);
 }
 
-void platform_intr_mask_irq(unsigned irq)
+/*
+ * We only use the APIC for upcall delivery from Xen, which is performed via
+ * a self-targeted IPI, so no need to implement mask or clear here.
+ */
+void platform_intr_mask_irq(unsigned irq __attribute__((unused)))
 {
-    uint16_t port;
-
-    port = IRQ_PORT(irq);
-    outb(port, inb(port) | (1 << IRQ_OFFSET(irq)));
 }
 
-void platform_intr_clear_irq(unsigned irq)
+void platform_intr_clear_irq(unsigned irq __attribute__((unused)))
 {
-    uint16_t port;
-
-    port = IRQ_PORT(irq);
-    outb(port, inb(port) & ~(1 << IRQ_OFFSET(irq)));
 }

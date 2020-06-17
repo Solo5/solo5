@@ -131,6 +131,17 @@ static inline int hypercall_physmap_add_shared_info(unsigned int idx,
     return hypercall__memory_op(XENMEM_add_to_physmap, &add);
 }
 
+static inline int hypercall_set_evtchn_upcall_vector(uint32_t vcpu,
+        uint8_t vector)
+{
+    xen_hvm_evtchn_upcall_vector_t op = {
+        .vcpu = vcpu,
+        .vector = vector
+    };
+
+    return hypercall__hvm_op(HVMOP_set_evtchn_upcall_vector, &op);
+}
+
 static inline int hypercall_set_timer_op(uint64_t deadline)
 {
     return HYPERCALL1(long, __HYPERVISOR_set_timer_op, deadline);

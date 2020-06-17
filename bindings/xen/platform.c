@@ -172,7 +172,7 @@ void platform_init(const void *arg __attribute__((unused)))
     assert(rc == 0);
 
     /*
-     * Initialise PIC. XXX: Is this actually necessary on Xen PVH?
+     * Initialise APIC.
      */
     platform_intr_init();
 }
