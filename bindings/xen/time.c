@@ -51,11 +51,29 @@ void solo5_yield(solo5_time_t deadline, solo5_handle_set_t *ready_set)
         timer_fired = false;
         hypercall_set_timer_op(deadline);
         /*
-         * Wait for timer event to fire. On PVH, halting the VCPU is preferred
-         * to doing a SCHEDOP_block.
+         * Wait for timer event to fire. On PVH, this is performed by halting
+         * the VCPU and waiting for an interrupt (event upcall). As we are only
+         * interested in timer events here, we go back into halt state if the
+         * interrupt taken was not a timer event.
+         *
+         * Note that on x86, using HLT to wait for an interrupt is only safe
+         * when immediately preceeded by STI and interrupts have been disabled
+         * beforehand, otherwise we can take the interrupt before the HLT is
+         * executed and go to sleep forever.
+         *
+         * Further, order is important here; we must check that the timer
+         * event has not fired immediately before going into halt state.
          */
-        while (!timer_fired)
-            __asm__ __volatile__ ("hlt" : : : "memory");
+        while(true) {
+            __asm__ __volatile__ ("cli" : : : "memory");
+            if (timer_fired) {
+                __asm__ __volatile__ ("sti");
+                break;
+            }
+            else {
+                __asm__ __volatile__ ("sti; hlt");
+            }
+        }
     }
     if (ready_set)
         *ready_set = 0;
