@@ -99,6 +99,10 @@ Limited:
 * _virtio_: Any hypervisor which virtualizes an x86\_64 system with virtio
   devices (e.g.  Linux/KVM with QEMU as a monitor, Google Compute Engine). See
   below under "_virtio_: Limitations" for details.
+* _xen_: Xen hypervisor 4.10 or later on x86\_64 only, using the PVHv2 domU
+  ABIs. The _xen_ bindings are not a full Solo5 target; they exist for the
+  purpose of providing low-level bootstrap code to MirageOS and do not provide
+  any network or block I/O functionality.
 
 # Running Solo5-based unikernels
 
