@@ -62,23 +62,6 @@ static char cmdline[8192];
 
 static uint64_t mem_size;
 
-static inline void
-x86_cpuid(uint32_t level, uint32_t *eax_out, uint32_t *ebx_out,
-        uint32_t *ecx_out, uint32_t *edx_out)
-{
-    uint32_t eax_, ebx_, ecx_, edx_;
-
-    __asm__(
-        "cpuid"
-        : "=a" (eax_), "=b" (ebx_), "=c" (ecx_), "=d" (edx_)
-        : "0" (level)
-    );
-    *eax_out = eax_;
-    *ebx_out = ebx_;
-    *ecx_out = ecx_;
-    *edx_out = edx_;
-}
-
 #define L1_REGION_SIZE (1UL << 12)
 #define L2_REGION_SIZE (1UL << 21)
 #define L3_REGION_SIZE (1UL << 30)

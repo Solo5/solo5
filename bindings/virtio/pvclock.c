@@ -77,23 +77,6 @@ struct pvclock_wall_clock {
 static volatile struct pvclock_vcpu_time_info pvclock_ti;
 static volatile struct pvclock_wall_clock pvclock_wc;
 
-static inline void
-x86_cpuid(uint32_t level, uint32_t *eax_out, uint32_t *ebx_out,
-        uint32_t *ecx_out, uint32_t *edx_out)
-{
-    uint32_t eax_, ebx_, ecx_, edx_;
-
-    __asm__(
-        "cpuid"
-        : "=a" (eax_), "=b" (ebx_), "=c" (ecx_), "=d" (edx_)
-        : "0" (level)
-    );
-    *eax_out = eax_;
-    *ebx_out = ebx_;
-    *ecx_out = ecx_;
-    *edx_out = edx_;
-}
-
 uint64_t pvclock_monotonic(void) {
     uint32_t version;
     uint64_t delta, time_now;
