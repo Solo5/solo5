@@ -83,15 +83,15 @@ ENTRY(_start32)
     movl $cpu_pml4, %eax
     movl %eax, %cr3
 
-    /* 3: Request long mode enable */
+    /* 3: Request long mode enable and enable NX functionality */
     movl $0xc0000080, %ecx
     rdmsr
-    orl $X86_EFER_LME, %eax
+    orl $(X86_EFER_LME | X86_EFER_NXE), %eax
     wrmsr
 
-    /* 4a: Enable paging */
+    /* 4a: Enable paging and supervisor write protect */
     movl %cr0, %eax
-    orl $X86_CR0_PG, %eax
+    orl $(X86_CR0_PG | X86_CR0_WP), %eax
 
     /* 4b: CPU sets long mode enabled after this instruction */
     movl %eax, %cr0

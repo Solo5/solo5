@@ -50,14 +50,15 @@ extern const uint8_t HYPERCALL_PAGE[PAGE_SIZE];
 static char cmdline[8192];
 
 /*
- * Low 1MB is unused as on other targets.
+ * Low 1MB is unused as on other targets, we place page tables in this space.
  */
-#define PLATFORM_MEM_START 0x100000
+#define PLATFORM_MEM_START 0x100000UL
+#define PLATFORM_PAGETABLE_START 0x10000UL
 
 /*
  * Maximum memory size is 4GB, as mapped in pagetable.S.
  */
-#define PLATFORM_MAX_MEM_SIZE 0x100000000
+#define PLATFORM_MAX_MEM_SIZE 0x100000000UL
 
 static uint64_t mem_size;
 
@@ -76,6 +77,113 @@ x86_cpuid(uint32_t level, uint32_t *eax_out, uint32_t *ebx_out,
     *ebx_out = ebx_;
     *ecx_out = ecx_;
     *edx_out = edx_;
+}
+
+#define L1_REGION_SIZE (1UL << 12)
+#define L2_REGION_SIZE (1UL << 21)
+#define L3_REGION_SIZE (1UL << 30)
+
+static inline uint64_t align_up(uint64_t val, uint64_t align)
+{
+    return (val + (align - 1)) & -align;
+}
+
+static void pagetable_init(void)
+{
+    extern char _stext[], _etext[], _erodata[];
+
+    uint64_t paddr;
+    /*
+     * Highest mapped physical address, currently 4GB. Note that Xen maps
+     * various structures just below 4GB in the guest-physical address space.
+     */
+    uint64_t paddr_end = PLATFORM_MAX_MEM_SIZE;
+
+    /*
+     * L1 (PTEs): Addresses up to (paddr_l1_end - 1) are mapped using 4kb
+     * pages.
+     */
+    uint64_t paddr_l1_end = align_up((uint64_t)&_erodata, L2_REGION_SIZE);
+    uint64_t *e = (uint64_t *)PLATFORM_PAGETABLE_START;
+    uint64_t l1e_addr = (uint64_t)e;
+    for (paddr = 0; paddr < paddr_l1_end; paddr += L1_REGION_SIZE) {
+        if (paddr < (uint64_t)&_stext)
+            /*
+             * Addresses below .text are unmapped, this includes
+             * these page tables.
+             */
+            *e = 0;
+        else if (paddr < (uint64_t)&_etext)
+            /*
+             * .text is mapped as read-only and executable.
+             */
+            *e = paddr | X86_PTE_P;
+        else if (paddr < (uint64_t)&_erodata)
+            /*
+             * .rodata is mapped as read-only and non-executable.
+             */
+            *e = paddr | X86_PTE_P | X86_PTE_XD;
+        else
+            /*
+             * Everything above that is mapped read-write and non-executable.
+             */
+            *e = paddr | X86_PTE_P | X86_PTE_W | X86_PTE_XD;
+
+        e += 1;
+    }
+
+    /*
+     * L2 (PDEs).
+     */
+    uint64_t l2e_addr = (uint64_t)e;
+    for (paddr = 0; paddr < paddr_end; paddr += L2_REGION_SIZE) {
+        if (paddr < paddr_l1_end) {
+            /*
+             * References L1, must be marked RWX at this level.
+             */
+            *e = l1e_addr | X86_PTE_P | X86_PTE_W;
+            l1e_addr += PAGE_SIZE;
+        }
+        else {
+            *e = paddr | X86_PTE_P | X86_PTE_W | X86_PTE_PS | X86_PTE_XD;
+        }
+
+        e += 1;
+    }
+
+    /*
+     * L3 (PDPTEs).
+     */
+    uint64_t l3e_addr = (uint64_t)e;
+    uint64_t l4e_addr = l3e_addr + PAGE_SIZE;
+    /*
+     * L3 and L4 do not fill a whole page, zero-fill these first.
+     */
+    memset(e, 0, 2 * PAGE_SIZE);
+    for (paddr = 0; paddr < paddr_end; paddr += L3_REGION_SIZE) {
+        /*
+         * References L2, must be marked RWX at this level.
+         */
+        *e = l2e_addr | X86_PTE_P | X86_PTE_W;
+        l2e_addr += PAGE_SIZE;
+
+        e += 1;
+    }
+
+    /*
+     * Single L4 (PML4). References L3, must be marked RWX at this level.
+     */
+    e = (uint64_t *)l4e_addr;
+    *e = l3e_addr | X86_PTE_P | X86_PTE_W;
+
+    /*
+     * Switch to new page tables.
+     */
+    __asm__ __volatile__(
+            "mov %0, %%cr3"
+            : : "a" (l4e_addr)
+            : "memory"
+    );
 }
 
 static void hypercall_init(void)
@@ -111,9 +219,9 @@ static void hypercall_init(void)
     assert(HYPERCALL_PAGE[0] != 0xc3);
 }
 
-
 void platform_init(const void *arg __attribute__((unused)))
 {
+    pagetable_init();
     hypercall_init();
     console_init();
 

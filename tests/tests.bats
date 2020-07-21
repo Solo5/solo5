@@ -330,6 +330,11 @@ xen_expect_abort() {
   [ "$status" -eq 139 ] # SIGSEGV
 }
 
+@test "xnow xen" {
+  xen_run test_xnow/test_xnow.xen
+  xen_expect_abort
+}
+
 @test "wnox hvt" {
   skip_unless_host_is OpenBSD_6.7
 
@@ -340,6 +345,11 @@ xen_expect_abort() {
 @test "wnox spt" {
   spt_run test_wnox/test_wnox.spt
   [ "$status" -eq 139 ] # SIGSEGV
+}
+
+@test "wnox xen" {
+  xen_run test_wnox/test_wnox.xen
+  xen_expect_abort
 }
 
 @test "notls hvt" {
