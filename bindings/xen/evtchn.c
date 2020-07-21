@@ -24,52 +24,6 @@
 #include "xen/hvm/params.h"
 
 /*
- * Atomically test-and-set bit (nr) in (*bits). Fully synchronous.
- */
-static inline bool atomic_sync_bts(int nr, volatile void *bits)
-{
-    uint8_t *byte = ((uint8_t *)bits) + (nr >> 3);
-    uint8_t bit = 1 << (nr & 7);
-    uint8_t orig;
-
-    orig = __atomic_fetch_or(byte, bit, __ATOMIC_SEQ_CST);
-    return (orig & bit) != 0;
-}
-
-/*
- * Atomically test-and-clear bit (nr) in (*bits). Fully synchronous.
- */
-static inline bool atomic_sync_btc(int nr, volatile void *bits)
-{
-    uint8_t *byte = ((uint8_t *)bits) + (nr >> 3);
-    uint8_t bit = 1 << (nr & 7);
-    uint8_t orig;
-
-    orig = __atomic_fetch_and(byte, ~bit, __ATOMIC_SEQ_CST);
-    return (orig & bit) != 0;
-}
-
-/*
- * Test if bit (nr) in (*bits) is set. Fully synchronous.
- */
-static inline bool sync_bt(int nr, const volatile void *bits)
-{
-    const uint8_t *byte = ((uint8_t *)bits) + (nr >> 3);
-    uint8_t bit = 1 << (nr & 7);
-    uint8_t result;
-
-    result = ((bit & *byte) != 0);
-    cc_barrier();
-    return result;
-}
-
-static inline void atomic_sync_xchg(unsigned long *ptr,
-        unsigned long val, unsigned long *result)
-{
-    __atomic_exchange(ptr, &val, result, __ATOMIC_SEQ_CST);
-}
-
-/*
  * Find first bit set in (word). Undefined if (word) is zero.
  */
 static inline unsigned long ffs(unsigned long word)
