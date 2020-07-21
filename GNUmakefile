@@ -1,4 +1,4 @@
-# Copyright (c) 2015-2019 Contributors as noted in the AUTHORS file
+# Copyright (c) 2015-2020 Contributors as noted in the AUTHORS file
 #
 # This file is part of Solo5, a sandboxed execution environment.
 #
@@ -73,7 +73,7 @@ $(SUBDIRS):
 # Ensure that a top-level "make clean" always cleans *all* possible build
 # products and not some subset dependent on the setting of $(BUILD_*).
 before-clean:
-	$(eval export SUBOVERRIDE := CONFIG_HVT=1 CONFIG_SPT=1 CONFIG_VIRTIO=1 CONFIG_MUEN=1 CONFIG_GENODE=1)
+	$(eval export SUBOVERRIDE := CONFIG_HVT=1 CONFIG_SPT=1 CONFIG_VIRTIO=1 CONFIG_MUEN=1 CONFIG_GENODE=1 CONFIG_XEN=1)
 clean: before-clean $(SUBDIRS)
 	@echo "CLEAN solo5"
 	$(RM) opam/solo5-bindings-hvt.pc
@@ -81,6 +81,7 @@ clean: before-clean $(SUBDIRS)
 	$(RM) opam/solo5-bindings-virtio.pc
 	$(RM) opam/solo5-bindings-muen.pc
 	$(RM) opam/solo5-bindings-genode.pc
+	$(RM) opam/solo5-bindings-xen.pc
 	$(RM) $(VERSION_H)
 
 .PHONY: distclean

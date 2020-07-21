@@ -1,5 +1,5 @@
 #!/bin/sh
-# Copyright (c) 2015-2019 Contributors as noted in the AUTHORS file
+# Copyright (c) 2015-2020 Contributors as noted in the AUTHORS file
 #
 # This file is part of Solo5, a sandboxed execution environment.
 #
@@ -176,6 +176,7 @@ config_host_linux()
     [ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_MUEN=1
     [ "${CONFIG_ARCH}" = "ppc64le" ] && CONFIG_HVT=
     CONFIG_GENODE=
+    [ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_XEN=1
 }
 
 config_host_freebsd()
@@ -214,6 +215,7 @@ config_host_freebsd()
     [ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_VIRTIO=1
     [ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_MUEN=1
     CONFIG_GENODE=
+    [ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_XEN=1
 }
 
 config_host_openbsd()
@@ -252,6 +254,7 @@ config_host_openbsd()
     [ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_VIRTIO=1
     [ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_MUEN=1
     CONFIG_GENODE=
+    [ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_XEN=1
 }
 
 # Check for a tools-only build.
@@ -308,6 +311,7 @@ CONFIG_SPT=
 CONFIG_VIRTIO=
 CONFIG_MUEN=
 CONFIG_GENODE=
+CONFIG_XEN=
 MAKECONF_CFLAGS=
 MAKECONF_LDFLAGS=
 MAKECONF_SPT_CFLAGS=
@@ -354,6 +358,7 @@ CONFIG_SPT=${CONFIG_SPT}
 CONFIG_VIRTIO=${CONFIG_VIRTIO}
 CONFIG_MUEN=${CONFIG_MUEN}
 CONFIG_GENODE=${CONFIG_GENODE}
+CONFIG_XEN=${CONFIG_XEN}
 MAKECONF_CFLAGS=${MAKECONF_CFLAGS}
 MAKECONF_LDFLAGS=${MAKECONF_LDFLAGS}
 CONFIG_ARCH=${CONFIG_ARCH}
@@ -374,4 +379,5 @@ echo -n "${prog_NAME}: Enabled targets:"
 [ -n "${CONFIG_VIRTIO}" ] && echo -n " virtio"
 [ -n "${CONFIG_MUEN}" ]   && echo -n " muen"
 [ -n "${CONFIG_GENODE}" ] && echo -n " genode"
+[ -n "${CONFIG_XEN}" ]    && echo -n " xen"
 echo "."

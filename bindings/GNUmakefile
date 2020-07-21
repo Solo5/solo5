@@ -1,4 +1,4 @@
-# Copyright (c) 2015-2019 Contributors as noted in the AUTHORS file
+# Copyright (c) 2015-2020 Contributors as noted in the AUTHORS file
 #
 # This file is part of Solo5, a sandboxed execution environment.
 #
@@ -58,6 +58,10 @@ muen_SRCS := muen/start.c $(common_SRCS) $(common_hvt_SRCS) \
     muen/muen-platform_lifecycle.c muen/muen-yield.c muen/muen-sinfo.c
 
 genode_SRCS := genode/stubs.c
+
+xen_SRCS := xen/boot.S xen/start.c $(common_SRCS) \
+    xen/hypercall_page.S xen/console.c xen/platform.c xen/platform_intr.c \
+    xen/evtchn.c xen/time.c xen/pvclock.c xen/stubs.c
 
 CPPFLAGS+=-D__SOLO5_BINDINGS__
 
@@ -152,6 +156,20 @@ genode/solo5.lib.so: $(genode_OBJS)
     all_TARGETS += genode/solo5.lib.so
     all_OBJS += $(genode_OBJS)
     all_SRCS += $(genode_SRCS)
+endif
+
+ifdef CONFIG_XEN
+    xen_OBJS := $(patsubst %.c,%.o,$(patsubst %.S,%.o,$(xen_SRCS)))
+
+xen/solo5_xen.o: $(xen_OBJS)
+	$(LINK.bindings)
+
+    all_TARGETS += xen/solo5_xen.o
+    all_OBJS += $(xen_OBJS)
+    all_SRCS += $(xen_SRCS)
+
+CPPFLAGS+=-D__XEN_INTERFACE_VERSION__=__XEN_LATEST_INTERFACE_VERSION__ \
+	  -I$(TOPDIR)/include/xen
 endif
 
 all: $(all_TARGETS)

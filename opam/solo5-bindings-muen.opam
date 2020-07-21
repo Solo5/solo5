@@ -11,9 +11,9 @@ license: "ISC"
 dev-repo: "git+https://github.com/solo5/solo5.git"
 build: [
   ["./configure.sh"]
-  [make "V=1" "CONFIG_HVT=" "CONFIG_SPT=" "CONFIG_VIRTIO=" "CONFIG_GENODE="]
+  [make "V=1" "CONFIG_HVT=" "CONFIG_SPT=" "CONFIG_VIRTIO=" "CONFIG_GENODE=" "CONFIG_XEN="]
 ]
-install: [make "V=1" "CONFIG_HVT=" "CONFIG_SPT=" "CONFIG_VIRTIO=" "CONFIG_GENODE=" "install-opam-muen" "PREFIX=%{prefix}%"]
+install: [make "V=1" "CONFIG_HVT=" "CONFIG_SPT=" "CONFIG_VIRTIO=" "CONFIG_GENODE=" "CONFIG_XEN=" "install-opam-muen" "PREFIX=%{prefix}%"]
 depends: [
   "conf-pkg-config"
   "conf-libseccomp" {build & os = "linux"}
@@ -24,6 +24,7 @@ conflicts: [
   "solo5-bindings-hvt"
   "solo5-bindings-spt"
   "solo5-bindings-virtio"
+  "solo5-bindings-xen"
 ]
 available: [
   arch = "x86_64" &

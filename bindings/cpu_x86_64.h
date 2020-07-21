@@ -45,6 +45,8 @@
 #define X86_CR0_EM              _BITUL(X86_CR0_EM_BIT)
 #define X86_CR0_NE_BIT          5 /* Numeric Exception */
 #define X86_CR0_NE              _BITUL(X86_CR0_NE_BIT)
+#define X86_CR0_WP_BIT          16 /* Write Protect */
+#define X86_CR0_WP              _BITUL(X86_CR0_WP_BIT)
 #define X86_CR0_PG_BIT          31 /* Paging */
 #define X86_CR0_PG              _BITUL(X86_CR0_PG_BIT)
 
@@ -67,10 +69,24 @@
 #define X86_EFER_LME            _BITUL(X86_EFER_LME_BIT)
 #define X86_EFER_LMA_BIT        10 /* Long mode active (R/O) */
 #define X86_EFER_LMA            _BITUL(X86_EFER_LMA_BIT)
+#define X86_EFER_NXE_BIT        11 /* No-execute enable */
+#define X86_EFER_NXE            _BITUL(X86_EFER_NXE_BIT)
 
 #define PAGE_SIZE               4096
 #define PAGE_SHIFT              12
 #define PAGE_MASK               ~(0xfff)
+
+/*
+ * Long-mode page table entries.
+ */
+#define X86_PTE_P_BIT           0 /* Present */
+#define X86_PTE_P               _BITUL(X86_PTE_P_BIT)
+#define X86_PTE_W_BIT           1 /* Read/Write */
+#define X86_PTE_W               _BITUL(X86_PTE_W_BIT)
+#define X86_PTE_PS_BIT          7 /* Page Size */
+#define X86_PTE_PS              _BITUL(X86_PTE_PS_BIT)
+#define X86_PTE_XD_BIT          63 /* Execute disable */
+#define X86_PTE_XD              _BITUL(X86_PTE_XD_BIT)
 
 /*
  * GDT layout
@@ -229,6 +245,23 @@ static inline void cpu_set_tls_base(uint64_t base)
          "a" ((uint32_t)(base)),
          "d" ((uint32_t)(base >> 32))
      );
+}
+
+static inline void
+x86_cpuid(uint32_t level, uint32_t *eax_out, uint32_t *ebx_out,
+        uint32_t *ecx_out, uint32_t *edx_out)
+{
+    uint32_t eax_, ebx_, ecx_, edx_;
+
+    __asm__(
+        "cpuid"
+        : "=a" (eax_), "=b" (ebx_), "=c" (ecx_), "=d" (edx_)
+        : "0" (level)
+    );
+    *eax_out = eax_;
+    *ebx_out = ebx_;
+    *ecx_out = ecx_;
+    *edx_out = edx_;
 }
 
 #endif /* !ASM_FILE */
