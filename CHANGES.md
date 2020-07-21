@@ -1,3 +1,17 @@
+## 0.6.6 (2020-07-21)
+
+New features:
+
+* This release adds minimal bindings for the Xen hypervisor. Hosts running
+  Xen 4.10 or later on x86\_64 are supported, and the bindings build Solo5
+  unikernels as PVHv2 domUs only.  These bindings are not a full Solo5 target;
+  they exist for the purpose of providing low-level bootstrap code to MirageOS
+  and do not provide any network or block I/O functionality.
+
+Bug fixes:
+
+* genode: Do not yield for expired deadlines. (#466)
+
 ## 0.6.5 (2020-05-14)
 
 New features:
