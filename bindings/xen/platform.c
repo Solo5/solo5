@@ -62,6 +62,14 @@ static char cmdline[8192];
 
 static uint64_t mem_size;
 
+struct __attribute__((packed)) e820_map_entry {
+    uint64_t addr;
+    uint64_t size;
+    uint32_t type;
+};
+
+#define E820_MAP_TYPE_RAM 1
+
 #define L1_REGION_SIZE (1UL << 12)
 #define L2_REGION_SIZE (1UL << 21)
 #define L3_REGION_SIZE (1UL << 30)
@@ -214,7 +222,6 @@ void platform_init(const void *arg __attribute__((unused)))
      */
     const struct hvm_start_info *si = (struct hvm_start_info *)arg;
     assert(si->magic == XEN_HVM_START_MAGIC_VALUE);
-    assert(si->version >= 1);
 
     if (si->cmdline_paddr) {
         char *hvm_cmdline = (char *)si->cmdline_paddr;
@@ -231,25 +238,51 @@ void platform_init(const void *arg __attribute__((unused)))
     }
 
     /*
-     * Look for the first chunk of memory at PLATFORM_MEM_START.
+     * Detect physical memory. On PVH on x86, memory will start at 0 and
+     * may or may not be followed by a legacy memory hole at 640kB. Since we
+     * don't make any significant use of the low memory, we can simplify by
+     * just looking for the first chunk of memory that ends at >= 1mB
+     * (PLATFORM_MEM_START).
      */
-    assert(si->memmap_paddr);
-    struct hvm_memmap_table_entry *m =
-        (struct hvm_memmap_table_entry *)si->memmap_paddr;
-    uint32_t i;
+    if (si->version >= 1 && si->memmap_entries > 0) {
+        assert(si->memmap_paddr);
+        struct hvm_memmap_table_entry *m =
+            (struct hvm_memmap_table_entry *)si->memmap_paddr;
 
-    for (i = 0; i < si->memmap_entries; i++) {
-        if (m[i].type == XEN_HVM_MEMMAP_TYPE_RAM &&
-                m[i].addr + m[i].size >= PLATFORM_MEM_START) {
-            mem_size = (m[i].addr + m[i].size) & PAGE_MASK;
-            break;
+        for (unsigned i = 0; i < si->memmap_entries; i++) {
+            if (m[i].type == XEN_HVM_MEMMAP_TYPE_RAM &&
+                    m[i].addr + m[i].size >= PLATFORM_MEM_START) {
+                mem_size = (m[i].addr + m[i].size) & PAGE_MASK;
+                break;
+            }
+        }
+    }
+    /*
+     * No memory map in Xen hvm_start_info; try and get an E820-style memory
+     * map from Xen instead.
+     */
+    else {
+        struct e820_map_entry e820_map[32];
+        xen_memory_map_t xmm;
+        xmm.nr_entries = 32;
+        set_xen_guest_handle(xmm.buffer, e820_map);
+        int rc = hypercall__memory_op(XENMEM_memory_map, &xmm);
+        assert(rc == 0);
+        assert(xmm.nr_entries > 0);
+
+        for (unsigned i = 0; i < xmm.nr_entries; i++) {
+            if (e820_map[i].type == E820_MAP_TYPE_RAM &&
+                    e820_map[i].addr + e820_map[i].size >= PLATFORM_MEM_START) {
+                mem_size = (e820_map[i].addr + e820_map[i].size) & PAGE_MASK;
+                break;
+            }
         }
     }
     assert(mem_size);
 
     /*
-     * Cap our memory size to PLATFORM_MAX_MEM_SIZE which boot.S defines page
-     * tables for.
+     * Cap our usable memory size to PLATFORM_MAX_MEM_SIZE which is the highest
+     * address we define page tables for.
      */
     if (mem_size > PLATFORM_MAX_MEM_SIZE)
         mem_size = PLATFORM_MAX_MEM_SIZE;
@@ -257,8 +290,7 @@ void platform_init(const void *arg __attribute__((unused)))
     /*
      * Map the hypervisor shared_info page.
      */
-    int rc;
-    rc = hypercall_physmap_add_shared_info(0,
+    int rc = hypercall_physmap_add_shared_info(0,
             (uintptr_t)&HYPERVISOR_SHARED_INFO >> PAGE_SHIFT);
     assert(rc == 0);
 
