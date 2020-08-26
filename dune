@@ -1,0 +1,282 @@
+(* -*- tuareg -*- *)
+
+let strf = Printf.sprintf
+
+let ( / ) = Filename.concat
+
+type os =
+  | Darwin
+  | Linux
+  | FreeBSD
+  | OpenBSD
+  | NetBSD
+  | DragonFly
+  | Cygwin
+  | Win32
+  | Unix
+  | Other of string
+
+let read_lines fmt =
+  Printf.ksprintf (fun s -> Jbuild_plugin.V1.run_and_read_lines s) fmt
+
+let os =
+  match Sys.os_type with
+  | "Unix" -> (
+      match read_lines "uname -s" with
+      | "Darwin" :: _ -> Darwin
+      | "Linux" :: _ -> Linux
+      | "FreeBSD" :: _ -> FreeBSD
+      | "OpenBSD" :: _ -> OpenBSD
+      | "NetBSD" :: _ -> NetBSD
+      | "DragonFly" :: _ -> DragonFly
+      | _ -> Unix )
+  | "Win32" -> Win32
+  | "Cygwin" -> Cygwin
+  | s -> Other s
+
+type file = { src : string; dst : string }
+
+let file ?dst fmt =
+  Printf.ksprintf
+    (fun s ->
+      let dst = match dst with None -> Filename.basename s | Some s -> s in
+      { src = s; dst })
+    fmt
+
+let targets files =
+  String.concat "\n  " (List.map (fun f -> Filename.basename f.dst) files)
+
+let copy_targets files =
+  List.map
+    (fun f -> strf "(no-infer (copy %s %s))" f.src (Filename.basename f.dst))
+    files
+  |> String.concat "\n    "
+
+let install files =
+  List.map (fun f -> strf "(%s as %s)" (Filename.basename f.dst) f.dst) files
+  |> String.concat "\n  "
+
+module Headers : sig
+  val targets : string
+
+  val copy_targets : string
+
+  val install : string
+end = struct
+  let list_files ?src dir =
+    let src = match src with None -> "include" / dir | Some src -> src in
+    let rec aux acc = function
+      | [] -> acc
+      | h :: t when Filename.basename h.src = "dune" -> aux acc t
+      | h :: t when Sys.is_directory h.src ->
+          Sys.readdir h.src
+          |> Array.to_list
+          |> List.map (fun f -> file ~dst:(h.dst / f) "%s/%s" h.src f)
+          |> List.append t
+          |> aux acc
+      | h :: t -> aux (h :: acc) t
+    in
+    aux [] [ file ~dst:(".." / "include" / dir) "%s" src ]
+
+  let crt =
+    let _ =
+      (* Run the configure scripts to populate ./crt *)
+      read_lines "HOST_INCDIR=$(pwd)/crt ./configure.sh"
+    in
+    let files = list_files ~src:"crt" "crt" in
+    let _ =
+      (* Remove MakeConf *)
+      read_lines "rm Makeconf"
+    in
+    files
+
+  let solo5 = file "include/solo5/solo5_version.h" :: list_files "solo5"
+
+  let targets = targets (crt @ solo5)
+
+  let copy_targets = copy_targets (crt @ solo5)
+
+  let install = install (crt @ solo5)
+end
+
+module Bindings : sig
+  type t
+
+  val to_string : t -> string
+
+  val config : t -> string
+
+  val lib_targets : t -> string
+
+  val bin_targets : t -> string
+
+  val all_targets : t -> string
+
+  val copy_targets : t -> string
+
+  val all : t list
+end = struct
+  type t = Hvt | Spt | Virtio | Xen | Muen
+
+  let all =
+    [
+      ("hvt", Hvt);
+      ("spt", Spt);
+      ("virtio", Virtio);
+      ("xen", Xen);
+      ("muen", Muen);
+    ]
+
+  let to_string t =
+    let rev_bindings = List.map (fun (x, y) -> (y, x)) all in
+    List.assoc t rev_bindings
+
+  let of_string s =
+    try List.assoc s all with Not_found -> failwith ("unknown bindings: " ^ s)
+
+  let one_config main t =
+    let n = if t = main then "1" else "" in
+    let t = String.uppercase_ascii (to_string t) in
+    "CONFIG_" ^ t ^ "=" ^ n
+
+  let config t =
+    let config (_, x) = one_config t x in
+    let configs = List.map config all in
+    String.concat " " configs
+
+  let pc t = file "opam/solo5-bindings-%s.pc" (to_string t)
+
+  let lib t =
+    let bindings f = file "bindings/%s/%s" (to_string t) f in
+    let solo5 ext = bindings (strf "solo5_%s.%s" (to_string t) ext) in
+    [ solo5 "o"; solo5 "lds" ]
+
+  let bin t =
+    let tender s = file "tenders/%s/solo5-%s%s" (to_string t) (to_string t) s in
+    let script s =
+      let dst = strf "solo5-virtio-%s" s in
+      file ~dst "scripts/virtio-%s/%s.sh" s dst
+    in
+    match t with
+    | Hvt when os = OpenBSD -> [ tender ""; tender "-configure" ]
+    | Hvt -> [ tender ""; tender "-configure"; tender "-debug" ]
+    | Spt -> [ tender "" ]
+    | Virtio -> [ script "mkimage"; script "run" ]
+    | Muen | Xen -> []
+
+  let all = List.map snd all
+
+  let all_targets t = targets ((pc t :: lib t) @ bin t)
+
+  let lib_targets t = targets (lib t)
+
+  let bin_targets t = targets (bin t)
+
+  let copy_targets t = copy_targets ((pc t :: lib t) @ bin t)
+end
+
+let ( @@ ) x y = x ^ " " ^ y
+
+let gen t =
+  let lib_targets = Bindings.lib_targets t in
+  let bin_targets = Bindings.bin_targets t in
+  let targets = Bindings.all_targets t in
+  let name = Bindings.to_string t in
+  let config = Bindings.config t in
+  let copies = Bindings.copy_targets t in
+
+  Format.sprintf
+    {|
+(rule
+ (targets %s)
+ (package solo5-bindings-%s)
+ (locks global-lock)
+ (deps
+  (source_tree .))
+ (action
+  (with-stdout-to build-%s.log
+   (progn
+    (run ./configure.sh)
+    (run %%{make} V=1 %s)
+    (run %%{make} V=1 %s opam/solo5-bindings-%s.pc)
+    %s))))
+
+(install
+ (files (solo5-bindings-%s.pc as pkgconfig/solo5-bindings-%s.pc))
+ (section lib_root)
+ (package solo5-bindings-%s))
+
+(install
+ (files %s)
+ (section lib)
+ (package solo5-bindings-%s))
+
+(install
+ (files %s)
+ (section bin)
+ (package solo5-bindings-%s))
+|}
+    targets name name config config name copies name name name lib_targets name
+    bin_targets name
+
+let solo5_bindings =
+  strf
+    {|
+(library
+ (public_name solo5-bindings)
+ (name solo5_bindings)
+ (modules))
+
+(rule
+ (targets solo5-elftool solo5-bindings.pc
+  %s)
+ (package solo5-bindings)
+ (deps
+  include/solo5/solo5_version.h
+  ; FIXME: need to list everything manually here as (source_tree .)
+  ; will add a dependency towards solo5-bindings.install which is
+  ; creating a cyclic dependency.
+  GNUmakefile Makefile.common configure.sh
+  (source_tree include)
+  (source_tree bindings)
+  (source_tree tenders)
+  (source_tree elftool)
+  (source_tree tests)
+  (source_tree opam))
+ (locks global-lock)
+ (action
+  (with-stdout-to build-solo5.log
+   (progn
+    (run ./configure.sh)
+    (run %%{make} V=1
+       CONFIG_HVT= CONFIG_SPT= CONFIG_VIRTIO= CONFIG_MUEN=
+       CONFIG_GENODE= CONFIG_XEN=)
+    (run %%{make} V=1
+       CONFIG_HVT= CONFIG_SPT= CONFIG_VIRTIO= CONFIG_MUEN=
+       CONFIG_GENODE= CONFIG_XEN= opam/solo5-bindings.pc)
+    ; FIXME: missing copy_dir in actions
+    (no-infer (copy opam/solo5-bindings.pc solo5-bindings.pc))
+    (no-infer (copy elftool/solo5-elftool solo5-elftool))
+    %s))))
+
+(install
+ (files
+  %s)
+ (section lib_root)
+ (package solo5-bindings))
+
+(install
+ (files (solo5-bindings.pc as pkgconfig/solo5-bindings.pc))
+ (section lib_root)
+ (package solo5-bindings))
+
+(install
+ (files solo5-elftool)
+ (section bin)
+ (package solo5-bindings))
+|}
+    Headers.targets Headers.copy_targets Headers.install
+
+let dune = solo5_bindings :: List.map gen Bindings.all
+
+let () = Jbuild_plugin.V1.send (String.concat "\n" dune)

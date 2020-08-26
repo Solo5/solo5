@@ -1,0 +1,6 @@
+includedir=${pcfiledir}/../../include
+
+Name: solo5-bindings
+Version: 0.6.0
+Description: Solo5 sandboxed execution environment (headers)
+Cflags: !PC_CFLAGS! -isystem ${includedir}/crt -I${includedir}/solo5

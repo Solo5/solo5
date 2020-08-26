@@ -304,7 +304,8 @@ esac
 # Host-provided header files are installed here for in-tree builds. OPAM will
 # install these to $(OPAM_INCDIR)/host where they will be picked up by
 # pkg-config.
-HOST_INCDIR=${PWD}/include/crt
+DEFAULT_HOST_INCDIR=${PWD}/include/crt
+HOST_INCDIR=${HOST_INCDIR:-$DEFAULT_HOST_INCDIR}
 
 CONFIG_HVT=
 CONFIG_SPT=
@@ -341,7 +342,7 @@ esac
 # GNU make. Given the differences in quoting rules between the two
 # (unable to sensibly use VAR="VALUE"), our convention is as follows:
 #
-# 1. GNU make parses the entire file, i.e. all variables defined below are 
+# 1. GNU make parses the entire file, i.e. all variables defined below are
 #    available to Makefiles.
 #
 # 2. Shell scripts parse the subset of *lines* starting with "CONFIG_". I.e.

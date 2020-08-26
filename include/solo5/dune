@@ -1,0 +1,5 @@
+(rule
+ (targets solo5_version.h)
+ (deps ../../scripts/gen_version_h.sh)
+ (action
+  (run ../../scripts/gen_version_h.sh solo5_version.h)))
