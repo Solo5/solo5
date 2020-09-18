@@ -11,10 +11,12 @@ let universe_path = "./universe"
 
 (* Prepare: Base switch setup ----------------------------------------------- *)
 
+let () = eval (call ["opam"; "update"])
+
 (* setup the base switch, creating a "cache" of it in switch.tar.gz, this is
  * useful for repeated runs mainly while developing this script, to save on
  * time taken to build ocaml *)
-let prep_setup_switch = 
+let prep_setup_switch =
     file_exists switch_path >>= function
     | true  ->
       call [ "rm"; "-rf"; switch_path ]
