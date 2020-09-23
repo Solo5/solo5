@@ -39,9 +39,9 @@ void hvt_x86_mem_size(size_t *mem_size) {
         mem = X86_GUEST_PAGE_SIZE;
     if (mem != *mem_size)
         warnx("adjusting memory to %zu bytes", mem);
-    if (mem > X86_GUEST_PAGE_SIZE * 512)
-        errx(1, "guest memory size %zu bytes exceeds the max size %u bytes",
-            mem, X86_GUEST_PAGE_SIZE * 512);
+    if (mem > X86_GUEST_MAX_MEM_SIZE)
+        errx(1, "guest memory size %zu bytes exceeds the max size %zu bytes",
+            mem, X86_GUEST_MAX_MEM_SIZE);
     *mem_size = mem;
 }
 
@@ -54,13 +54,12 @@ void hvt_x86_setup_pagetables(uint8_t *mem, size_t mem_size)
     uint64_t paddr;
 
     /*
-     * For simplicity we currently use 2MB pages and only a single
-     * PML4/PDPTE/PDE.  Sanity check that the guest size is a multiple of the
-     * page size and will fit in a single PDE (512 entries). Additionally,
-     * check that the guest size is at least 2MB.
+     * We currently use 2MB pages.  Sanity check that the guest size is a
+     * multiple of the page size and will fit in up to four PDEs (512 entries /
+     * 4GB). Additionally, check that the guest size is at least 2MB.
      */
     assert((mem_size & (X86_GUEST_PAGE_SIZE - 1)) == 0);
-    assert(mem_size <= (X86_GUEST_PAGE_SIZE * 512));
+    assert(mem_size <= X86_GUEST_MAX_MEM_SIZE);
     assert(mem_size >= X86_GUEST_PAGE_SIZE);
 
     memset(pml4, 0, X86_PML4_SIZE);
@@ -70,6 +69,12 @@ void hvt_x86_setup_pagetables(uint8_t *mem, size_t mem_size)
 
     *pml4 = X86_PDPTE_BASE | (X86_PDPT_P | X86_PDPT_RW);
     *pdpte = X86_PDE_BASE | (X86_PDPT_P | X86_PDPT_RW);
+    pdpte++;
+    *pdpte = (X86_PDE_BASE + 0x1000) | (X86_PDPT_P | X86_PDPT_RW);
+    pdpte++;
+    *pdpte = (X86_PDE_BASE + 0x2000) | (X86_PDPT_P | X86_PDPT_RW);
+    pdpte++;
+    *pdpte = (X86_PDE_BASE + 0x3000) | (X86_PDPT_P | X86_PDPT_RW);
 
     /*
      * PDE[0] is special: use 4kB pages and PT0 for the first 2MB of address

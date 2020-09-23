@@ -199,16 +199,22 @@ static const struct x86_sreg hvt_x86_sreg_unusable = {
 #define X86_PDPTE_BASE          0x3000
 #define X86_PDPTE_SIZE          0x1000
 #define X86_PDE_BASE            0x4000
-#define X86_PDE_SIZE            0x1000
-#define X86_PT0E_BASE           0x5000
+#define X86_PDE_SIZE            0x4000
+#define X86_PT0E_BASE           0x8000
 #define X86_PTE_SIZE            0x1000
 #define X86_BOOT_INFO_BASE      0x10000
 #define X86_PT0_MAP_START       X86_BOOT_INFO_BASE
 #define X86_GUEST_MIN_BASE      HVT_GUEST_MIN_BASE
 
-#define X86_GUEST_PAGE_SIZE     0x200000
+#define X86_GUEST_PAGE_SIZE     0x200000UL
 
 #define X86_CR3_INIT            X86_PML4_BASE
+
+/*
+ * Maximum guest allocation size; must fit in 4 PDE entries.
+ */
+#define X86_GUEST_MAX_MEM_SIZE  (2048UL * X86_GUEST_PAGE_SIZE)
+
 
 /*
  * Initial RFLAGS value. Bit 1 is reserved and must be set.
