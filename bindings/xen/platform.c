@@ -56,7 +56,7 @@ static char cmdline[8192];
 #define PLATFORM_PAGETABLE_START 0x10000UL
 
 /*
- * Maximum memory size is 4GB, as mapped in pagetable.S.
+ * Maximum guest-physical memory size is 4GB.
  */
 #define PLATFORM_MAX_MEM_SIZE 0x100000000UL
 
@@ -74,6 +74,18 @@ struct __attribute__((packed)) e820_map_entry {
 #define L2_REGION_SIZE (1UL << 21)
 #define L3_REGION_SIZE (1UL << 30)
 
+/*
+ * Private ABI for Mirage/Xen to determine the guest-virtual address range
+ * usable for importing grant mappings from other Xen domains.
+ */
+void solo5__xen_get_gntmap_area(uint64_t *addr, size_t *size)
+{
+    assert(addr);
+    assert(size);
+    *addr = PLATFORM_MAX_MEM_SIZE;
+    *size = L3_REGION_SIZE;
+}
+
 static inline uint64_t align_up(uint64_t val, uint64_t align)
 {
     return (val + (align - 1)) & -align;
@@ -85,10 +97,15 @@ static void pagetable_init(void)
 
     uint64_t paddr;
     /*
-     * Highest mapped physical address, currently 4GB. Note that Xen maps
-     * various structures just below 4GB in the guest-physical address space.
+     * Highest mapped guest-physical address. PLATFORM_MAX_MEM_SIZE (currently
+     * 4GB) is the limit we support for use by the guest; we map an additional
+     * 1GB region past that for use by Mirage/Xen for importing grant mappings
+     * from other Xen domains.
+     *
+     * Note that Xen maps various structures just below 4GB in the
+     * guest-physical address space.
      */
-    uint64_t paddr_end = PLATFORM_MAX_MEM_SIZE;
+    uint64_t paddr_end = PLATFORM_MAX_MEM_SIZE + L3_REGION_SIZE;
 
     /*
      * L1 (PTEs): Addresses up to (paddr_l1_end - 1) are mapped using 4kb
