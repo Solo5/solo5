@@ -561,18 +561,19 @@ xen_expect_abort() {
   expect_success
 }
 
-@test "mft_maxdevices spt" {
-  for num in $(${SEQ} 0 62); do
-      dd if=/dev/zero of=${BATS_TMPDIR}/storage${num}.img \
-          bs=4k count=1 status=none
-  done
-
-  DEVS=$(
-  for num in $(${SEQ} 0 62); do
-      echo -n "--block:storage${num}=${BATS_TMPDIR}/storage${num}.img "
-  done
-  )
-
-  spt_run ${DEVS} -- test_mft_maxdevices/test_mft_maxdevices.spt
-  expect_success
-}
+# Disabled until we have a fix for #477.
+# @test "mft_maxdevices spt" {
+#   for num in $(${SEQ} 0 62); do
+#       dd if=/dev/zero of=${BATS_TMPDIR}/storage${num}.img \
+#           bs=4k count=1 status=none
+#   done
+#
+#   DEVS=$(
+#   for num in $(${SEQ} 0 62); do
+#       echo -n "--block:storage${num}=${BATS_TMPDIR}/storage${num}.img "
+#   done
+#   )
+#
+#   spt_run ${DEVS} -- test_mft_maxdevices/test_mft_maxdevices.spt
+#   expect_success
+# }
