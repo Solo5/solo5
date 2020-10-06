@@ -79,6 +79,7 @@ HYPERCALL_PAGE:
 #define DECLARE_HYPERCALL(name)                                             \
     .globl HYPERCALL_ ## name;                                              \
     .set   HYPERCALL_ ## name, HYPERCALL_PAGE + __HYPERVISOR_ ## name * 32; \
+    .type  HYPERCALL_ ## name, STT_NOTYPE;                                  \
     .type  HYPERCALL_ ## name, STT_FUNC;                                    \
     .size  HYPERCALL_ ## name, 32
 
