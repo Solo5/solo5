@@ -223,6 +223,15 @@ void spt_boot_info_init(struct spt *spt, uint64_t p_end, int cmdline_argc,
  */
 extern void spt_launch(uint64_t stack_start, void (*fn)(void *), void *arg);
 
+/*
+ * Not all glibc versions still in common use provide a wrapper for
+ * memfd_create(), so we define our own here.
+ */
+static inline int _memfd_create(const char *name, unsigned int flags)
+{
+    return syscall(__NR_memfd_create, name, flags);
+}
+
 void spt_run(struct spt *spt, uint64_t p_entry)
 {
     typedef void (*start_fn_t)(void *arg);
@@ -249,7 +258,7 @@ void spt_run(struct spt *spt, uint64_t p_entry)
      * Instead, we export the BPF program via an anonymous memfd, release all
      * resources from the libseccomp context and load the filter manually.
      */
-    int bpf_fd = memfd_create("bpf_filter", 0);
+    int bpf_fd = _memfd_create("bpf_filter", 0);
     if (bpf_fd < 0)
         err(1, "memfd_create() failed");
     int rc = -1;
