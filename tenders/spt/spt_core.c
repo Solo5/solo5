@@ -38,6 +38,15 @@
 #include <sys/personality.h>
 #include <sys/epoll.h>
 #include <sys/timerfd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/prctl.h>
+#include <sys/syscall.h>
+#include <unistd.h>
+#include <limits.h>
+
+#include <linux/filter.h>
+#include <linux/seccomp.h>
 
 #if defined(__x86_64__)
 #include <asm/prctl.h>
@@ -234,10 +243,52 @@ void spt_run(struct spt *spt, uint64_t p_entry)
 #error Unsupported architecture
 #endif
 
+    /*
+     * We cannot use seccomp_load() to load the filter, as this calls free()
+     * which may call brk(), which we do not have in our seccomp whitelist.
+     * Instead, we export the BPF program via an anonymous memfd, release all
+     * resources from the libseccomp context and load the filter manually.
+     */
+    int bpf_fd = memfd_create("bpf_filter", 0);
+    if (bpf_fd < 0)
+        err(1, "memfd_create() failed");
     int rc = -1;
-    rc = seccomp_load(spt->sc_ctx);
+    rc = seccomp_export_bpf(spt->sc_ctx, bpf_fd);
     if (rc != 0)
-        errx(1, "seccomp_load() failed: %s", strerror(-rc));
+        errx(1, "seccomp_export_bpf() failed: %s", strerror(-rc));
+    struct stat sb;
+    rc = fstat(bpf_fd, &sb);
+    if (rc != 0)
+        err(1, "fstat() failed");
+    if (lseek(bpf_fd, 0, SEEK_SET) == (off_t)-1)
+        err(1, "lseek() failed");
+    /*
+     * bpf_prgm is intentionally allocated on our stack, that way libc malloc
+     * is not involved.
+     */
+    char bpf_prgm[sb.st_size];
+    ssize_t nbytes = read(bpf_fd, bpf_prgm, sb.st_size);
+    assert(nbytes == sb.st_size);
+    close(bpf_fd);
+    seccomp_release(spt->sc_ctx);
+    spt->sc_ctx = NULL;
+
+    rc = prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0);
+    if (rc != 0)
+        err(1, "prctl(PR_SET_NO_NEW_PRIVS) failed");
+    struct sock_filter dummy[1];
+    struct sock_fprog prog = {
+        .len = (unsigned short) (sb.st_size / sizeof dummy[0]),
+        .filter = (struct sock_filter *)bpf_prgm
+    };
+    /*
+     * Check that we did not truncate the BPF filter due to overflow in the
+     * calculation above.
+     */
+    assert((sb.st_size / sizeof dummy[0]) <= USHRT_MAX);
+    rc = syscall(SYS_seccomp, SECCOMP_SET_MODE_FILTER, 0, &prog);
+    if (rc != 0)
+        err(1, "seccomp(SECCOMP_SET_MODE_FILTER) failed");
 
     spt_launch(sp, start_fn, spt->mem + SPT_BOOT_INFO_BASE);
 
