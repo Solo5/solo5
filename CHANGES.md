@@ -1,3 +1,14 @@
+## 0.6.7 (2020-10-08)
+
+Bug fixes:
+
+* spt: Fix a bug where libseccomp's seccomp\_load() would cause the tender to
+  be killed by SIGSYS due to calling free(), which would under certain
+  conditions call sbrk(), which is not in our seccomp filter. Work around this
+  behaviour by exporting the generated BPF filter and loading it into the
+  kernel manually. (#479)
+* Various improvements to the Xen bindings for use by MirageOS. (#480, #476).
+
 ## 0.6.6 (2020-07-21)
 
 New features:
