@@ -48,13 +48,13 @@ GENODE_APP_LDFLAGS := -nostdlib -z max-page-size=$(CONFIG_GUEST_PAGE_SIZE) \
 DEPFLAGS = -MT $@ -MMD -MP -MF $*.Td
 
 define COMPILE.c
-	@echo "CC $<"
+	@echo "CC $@"
 	$(CC) $(DEPFLAGS) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
 	mv -f $*.Td $*.d && touch $@
 endef
 
 define COMPILE.S
-	@echo "AS $<"
+	@echo "AS $@"
 	$(CC) $(DEPFLAGS) $(CFLAGS) $(CPPFLAGS) -DASM_FILE -c $< -o $@
 	mv -f $*.Td $*.d && touch $@
 endef
@@ -71,13 +71,13 @@ HOSTLDLIBS :=
 HOSTAR := ar
 
 define HOSTCOMPILE.c
-	@echo "HOSTCC $<"
+	@echo "HOSTCC $@"
 	$(HOSTCC) $(DEPFLAGS) $(HOSTCFLAGS) $(HOSTCPPFLAGS) -c $< -o $@
 	mv -f $*.Td $*.d && touch $@
 endef
 
 define HOSTCOMPILE.S
-	@echo "HOSTAS $<"
+	@echo "HOSTAS $@"
 	$(HOSTCC) $(DEPFLAGS) $(HOSTCFLAGS) $(HOSTCPPFLAGS) -DASM_FILE -c $< -o $@
 	mv -f $*.Td $*.d && touch $@
 endef
@@ -100,7 +100,7 @@ PC_GENODE_CFLAGS := -ffreestanding -fstack-protector-strong -fPIC $(MAKECONF_CFL
 PC_GENODE_LDFLAGS := $(GENODE_APP_LDFLAGS)
 
 %.pc: %.pc.in
-	@echo SUBST $@
+	@echo "SUBST $@"
 	sed <$< > $@ \
 	    -e 's#!PC_CFLAGS!#$(PC_CFLAGS)#g;' \
 	    -e 's#!PC_LD!#$(PC_LD)#g;' \
