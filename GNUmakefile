@@ -27,7 +27,7 @@ tests: bindings elftool
 
 .PHONY: $(SUBDIRS)
 
-.PHONY: all
+.PHONY: all 
 all: $(SUBDIRS)
 .DEFAULT_GOAL := all
 
@@ -82,6 +82,7 @@ clean: before-clean $(SUBDIRS)
 	$(RM) opam/solo5-bindings-muen.pc
 	$(RM) opam/solo5-bindings-genode.pc
 	$(RM) opam/solo5-bindings-xen.pc
+	$(RM) opam/solo5-headers.pc
 	$(RM) $(VERSION_H)
 
 .PHONY: distclean
@@ -105,16 +106,40 @@ uninstall-tools: force-uninstall
 	@echo UNINSTALL solo5
 	$(RM) $(DESTDIR)/bin/solo5-elftool
 
+.PHONY: install-headers uninstall-headers
+
+install-headers: MAKECMDGOALS :=
+install-headers: all opam/solo5-headers.pc
+	@echo INSTALL solo5 headers 
+	@[ -d "$(PREFIX)" -a -d "$(PREFIX)/bin" ] || \
+	    (echo "error: PREFIX not set or incorrect"; false)
+
+	mkdir -p $(PREFIX)/lib/pkgconfig \
+	    $(PREFIX)/lib/solo5-headers \
+	    $(PREFIX)/include/solo5-headers/solo5 \
+	    $(PREFIX)/include/solo5-headers/crt
+	
+	cp -R include/solo5 include/crt $(PREFIX)/include/solo5-headers
+	cp opam/solo5-headers.pc $(PREFIX)/lib/pkgconfig
+	cp elftool/solo5-elftool $(PREFIX)/bin
+
+uninstall-headers: 
+	@[ -d "$(PREFIX)" -a -d "$(PREFIX)/bin" ] || \
+	    (echo "error: PREFIX not set or incorrect"; false)
+	-[ -d "$(PREFIX)/include/solo5-headers/solo5" ] && \
+	    $(RM) -r $(PREFIX)/include/solo5-headers/solo5
+	-[ -d "$(PREFIX)/include/solo5-headers/crt" ] && \
+	    $(RM) -r $(PREFIX)/include/solo5-headers/crt
+	$(RM) $(PREFIX)/lib/pkgconfig/solo5-headers.pc
+	$(RM) $(PREFIX)/bin/solo5-elftool
+
 install-opam-%: MAKECMDGOALS :=
 install-opam-%: all opam/solo5-bindings-%.pc force-install
 	@echo INSTALL solo5
 	@[ -d "$(PREFIX)" -a -d "$(PREFIX)/bin" ] || \
 	    (echo "error: PREFIX not set or incorrect"; false)
 	mkdir -p $(PREFIX)/lib/pkgconfig \
-	    $(PREFIX)/lib/solo5-bindings-$* \
-	    $(PREFIX)/include/solo5-bindings-$*/solo5 \
-	    $(PREFIX)/include/solo5-bindings-$*/crt
-	cp -R include/solo5 include/crt $(PREFIX)/include/solo5-bindings-$*
+	    $(PREFIX)/lib/solo5-bindings-$*
 ifndef CONFIG_GENODE
 	cp bindings/$*/solo5_$*.o bindings/$*/solo5_$*.lds \
 	    $(PREFIX)/lib/solo5-bindings-$*
@@ -123,7 +148,6 @@ else
 	    $(PREFIX)/lib/solo5-bindings-$*
 endif
 	cp opam/solo5-bindings-$*.pc $(PREFIX)/lib/pkgconfig
-	cp elftool/solo5-elftool $(PREFIX)/bin
 ifdef CONFIG_HVT
 	cp tenders/hvt/solo5-hvt tenders/hvt/solo5-hvt-configure $(PREFIX)/bin
 	- [ -f tenders/hvt/solo5-hvt-debug ] && \
@@ -143,12 +167,6 @@ endif
 # all build products from all solo5-bindings variants regardless.
 uninstall-opam-%: force-uninstall
 	@echo UNINSTALL solo5
-	@[ -d "$(PREFIX)" -a -d "$(PREFIX)/bin" ] || \
-	    (echo "error: PREFIX not set or incorrect"; false)
-	-[ -d "$(PREFIX)/include/solo5-bindings-$*/solo5" ] && \
-	    $(RM) -r $(PREFIX)/include/solo5-bindings-$*/solo5
-	-[ -d "$(PREFIX)/include/solo5-bindings-$*/crt" ] && \
-	    $(RM) -r $(PREFIX)/include/solo5-bindings-$*/crt
 	$(RM) $(PREFIX)/lib/solo5-bindings-$*/solo5_$*.o \
 	    $(PREFIX)/lib/solo5-bindings-$*/solo5_$*.lds
 	$(RM) $(PREFIX)/lib/pkgconfig/solo5-bindings-$*.pc

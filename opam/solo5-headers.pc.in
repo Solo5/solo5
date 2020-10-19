@@ -1,0 +1,9 @@
+prefix=${pcfiledir}/../..
+exec_prefix=${prefix}
+includedir=${prefix}/include/solo5-headers
+libdir=${exec_prefix}/lib/solo5-headers
+
+Name: solo5-headers
+Version: 0.7.0
+Description: Solo5 sandboxed execution environment (headers)
+Cflags: !PC_CFLAGS! -isystem ${includedir}/crt -I${includedir}/solo5

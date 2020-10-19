@@ -11,29 +11,24 @@ license: "ISC"
 dev-repo: "git+https://github.com/solo5/solo5.git"
 build: [
   ["./configure.sh"]
-  [make "V=1" "CONFIG_HVT=" "CONFIG_SPT=" "CONFIG_VIRTIO=" "CONFIG_MUEN=" "CONFIG_GENODE="]
+  [make "V=1" "CONFIG_HVT=" "CONFIG_SPT=" "CONFIG_VIRTIO=" "CONFIG_MUEN=" "CONFIG_GENODE=" "CONFIG_XEN="]
 ]
-install: [make "V=1" "CONFIG_HVT=" "CONFIG_SPT=" "CONFIG_VIRTIO=" "CONFIG_MUEN=" "CONFIG_GENODE=" "install-opam-xen" "PREFIX=%{prefix}%"]
+install: [make "V=1" "CONFIG_HVT=" "CONFIG_SPT=" "CONFIG_VIRTIO=" "CONFIG_MUEN=" "CONFIG_GENODE=" "CONFIG_XEN=" "install-headers" "PREFIX=%{prefix}%"]
 depends: [
   "conf-pkg-config"
-  "conf-libseccomp" {build & os = "linux"}
-  "solo5-headers"
 ]
 conflicts: [
   "ocaml-freestanding" {< "0.7.0"}
 ]
 available: [
-  (arch = "x86_64") &
+  (arch = "x86_64" | arch = "arm64") &
   (os = "linux" | os = "freebsd" | os = "openbsd")
 ]
-synopsis: "Solo5 sandboxed execution environment (xen target)"
+synopsis: "Solo5 sandboxed execution environment (headers)"
 description: """
 Solo5 is a sandboxed execution environment primarily intended
 for, but not limited to, running applications built using various
 unikernels (a.k.a.  library operating systems).
 
-This package provides the Solo5 components needed to build and
-run MirageOS unikernels on the "xen" target.
-
-The "xen" target is supported on 64-bit Linux, FreeBSD and
-OpenBSD systems with hardware virtualization."""
+This package provides the Solo5 API and tools.
+"""

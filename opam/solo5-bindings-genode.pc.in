@@ -6,6 +6,7 @@ ld=!PC_LD!
 ldflags=!PC_GENODE_LDFLAGS! -T ${libdir}/genode_dyn.ld ${libdir}/solo5.lib.so
 
 Name: solo5-bindings-genode
-Version: 0.6.0
+Version: 0.7.0
 Description: Solo5 sandboxed execution environment (Genode target)
-Cflags: !PC_GENODE_CFLAGS! -isystem ${includedir}/crt -I${includedir}/solo5
+Requires: solo5-headers
+Libs: ${ldflags}

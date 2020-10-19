@@ -6,6 +6,7 @@ ld=!PC_LD!
 ldflags=!PC_LDFLAGS! -T ${libdir}/solo5_hvt.lds ${libdir}/solo5_hvt.o
 
 Name: solo5-bindings-hvt
-Version: 0.6.0
+Version: 0.7.0
 Description: Solo5 sandboxed execution environment (hvt target)
-Cflags: !PC_CFLAGS! -isystem ${includedir}/crt -I${includedir}/solo5
+Requires: solo5-headers
+Libs: ${ldflags}

@@ -17,6 +17,7 @@ install: [make "V=1" "CONFIG_HVT=" "CONFIG_VIRTIO=" "CONFIG_MUEN=" "CONFIG_GENOD
 depends: [
   "conf-pkg-config"
   "conf-libseccomp" {os = "linux"}
+  "solo5-headers"
 ]
 depexts: [
   ["linux-headers"] {os-distribution = "alpine"}
@@ -25,12 +26,7 @@ depexts: [
   ["linux-libc-dev"] {os-family = "debian"}
 ]
 conflicts: [
-  "ocaml-freestanding" {< "0.6.0"}
-  "solo5-bindings-hvt"
-  "solo5-bindings-virtio"
-  "solo5-bindings-muen"
-  "solo5-bindings-genode"
-  "solo5-bindings-xen"
+  "ocaml-freestanding" {< "0.7.0"}
 ]
 available: [
   (arch = "x86_64" | arch = "arm64") & os = "linux"
