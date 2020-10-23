@@ -16,6 +16,7 @@ build: [
 install: [make "V=1" "CONFIG_HVT=" "CONFIG_SPT=" "CONFIG_VIRTIO=" "CONFIG_MUEN=" "CONFIG_GENODE=" "CONFIG_XEN=" "install-headers" "PREFIX=%{prefix}%"]
 depends: [
   "conf-pkg-config"
+  "conf-libseccomp" {build & os = "linux"}
 ]
 conflicts: [
   "ocaml-freestanding" {< "0.7.0"}
