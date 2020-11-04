@@ -20,9 +20,28 @@
 
 #include "../cpu_x86_64.h"
 #include "xen/elfnote.h"
+#include "../virtio/multiboot.h"
 
 #define ENTRY(x) .text; .globl x; .type x,%function; x:
 #define END(x)   .size x, . - x
+
+#define XEN_HVM_START_MAGIC_VALUE 0x336ec578
+
+#define MYMULTIBOOT_FLAGS \
+    (MULTIBOOT_PAGE_ALIGN | MULTIBOOT_MEMORY_INFO | MULTIBOOT_AOUT_KLUDGE)
+
+.section .data.multiboot
+
+    .align 4
+    _multiboot_header:
+    .long MULTIBOOT_HEADER_MAGIC
+    .long MYMULTIBOOT_FLAGS
+    .long -(MULTIBOOT_HEADER_MAGIC+MYMULTIBOOT_FLAGS)
+    .long _multiboot_header
+    .long 0x100000
+    .long _edata
+    .long _ebss
+    .long _start32
 
 /*
  * Tell Xen that we are a PVH-capable kernel.
@@ -42,16 +61,23 @@
 /*
  * Xen PVH entry point.
  *
- * Xen puts us only in 32bit flat protected mode, and passes a pointer to
- * struct hvm_start_info in %ebx. It's our responsibility to install a page
- * table and switch to long mode.  Notably, we can't call C code until we've
- * switched to long mode.
+ * When booted directly, Xen puts us only in 32bit flat protected mode, and
+ * passes a pointer to struct hvm_start_info in %ebx. When booted via grub's
+ * multiboot protocol, grub passes a pointer to struct multiboot_info in %ebx
+ * and sets a magic in %eax. Otherwise both boot modes works the same. The
+ * platform_init() differentiate the structure based on a magic at the
+ * beginning of hvm_start_info.
+ * It's our responsibility to install a page table and switch to long mode.
+ * Notably, we can't call C code until we've switched to long mode.
  */
 ENTRY(_start32)
     cld
     movl $bootstack, %esp
 
-    /* Save Xen hvm_start_info pointer at top of stack, we pop it in 64bit */
+    /*
+     * Save Xen hvm_start_info or multiboot_info pointer (depending on boot
+     * mode) at top of stack, we pop it in 64bit
+     */
     pushl $0
     pushl %ebx
 

@@ -61,6 +61,7 @@ SECTIONS {
 
     .text :
     {
+        *(.data.multiboot)
         *(.text)
         *(.text.*)
     } :text

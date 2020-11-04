@@ -24,6 +24,7 @@
 #include "xen/arch-x86/cpuid.h"
 #include "xen/arch-x86/hvm/start_info.h"
 #include "xen/hvm/params.h"
+#include "../virtio/multiboot.h"
 
 /*
  * Xen shared_info page is mapped here.
@@ -227,19 +228,64 @@ static void hypercall_init(void)
     assert(HYPERCALL_PAGE[0] != 0xc3);
 }
 
-void platform_init(const void *arg __attribute__((unused)))
+static void parse_multiboot(const void *arg)
 {
-    pagetable_init();
-    hypercall_init();
-    console_init();
+    /*
+     * The multiboot structures may be anywhere in memory, so take a copy of
+     * the command line before we initialise memory allocation.
+     */
+    const struct multiboot_info *mi = (struct multiboot_info *)arg;
 
+    if (mi->flags & MULTIBOOT_INFO_CMDLINE) {
+        char *mi_cmdline = (char *)(uint64_t)mi->cmdline;
+        size_t cmdline_len = strlen(mi_cmdline);
+
+        /*
+         * Skip the first token in the cmdline as it is an opaque "name" for
+         * the kernel coming from the bootloader.
+         */
+        for (; *mi_cmdline; mi_cmdline++, cmdline_len--) {
+            if (*mi_cmdline == ' ') {
+                mi_cmdline++;
+                cmdline_len--;
+                break;
+            }
+        }
+
+        if (cmdline_len >= sizeof(cmdline)) {
+            cmdline_len = sizeof(cmdline) - 1;
+            log(WARN, "Solo5: warning: command line too long, truncated\n");
+        }
+        memcpy(cmdline, mi_cmdline, cmdline_len);
+    } else {
+        cmdline[0] = 0;
+    }
+
+    /*
+     * Look for the first chunk of memory at PLATFORM_MEM_START.
+     */
+    multiboot_memory_map_t *m = NULL;
+    uint32_t offset;
+
+    for (offset = 0; offset < mi->mmap_length;
+            offset += m->size + sizeof(m->size)) {
+        m = (void *)(uintptr_t)(mi->mmap_addr + offset);
+        if (m->addr == PLATFORM_MEM_START &&
+                m->type == MULTIBOOT_MEMORY_AVAILABLE) {
+            break;
+        }
+    }
+    assert(offset < mi->mmap_length);
+    mem_size = m->addr + m->len;
+}
+
+static void parse_hvm_start_info(const void *arg)
+{
     /*
      * The Xen hvm_start_info may be anywhere in memory, so take a copy of
      * the command line before we initialise memory allocation.
      */
     const struct hvm_start_info *si = (struct hvm_start_info *)arg;
-    assert(si->magic == XEN_HVM_START_MAGIC_VALUE);
-
     if (si->cmdline_paddr) {
         char *hvm_cmdline = (char *)si->cmdline_paddr;
         size_t cmdline_len = strlen(hvm_cmdline);
@@ -295,6 +341,35 @@ void platform_init(const void *arg __attribute__((unused)))
             }
         }
     }
+}
+
+void platform_init(const void *arg)
+{
+    bool is_direct_pvh_boot;
+
+    if (*((uint32_t*)arg) == XEN_HVM_START_MAGIC_VALUE)
+        is_direct_pvh_boot = true;
+    else
+        is_direct_pvh_boot = false;
+
+    /*
+     * If booted via multiboot, parse multiboot structure before setting up
+     * page tables as its location may not be mapped later.
+     */
+    if (!is_direct_pvh_boot)
+        parse_multiboot(arg);
+
+    pagetable_init();
+    hypercall_init();
+    console_init();
+
+    /*
+     * If booted directly, parse the Xen hvm_start_info structure after setting
+     * up hypercalls
+     */
+    if (is_direct_pvh_boot)
+        parse_hvm_start_info(arg);
+
     assert(mem_size);
 
     /*
