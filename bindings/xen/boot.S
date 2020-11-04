@@ -81,6 +81,13 @@ ENTRY(_start32)
     pushl $0
     pushl %ebx
 
+    cmpl $MULTIBOOT_BOOTLOADER_MAGIC, %eax
+    je 1f
+    movl (%ebx), %eax
+    cmpl $XEN_HVM_START_MAGIC_VALUE, %eax
+    jne unknownboot
+
+1:
     /*
      * Load bootstrap GDT and reload segment registers, with the exception of
      * CS, which will be reloaded on jumping to _start64
@@ -129,6 +136,8 @@ ENTRY(_start32)
 
     /* NOTREACHED */
     jmp haltme
+
+unknownboot:
 
 haltme:
     cli
