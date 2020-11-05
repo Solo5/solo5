@@ -10,3 +10,4 @@ Version: 0.7.0
 Description: Solo5 sandboxed execution environment (xen target)
 Requires: solo5-headers
 Libs: ${ldflags}
+Cflags: -I${includedir}

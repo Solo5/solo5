@@ -162,6 +162,9 @@ ifdef CONFIG_VIRTIO
 	cp scripts/virtio-run/solo5-virtio-run.sh \
 	    $(PREFIX)/bin/solo5-virtio-run
 endif
+ifdef CONFIG_XEN
+	cp -R include/xen/ $(PREFIX)/include/solo5-bindings-xen
+endif
 
 # uninstall-opam-% may not have a Makeconf available, so should always uninstall
 # all build products from all solo5-bindings variants regardless.
