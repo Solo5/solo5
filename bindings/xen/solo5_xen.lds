@@ -55,15 +55,16 @@ SECTIONS {
      */
     _stext = .;
 
-    .interp : {
-        *(.interp)
-    } :interp :text
-
     .text :
     {
+        *(.data.multiboot)
         *(.text)
         *(.text.*)
     } :text
+
+    .interp : {
+        *(.interp)
+    } :interp :text
 
     . = ALIGN(CONSTANT(MAXPAGESIZE));
     _etext = .;
