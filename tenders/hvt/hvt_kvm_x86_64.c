@@ -57,6 +57,8 @@ static void setup_cpuid(struct hvt_b *hvb)
 
     if (ioctl(hvb->vcpufd, KVM_SET_CPUID2, kvm_cpuid) < 0)
         err(1, "KVM: ioctl (SET_CPUID2) failed");
+
+    free(kvm_cpuid);
 }
 
 static struct kvm_segment sreg_to_kvm(const struct x86_sreg *sreg)
