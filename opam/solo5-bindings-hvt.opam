@@ -17,7 +17,7 @@ install: [make "V=1" "CONFIG_SPT=" "CONFIG_VIRTIO=" "CONFIG_MUEN=" "CONFIG_GENOD
 depends: [
   "conf-pkg-config"
   "conf-libseccomp" {build & os = "linux"}
-  "solo5-headers"
+  "solo5-headers" {= version}
 ]
 depexts: [
   ["linux-headers"] {os-distribution = "alpine"}
