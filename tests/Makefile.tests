@@ -42,11 +42,11 @@ ELFTOOL := $(TOPDIR)/elftool/solo5-elftool
 # dependency auto-generation here, and just hard-code all expected dependencies
 # as pre-requisites below.
 
-manifest.c: manifest.json ../../include/solo5/mft_abi.h $(ELFTOOL)
+manifest.c: manifest.json $(TOPDIR)/include/mft_abi.h $(ELFTOOL)
 	@echo "ELFTOOL $<"
 	$(ELFTOOL) gen-manifest $< $@
 
-%.o: %.c ../../include/solo5/solo5.h
+%.o: %.c $(TOPDIR)/include/solo5.h
 	@echo "CC $<"
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
 
@@ -66,7 +66,7 @@ manifest.c: manifest.json ../../include/solo5/mft_abi.h $(ELFTOOL)
 	@echo "LD $@"
 	$(LD) $(LDFLAGS) -T $(LDS.muen) $(BINDINGS.muen) $< manifest.o -o $@
 
-%.genode.o: %.c ../../include/solo5/solo5.h
+%.genode.o: %.c $(TOPDIR)/include/solo5.h
 	@echo "GENODECC $<"
 	$(CC) $(GENODE_APP_CFLAGS) $(CPPFLAGS) -c $< -o $@
 

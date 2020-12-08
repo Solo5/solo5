@@ -168,8 +168,7 @@ xen/solo5_xen.o: $(xen_OBJS)
     all_OBJS += $(xen_OBJS)
     all_SRCS += $(xen_SRCS)
 
-CPPFLAGS+=-D__XEN_INTERFACE_VERSION__=__XEN_LATEST_INTERFACE_VERSION__ \
-	  -I$(TOPDIR)/include/xen
+CPPFLAGS+=-D__XEN_INTERFACE_VERSION__=__XEN_LATEST_INTERFACE_VERSION__
 endif
 
 all: $(all_TARGETS)

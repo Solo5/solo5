@@ -20,7 +20,7 @@
 
 #include "bindings.h"
 #include "../crt_init.h"
-#include "solo5_version.h"
+#include "version.h"
 
 extern void _newstack(uint64_t stack_start, void (*tramp)(void *), void *arg);
 static void _start2(void *arg) __attribute__((noreturn));

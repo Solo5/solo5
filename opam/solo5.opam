@@ -10,24 +10,17 @@ bug-reports: "https://github.com/solo5/solo5/issues"
 license: "ISC"
 dev-repo: "git+https://github.com/solo5/solo5.git"
 build: [
-  ["./configure.sh" "--enable-targets=spt"]
+  ["./configure.sh" "--enable-targets=none"]
   [make "V=1"]
 ]
-install: [make "PREFIX=%{prefix}%" "V=1" "install-bindings" "install-tenders"]
+install: [make "PREFIX=%{prefix}%" "V=1" "install-headers" "install-tools"]
 depends: [
   "conf-pkg-config"
-  "conf-libseccomp" {os = "linux"}
-  "solo5" {= version}
-]
-depexts: [
-  ["linux-headers"] {os-distribution = "alpine"}
-  ["kernel-headers"] {os-distribution = "fedora"}
-  ["kernel-headers"] {os-distribution = "rhel"}
-  ["linux-libc-dev"] {os-family = "debian"}
 ]
 conflicts: [
   "ocaml-freestanding" {< "0.7.0"}
   "solo5-bindings-hvt" {< "0.7.0"}
+  "solo5-bindings-spt" {< "0.7.0"}
   "solo5-bindings-virtio" {< "0.7.0"}
   "solo5-bindings-muen" {< "0.7.0"}
   "solo5-bindings-genode" {< "0.7.0"}
@@ -35,17 +28,13 @@ conflicts: [
 ]
 available: [
   (arch = "x86_64" | arch = "arm64" | arch = "ppc64") &
-  os = "linux"
+  (os = "linux" | os = "freebsd" | os = "openbsd")
 ]
-synopsis: "Solo5 sandboxed execution environment (spt target)"
+synopsis: "Solo5 sandboxed execution environment (common files)"
 description: """
 Solo5 is a sandboxed execution environment primarily intended
 for, but not limited to, running applications built using various
 unikernels (a.k.a.  library operating systems).
 
-This package provides the Solo5 components needed to build
-MirageOS unikernels on the "spt" target and the "solo5-spt" tender
-binary used to run such unikernels.
-
-The "spt" target is supported on 64-bit Linux systems, on the
-x86_64, arm64 and ppc64 architectures only."""
+This package provides the Solo5 header files and tools common to
+all Solo5 targets."""

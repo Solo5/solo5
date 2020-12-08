@@ -32,7 +32,7 @@ include $(TOPDIR)/Makeconf
 CC := $(MAKECONF_CC)
 CFLAGS := -std=c11 -Wall -Wextra -Werror -O2 -g
 CFLAGS += -ffreestanding -fstack-protector-strong $(MAKECONF_CFLAGS)
-CPPFLAGS := -isystem $(TOPDIR)/include/crt -I$(TOPDIR)/include/solo5
+CPPFLAGS := -isystem $(TOPDIR)/include/crt -I$(TOPDIR)/include
 LD := $(MAKECONF_LD)
 LDFLAGS := -nostdlib -z max-page-size=$(CONFIG_GUEST_PAGE_SIZE) -static \
     $(MAKECONF_LDFLAGS)
@@ -65,7 +65,7 @@ endef
 #
 HOSTCC := $(MAKECONF_CC)
 HOSTCFLAGS := -Wall -Werror -std=c11 -fstack-protector-strong -O2 -g
-HOSTCPPFLAGS := -I$(TOPDIR)/include/solo5
+HOSTCPPFLAGS := -I$(TOPDIR)/include
 HOSTLDFLAGS :=
 HOSTLDLIBS :=
 HOSTAR := ar

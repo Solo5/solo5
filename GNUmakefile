@@ -27,15 +27,15 @@ tests: bindings elftool
 
 .PHONY: $(SUBDIRS)
 
-.PHONY: all
-all: $(SUBDIRS)
-.DEFAULT_GOAL := all
+.PHONY: build
+build: $(SUBDIRS) $(PCFILES)
+.DEFAULT_GOAL := build
 
 $(SUBDIRS): gen-version-h
 
 .PHONY: gen-version-h distrib-gen-version-h
 
-VERSION_H := include/solo5/solo5_version.h
+VERSION_H := include/version.h
 
 # (re)generates a version.h on every invocation of "make".
 # This will also get run before a "make [dist]clean", can't be helped.
@@ -76,13 +76,7 @@ before-clean:
 	$(eval export SUBOVERRIDE := CONFIG_HVT=1 CONFIG_SPT=1 CONFIG_VIRTIO=1 CONFIG_MUEN=1 CONFIG_GENODE=1 CONFIG_XEN=1)
 clean: before-clean $(SUBDIRS)
 	@echo "CLEAN solo5"
-	$(RM) opam/solo5-bindings-hvt.pc
-	$(RM) opam/solo5-bindings-spt.pc
-	$(RM) opam/solo5-bindings-virtio.pc
-	$(RM) opam/solo5-bindings-muen.pc
-	$(RM) opam/solo5-bindings-genode.pc
-	$(RM) opam/solo5-bindings-xen.pc
-	$(RM) $(VERSION_H)
+	$(RM) $(PCFILES) $(VERSION_H)
 
 .PHONY: distclean
 distclean: MAKECMDGOALS := clean
@@ -91,91 +85,105 @@ distclean: clean
 	-[ -d include/crt ] && $(RM) -r include/crt
 	$(RM) Makeconf
 
-.PHONY: force-install force-uninstall
+DESTDIR ?=
+PREFIX ?= /usr/local
+PCFILEDIR ?= /lib/pkgconfig
+PCFILES := pkgconfig/solo5-bindings-hvt.pc \
+    pkgconfig/solo5-bindings-spt.pc \
+    pkgconfig/solo5-bindings-virtio.pc \
+    pkgconfig/solo5-bindings-muen.pc \
+    pkgconfig/solo5-bindings-genode.pc \
+    pkgconfig/solo5-bindings-xen.pc
+D := $(DESTDIR)$(PREFIX)
+INSTALL := install -p
 
+.PHONY: install-tools
 install-tools: MAKECMDGOALS :=
-install-tools: DESTDIR ?= /usr/local
-install-tools: all force-install
-	@echo INSTALL solo5
-	mkdir -p $(DESTDIR)/bin
-	cp elftool/solo5-elftool $(DESTDIR)/bin
+install-tools: build
+	@echo INSTALL tools
+	$(INSTALL) -d $(D)/bin
+	$(INSTALL) elftool/solo5-elftool $(D)/bin
+	$(INSTALL) scripts/virtio-mkimage/solo5-virtio-mkimage.sh \
+	    $(D)/bin/solo5-virtio-mkimage
+	$(INSTALL) scripts/virtio-run/solo5-virtio-run.sh \
+	    $(D)/bin/solo5-virtio-run
 
-uninstall-tools: DESTDIR ?= /usr/local
-uninstall-tools: force-uninstall
-	@echo UNINSTALL solo5
-	$(RM) $(DESTDIR)/bin/solo5-elftool
+PUBLIC_HEADERS := include/elf_abi.h include/hvt_abi.h include/mft_abi.h \
+    include/spt_abi.h include/solo5.h
 
-install-opam-%: MAKECMDGOALS :=
-install-opam-%: all opam/solo5-bindings-%.pc force-install
-	@echo INSTALL solo5
-	@[ -d "$(PREFIX)" -a -d "$(PREFIX)/bin" ] || \
-	    (echo "error: PREFIX not set or incorrect"; false)
-	mkdir -p $(PREFIX)/lib/pkgconfig \
-	    $(PREFIX)/lib/solo5-bindings-$* \
-	    $(PREFIX)/include/solo5-bindings-$*/solo5 \
-	    $(PREFIX)/include/solo5-bindings-$*/crt
-	cp -R include/solo5 include/crt $(PREFIX)/include/solo5-bindings-$*
-ifndef CONFIG_GENODE
-	cp bindings/$*/solo5_$*.o bindings/$*/solo5_$*.lds \
-	    $(PREFIX)/lib/solo5-bindings-$*
-else
-	cp bindings/$*/solo5.lib.so bindings/$*/genode_dyn.ld \
-	    $(PREFIX)/lib/solo5-bindings-$*
-endif
-	cp opam/solo5-bindings-$*.pc $(PREFIX)/lib/pkgconfig
-	cp elftool/solo5-elftool $(PREFIX)/bin
+.PHONY: install-headers
+install-headers: MAKECMDGOALS :=
+install-headers: build
+	@echo INSTALL headers
+	$(INSTALL) -d $(D)/include/solo5
+	$(INSTALL) -m 0644 $(PUBLIC_HEADERS) $(D)/include/solo5
+	cd include/crt && \
+	    find . -type d -exec $(INSTALL) -d \
+	    "$(D)/include/solo5/crt/{}" \;
+	cd include/crt && \
+	    find . -type f -name '*.h' -exec $(INSTALL) -m 0644 \
+	    "{}" "$(D)/include/solo5/crt/{}" \;
+
+.PHONY: install-bindings
+install-bindings: MAKECMDGOALS :=
+install-bindings: build
+	@echo INSTALL bindings
+	$(INSTALL) -d $(D)/lib/solo5
+	$(INSTALL) -d $(D)$(PCFILEDIR)
 ifdef CONFIG_HVT
-	cp tenders/hvt/solo5-hvt tenders/hvt/solo5-hvt-configure $(PREFIX)/bin
-	- [ -f tenders/hvt/solo5-hvt-debug ] && \
-	    cp tenders/hvt/solo5-hvt-debug $(PREFIX)/bin
+	$(INSTALL) -m 0644 bindings/hvt/solo5_hvt.o $(D)/lib/solo5
+	$(INSTALL) -m 0644 bindings/hvt/solo5_hvt.lds $(D)/lib/solo5
+	$(INSTALL) -m 0644 pkgconfig/solo5-bindings-hvt.pc $(D)$(PCFILEDIR)
 endif
 ifdef CONFIG_SPT
-	cp tenders/spt/solo5-spt $(PREFIX)/bin
+	$(INSTALL) -m 0644 bindings/spt/solo5_spt.o $(D)/lib/solo5
+	$(INSTALL) -m 0644 bindings/spt/solo5_spt.lds $(D)/lib/solo5
+	$(INSTALL) -m 0644 pkgconfig/solo5-bindings-spt.pc $(D)$(PCFILEDIR)
 endif
 ifdef CONFIG_VIRTIO
-	cp scripts/virtio-mkimage/solo5-virtio-mkimage.sh \
-	    $(PREFIX)/bin/solo5-virtio-mkimage
-	cp scripts/virtio-run/solo5-virtio-run.sh \
-	    $(PREFIX)/bin/solo5-virtio-run
+	$(INSTALL) -m 0644 bindings/virtio/solo5_virtio.o $(D)/lib/solo5
+	$(INSTALL) -m 0644 bindings/virtio/solo5_virtio.lds $(D)/lib/solo5
+	$(INSTALL) -m 0644 pkgconfig/solo5-bindings-virtio.pc $(D)$(PCFILEDIR)
+endif
+ifdef CONFIG_MUEN
+	$(INSTALL) -m 0644 bindings/muen/solo5_muen.o $(D)/lib/solo5
+	$(INSTALL) -m 0644 bindings/muen/solo5_muen.lds $(D)/lib/solo5
+	$(INSTALL) -m 0644 pkgconfig/solo5-bindings-muen.pc $(D)$(PCFILEDIR)
+endif
+ifdef CONFIG_GENODE
+	$(INSTALL) -m 0644 bindings/genode/solo5.lib.so $(D)/lib/solo5
+	$(INSTALL) -m 0644 bindings/genode/genode_dyn.ld $(D)/lib/solo5
+	$(INSTALL) -m 0644 pkgconfig/solo5-bindings-genode.pc $(D)$(PCFILEDIR)
+endif
+ifdef CONFIG_XEN
+	$(INSTALL) -m 0644 bindings/xen/solo5_xen.o $(D)/lib/solo5
+	$(INSTALL) -m 0644 bindings/xen/solo5_xen.lds $(D)/lib/solo5
+	$(INSTALL) -m 0644 pkgconfig/solo5-bindings-xen.pc $(D)$(PCFILEDIR)
+	cd include/xen && \
+	    find . -type d -exec $(INSTALL) -d \
+	    "$(D)/include/solo5/xen/{}" \;
+	cd include/xen && \
+	    find . -type f -name '*.h' -exec $(INSTALL) -m 0644 \
+	    "{}" "$(D)/include/solo5/xen/{}" \;
+endif
+install-bindings: $(PCFILES)
+
+.PHONY: install-tenders
+install-tenders: MAKECMDGOALS :=
+install-tenders: build
+	@echo INSTALL tenders
+	$(INSTALL) -d $(D)/bin
+ifdef CONFIG_HVT
+	$(INSTALL) tenders/hvt/solo5-hvt $(D)/bin
+	- [ -f tenders/hvt/solo5-hvt-debug ] && \
+	    $(INSTALL) tenders/hvt/solo5-hvt-debug $(D)/bin
+endif
+ifdef CONFIG_SPT
+	$(INSTALL) tenders/spt/solo5-spt $(D)/bin
 endif
 
-# uninstall-opam-% may not have a Makeconf available, so should always uninstall
-# all build products from all solo5-bindings variants regardless.
-uninstall-opam-%: force-uninstall
-	@echo UNINSTALL solo5
-	@[ -d "$(PREFIX)" -a -d "$(PREFIX)/bin" ] || \
-	    (echo "error: PREFIX not set or incorrect"; false)
-	-[ -d "$(PREFIX)/include/solo5-bindings-$*/solo5" ] && \
-	    $(RM) -r $(PREFIX)/include/solo5-bindings-$*/solo5
-	-[ -d "$(PREFIX)/include/solo5-bindings-$*/crt" ] && \
-	    $(RM) -r $(PREFIX)/include/solo5-bindings-$*/crt
-	$(RM) $(PREFIX)/lib/solo5-bindings-$*/solo5_$*.o \
-	    $(PREFIX)/lib/solo5-bindings-$*/solo5_$*.lds
-	$(RM) $(PREFIX)/lib/pkgconfig/solo5-bindings-$*.pc
-	$(RM) $(PREFIX)/bin/solo5-elftool
-# CONFIG_HVT
-	$(RM) $(PREFIX)/bin/solo5-hvt $(PREFIX)/bin/solo5-hvt-debug \
-	    $(PREFIX)/bin/solo5-hvt-configure
-# CONFIG_SPT
-	$(RM) $(PREFIX)/bin/solo5-spt
-# CONFIG_VIRTIO
-	$(RM) $(PREFIX)/bin/solo5-virtio-mkimage
-	$(RM) $(PREFIX)/bin/solo5-virtio-run
-# CONFIG_GENODE
-	$(RM) $(PREFIX)/lib/solo5-bindings-$*/solo5.lib.so \
-	    $(PREFIX)/lib/solo5-bindings-$*/genode_dyn.ld
-
-# The following targets are kept for backwards compatibility, as otherwise
-# upgrading existing OPAM switches will fail. They should be removed at some
-# point, along with the dummy solo5-hvt-configure.
-opam-hvt-uninstall: uninstall-opam-hvt ;
-
-opam-spt-uninstall: uninstall-opam-spt ;
-
-opam-virtio-uninstall: uninstall-opam-virtio ;
-
-opam-muen-uninstall: uninstall-opam-muen ;
-
-opam-genode-uninstall: uninstall-opam-genode ;
+.PHONY: install
+install: MAKECMDGOALS :=
+install: install-headers install-tools install-bindings install-tenders
 
 $(V).SILENT:

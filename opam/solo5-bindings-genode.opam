@@ -8,25 +8,25 @@ bug-reports: "https://github.com/solo5/solo5/issues"
 license: "ISC"
 dev-repo: "git+https://github.com/solo5/solo5.git"
 build: [
-  ["./configure.sh"]
-  [make "V=1" "CONFIG_HVT=" "CONFIG_SPT=" "CONFIG_VIRTIO=" "CONFIG_MUEN=" "CONFIG_XEN="]
+  ["./configure.sh" "--enable-targets=genode"]
+  [make "V=1"]
 ]
-install: [make "V=1" "CONFIG_HVT=" "CONFIG_SPT=" "CONFIG_VIRTIO=" "CONFIG_MUEN=" "CONFIG_XEN=" "install-opam-genode" "PREFIX=%{prefix}%"]
+install: [make "PREFIX=%{prefix}%" "V=1" "install-bindings"]
 depends: [
   "conf-pkg-config"
-  "conf-libseccomp" {build & os = "linux"}
+  "solo5" {= version}
 ]
 conflicts: [
-  "ocaml-freestanding" {< "0.6.0"}
-  "solo5-bindings-hvt"
-  "solo5-bindings-spt"
-  "solo5-bindings-virtio"
-  "solo5-bindings-muen"
-  "solo5-bindings-xen"
+  "ocaml-freestanding" {< "0.7.0"}
+  "solo5-bindings-hvt" {< "0.7.0"}
+  "solo5-bindings-spt" {< "0.7.0"}
+  "solo5-bindings-virtio" {< "0.7.0"}
+  "solo5-bindings-muen" {< "0.7.0"}
+  "solo5-bindings-xen" {< "0.7.0"}
 ]
 available: [
-  arch = "x86_64" &
-  (os = "linux" | os = "freebsd" | os = "openbsd")
+  (arch = "x86_64") &
+  (os = "linux")
 ]
 synopsis: "Solo5 sandboxed execution environment (genode target)"
 description: """
@@ -39,5 +39,5 @@ MirageOS unikernels on the "genode" target. The resulting
 unikernels can then be deployed directly on a host running the
 Genode Operating System Framework.
 
-Building the "genode" target is supported on 64-bit Linux, FreeBSD
-and OpenBSD systems."""
+Building the "genode" target is supported on 64-bit Linux
+systems."""

@@ -114,8 +114,8 @@ config_host_linux()
     cc_is_gcc || die "Only 'gcc' 4.x+ is supported on Linux"
     CC_INCDIR=$(${CC} -print-file-name=include)
     [ -d "${CC_INCDIR}" ] || die "Cannot determine gcc include directory"
-    mkdir -p ${HOST_INCDIR}
-    cp -R ${CC_INCDIR}/. ${HOST_INCDIR}
+    mkdir -p ${CRT_INCDIR}
+    cp -Rp ${CC_INCDIR}/. ${CRT_INCDIR}
 
     MAKECONF_CFLAGS="-nostdinc"
     # Recent distributions now default to PIE enabled. Disable it explicitly
@@ -136,6 +136,10 @@ config_host_linux()
         MAKECONF_CFLAGS="${MAKECONF_CFLAGS} -mstack-protector-guard=global"
     fi
 
+    # The following runes are all spt-specific, so just return here if the
+    # caller doesn't want CONFIG_SPT.
+    [ -z "${CONFIG_SPT}" ] && return
+
     # If the host toolchain is NOT configured to build PIE exectuables by
     # default, assume it has no support for that and apply a workaround by
     # locating the spt tender starting at a virtual address of 1 GB.
@@ -145,9 +149,6 @@ config_host_linux()
         CONFIG_SPT_NO_PIE=1
     fi
 
-    [ -n "${OPT_ONLY_TOOLS}" ] && return
-    CONFIG_HVT=1
-    CONFIG_SPT=1
     if ! command -v pkg-config >/dev/null; then
         die "pkg-config is required"
     fi
@@ -172,11 +173,6 @@ config_host_linux()
     if ! PKG_LIBS=${MAKECONF_SPT_LIBS} gcc_check_lib -lseccomp; then
         die "Could not link with -lseccomp"
     fi
-    [ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_VIRTIO=1
-    [ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_MUEN=1
-    [ "${CONFIG_ARCH}" = "ppc64le" ] && CONFIG_HVT=
-    CONFIG_GENODE=
-    [ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_XEN=1
 }
 
 config_host_freebsd()
@@ -193,10 +189,10 @@ config_host_freebsd()
     DEPS="$(mktemp)"
     get_header_deps ${INCDIR} ${SRCS} >${DEPS} || \
         die "Failure getting dependencies of host headers"
-    # cpio will fail if HOST_INCDIR is below a symlink, so squash that
-    mkdir -p ${HOST_INCDIR}
-    HOST_INCDIR="$(readlink -f ${HOST_INCDIR})"
-    (cd ${INCDIR} && cpio --quiet -Lpdm ${HOST_INCDIR} <${DEPS}) || \
+    # cpio will fail if CRT_INCDIR is below a symlink, so squash that
+    mkdir -p ${CRT_INCDIR}
+    CRT_INCDIR="$(readlink -f ${CRT_INCDIR})"
+    (cd ${INCDIR} && cpio --quiet -Lpdm ${CRT_INCDIR} <${DEPS}) || \
         die "Failure copying host headers"
     rm ${DEPS}
 
@@ -208,14 +204,6 @@ config_host_freebsd()
 
     # enable capsicum(4) sandbox if FreeBSD kernel is new enough
     [ "$(uname -K)" -ge 1200086 ] && CONFIG_HVT_FREEBSD_ENABLE_CAPSICUM=1
-
-    [ -n "${OPT_ONLY_TOOLS}" ] && return
-    CONFIG_HVT=1
-    CONFIG_SPT=
-    [ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_VIRTIO=1
-    [ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_MUEN=1
-    CONFIG_GENODE=
-    [ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_XEN=1
 }
 
 config_host_openbsd()
@@ -238,80 +226,107 @@ config_host_openbsd()
     DEPS="$(mktemp)"
     get_header_deps ${INCDIR} ${SRCS} >${DEPS} || \
         die "Failure getting dependencies of host headers"
-    # cpio will fail if HOST_INCDIR is below a symlink, so squash that
-    mkdir -p ${HOST_INCDIR}
-    HOST_INCDIR="$(readlink -f ${HOST_INCDIR})"
-    (cd ${INCDIR} && cpio -Lpdm ${HOST_INCDIR} <${DEPS}) || \
+    # cpio will fail if CRT_INCDIR is below a symlink, so squash that
+    mkdir -p ${CRT_INCDIR}
+    CRT_INCDIR="$(readlink -f ${CRT_INCDIR})"
+    (cd ${INCDIR} && cpio -Lpdm ${CRT_INCDIR} <${DEPS}) || \
         die "Failure copying host headers"
     rm ${DEPS}
 
     MAKECONF_CFLAGS="-mno-retpoline -fno-ret-protector -nostdlibinc"
     MAKECONF_LDFLAGS="-nopie"
-
-    [ -n "${OPT_ONLY_TOOLS}" ] && return
-    CONFIG_HVT=1
-    CONFIG_SPT=
-    [ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_VIRTIO=1
-    [ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_MUEN=1
-    CONFIG_GENODE=
-    [ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_XEN=1
 }
 
-# Check for a tools-only build.
-OPT_ONLY_TOOLS=
-if [ -n "$1" ]; then
-    if [ "$1" = "--only-tools" ]; then
-        OPT_ONLY_TOOLS=1
-    else
-        die "usage: configure.sh [ --only-tools ]"
-    fi
-fi
-
-# Allow external override of CC.
+# Allow external override of CC and LD.
 CC=${CC:-cc}
 LD=${LD:-ld}
 
 CC_MACHINE=$(${CC} -dumpmachine)
 [ $? -ne 0 ] &&
     die "Could not run '${CC} -dumpmachine', is your compiler working?"
-# Determine HOST and ARCH based on what the toolchain reports.
+
+# Determine CONFIG_HOST, CONFIG_ARCH from master matrix of supported build
+# toolchain combinations (CC_MACHINE). Sets AVAILABLE_TARGETS and
+# CONFIG_TARGETS (default list of targets to enable if none specified).
 case ${CC_MACHINE} in
     x86_64-*linux*)
         CONFIG_ARCH=x86_64 CONFIG_HOST=Linux
         CONFIG_GUEST_PAGE_SIZE=0x1000
+        AVAILABLE_TARGETS="hvt,spt,virtio,muen,genode,xen"
+        CONFIG_TARGETS="hvt,spt,virtio,muen,xen"
         ;;
     aarch64-*linux*)
         CONFIG_ARCH=aarch64 CONFIG_HOST=Linux
         CONFIG_GUEST_PAGE_SIZE=0x1000
+        AVAILABLE_TARGETS="hvt,spt"
+        CONFIG_TARGETS="${AVAILABLE_TARGETS}"
         ;;
     powerpc64le-*linux*|ppc64le-*linux*)
         CONFIG_ARCH=ppc64le CONFIG_HOST=Linux
         CONFIG_GUEST_PAGE_SIZE=0x10000
+        AVAILABLE_TARGETS="spt"
+        CONFIG_TARGETS="${AVAILABLE_TARGETS}"
         ;;
     x86_64-*freebsd*)
         CONFIG_ARCH=x86_64 CONFIG_HOST=FreeBSD
         CONFIG_GUEST_PAGE_SIZE=0x1000
+        AVAILABLE_TARGETS="hvt,virtio,muen,xen"
+        CONFIG_TARGETS="${AVAILABLE_TARGETS}"
         ;;
     amd64-*openbsd*)
         CONFIG_ARCH=x86_64 CONFIG_HOST=OpenBSD
         CONFIG_GUEST_PAGE_SIZE=0x1000
+        AVAILABLE_TARGETS="hvt,virtio,muen,xen"
+        CONFIG_TARGETS="${AVAILABLE_TARGETS}"
         ;;
     *)
         die "Unsupported toolchain target: ${CC_MACHINE}"
         ;;
 esac
 
-# Host-provided header files are installed here for in-tree builds. OPAM will
-# install these to $(OPAM_INCDIR)/host where they will be picked up by
-# pkg-config.
-HOST_INCDIR=${PWD}/include/crt
+# Arguments: Comma-separated list of TARGETS to enable.  Sets CONFIG_TARGET=1
+# for each TARGET that is enabled, dies with an error if any TARGET is not
+# supported on the current CONFIG_HOST/CONFIG_ARCH.
+enable_targets()
+{
+    OLDIFS=${IFS}
+    IFS=,
+    for target in $@; do
+        if echo ",${AVAILABLE_TARGETS}," | grep -q ",${target},"; then
+            tmp="$(echo ${target} | tr '[a-z]' '[A-Z]')"
+            eval "CONFIG_${tmp}=1"
+        else
+            die "--enable-targets: Target '${target}' is not available on ${CONFIG_HOST}/${CONFIG_ARCH}"
+        fi
+    done
+    IFS=${OLDIFS}
+}
 
-CONFIG_HVT=
-CONFIG_SPT=
-CONFIG_VIRTIO=
-CONFIG_MUEN=
-CONFIG_GENODE=
-CONFIG_XEN=
+while [ $# -gt 0 ]; do
+    OPT="$1"
+
+    case "${OPT}" in
+        --enable-targets=*)
+            CONFIG_TARGETS="${OPT##*=}"
+            ;;
+        *)
+            die "Unknown option: '${OPT}'"
+            ;;
+    esac
+
+    shift
+done
+
+[ "${CONFIG_TARGETS}" = "force-all" ] && \
+    CONFIG_TARGETS="hvt,spt,virtio,muen,genode,xen"
+[ "${CONFIG_TARGETS}" = "none" ] && \
+    CONFIG_TARGETS=
+enable_targets "${CONFIG_TARGETS}"
+
+# C runtime header files appropriated from the host toolchain are installed
+# here at configure time.
+CRT_INCDIR=${PWD}/include/crt
+
 MAKECONF_CFLAGS=
 MAKECONF_LDFLAGS=
 MAKECONF_SPT_CFLAGS=
@@ -341,7 +356,7 @@ esac
 # GNU make. Given the differences in quoting rules between the two
 # (unable to sensibly use VAR="VALUE"), our convention is as follows:
 #
-# 1. GNU make parses the entire file, i.e. all variables defined below are 
+# 1. GNU make parses the entire file, i.e. all variables defined below are
 #    available to Makefiles.
 #
 # 2. Shell scripts parse the subset of *lines* starting with "CONFIG_". I.e.
