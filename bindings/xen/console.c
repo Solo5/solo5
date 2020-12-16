@@ -125,11 +125,9 @@ void console_write(const char *buf, size_t len)
 
     } while (written < len);
 
-#if 0 /* For debugging only, no need to wait synchronously here. */
     /* Wait for xenconsoled to consume all the data we gave. */
     while (ACCESS_ONCE(console_ring->out_cons) != console_ring->out_prod)
         hypercall_yield();
-#endif
 }
 
 void console_init(void)
