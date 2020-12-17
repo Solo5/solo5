@@ -134,10 +134,6 @@ ifdef CONFIG_MUEN
 	$(INSTALL) -m 0644 bindings/muen/solo5_muen.o $(D)/lib/solo5
 	$(INSTALL) -m 0644 bindings/muen/solo5_muen.lds $(D)/lib/solo5
 endif
-ifdef CONFIG_GENODE
-	$(INSTALL) -m 0644 bindings/genode/solo5.lib.so $(D)/lib/solo5
-	$(INSTALL) -m 0644 bindings/genode/genode_dyn.ld $(D)/lib/solo5
-endif
 ifdef CONFIG_XEN
 	$(INSTALL) -m 0644 bindings/xen/solo5_xen.o $(D)/lib/solo5
 	$(INSTALL) -m 0644 bindings/xen/solo5_xen.lds $(D)/lib/solo5

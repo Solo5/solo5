@@ -36,12 +36,6 @@ LD := $(MAKECONF_LD)
 LDFLAGS := $(MAKECONF_LDFLAGS)
 OBJCOPY := objcopy
 
-# Genode application compiling and linking is a special case
-GENODE_APP_CFLAGS := $(CFLAGS) -fPIC
-GENODE_APP_LDFLAGS := -nostdlib -z max-page-size=$(CONFIG_GUEST_PAGE_SIZE) \
-    -shared -gc-sections --eh-frame-hdr -Ttext=0x01000000 \
-    --dynamic-linker=ld.lib.so -rpath-link=.
-
 # Also used by the HOST_ rules below.
 DEPFLAGS = -MT $@ -MMD -MP -MF $*.Td
 
