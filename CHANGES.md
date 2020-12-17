@@ -1,3 +1,20 @@
+## 0.6.8 (2020-12-17)
+
+Bug fixes:
+
+* xen: Fix corrupted console output by correctly waiting for xenconsoled to
+  consume all data. (#490)
+* hvt: Free kvm\_cpuid after use. (#485)
+
+New features:
+
+* xen: Add multiboot support. (#482)
+
+Acknowledgements:
+
+* Thanks to Marek Marczykowski-Górecki (@marmarek) for implementing multiboot
+  support for the Xen target.
+
 ## 0.6.7 (2020-10-08)
 
 Bug fixes:
