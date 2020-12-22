@@ -47,11 +47,6 @@ do_basic()
 {
     message "Starting build."
     try ./configure.sh
-    # Genode bindings are disabled by default; enable them for Linux hosts to
-    # ensure they get tested by Solo5 CI.
-    if [ "$(uname -s)" = "Linux" ]; then
-        echo CONFIG_GENODE=1 >>Makeconf
-    fi
     try ${MAKE}
     # Some CIs can now run tests, so do that.
     if [ -n "${SURF_RUN_TESTS}" ]; then
