@@ -141,6 +141,13 @@ void virtio_config_network(struct pci_config_info *pci)
     size_t pgs;
 
     /*
+     * 3.1.1 Driver Requirements: Device Initialization
+     *
+     * 1. Reset the device.
+     */
+    outb(pci->base + VIRTIO_PCI_STATUS, 0);
+
+    /*
      * 2. Set the ACKNOWLEDGE status bit: the guest OS has notice the device.
      * 3. Set the DRIVER status bit: the guest OS knows how to drive the device.
      */

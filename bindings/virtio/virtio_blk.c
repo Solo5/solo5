@@ -152,6 +152,7 @@ void virtio_config_block(struct pci_config_info *pci)
     uint32_t host_features, guest_features;
     size_t pgs;
 
+    outb(pci->base + VIRTIO_PCI_STATUS, 0);
     outb(pci->base + VIRTIO_PCI_STATUS, ready_for_init);
 
     host_features = inl(pci->base + VIRTIO_PCI_HOST_FEATURES);
