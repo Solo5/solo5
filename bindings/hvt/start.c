@@ -44,6 +44,7 @@ void _start(const void *arg)
     time_init(arg);
     block_init(arg);
     net_init(arg);
+    pci_init(arg);
 
     mem_lock_heap(&si.heap_start, &si.heap_size);
     solo5_exit(solo5_app_main(&si));

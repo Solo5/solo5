@@ -299,4 +299,46 @@ solo5_result_t solo5_block_write(solo5_handle_t handle, solo5_off_t offset,
 solo5_result_t solo5_block_read(solo5_handle_t handle, solo5_off_t offset,
         uint8_t *buf, size_t size);
 
+/*
+ * PCIe I/O.
+ */
+
+struct solo5_pci_info {
+    uint16_t vendor_id;     /* This device's PCI vendor. */
+    uint16_t device_id;     /* This device's device ID. */
+    uint8_t class_code;     /* This device's class code. */
+    uint8_t subclass_code;  /* This device's subclass code. */
+    uint8_t progif;         /* This device's programming interface. */
+    bool bus_master_enable; /* This device is a bus master. */
+    uint8_t *bar0;          /* This device's BAR0 or NULL. */
+    size_t bar0_size;       /* This device's BAR0 size or 0. */
+    uint8_t *bar1;          /* This device's BAR1 or NULL. */
+    size_t bar1_size;       /* This device's BAR1 size or 0. */
+    uint8_t *bar2;          /* This device's BAR2 or NULL. */
+    size_t bar2_size;       /* This device's BAR2 size or 0. */
+    uint8_t *bar3;          /* This device's BAR3 or NULL. */
+    size_t bar3_size;       /* This device's BAR3 size or 0. */
+    uint8_t *bar4;          /* This device's BAR4 or NULL. */
+    size_t bar4_size;       /* This device's BAR4 size or 0. */
+    uint8_t *bar5;          /* This device's BAR5 or NULL. */
+    size_t bar5_size;       /* This device's BAR5 size or 0. */
+};
+
+/*
+ * Acquires a handle to the PCIe device declared as (name) in the
+ * application manifest. The returned handle is stored in (*handle), and
+ * properties of the PCIe device are stored in (*info). Caller must supply
+ * space for struct solo5_pci_info in (info).
+ */
+solo5_result_t solo5_pci_acquire(const char *name, struct solo5_pci_info *info);
+
+/*
+ * Acquires a handle to the DMA-ready memory mapped into the unikernel's
+ * address space and visible to all PCIe devices. The address of the memory area
+ * will be stored in (*buffer), its size will be stored in (*size). If there
+ * is no DMA-ready memory avaible to the unikernel, (*buffer) is set to NULL,
+ * (*size) is set to 0 and the function returns SOLO5_R_EINVAL.
+ */
+solo5_result_t solo5_dma_acquire(uint8_t **buffer, size_t *size);
+
 #endif

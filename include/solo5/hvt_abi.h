@@ -277,4 +277,26 @@ struct hvt_hc_halt {
     int exit_status;
 };
 
+/*
+ * Each requested PCIe region will be mapped starting at HVT_PCI_REGION_BASE
+ * with HVT_PCI_REGION_OFFSET between regions and HVT_PCI_DEVICE_OFFSET between
+ * devices.
+ */
+// 512 GiB, chosen so the PML4 lookup will be 0x1
+#define HVT_PCI_DEVICE_BASE (1ULL << 39)
+// 16 GiB
+#define HVT_PCI_DEVICE_SIZE (1ULL << 34)
+// 1 GiB
+#define HVT_PCI_REGION_SIZE (1ULL << 30)
+
+#define HVT_DEVICE(index) (HVT_PCI_DEVICE_BASE + (HVT_PCI_DEVICE_SIZE * index))
+#define HVT_REGION(index, n) (HVT_DEVICE(index) + (HVT_PCI_REGION_SIZE * n))
+
+/*
+ * DMA-ready memory visible to all PCIe devices will be mapped startring at
+ * HVT_DMA_BASE.
+ */
+// 1 TiB, chosen so the PML4 lookup will be 0x2
+#define HVT_DMA_BASE (1ULL << 40)
+
 #endif /* HVT_ABI_H */
