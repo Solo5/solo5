@@ -4,6 +4,8 @@
 *.lib.so
 *.pc
 Makeconf
+Makeconf.sh
+solo5-config.sh
 tags
 include/crt
 include/version.h

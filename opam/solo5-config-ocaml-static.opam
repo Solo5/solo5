@@ -9,38 +9,25 @@ homepage: "https://github.com/solo5/solo5"
 bug-reports: "https://github.com/solo5/solo5/issues"
 license: "ISC"
 dev-repo: "git+https://github.com/solo5/solo5.git"
-build: [
-  ["./configure.sh" "--prefix=%{prefix}%" "--enable-targets=muen"]
-  [make "V=1"]
-]
-install: [make "V=1" "install-bindings"]
-depends: [
-  "conf-pkg-config" {build & os = "linux"}
-  "solo5" {= version}
-  "solo5-config-ocaml-static" {= version}
-]
 conflicts: [
   "ocaml-freestanding" {< "0.7.0"}
-  "solo5-bindings-genode" {< "0.7.0"}
   "solo5-bindings-hvt" {< "0.7.0"}
   "solo5-bindings-spt" {< "0.7.0"}
   "solo5-bindings-virtio" {< "0.7.0"}
+  "solo5-bindings-muen" {< "0.7.0"}
+  "solo5-bindings-genode" {< "0.7.0"}
   "solo5-bindings-xen" {< "0.7.0"}
 ]
 available: [
-  arch = "x86_64" &
+  (arch = "x86_64" | arch = "arm64" | arch = "ppc64") &
   (os = "linux" | os = "freebsd" | os = "openbsd")
 ]
-synopsis: "Solo5 sandboxed execution environment (muen target)"
+flags: conf
+synopsis: "Solo5 sandboxed execution environment (static toolchain)"
 description: """
 Solo5 is a sandboxed execution environment primarily intended
 for, but not limited to, running applications built using various
 unikernels (a.k.a.  library operating systems).
 
-This package provides the Solo5 components needed to build
-MirageOS unikernels on the "muen" target. The resulting
-unikernels can then be deployed directly on a host running the
-Muen Separation Kernel.
-
-Building the "muen" target is supported on 64-bit Linux, FreeBSD
-and OpenBSD systems."""
+This package is a virtual package selecting the 'static' toolchain
+for ocaml-freestanding."""

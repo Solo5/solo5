@@ -54,7 +54,7 @@ do_basic()
         # XXX grub-bhyve is unstable under nested virt, so don't run the
         # virtio tests on FreeBSD.
         if [ "$(uname -s)" = "FreeBSD" ]; then
-            echo CONFIG_VIRTIO= >>Makeconf
+            echo CONFIG_VIRTIO= >>Makeconf.sh
         fi
         try ${SURF_SUDO} tests/setup-tests.sh
         try ${SURF_SUDO} tests/run-tests.sh

@@ -26,16 +26,14 @@ endif
 include $(TOPDIR)/Makeconf
 
 #
-# The following variables and recipes apply to building bindings and
-# tests (applications).
+# The following variables and recipes apply to building bindings for each
+# target.
 #
 CC := $(MAKECONF_CC)
-CFLAGS := -std=c11 -Wall -Wextra -Werror -O2 -g
-CFLAGS += -ffreestanding -fstack-protector-strong $(MAKECONF_CFLAGS)
+CFLAGS := $(MAKECONF_CFLAGS) -std=c11 -Wall -Wextra -Werror -O2 -g
 CPPFLAGS := -isystem $(TOPDIR)/include/crt -I$(TOPDIR)/include
 LD := $(MAKECONF_LD)
-LDFLAGS := -nostdlib -z max-page-size=$(CONFIG_GUEST_PAGE_SIZE) -static \
-    $(MAKECONF_LDFLAGS)
+LDFLAGS := $(MAKECONF_LDFLAGS)
 OBJCOPY := objcopy
 
 # Genode application compiling and linking is a special case
@@ -64,7 +62,7 @@ endef
 # artifacts built to run on the (Solo5 tender's) *host*.
 #
 HOSTCC := $(MAKECONF_CC)
-HOSTCFLAGS := -Wall -Werror -std=c11 -fstack-protector-strong -O2 -g
+HOSTCFLAGS := -fstack-protector-strong -Wall -Werror -std=c11 -O2 -g
 HOSTCPPFLAGS := -I$(TOPDIR)/include
 HOSTLDFLAGS :=
 HOSTLDLIBS :=
@@ -86,26 +84,3 @@ define HOSTLINK
 	@echo "HOSTLINK $@"
 	$(HOSTCC) $(HOSTLDFLAGS) $^ $(HOSTLDLIBS) -o $@
 endef
-
-#
-# The following CFLAGS and LDFLAGS are passed downstream to MirageOS via OPAM
-# and pkg-config.
-#
-PC_CFLAGS := -ffreestanding -fstack-protector-strong $(MAKECONF_CFLAGS)
-PC_LD := $(MAKECONF_LD)
-PC_LDFLAGS := $(LDFLAGS)
-
-# Genode application compiling and linking is a special case
-PC_GENODE_CFLAGS := -ffreestanding -fstack-protector-strong -fPIC $(MAKECONF_CFLAGS)
-PC_GENODE_LDFLAGS := $(GENODE_APP_LDFLAGS)
-
-%.pc: %.pc.in
-	@echo "SUBST $@"
-	sed <$< > $@ \
-	    -e 's#!PC_CFLAGS!#$(PC_CFLAGS)#g;' \
-	    -e 's#!PC_LD!#$(PC_LD)#g;' \
-	    -e 's#!PC_LDFLAGS!#$(PC_LDFLAGS)#g;' \
-	    -e 's#!PC_GENODE_CFLAGS!#$(PC_GENODE_CFLAGS)#g;' \
-	    -e 's#!PC_GENODE_LDFLAGS!#$(PC_GENODE_LDFLAGS)#g;' \
-
-.PRECIOUS: %.pc

@@ -19,6 +19,11 @@
 
 prog_NAME="$(basename $0)"
 
+err()
+{
+    echo "${prog_NAME}: ERROR: $@" 1>&2
+}
+
 die()
 {
     echo "${prog_NAME}: ERROR: $@" 1>&2
@@ -28,6 +33,25 @@ die()
 warn()
 {
     echo "${prog_NAME}: WARNING: $@" 1>&2
+}
+
+usage()
+{
+    cat <<EOM 1>&2
+usage: ${prog_NAME} [ OPTIONS ]
+
+Configures the Solo5 build system.
+
+Options:
+    --prefix=DIR:
+        Installation prefix (default: /usr/local).
+
+    --enable-targets=none | TARGET,...
+        Enables the specified Solo5 TARGETs.
+        TARGET may be one of: '${AVAILABLE_TARGETS}'.
+        (default: all of the above, depends on architecture and build OS).
+EOM
+    exit 1
 }
 
 cc_maybe_gcc()
@@ -117,7 +141,7 @@ config_host_linux()
     mkdir -p ${CRT_INCDIR}
     cp -Rp ${CC_INCDIR}/. ${CRT_INCDIR}
 
-    MAKECONF_CFLAGS="-nostdinc"
+    MAKECONF_CFLAGS="${MAKECONF_CFLAGS} -nostdinc"
     # Recent distributions now default to PIE enabled. Disable it explicitly
     # if that's the case here.
     # XXX: This breaks MirageOS in (at least) the build of mirage-solo5 due
@@ -164,14 +188,16 @@ config_host_linux()
             warn "libseccomp < 2.4.1 has known vulnerabilities"
             warn "Proceeding anyway, but consider upgrading"
         fi
-        MAKECONF_SPT_CFLAGS=$(pkg-config --cflags libseccomp)
-        MAKECONF_SPT_LDLIBS=$(pkg-config --libs libseccomp)
+        MAKECONF_LIBSECCOMP_CFLAGS="$(pkg-config --cflags libseccomp)"
+        MAKECONF_LIBSECCOMP_LDLIBS="$(pkg-config --libs libseccomp)"
     fi
-    if ! PKG_CFLAGS=${MAKECONF_SPT_CFLAGS} gcc_check_header seccomp.h; then
+    if ! PKG_CFLAGS="${MAKECONF_LIBSECCOMP_CFLAGS}" gcc_check_header seccomp.h; then
         die "Could not compile with seccomp.h"
     fi
-    if ! PKG_LIBS=${MAKECONF_SPT_LIBS} gcc_check_lib -lseccomp; then
-        die "Could not link with -lseccomp"
+    if [ -n "${MAKECONF_LIBSECCOMP_LDLIBS}" ]; then
+        if ! gcc_check_lib ${MAKECONF_LIBSECCOMP_LDLIBS}; then
+            die "Could not link with ${MAKECONF_LIBSECCOMP_LDLIBS}"
+        fi
     fi
 }
 
@@ -200,7 +226,7 @@ config_host_freebsd()
     #
     # FreeBSD toolchains use a global (non-TLS) __stack_chk_guard by
     # default on x86_64, so there is nothing special we need to do here.
-    MAKECONF_CFLAGS="-nostdlibinc"
+    MAKECONF_CFLAGS="${MAKECONF_CFLAGS} -nostdlibinc"
 
     # enable capsicum(4) sandbox if FreeBSD kernel is new enough
     [ "$(uname -K)" -ge 1200086 ] && CONFIG_HVT_FREEBSD_ENABLE_CAPSICUM=1
@@ -233,8 +259,8 @@ config_host_openbsd()
         die "Failure copying host headers"
     rm ${DEPS}
 
-    MAKECONF_CFLAGS="-mno-retpoline -fno-ret-protector -nostdlibinc"
-    MAKECONF_LDFLAGS="-nopie"
+    MAKECONF_CFLAGS="${MAKECONF_CFLAGS} -mno-retpoline -fno-ret-protector -nostdlibinc"
+    MAKECONF_LDFLAGS="${MAKECONF_LDFLAGS} -nopie"
 }
 
 # Allow external override of CC and LD.
@@ -251,31 +277,31 @@ CC_MACHINE=$(${CC} -dumpmachine)
 case ${CC_MACHINE} in
     x86_64-*linux*)
         CONFIG_ARCH=x86_64 CONFIG_HOST=Linux
-        CONFIG_GUEST_PAGE_SIZE=0x1000
-        AVAILABLE_TARGETS="hvt,spt,virtio,muen,genode,xen"
-        CONFIG_TARGETS="hvt,spt,virtio,muen,xen"
+        CONFIG_LD_MAX_PAGE_SIZE=0x1000
+        AVAILABLE_TARGETS="hvt,spt,virtio,muen,xen"
+        CONFIG_TARGETS="${AVAILABLE_TARGETS}"
         ;;
     aarch64-*linux*)
         CONFIG_ARCH=aarch64 CONFIG_HOST=Linux
-        CONFIG_GUEST_PAGE_SIZE=0x1000
+        CONFIG_LD_MAX_PAGE_SIZE=0x1000
         AVAILABLE_TARGETS="hvt,spt"
         CONFIG_TARGETS="${AVAILABLE_TARGETS}"
         ;;
     powerpc64le-*linux*|ppc64le-*linux*)
         CONFIG_ARCH=ppc64le CONFIG_HOST=Linux
-        CONFIG_GUEST_PAGE_SIZE=0x10000
+        CONFIG_LD_MAX_PAGE_SIZE=0x10000
         AVAILABLE_TARGETS="spt"
         CONFIG_TARGETS="${AVAILABLE_TARGETS}"
         ;;
     x86_64-*freebsd*)
         CONFIG_ARCH=x86_64 CONFIG_HOST=FreeBSD
-        CONFIG_GUEST_PAGE_SIZE=0x1000
+        CONFIG_LD_MAX_PAGE_SIZE=0x1000
         AVAILABLE_TARGETS="hvt,virtio,muen,xen"
         CONFIG_TARGETS="${AVAILABLE_TARGETS}"
         ;;
     amd64-*openbsd*)
         CONFIG_ARCH=x86_64 CONFIG_HOST=OpenBSD
-        CONFIG_GUEST_PAGE_SIZE=0x1000
+        CONFIG_LD_MAX_PAGE_SIZE=0x1000
         AVAILABLE_TARGETS="hvt,virtio,muen,xen"
         CONFIG_TARGETS="${AVAILABLE_TARGETS}"
         ;;
@@ -302,6 +328,7 @@ enable_targets()
     IFS=${OLDIFS}
 }
 
+MAKECONF_PREFIX=/usr/local
 while [ $# -gt 0 ]; do
     OPT="$1"
 
@@ -309,8 +336,15 @@ while [ $# -gt 0 ]; do
         --enable-targets=*)
             CONFIG_TARGETS="${OPT##*=}"
             ;;
+        --prefix=*)
+            MAKECONF_PREFIX="${OPT##*=}"
+            ;;
+        --help)
+            usage
+            ;;
         *)
-            die "Unknown option: '${OPT}'"
+            err "Unknown option: '${OPT}'"
+            usage
             ;;
     esac
 
@@ -318,7 +352,7 @@ while [ $# -gt 0 ]; do
 done
 
 [ "${CONFIG_TARGETS}" = "force-all" ] && \
-    CONFIG_TARGETS="hvt,spt,virtio,muen,genode,xen"
+    CONFIG_TARGETS="hvt,spt,virtio,muen,xen"
 [ "${CONFIG_TARGETS}" = "none" ] && \
     CONFIG_TARGETS=
 enable_targets "${CONFIG_TARGETS}"
@@ -327,10 +361,10 @@ enable_targets "${CONFIG_TARGETS}"
 # here at configure time.
 CRT_INCDIR=${PWD}/include/crt
 
-MAKECONF_CFLAGS=
-MAKECONF_LDFLAGS=
-MAKECONF_SPT_CFLAGS=
-MAKECONF_SPT_LDLIBS=
+MAKECONF_CFLAGS="-ffreestanding -fstack-protector-strong"
+MAKECONF_LDFLAGS="-nostdlib -z max-page-size=${CONFIG_LD_MAX_PAGE_SIZE} -static"
+MAKECONF_LIBSECCOMP_CFLAGS=
+MAKECONF_LIBSECCOMP_LDLIBS=
 CONFIG_SPT_NO_PIE=
 CONFIG_HVT_FREEBSD_ENABLE_CAPSICUM=
 
@@ -349,50 +383,45 @@ case "${CONFIG_HOST}" in
         ;;
 esac
 
-# WARNING:
 #
-# The generated Makeconf is dual-use! It is both sourced by GNU make, and by
-# the test suite. As such, a subset of this file must parse in both shell *and*
-# GNU make. Given the differences in quoting rules between the two
-# (unable to sensibly use VAR="VALUE"), our convention is as follows:
-#
-# 1. GNU make parses the entire file, i.e. all variables defined below are
-#    available to Makefiles.
-#
-# 2. Shell scripts parse the subset of *lines* starting with "CONFIG_". I.e.
-#    only variables named "CONFIG_..." are available. When adding new variables
-#    to this group you must ensure that they do not contain more than a single
-#    "word".
-#
-# Please do NOT add variable names with new prefixes without asking first.
+# Generate Makeconf, to be included by Makefiles.
 #
 cat <<EOM >Makeconf
-# Generated by configure.sh $@, using CC=${CC} for target ${CC_MACHINE}
-CONFIG_HVT=${CONFIG_HVT}
-CONFIG_SPT=${CONFIG_SPT}
-CONFIG_VIRTIO=${CONFIG_VIRTIO}
-CONFIG_MUEN=${CONFIG_MUEN}
-CONFIG_GENODE=${CONFIG_GENODE}
-CONFIG_XEN=${CONFIG_XEN}
-MAKECONF_CFLAGS=${MAKECONF_CFLAGS}
-MAKECONF_LDFLAGS=${MAKECONF_LDFLAGS}
+# Generated by configure.sh, using CC=${CC} for target ${CC_MACHINE}
 CONFIG_ARCH=${CONFIG_ARCH}
 CONFIG_HOST=${CONFIG_HOST}
-CONFIG_GUEST_PAGE_SIZE=${CONFIG_GUEST_PAGE_SIZE}
+CONFIG_HVT=${CONFIG_HVT}
+CONFIG_HVT_FREEBSD_ENABLE_CAPSICUM=${CONFIG_HVT_FREEBSD_ENABLE_CAPSICUM}
+CONFIG_SPT=${CONFIG_SPT}
+CONFIG_SPT_NO_PIE=${CONFIG_SPT_NO_PIE}
+CONFIG_VIRTIO=${CONFIG_VIRTIO}
+CONFIG_MUEN=${CONFIG_MUEN}
+CONFIG_XEN=${CONFIG_XEN}
+MAKECONF_PREFIX=${MAKECONF_PREFIX}
 MAKECONF_CC=${CC}
 MAKECONF_LD=${LD}
-MAKECONF_SPT_CFLAGS=${MAKECONF_SPT_CFLAGS}
-MAKECONF_SPT_LDLIBS=${MAKECONF_SPT_LDLIBS}
-CONFIG_SPT_NO_PIE=${CONFIG_SPT_NO_PIE}
-CONFIG_HVT_FREEBSD_ENABLE_CAPSICUM=${CONFIG_HVT_FREEBSD_ENABLE_CAPSICUM}
+MAKECONF_CFLAGS=${MAKECONF_CFLAGS}
+MAKECONF_LDFLAGS=${MAKECONF_LDFLAGS}
+MAKECONF_LIBSECCOMP_CFLAGS=${MAKECONF_LIBSECCOMP_CFLAGS}
+MAKECONF_LIBSECCOMP_LDLIBS=${MAKECONF_LIBSECCOMP_LDLIBS}
 EOM
 
+#
+# Generate Makeconf.sh, to be included by shell scripts.
+#
+sed -Ee 's/^([A-Z_]+)=(.*)$/\1="\2"/' Makeconf >Makeconf.sh
+
+#
+# Generate solo5-config.sh, to be called by downstream build systems.
+#
+sed -e '/@@MAKECONF_SH@@/ r Makeconf.sh' \
+    -e '/@@MAKECONF_SH@@/ d' \
+    -e "s/@@AVAILABLE_TARGETS@@/${AVAILABLE_TARGETS}/g" \
+    scripts/solo5-config.sh.in >solo5-config.sh
+chmod +x solo5-config.sh
+
+#
+# Done.
+#
 echo "${prog_NAME}: Configured for ${CC_MACHINE}."
-echo -n "${prog_NAME}: Enabled targets:"
-[ -n "${CONFIG_HVT}" ]    && echo -n " hvt"
-[ -n "${CONFIG_SPT}" ]    && echo -n " spt"
-[ -n "${CONFIG_VIRTIO}" ] && echo -n " virtio"
-[ -n "${CONFIG_MUEN}" ]   && echo -n " muen"
-[ -n "${CONFIG_GENODE}" ] && echo -n " genode"
-[ -n "${CONFIG_XEN}" ]    && echo -n " xen"
-echo "."
+echo "${prog_NAME}: Enabled targets: ${CONFIG_TARGETS}."

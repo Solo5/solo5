@@ -10,14 +10,15 @@ bug-reports: "https://github.com/solo5/solo5/issues"
 license: "ISC"
 dev-repo: "git+https://github.com/solo5/solo5.git"
 build: [
-  ["./configure.sh" "--enable-targets=spt"]
+  ["./configure.sh" "--prefix=%{prefix}%" "--enable-targets=spt"]
   [make "V=1"]
 ]
-install: [make "PREFIX=%{prefix}%" "V=1" "install-bindings" "install-tenders"]
+install: [make "V=1" "install-bindings" "install-tenders"]
 depends: [
-  "conf-pkg-config"
-  "conf-libseccomp" {os = "linux"}
+  "conf-pkg-config" {build & os = "linux"}
+  "conf-libseccomp"
   "solo5" {= version}
+  "solo5-config-ocaml-static" {= version}
 ]
 depexts: [
   ["linux-headers"] {os-distribution = "alpine"}

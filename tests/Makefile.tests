@@ -23,93 +23,80 @@ all_TARGETS :=
 .SUFFIXES:
 $(V).SILENT:
 
-LDS.hvt := $(TOPDIR)/bindings/hvt/solo5_hvt.lds
-BINDINGS.hvt := $(TOPDIR)/bindings/hvt/solo5_hvt.o
-LDS.spt := $(TOPDIR)/bindings/spt/solo5_spt.lds
-BINDINGS.spt := $(TOPDIR)/bindings/spt/solo5_spt.o
-LDS.virtio := $(TOPDIR)/bindings/virtio/solo5_virtio.lds
-BINDINGS.virtio := $(TOPDIR)/bindings/virtio/solo5_virtio.o
-LDS.muen := $(TOPDIR)/bindings/muen/solo5_muen.lds
-BINDINGS.muen := $(TOPDIR)/bindings/muen/solo5_muen.o
-LDS.genode := $(TOPDIR)/bindings/genode/genode_dyn.ld
-BINDINGS.genode := $(TOPDIR)/bindings/genode/solo5.lib.so
-LDS.xen := $(TOPDIR)/bindings/xen/solo5_xen.lds
-BINDINGS.xen := $(TOPDIR)/bindings/xen/solo5_xen.o
-
+SOLO5_CONFIG := $(TOPDIR)/solo5-config.sh
 ELFTOOL := $(TOPDIR)/elftool/solo5-elftool
 
-# As a test is currently a single source file, we don't try to do any 
+# Rather than sourcing these via $(MAKECONF_...), we override them all here
+# and exercise solo5-config.sh in the process.
+CC := $(shell $(SOLO5_CONFIG) --cc)
+LD := $(shell $(SOLO5_CONFIG) --ld)
+CFLAGS := $(shell $(SOLO5_CONFIG) --toolchain=static --cflags)
+CFLAGS += -std=c11 -Wall -Werror -O2 -g
+
+# As a test is currently a single source file, we don't try to do any
 # dependency auto-generation here, and just hard-code all expected dependencies
 # as pre-requisites below.
 
 manifest.c: manifest.json $(TOPDIR)/include/mft_abi.h $(ELFTOOL)
-	@echo "ELFTOOL $<"
+	@echo "ELFTOOL $@"
 	$(ELFTOOL) gen-manifest $< $@
 
 %.o: %.c $(TOPDIR)/include/solo5.h
-	@echo "CC $<"
-	$(CC) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
+	@echo "CC $@"
+	$(CC) $(CFLAGS) -c $< -o $@
 
-%.hvt: %.o manifest.o $(LDS.hvt) $(BINDINGS.hvt)
+ifdef CONFIG_HVT
+%.hvt: %.o manifest.o $(shell $(SOLO5_CONFIG) --target=hvt --lddeps)
 	@echo "LD $@"
-	$(LD) $(LDFLAGS) -T $(LDS.hvt) $(BINDINGS.hvt) $< manifest.o -o $@
+	$(LD) $(shell $(SOLO5_CONFIG) --target=hvt --ldflags) \
+	    $< manifest.o -o $@
 
-%.spt: %.o manifest.o $(LDS.spt) $(BINDINGS.spt)
+all_TARGETS += $(test_NAME).hvt
+endif
+
+ifdef CONFIG_SPT
+%.spt: %.o manifest.o $(shell $(SOLO5_CONFIG) --target=spt --lddeps)
 	@echo "LD $@"
-	$(LD) $(LDFLAGS) -T $(LDS.spt) $(BINDINGS.spt) $< manifest.o -o $@
+	$(LD) $(shell $(SOLO5_CONFIG) --target=spt --ldflags) \
+	    $< manifest.o -o $@
 
-%.virtio: %.o manifest.o $(LDS.virtio) $(BINDINGS.virtio)
+all_TARGETS += $(test_NAME).spt
+endif
+
+ifdef CONFIG_VIRTIO
+%.virtio: %.o manifest.o $(shell $(SOLO5_CONFIG) --target=virtio --lddeps)
 	@echo "LD $@"
-	$(LD) $(LDFLAGS) -T $(LDS.virtio) $(BINDINGS.virtio) $< manifest.o -o $@
+	$(LD) $(shell $(SOLO5_CONFIG) --target=virtio --ldflags) \
+	    $< manifest.o -o $@
 
-%.muen: %.o manifest.o $(LDS.muen) $(BINDINGS.muen)
+all_TARGETS += $(test_NAME).virtio
+endif
+
+ifdef CONFIG_MUEN
+%.muen: %.o manifest.o $(shell $(SOLO5_CONFIG) --target=muen --lddeps)
 	@echo "LD $@"
-	$(LD) $(LDFLAGS) -T $(LDS.muen) $(BINDINGS.muen) $< manifest.o -o $@
+	$(LD) $(shell $(SOLO5_CONFIG) --target=muen --ldflags) \
+	    $< manifest.o -o $@
 
-%.genode.o: %.c $(TOPDIR)/include/solo5.h
-	@echo "GENODECC $<"
-	$(CC) $(GENODE_APP_CFLAGS) $(CPPFLAGS) -c $< -o $@
+all_TARGETS += $(test_NAME).muen
+endif
 
-%.genode: %.genode.o manifest.genode.o $(LDS.genode) $(BINDINGS.genode)
+ifdef CONFIG_XEN
+%.xen: %.o manifest.o $(shell $(SOLO5_CONFIG) --target=xen --lddeps)
 	@echo "LD $@"
-	$(LD) $(GENODE_APP_LDFLAGS) -T $(LDS.genode) $(BINDINGS.genode) \
-	    $< manifest.genode.o -o $@
-
-%.xen: %.o manifest.o $(LDS.xen) $(BINDINGS.xen)
-	@echo "LD $@"
-	$(LD) $(LDFLAGS) -T $(LDS.xen) $(BINDINGS.xen) $< manifest.o -o $@
+	$(LD) $(shell $(SOLO5_CONFIG) --target=xen --ldflags) \
+	    $< manifest.o -o $@
 
 %.xl: %.xen
-	@echo "XL $@"
+	@echo "SUBST $@"
 	sed -e s/@@NAME@@/$(test_NAME)/ \
 	    -e s/@@KERNEL@@/$(test_NAME).xen/ \
 	    ../config.xl.in >$@
 
-ifdef CONFIG_HVT
-    all_TARGETS += $(test_NAME).hvt
+all_TARGETS += $(test_NAME).xen $(test_NAME).xl
 endif
 
-ifdef CONFIG_SPT
-    all_TARGETS += $(test_NAME).spt
-endif
-
-ifdef CONFIG_VIRTIO
-    all_TARGETS += $(test_NAME).virtio
-endif
-
-ifdef CONFIG_MUEN
-    all_TARGETS += $(test_NAME).muen
-endif
-
-ifdef CONFIG_GENODE
-    all_TARGETS += $(test_NAME).genode
-endif
-
-ifdef CONFIG_XEN
-    all_TARGETS += $(test_NAME).xen $(test_NAME).xl
-endif
-
-.PRECIOUS: $(test_NAME).o $(test_NAME).genode.o manifest.o manifest.genode.o
+.PRECIOUS: $(test_NAME).o manifest.o
 
 all: $(all_TARGETS)
 
@@ -117,5 +104,5 @@ all: $(all_TARGETS)
 
 clean:
 	@echo "CLEAN $(test_NAME)"
-	$(RM) $(test_NAME).o $(test_NAME).genode.o \
-	    manifest.c manifest.o manifest.genode.o $(all_TARGETS)
+	$(RM) $(test_NAME).o \
+	    manifest.c manifest.o $(all_TARGETS)

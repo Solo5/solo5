@@ -26,10 +26,9 @@ fatal()
 setup() {
   cd ${BATS_TEST_DIRNAME}
 
-  MAKECONF=../Makeconf
-  [ ! -f ${MAKECONF} ] && fatal "Can't find Makeconf, looked in ${MAKECONF}"
-  # This is subtle; see the comments in configure.sh.
-  eval $(grep -E ^CONFIG_ ${MAKECONF})
+  MAKECONF=../Makeconf.sh
+  [ ! -f ${MAKECONF} ] && fatal "Can't find Makeconf.sh, looked in ${MAKECONF}"
+  source ${MAKECONF}
 
   if [ -x "$(command -v timeout)" ]; then
     TIMEOUT=timeout

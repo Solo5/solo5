@@ -51,6 +51,16 @@ for VARIANT in hvt spt virtio muen xen; do
     opam lint ${PKG_DIR}/opam || exit 1
 done
 
+PKG_DIR=${OUTPUT_DIR}/packages/solo5/solo5.${OPAM_VERSION}
+mkdir -p ${PKG_DIR} || exit 1
+cat opam/solo5.opam ${OUTPUT_DIR}/tmp/url > ${PKG_DIR}/opam || exit 1
+opam lint ${PKG_DIR}/opam || exit 1
+
+PKG_DIR=${OUTPUT_DIR}/packages/solo5-config-ocaml-static/solo5-config-ocaml-static.${OPAM_VERSION}
+mkdir -p ${PKG_DIR} || exit 1
+cp opam/solo5-config-ocaml-static.opam ${PKG_DIR}/opam || exit 1
+opam lint ${PKG_DIR}/opam || exit 1
+
 echo "Done. Submit ${OUTPUT_DIR}/packages as a PR to opam-repository."
 echo "Example: cp -r opam/release/packages path/to/opam-repository"
 echo "         cd path/to/opam/repository"

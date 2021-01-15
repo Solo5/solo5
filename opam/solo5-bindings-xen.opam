@@ -10,13 +10,14 @@ bug-reports: "https://github.com/solo5/solo5/issues"
 license: "ISC"
 dev-repo: "git+https://github.com/solo5/solo5.git"
 build: [
-  ["./configure.sh" "--enable-targets=xen"]
+  ["./configure.sh" "--prefix=%{prefix}%" "--enable-targets=xen"]
   [make "V=1"]
 ]
-install: [make "PREFIX=%{prefix}%" "V=1" "install-bindings"]
+install: [make "V=1" "install-bindings"]
 depends: [
-  "conf-pkg-config"
+  "conf-pkg-config" {build & os = "linux"}
   "solo5" {= version}
+  "solo5-config-ocaml-static" {= version}
 ]
 conflicts: [
   "ocaml-freestanding" {< "0.7.0"}
