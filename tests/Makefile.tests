@@ -31,8 +31,6 @@ LDS.virtio := $(TOPDIR)/bindings/virtio/solo5_virtio.lds
 BINDINGS.virtio := $(TOPDIR)/bindings/virtio/solo5_virtio.o
 LDS.muen := $(TOPDIR)/bindings/muen/solo5_muen.lds
 BINDINGS.muen := $(TOPDIR)/bindings/muen/solo5_muen.o
-LDS.genode := $(TOPDIR)/bindings/genode/genode_dyn.ld
-BINDINGS.genode := $(TOPDIR)/bindings/genode/solo5.lib.so
 LDS.xen := $(TOPDIR)/bindings/xen/solo5_xen.lds
 BINDINGS.xen := $(TOPDIR)/bindings/xen/solo5_xen.o
 
@@ -66,15 +64,6 @@ manifest.c: manifest.json ../../include/solo5/mft_abi.h $(ELFTOOL)
 	@echo "LD $@"
 	$(LD) $(LDFLAGS) -T $(LDS.muen) $(BINDINGS.muen) $< manifest.o -o $@
 
-%.genode.o: %.c ../../include/solo5/solo5.h
-	@echo "GENODECC $<"
-	$(CC) $(GENODE_APP_CFLAGS) $(CPPFLAGS) -c $< -o $@
-
-%.genode: %.genode.o manifest.genode.o $(LDS.genode) $(BINDINGS.genode)
-	@echo "LD $@"
-	$(LD) $(GENODE_APP_LDFLAGS) -T $(LDS.genode) $(BINDINGS.genode) \
-	    $< manifest.genode.o -o $@
-
 %.xen: %.o manifest.o $(LDS.xen) $(BINDINGS.xen)
 	@echo "LD $@"
 	$(LD) $(LDFLAGS) -T $(LDS.xen) $(BINDINGS.xen) $< manifest.o -o $@
@@ -101,15 +90,11 @@ ifdef CONFIG_MUEN
     all_TARGETS += $(test_NAME).muen
 endif
 
-ifdef CONFIG_GENODE
-    all_TARGETS += $(test_NAME).genode
-endif
-
 ifdef CONFIG_XEN
     all_TARGETS += $(test_NAME).xen $(test_NAME).xl
 endif
 
-.PRECIOUS: $(test_NAME).o $(test_NAME).genode.o manifest.o manifest.genode.o
+.PRECIOUS: $(test_NAME).o manifest.o
 
 all: $(all_TARGETS)
 
@@ -117,5 +102,5 @@ all: $(all_TARGETS)
 
 clean:
 	@echo "CLEAN $(test_NAME)"
-	$(RM) $(test_NAME).o $(test_NAME).genode.o \
-	    manifest.c manifest.o manifest.genode.o $(all_TARGETS)
+	$(RM) $(test_NAME).o \
+	    manifest.c manifest.o $(all_TARGETS)

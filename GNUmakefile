@@ -73,14 +73,13 @@ $(SUBDIRS):
 # Ensure that a top-level "make clean" always cleans *all* possible build
 # products and not some subset dependent on the setting of $(BUILD_*).
 before-clean:
-	$(eval export SUBOVERRIDE := CONFIG_HVT=1 CONFIG_SPT=1 CONFIG_VIRTIO=1 CONFIG_MUEN=1 CONFIG_GENODE=1 CONFIG_XEN=1)
+	$(eval export SUBOVERRIDE := CONFIG_HVT=1 CONFIG_SPT=1 CONFIG_VIRTIO=1 CONFIG_MUEN=1 CONFIG_XEN=1)
 clean: before-clean $(SUBDIRS)
 	@echo "CLEAN solo5"
 	$(RM) opam/solo5-bindings-hvt.pc
 	$(RM) opam/solo5-bindings-spt.pc
 	$(RM) opam/solo5-bindings-virtio.pc
 	$(RM) opam/solo5-bindings-muen.pc
-	$(RM) opam/solo5-bindings-genode.pc
 	$(RM) opam/solo5-bindings-xen.pc
 	$(RM) $(VERSION_H)
 
@@ -115,13 +114,8 @@ install-opam-%: all opam/solo5-bindings-%.pc force-install
 	    $(PREFIX)/include/solo5-bindings-$*/solo5 \
 	    $(PREFIX)/include/solo5-bindings-$*/crt
 	cp -R include/solo5 include/crt $(PREFIX)/include/solo5-bindings-$*
-ifndef CONFIG_GENODE
 	cp bindings/$*/solo5_$*.o bindings/$*/solo5_$*.lds \
 	    $(PREFIX)/lib/solo5-bindings-$*
-else
-	cp bindings/$*/solo5.lib.so bindings/$*/genode_dyn.ld \
-	    $(PREFIX)/lib/solo5-bindings-$*
-endif
 	cp opam/solo5-bindings-$*.pc $(PREFIX)/lib/pkgconfig
 	cp elftool/solo5-elftool $(PREFIX)/bin
 ifdef CONFIG_HVT
@@ -161,9 +155,6 @@ uninstall-opam-%: force-uninstall
 # CONFIG_VIRTIO
 	$(RM) $(PREFIX)/bin/solo5-virtio-mkimage
 	$(RM) $(PREFIX)/bin/solo5-virtio-run
-# CONFIG_GENODE
-	$(RM) $(PREFIX)/lib/solo5-bindings-$*/solo5.lib.so \
-	    $(PREFIX)/lib/solo5-bindings-$*/genode_dyn.ld
 
 # The following targets are kept for backwards compatibility, as otherwise
 # upgrading existing OPAM switches will fail. They should be removed at some
@@ -175,7 +166,5 @@ opam-spt-uninstall: uninstall-opam-spt ;
 opam-virtio-uninstall: uninstall-opam-virtio ;
 
 opam-muen-uninstall: uninstall-opam-muen ;
-
-opam-genode-uninstall: uninstall-opam-genode ;
 
 $(V).SILENT:

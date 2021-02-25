@@ -27,7 +27,7 @@ Solo5 itself has the following build dependencies:
 * on Linux only, pkg-config and libseccomp >= 2.3.3 are required.
 
 Note that Solo5 does not support cross-compilation. With the exception of the
-_muen_ and _genode_ targets (which are not self-hosting), you should build
+_muen_ target (which is not self-hosting), you should build
 Solo5 and unikernels on a build system matching the host system and processor
 architecture you will be running them on.
 
@@ -47,7 +47,7 @@ make CONFIG_HVT= # disables hvt
 
 or edit the generated `Makeconf` before running `make`. Conversely, using
 `CONFIG_TARGET=1` will enable a _target_ that was not explicitly enabled by
-configure.sh (for example, Genode).
+configure.sh.
 
 Note that the Solo5 Makefiles do not support building arbitrary `make` targets
 (e.g. `bindings` or `tests`).
@@ -88,14 +88,6 @@ Experimental:
 
 Limited:
 
-* _genode_: The [Genode Operating System Framework](https://genode.org/) on the
-  x86\_64 architecture.  Unikernels may be linked against a shared library
-  containing Solo5 bindings and executed as a native Genode component. The
-  bindings library is provided here in the form of a stub library that can be
-  built using a stock C toolchain along with the C++ implementation that must
-  be built using the Genode toolchain. Note that the Genode _target_ must be
-  enabled explicitly using `CONFIG_GENODE=1`, and may not build with standard
-  toolchains. If in doubt, please consult with Genode developers.
 * _virtio_: Any hypervisor which virtualizes an x86\_64 system with virtio
   devices (e.g.  Linux/KVM with QEMU as a monitor, Google Compute Engine). See
   below under "_virtio_: Limitations" for details.

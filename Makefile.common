@@ -38,12 +38,6 @@ LDFLAGS := -nostdlib -z max-page-size=$(CONFIG_GUEST_PAGE_SIZE) -static \
     $(MAKECONF_LDFLAGS)
 OBJCOPY := objcopy
 
-# Genode application compiling and linking is a special case
-GENODE_APP_CFLAGS := $(CFLAGS) -fPIC
-GENODE_APP_LDFLAGS := -nostdlib -z max-page-size=$(CONFIG_GUEST_PAGE_SIZE) \
-    -shared -gc-sections --eh-frame-hdr -Ttext=0x01000000 \
-    --dynamic-linker=ld.lib.so -rpath-link=.
-
 # Also used by the HOST_ rules below.
 DEPFLAGS = -MT $@ -MMD -MP -MF $*.Td
 
@@ -95,17 +89,11 @@ PC_CFLAGS := -ffreestanding -fstack-protector-strong $(MAKECONF_CFLAGS)
 PC_LD := $(MAKECONF_LD)
 PC_LDFLAGS := $(LDFLAGS)
 
-# Genode application compiling and linking is a special case
-PC_GENODE_CFLAGS := -ffreestanding -fstack-protector-strong -fPIC $(MAKECONF_CFLAGS)
-PC_GENODE_LDFLAGS := $(GENODE_APP_LDFLAGS)
-
 %.pc: %.pc.in
 	@echo "SUBST $@"
 	sed <$< > $@ \
 	    -e 's#!PC_CFLAGS!#$(PC_CFLAGS)#g;' \
 	    -e 's#!PC_LD!#$(PC_LD)#g;' \
-	    -e 's#!PC_LDFLAGS!#$(PC_LDFLAGS)#g;' \
-	    -e 's#!PC_GENODE_CFLAGS!#$(PC_GENODE_CFLAGS)#g;' \
-	    -e 's#!PC_GENODE_LDFLAGS!#$(PC_GENODE_LDFLAGS)#g;' \
+	    -e 's#!PC_LDFLAGS!#$(PC_LDFLAGS)#g;'
 
 .PRECIOUS: %.pc

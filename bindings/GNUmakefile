@@ -57,8 +57,6 @@ muen_SRCS := muen/start.c $(common_SRCS) $(common_hvt_SRCS) \
     muen/muen-clock.c muen/muen-console.c muen/muen-net.c \
     muen/muen-platform_lifecycle.c muen/muen-yield.c muen/muen-sinfo.c
 
-genode_SRCS := genode/stubs.c
-
 xen_SRCS := xen/boot.S xen/start.c $(common_SRCS) \
     xen/hypercall_page.S xen/console.c xen/platform.c xen/platform_intr.c \
     xen/evtchn.c xen/time.c xen/pvclock.c xen/stubs.c
@@ -140,22 +138,6 @@ muen/solo5_muen.o: $(muen_OBJS)
     all_TARGETS += muen/solo5_muen.o
     all_OBJS += $(muen_OBJS)
     all_SRCS += $(muen_SRCS)
-endif
-
-ifdef CONFIG_GENODE
-    genode_OBJS := $(patsubst %.c,%.o,$(patsubst %.S,%.o,$(genode_SRCS)))
-
-$(genode_OBJS): CFLAGS += -Wno-unused-parameter
-
-GENODE_LDFLAGS := -nostdlib -z max-page-size=$(CONFIG_GUEST_PAGE_SIZE) -shared \
-    -gc-sections --eh-frame-hdr --entry=0x0 -T genode/genode_rel.ld
-genode/solo5.lib.so: $(genode_OBJS)
-	@echo "LD $@"
-	$(LD) $(GENODE_LDFLAGS) $^ -o $@
-
-    all_TARGETS += genode/solo5.lib.so
-    all_OBJS += $(genode_OBJS)
-    all_SRCS += $(genode_SRCS)
 endif
 
 ifdef CONFIG_XEN
