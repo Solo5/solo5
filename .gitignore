@@ -1,7 +1,6 @@
 *.o
 *.d
 *.a
-*.lib.so
 *.pc
 Makeconf
 tags
@@ -11,7 +10,6 @@ tests/*/*.hvt
 tests/*/*.spt
 tests/*/*.virtio
 tests/*/*.muen
-tests/*/*.genode
 tests/*/*.xen
 tests/*/*.xl
 tests/*/manifest.c

@@ -175,7 +175,6 @@ config_host_linux()
     [ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_VIRTIO=1
     [ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_MUEN=1
     [ "${CONFIG_ARCH}" = "ppc64le" ] && CONFIG_HVT=
-    CONFIG_GENODE=
     [ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_XEN=1
 }
 
@@ -214,7 +213,6 @@ config_host_freebsd()
     CONFIG_SPT=
     [ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_VIRTIO=1
     [ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_MUEN=1
-    CONFIG_GENODE=
     [ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_XEN=1
 }
 
@@ -247,7 +245,6 @@ config_host_openbsd()
     CONFIG_SPT=
     [ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_VIRTIO=1
     [ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_MUEN=1
-    CONFIG_GENODE=
     [ "${CONFIG_ARCH}" = "x86_64" ] && CONFIG_XEN=1
 }
 
@@ -304,7 +301,6 @@ CONFIG_HVT=
 CONFIG_SPT=
 CONFIG_VIRTIO=
 CONFIG_MUEN=
-CONFIG_GENODE=
 CONFIG_XEN=
 MAKECONF_CFLAGS=
 MAKECONF_LDFLAGS=
@@ -351,7 +347,6 @@ CONFIG_HVT=${CONFIG_HVT}
 CONFIG_SPT=${CONFIG_SPT}
 CONFIG_VIRTIO=${CONFIG_VIRTIO}
 CONFIG_MUEN=${CONFIG_MUEN}
-CONFIG_GENODE=${CONFIG_GENODE}
 CONFIG_XEN=${CONFIG_XEN}
 MAKECONF_CFLAGS=${MAKECONF_CFLAGS}
 MAKECONF_LDFLAGS=${MAKECONF_LDFLAGS}
@@ -372,6 +367,5 @@ echo -n "${prog_NAME}: Enabled targets:"
 [ -n "${CONFIG_SPT}" ]    && echo -n " spt"
 [ -n "${CONFIG_VIRTIO}" ] && echo -n " virtio"
 [ -n "${CONFIG_MUEN}" ]   && echo -n " muen"
-[ -n "${CONFIG_GENODE}" ] && echo -n " genode"
 [ -n "${CONFIG_XEN}" ]    && echo -n " xen"
 echo "."
