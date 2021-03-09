@@ -26,11 +26,6 @@ Solo5 itself has the following build dependencies:
   by default),
 * on Linux only, pkg-config and libseccomp >= 2.3.3 are required.
 
-Note that Solo5 does not support cross-compilation. With the exception of the
-_muen_ target (which is not self-hosting), you should build
-Solo5 and unikernels on a build system matching the host system and processor
-architecture you will be running them on.
-
 To build Solo5, run:
 
 ```sh
@@ -38,19 +33,17 @@ To build Solo5, run:
 make # gmake on BSD systems
 ```
 
-This will build all _targets_ supported by the host system. If you would like
-to disable some _targets_, you can either use:
+This will build all _targets_ and _tenders_ supported by the _host_ system and
+generate Solo5 _toolchain_ wrappers in `toolchain/bin`.
 
-```sh
-make CONFIG_HVT= # disables hvt
-```
+To install Solo5 system-wide (or in an alternate location specified by
+`./configure.sh --prefix=PREFIX` you can use `make install`.
 
-or edit the generated `Makeconf` before running `make`. Conversely, using
-`CONFIG_TARGET=1` will enable a _target_ that was not explicitly enabled by
-configure.sh.
-
-Note that the Solo5 Makefiles do not support building arbitrary `make` targets
-(e.g. `bindings` or `tests`).
+As of Solo5 0.7.0, experimental support is provided for producing a Solo5
+_toolchain_ which can cross-compile _targets_ (bindings) to a different
+architecture than that of the _host_ system. This is yet to be fully
+documented; in the mean time see `./configure.sh --help` and the top-level
+GNUmakefile for other `install-*` targets useful for such a setup.
 
 To run the built-in self-tests (requires `bash` and `coreutils`):
 
@@ -69,7 +62,7 @@ Production:
 * _hvt_: Linux/KVM, using `solo5-hvt` as a _tender_, on the x86\_64
   architecture.
 * _hvt_: FreeBSD vmm, using `solo5-hvt` as a _tender_, on the x86\_64
-  architecture.  FreeBSD 11 or later is required, FreeBSD 12 or later is
+  architecture.  FreeBSD 11.4 or later is required, FreeBSD 12 or later is
   recommended for `capsicum(4)` support.
 * _hvt_: Linux/KVM, using `solo5-hvt` as a _tender_, on the aarch64
   architecture.  You will need hardware capable of running a recent (v4.14+)

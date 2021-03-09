@@ -26,10 +26,9 @@ fatal()
 setup() {
   cd ${BATS_TEST_DIRNAME}
 
-  MAKECONF=../Makeconf
-  [ ! -f ${MAKECONF} ] && fatal "Can't find Makeconf, looked in ${MAKECONF}"
-  # This is subtle; see the comments in configure.sh.
-  eval $(grep -E ^CONFIG_ ${MAKECONF})
+  MAKECONF=../Makeconf.sh
+  [ ! -f ${MAKECONF} ] && fatal "Can't find Makeconf.sh, looked in ${MAKECONF}"
+  source ${MAKECONF}
 
   if [ -x "$(command -v timeout)" ]; then
     TIMEOUT=timeout
@@ -48,7 +47,7 @@ setup() {
 
   case "${BATS_TEST_NAME}" in
   *hvt)
-    [ -z "${CONFIG_HVT}" ] && skip
+    [ -z "${CONFIG_HVT_TENDER}" ] && skip
     case "${CONFIG_HOST}" in
     Linux)
       [ -c /dev/kvm -a -w /dev/kvm ] || skip "no access to /dev/kvm or not present"
@@ -65,11 +64,14 @@ setup() {
     ;;
   *virtio)
     [ -z "${CONFIG_VIRTIO}" ] && skip
+    [ "${CONFIG_HOST}" = "FreeBSD" ] && \
+      [ ! -x "$(command -v grub2-bhyve)" ] && \
+      skip "grub2-bhyve not available"
     [ "${CONFIG_HOST}" = "OpenBSD" ] && skip
     VIRTIO=../scripts/virtio-run/solo5-virtio-run.sh
     ;;
   *spt)
-    [ -z "${CONFIG_SPT}" ] && skip
+    [ -z "${CONFIG_SPT_TENDER}" ] && skip
     SPT_TENDER=../tenders/spt/solo5-spt
     ;;
   *xen)
@@ -199,7 +201,9 @@ xen_expect_abort() {
   FreeBSD)
     # XXX: imgact_elf.c:load_interp() outputs the "ELF interpreter ... not
     # found" using uprintf() here, so we can't test for it. Boo.
-    [ "$status" -eq 134 ]
+    # Some Clang toolchains may produce generic ELF which gives "Exec format
+    # error", so also test for that case (126) and treat it as success.
+    [ "$status" -eq 134 ] || [ "$status" -eq 126 ]
     ;;
   OpenBSD)
     # XXX: Unclear why the "Abort trap" is not showing up in the output.
@@ -535,7 +539,7 @@ xen_expect_abort() {
 }
 
 @test "dumpcore hvt" {
-  [ "${CONFIG_ARCH}" = "x86_64" ] || skip "not implemented for ${CONFIG_ARCH}"
+  [ "${CONFIG_HOST_ARCH}" = "x86_64" ] || skip "not implemented for ${CONFIG_HOST_ARCH}"
   skip_unless_host_is Linux FreeBSD
 
   run ${TIMEOUT} --foreground 60s ${HVT_TENDER_DEBUG} \

@@ -47,6 +47,17 @@ int solo5_app_main(const struct solo5_start_info *si __attribute__((unused)))
          : "xmm1"
     );
 #elif defined(__aarch64__)
+#if defined(__clang__)
+    __asm__(
+        "ld1.4s {v0}, %0\n"
+        "ld1.4s {v0}, %0\n"
+        "fmul v0.4s, v1.4s, v0.4s\n"
+        "st1.4s {v0}, %0\n"
+        : "=m" (c)
+        : "m" (c)
+        : "v0", "v1"
+    );
+#else
     __asm__(
         "ldr q0, %0\n"
         "ldr q1, %0\n"
@@ -56,6 +67,7 @@ int solo5_app_main(const struct solo5_start_info *si __attribute__((unused)))
         : "m" (c)
         : "q0", "q1", "v0"
     );
+#endif
 #elif defined(__powerpc64__)
 #define DOMUL(VAR) 			\
     __asm__(				\

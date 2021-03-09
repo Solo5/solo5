@@ -20,7 +20,7 @@
 
 #include "bindings.h"
 #include "../crt_init.h"
-#include "solo5_version.h"
+#include "version.h"
 
 void _start(void *arg)
 {

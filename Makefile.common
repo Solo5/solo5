@@ -26,17 +26,15 @@ endif
 include $(TOPDIR)/Makeconf
 
 #
-# The following variables and recipes apply to building bindings and
-# tests (applications).
+# The following variables and recipes apply to building bindings for each
+# target.
 #
-CC := $(MAKECONF_CC)
+CC := __V=$(V) $(TOPDIR)/toolchain/bin/$(CONFIG_TARGET_TRIPLE)-cc
 CFLAGS := -std=c11 -Wall -Wextra -Werror -O2 -g
-CFLAGS += -ffreestanding -fstack-protector-strong $(MAKECONF_CFLAGS)
-CPPFLAGS := -isystem $(TOPDIR)/include/crt -I$(TOPDIR)/include/solo5
-LD := $(MAKECONF_LD)
-LDFLAGS := -nostdlib -z max-page-size=$(CONFIG_GUEST_PAGE_SIZE) -static \
-    $(MAKECONF_LDFLAGS)
-OBJCOPY := objcopy
+CPPFLAGS :=
+LD := __V=$(V) $(TOPDIR)/toolchain/bin/$(CONFIG_TARGET_TRIPLE)-ld
+LDFLAGS :=
+OBJCOPY := __V=$(V) $(TOPDIR)/toolchain/bin/$(CONFIG_TARGET_TRIPLE)-objcopy
 
 # Also used by the HOST_ rules below.
 DEPFLAGS = -MT $@ -MMD -MP -MF $*.Td
@@ -57,9 +55,9 @@ endef
 # The following variables and recpies apply to building tenders, i.e.
 # artifacts built to run on the (Solo5 tender's) *host*.
 #
-HOSTCC := $(MAKECONF_CC)
-HOSTCFLAGS := -Wall -Werror -std=c11 -fstack-protector-strong -O2 -g
-HOSTCPPFLAGS := -I$(TOPDIR)/include/solo5
+HOSTCC := $(CONFIG_HOST_CC)
+HOSTCFLAGS := -fstack-protector-strong -Wall -Werror -std=c11 -O2 -g
+HOSTCPPFLAGS := -I$(TOPDIR)/include
 HOSTLDFLAGS :=
 HOSTLDLIBS :=
 HOSTAR := ar
@@ -80,20 +78,3 @@ define HOSTLINK
 	@echo "HOSTLINK $@"
 	$(HOSTCC) $(HOSTLDFLAGS) $^ $(HOSTLDLIBS) -o $@
 endef
-
-#
-# The following CFLAGS and LDFLAGS are passed downstream to MirageOS via OPAM
-# and pkg-config.
-#
-PC_CFLAGS := -ffreestanding -fstack-protector-strong $(MAKECONF_CFLAGS)
-PC_LD := $(MAKECONF_LD)
-PC_LDFLAGS := $(LDFLAGS)
-
-%.pc: %.pc.in
-	@echo "SUBST $@"
-	sed <$< > $@ \
-	    -e 's#!PC_CFLAGS!#$(PC_CFLAGS)#g;' \
-	    -e 's#!PC_LD!#$(PC_LD)#g;' \
-	    -e 's#!PC_LDFLAGS!#$(PC_LDFLAGS)#g;'
-
-.PRECIOUS: %.pc

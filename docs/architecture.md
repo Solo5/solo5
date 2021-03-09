@@ -142,6 +142,9 @@ those resources.
 
 The main components of Solo5 are:
 
+- [toolchain/](../toolchain/): wrappers that appropriate the _host_ system's
+  GCC or Clang compiler toolchain, producing the Solo5 _toolchain_ used to
+  build _bindings_ and unikernels.
 - [bindings/](../bindings/): the Solo5 _bindings_ to (implementation of) the
   unikernel-facing interface for the various supported targets, as defined in
   [solo5.h](../include/solo5/solo5.h).
