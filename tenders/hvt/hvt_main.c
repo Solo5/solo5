@@ -37,7 +37,7 @@
 #include <unistd.h>
 
 #include "hvt.h"
-#include "solo5_version.h"
+#include "version.h"
 
 extern struct hvt_module __start_modules;
 extern struct hvt_module __stop_modules;

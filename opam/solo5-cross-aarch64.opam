@@ -1,0 +1,41 @@
+opam-version: "2.0"
+maintainer: "martin@lucina.net"
+authors: [
+  "Dan Williams <djwillia@us.ibm.com>"
+  "Martin Lucina <martin@lucina.net>"
+  "Ricardo Koller <kollerr@us.ibm.com>"
+]
+homepage: "https://github.com/solo5/solo5"
+bug-reports: "https://github.com/solo5/solo5/issues"
+license: "ISC"
+dev-repo: "git+https://github.com/solo5/solo5.git"
+build: [
+  ["env" "TARGET_CC=aarch64-linux-gnu-gcc" "TARGET_LD=aarch64-linux-gnu-ld" "TARGET_OBJCOPY=aarch64-linux-gnu-objcopy" "./configure.sh" "--prefix=%{prefix}%"]
+  [make "V=1"]
+]
+install: [make "V=1" "install-toolchain"]
+depends: [
+  "conf-pkg-config" {build & os = "linux"}
+  "conf-libseccomp" {build & os = "linux"}
+  "solo5" {= version}
+]
+depexts: [
+  ["linux-headers"] {os-distribution = "alpine"}
+  ["kernel-headers"] {os-distribution = "fedora"}
+  ["kernel-headers"] {os-distribution = "rhel"}
+  ["linux-libc-dev"] {os-family = "debian"}
+  ["gcc-aarch64-linux-gnu"] {os-family = "debian"}
+]
+available: [
+  (arch != "arm64") &
+  (os = "linux" & os-family = "debian")
+]
+synopsis: "Solo5 sandboxed execution environment"
+description: """
+Solo5 is a sandboxed execution environment primarily intended
+for, but not limited to, running applications built using various
+unikernels (a.k.a.  library operating systems).
+
+This package provides the Solo5 components needed to cross-build
+MirageOS unikernels for the aarch64 architecture.
+"""

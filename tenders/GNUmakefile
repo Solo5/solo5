@@ -28,7 +28,7 @@ all_TARGETS :=
 .SUFFIXES:
 $(V).SILENT:	
 
-ifneq ($(filter 1,$(CONFIG_HVT) $(CONFIG_SPT)),)
+ifneq ($(filter 1,$(CONFIG_HVT_TENDER) $(CONFIG_SPT_TENDER)),)
 
 common_LIB := common/libcommon.a
 common_SRCS := common/elf.c common/mft.c common/block_attach.c \
@@ -52,28 +52,28 @@ all_TARGETS += $(common_LIB)
 
 endif
 
-ifdef CONFIG_HVT
+ifdef CONFIG_HVT_TENDER
 
 hvt_SRCS := hvt/hvt_boot_info.c hvt/hvt_core.c hvt/hvt_main.c \
-    hvt/hvt_cpu_$(CONFIG_ARCH).c
+    hvt/hvt_cpu_$(CONFIG_HOST_ARCH).c
 hvt_MODULES ?= blk net
 
 ifeq ($(CONFIG_HOST), Linux)
-    hvt_SRCS += hvt/hvt_kvm.c hvt/hvt_kvm_$(CONFIG_ARCH).c
+    hvt_SRCS += hvt/hvt_kvm.c hvt/hvt_kvm_$(CONFIG_HOST_ARCH).c
     hvt_debug_MODULES ?= gdb dumpcore
     all_TARGETS += hvt/solo5-hvt hvt/solo5-hvt-debug
 
     HOSTLDFLAGS += -Wl,-z -Wl,noexecstack
 else ifeq ($(CONFIG_HOST), FreeBSD)
-    hvt_SRCS += hvt/hvt_freebsd.c hvt/hvt_freebsd_$(CONFIG_ARCH).c
+    hvt_SRCS += hvt/hvt_freebsd.c hvt/hvt_freebsd_$(CONFIG_HOST_ARCH).c
     hvt_debug_MODULES ?= gdb dumpcore
     all_TARGETS += hvt/solo5-hvt hvt/solo5-hvt-debug
-ifeq ($(CONFIG_HVT_FREEBSD_ENABLE_CAPSICUM), 1)
+ifeq ($(CONFIG_HVT_TENDER_ENABLE_CAPSICUM), 1)
     HOSTLDLIBS += -lnv
     CFLAGS += -DDHVT_FREEBSD_ENABLE_CAPSICUM=1
 endif
 else ifeq ($(CONFIG_HOST), OpenBSD)
-    hvt_SRCS += hvt/hvt_openbsd.c hvt/hvt_openbsd_$(CONFIG_ARCH).c
+    hvt_SRCS += hvt/hvt_openbsd.c hvt/hvt_openbsd_$(CONFIG_HOST_ARCH).c
     all_TARGETS += hvt/solo5-hvt
 endif
 
@@ -88,22 +88,22 @@ hvt/solo5-hvt: $(hvt_OBJS) $(common_LIB)
 hvt/solo5-hvt-debug: $(hvt_OBJS) $(hvt_debug_OBJS) $(common_LIB)
 	$(HOSTLINK)
 
-endif # CONFIG_HVT
+endif # CONFIG_HVT_TENDER
 
-ifdef CONFIG_SPT
+ifdef CONFIG_SPT_TENDER
 
 HOSTLDFLAGS += -Wl,-z -Wl,noexecstack
 
-ifdef CONFIG_SPT_NO_PIE
+ifdef CONFIG_SPT_TENDER_NO_PIE
 
 HOSTLDFLAGS += -Wl,-Ttext-segment=0x40000000
 
 endif
 
-HOSTCFLAGS += $(MAKECONF_SPT_CFLAGS)
-HOSTLDLIBS += $(MAKECONF_SPT_LDLIBS)
+HOSTCFLAGS += $(CONFIG_SPT_TENDER_LIBSECCOMP_CFLAGS)
+HOSTLDLIBS += $(CONFIG_SPT_TENDER_LIBSECCOMP_LDLIBS)
 
-spt_SRCS := spt/spt_main.c spt/spt_core.c spt/spt_launch_$(CONFIG_ARCH).S \
+spt_SRCS := spt/spt_main.c spt/spt_core.c spt/spt_launch_$(CONFIG_HOST_ARCH).S \
     spt/spt_module_net.c spt/spt_module_block.c
 
 spt_OBJS := $(patsubst %.c,%.o,$(patsubst %.S,%.o,$(spt_SRCS)))
@@ -113,7 +113,7 @@ spt/solo5-spt: $(spt_OBJS) $(common_LIB)
 
 all_TARGETS += spt/solo5-spt
 
-endif # CONFIG_SPT
+endif # CONFIG_SPT_TENDER
 
 all: $(all_TARGETS)
 

@@ -55,14 +55,6 @@
 #define STR_EXPAND(y) #y
 #define STR(x) STR_EXPAND(x)
 
-#if defined(__OpenBSD__)
-#define SSP_GUARD __guard_local
-#define SSP_FAIL __stack_smash_handler
-#else
-#define SSP_GUARD __stack_chk_guard
-#define SSP_FAIL __stack_chk_fail
-#endif
-
 /* abort.c */
 void _assert_fail(const char *, const char *, const char *)
     __attribute__((noreturn));

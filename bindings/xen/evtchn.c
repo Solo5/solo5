@@ -91,6 +91,9 @@ void evtchn_unmask(evtchn_port_t port)
     }
 }
 
+static int evtchn_vector_handler(void *arg __attribute__((unused)))
+__attribute__((used));
+
 /*
  * Called in interrupt context.
  */
