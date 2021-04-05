@@ -223,12 +223,6 @@ config_host_openbsd()
     cc_is_clang || die "Only 'clang' is supported on OpenBSD"
     [ "${CONFIG_ARCH}" = "x86_64" ] ||
         die "Only 'x86_64' is supported on OpenBSD"
-    if ! ld_is_lld; then
-        LD='/usr/bin/ld.lld'
-        warn "Using GNU 'ld' is not supported on OpenBSD"
-        warn "Falling back to 'ld.lld'"
-        [ -e ${LD} ] || die "/usr/bin/ld.lld does not exist"
-    fi
 
     # On OpenBSD/clang we use -nostdlibinc which gives us access to the
     # clang-provided headers for compiler instrinsics. We copy the rest
