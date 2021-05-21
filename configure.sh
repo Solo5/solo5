@@ -116,6 +116,7 @@ config_host_linux()
     [ -d "${CC_INCDIR}" ] || die "Cannot determine gcc include directory"
     mkdir -p ${HOST_INCDIR}
     cp -R ${CC_INCDIR}/. ${HOST_INCDIR}
+    chmod -R +w ${HOST_INCDIR}
 
     MAKECONF_CFLAGS="-nostdinc"
     # Recent distributions now default to PIE enabled. Disable it explicitly
