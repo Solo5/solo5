@@ -48,16 +48,21 @@ int tscclock_init(void);
 uint64_t tscclock_monotonic(void);
 uint64_t tscclock_epochoffset(void);
 void cpu_block(uint64_t until);
+void cpu_wasteful_milli_sleep(uint64_t millis);
 
-/* pci.c: only enumerate for now */
+/* pci.c: only enumerate for now (except with a hack for poweroff). */
 struct pci_config_info {
     uint8_t bus;
     uint8_t dev;
+    uint8_t fun;
     uint16_t vendor_id;
+    uint16_t device_id;
     uint16_t subsys_id;
     uint16_t base;
     uint8_t irq;
 };
+
+extern void (*pci_acpi_poweroff)(void);
 
 void pci_enumerate(void);
 

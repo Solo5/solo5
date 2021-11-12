@@ -329,3 +329,14 @@ void cpu_block(uint64_t until) {
          "cli;\n");
      cpu_intr_depth = d;
 }
+
+/* This is only here for timing while configuring devices on either startup or
+   shutdown. Do not generally use. */
+void cpu_wasteful_milli_sleep(uint64_t millis)
+{
+    uint64_t now_ns = solo5_clock_monotonic();
+    uint64_t until_ns = now_ns + (millis * 1000000);
+    while (solo5_clock_monotonic() <= until_ns) {
+      /* Spin! */
+    }
+}
