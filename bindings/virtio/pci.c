@@ -64,7 +64,7 @@ static void virtio_config(struct pci_config_info *pci)
     /* we only support one net device and one blk device */
     switch (pci->subsys_id) {
     case PCI_CONF_SUBSYS_NET:
-        log(INFO, "Solo5: PCI:%02x:%02x: virtio-net device, base=0x%x, irq=%u\n",
+        log(INFO, "Solo5-xxx: PCI:%02x:%02x: virtio-net device, base=0x%x, irq=%u\n",
             pci->bus, pci->dev, pci->base, pci->irq);
         if (!net_devices_found++)
             virtio_config_network(pci);
@@ -73,22 +73,28 @@ static void virtio_config(struct pci_config_info *pci)
                 pci->dev);
         break;
     case PCI_CONF_SUBSYS_BLK:
-        log(INFO, "Solo5: PCI:%02x:%02x: virtio-block device, base=0x%x, irq=%u\n",
+        log(INFO, "Solo5-xxx: PCI:%02x:%02x: virtio-block device, base=0x%x, irq=%u\n",
             pci->bus, pci->dev, pci->base, pci->irq);
         if (!blk_devices_found++)
             virtio_config_block(pci);
         else
-            log(WARN, "Solo5: PCI:%02x:%02x: not configured\n", pci->bus,
+            log(WARN, "Solo5-xxx: PCI:%02x:%02x: not configured\n", pci->bus,
                 pci->dev);
         break;
     default:
-        log(WARN, "Solo5: PCI:%02x:%02x: unknown virtio device (0x%x)\n",
+        log(WARN, "Solo5-xxx: PCI:%02x:%02x: unknown virtio device (0x%x)\n",
             pci->bus, pci->dev, pci->subsys_id);
         return;
     }
 }
 
 #define VENDOR_QUMRANET_VIRTIO 0x1af4
+
+static void non_virtio_config(struct pci_config_info *pci)
+{
+    log(WARN, "Solo5-xxx: PCI:%02x:%02x: unknown non-virtio device (0x%x); vendor_id: 0x%x\n",
+        pci->bus, pci->dev, pci->subsys_id, pci->vendor_id);
+}
 
 void pci_enumerate(void)
 {
@@ -111,12 +117,14 @@ void pci_enumerate(void)
             pci.dev = dev;
             pci.vendor_id = config_data & 0xffff;
 
-            if (pci.vendor_id == VENDOR_QUMRANET_VIRTIO) {
-                PCI_CONF_READ(uint16_t, &pci.subsys_id, config_addr, SUBSYS_ID);
-                PCI_CONF_READ(uint16_t, &pci.base, config_addr, IOBAR);
-                PCI_CONF_READ(uint8_t, &pci.irq, config_addr, IRQ);
+            PCI_CONF_READ(uint16_t, &pci.subsys_id, config_addr, SUBSYS_ID);
+            PCI_CONF_READ(uint16_t, &pci.base, config_addr, IOBAR);
+            PCI_CONF_READ(uint8_t, &pci.irq, config_addr, IRQ);
 
+            if (pci.vendor_id == VENDOR_QUMRANET_VIRTIO) {
                 virtio_config(&pci);
+            } else {
+                non_virtio_config(&pci);
             }
         }
     }
