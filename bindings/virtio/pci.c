@@ -45,8 +45,6 @@
 #define PCI_CONF_IOBAR_SHFT 0x0
 #define PCI_CONF_IOBAR_MASK ~0x3
 
-void (*pci_acpi_power_off)(void) = NULL;
-
 #define PCI_CONF_READ(type, ret, a, s) do {                          \
     uint32_t _conf_data;                                             \
     outl(PCI_CONFIG_ADDR, (a) | PCI_CONF_##s);                       \
@@ -90,100 +88,23 @@ static void virtio_config(struct pci_config_info *pci)
     }
 }
 
-static void poweroff_noop(void) { }
+#define DEVICE_ID_INTEL_PIIX4 0x7113
 
-/* According to the Google Compute Engine docs, guest OSes can gain access to
-   ACPI features by supporting the Intel PIIX4. We use it to implement power off. */
+/* The virtio driver can be used to run unikernels on Google Compute Engine.
+   According to the Google docs, the guest OS will see an Intel PIIX4
+   controller if run as a guest under its platform.
 
-/* This PIIX4 poweroff technique is learned from the Linux kernel.
-   https://github.com/torvalds/linux/blob/master/drivers/power/reset/piix4-poweroff.c */
-
-#define DEVICE_ID_INTEL_PIIX4  0x7113
-
-static struct pci_config_info piix4_pci_dev;
-#define PIIX4_SUSPEND_MAGIC			0x00120002
-
-enum piix4_pm_io_reg {
-	PIIX4_FUNC3IO_PMSTS			= 0x00,
-#define PIIX4_FUNC3IO_PMSTS_PWRBTN_STS		  (1 << 8)
-	PIIX4_FUNC3IO_PMCNTRL			= 0x04,
-#define PIIX4_FUNC3IO_PMCNTRL_SUS_EN		    (1 << 13)
-#define PIIX4_FUNC3IO_PMCNTRL_SUS_TYP_SOFF	(0x0 << 10)
-};
-
-/*
-#define PCI_OP_WRITE(size, type, len) \
-int noinline pci_bus_write_config_##size \
-	(struct pci_bus *bus, unsigned int devfn, int pos, type value)	\
-{									\
-	int res;							\
-	unsigned long flags;						\
-	if (PCI_##size##_BAD) return PCIBIOS_BAD_REGISTER_NUMBER;	\
-	pci_lock_config(flags);						\
-	res = bus->ops->write(bus, devfn, pos, len, value);		\
-	pci_unlock_config(flags);					\
-	return res;							\
-}
-*/
-
-static void poweroff_piix4(void)
-{
-    uint16_t sts;
-
-    /* In a full PCI implementation we would calculate this stuff on enumeration,
-       but rather than introduce potential bugs at startup probing for these
-       features, lets leave it for poweroff. */
-    log(WARN, "Solo5: initiating PIIX4 ACPI poweroff\n");
-
-    /* Ensure the power button status is clear */
-    while (1) {
-        sts = inw(piix4_pci_dev.base + PIIX4_FUNC3IO_PMSTS);
-        if (!(sts & PIIX4_FUNC3IO_PMSTS_PWRBTN_STS))
-            break;
-        outw(piix4_pci_dev.base + PIIX4_FUNC3IO_PMSTS, sts);
-    }
-    log(WARN, "Solo5: button status is clear\n");
-
-    /* Enable entry to suspend */
-    outw(
-        piix4_pci_dev.base + PIIX4_FUNC3IO_PMCNTRL,
-        PIIX4_FUNC3IO_PMCNTRL_SUS_TYP_SOFF | PIIX4_FUNC3IO_PMCNTRL_SUS_EN
-        );
-
-    /* If the special cycle occurs too soon this doesn't work... */
-    cpu_wasteful_milli_sleep(10);
-
-    log(WARN, "Solo5: milli_sleep 10 complete\n");
-
-    /* The PIIX4 will enter the suspend state only after seeing a special cycle
-       with the correct magic data on the PCI bus. Generate that cycle now. */
-    /*
-    pci_bus_write_config_dword(
-        piix4_pci_dev,
-        (0x1f << 3 | 0x7),
-        0,
-        PIIX4_SUSPEND_MAGIC);
-     */
-    /* Give the system some time to power down, then error */
-    cpu_wasteful_milli_sleep(1000);
-    log(WARN, "Solo5: PIIX4 ACPI poweroff failed!\n");
-}
-
-
-void (*pci_acpi_poweroff)(void) = poweroff_noop;
-
+   Use its presence the presence of this controller to figure out if ACPI
+   functions are available. */
 static void intel_config(struct pci_config_info *pci)
 {
     switch (pci->device_id) {
         case DEVICE_ID_INTEL_PIIX4:
-            log(INFO, "Solo5: PCI:%02x:%02x.%02x: Intel 82371AB/EB/MB PIIX4 ACPI, irq=%u, base=0x%x\n",
-                pci->bus, pci->dev, pci->fun, pci->irq, pci->base);
-            memcpy(&piix4_pci_dev, pci, sizeof(struct pci_config_info));
-            pci_acpi_poweroff = poweroff_piix4;
+            log(INFO, "Solo5: PCI:%02x:%02x.%02x: Intel 82371AB/EB/MB PIIX4 ACPI, irq=%u\n",
+                pci->bus, pci->dev, pci->fun, pci->irq);
+            acpi_detected = true;
             break;
         default:
-            log(WARN, "Solo5: PCI:%02x:%02x.%02x: unknown Intel device; device_id:0x%x, subsys_id: 0x%x\n",
-                pci->bus, pci->dev, pci->fun, pci->device_id, pci->subsys_id);
             break;
     }
 }

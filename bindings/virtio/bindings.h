@@ -62,7 +62,8 @@ struct pci_config_info {
     uint8_t irq;
 };
 
-extern void (*pci_acpi_poweroff)(void);
+extern bool acpi_detected;
+void acpi_poweroff(void);
 
 void pci_enumerate(void);
 

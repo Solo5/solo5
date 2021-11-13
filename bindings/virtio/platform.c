@@ -107,9 +107,10 @@ void platform_exit(int status __attribute__((unused)),
      */
     outw(0x501, 41);
 
-    pci_acpi_poweroff();
+    if (acpi_detected == true)
+        acpi_poweroff();
 
-    /* If we got here, ACPI poweroff wasn't supported. So just halt. */
+    /* If we got here, ACPI poweroff wasn't supported (or failed). So just halt. */
     platform_puts("Solo5: Halted\n", 14);
     cpu_halt();
 }
