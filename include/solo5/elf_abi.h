@@ -168,7 +168,7 @@ struct openbsd_note {
  */
 #define DECLARE_OPENBSD_NOTE \
 const struct openbsd_note __solo5_openbsd_note \
-__attribute__ ((section (".note.solo5.not-openbsd"), aligned(4))) \
+__attribute__ ((section (".note.solo5.not_openbsd"), aligned(4))) \
 = { \
     .n_namesz = 8, \
     .n_descsz = 4, \
