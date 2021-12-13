@@ -38,7 +38,7 @@ PHDRS {
     text PT_LOAD FLAGS(5); /* No FILEHDR or PHDRS, force R/E only.
                               FLAGS values come from PF_x in elf.h */
     data PT_LOAD;
-    note.not-openbsd PT_NOTE; /* Must come first. */
+    note.not_openbsd PT_NOTE; /* Must come first. */
     note.abi PT_NOTE;
     note.manifest PT_NOTE;
 }
@@ -96,10 +96,10 @@ SECTIONS {
     {
         *(.note.solo5.abi*)
     } :data :note.abi
-    .note.solo5.not-openbsd :
+    .note.solo5.not_openbsd :
     {
-        *(.note.solo5.not-openbsd*)
-    } :data :note.not-openbsd
+        *(.note.solo5.not_openbsd*)
+    } :data :note.not_openbsd
 
     /* Read-write data (initialized) */
     .got :
