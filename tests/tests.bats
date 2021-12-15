@@ -65,8 +65,8 @@ setup() {
   *virtio)
     [ -z "${CONFIG_VIRTIO}" ] && skip
     [ "${CONFIG_HOST}" = "FreeBSD" ] && \
-      [ ! -x "$(command -v grub2-bhyve)" ] && \
-      skip "grub2-bhyve not available"
+      [ ! -x "$(command -v grub-bhyve)" ] && \
+      skip "grub-bhyve not available"
     [ "${CONFIG_HOST}" = "OpenBSD" ] && skip
     VIRTIO=../scripts/virtio-run/solo5-virtio-run.sh
     ;;
