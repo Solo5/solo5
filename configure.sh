@@ -461,11 +461,6 @@ case ${CONFIG_HOST} in
     OpenBSD)
         TARGET_LD="${TARGET_LD:-ld.lld}"
         TARGET_OBJCOPY="${TARGET_OBJCOPY:-objcopy}"
-        # OpenBSD's GNU ld is old and broken, refuse to use it.
-        if ! LD="${TARGET_LD}" ld_is_lld; then
-            err "${TARGET_LD} is not LLVM LLD"
-            die "Using GNU LD is not supported on OpenBSD"
-        fi
         # [LLD] OpenBSD's LLD needs to be explicitly told not to produce PIE
         # executables.
         TARGET_CC_LDFLAGS="-Wl,-nopie"
