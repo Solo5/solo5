@@ -1,3 +1,13 @@
+## 0.6.9 (2021-12-13)
+
+* virtio: add missing reset for net and blk devices (#491)
+* CI: disable genode (#493)
+  Genode bindings are failing to build on Debian testing / GCC 10.x.
+* Avoid "-" in section names (in the ld scripts) since some GNU ld versions
+  reject that (alpine 3.15, Fefora 35) (#502)
+* On OpenBSD, OpenBSD 6.7 is not supported anymore, all support releases use
+  ld.lld (#495)
+
 ## 0.6.8 (2020-12-17)
 
 Bug fixes:
