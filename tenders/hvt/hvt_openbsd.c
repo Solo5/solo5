@@ -170,7 +170,7 @@ int hvt_guest_mprotect(void *t_arg, uint64_t addr_start, uint64_t addr_end,
         int prot)
 {
     struct hvt *hvt = t_arg;
-    int ret;
+    int host_prot, ret;
 
     assert(addr_start <= hvt->mem_size);
     assert(addr_end <= hvt->mem_size);
@@ -184,9 +184,13 @@ int hvt_guest_mprotect(void *t_arg, uint64_t addr_start, uint64_t addr_end,
     /*
      * Host-side page protections:
      *
-     * Ensure that guest-executable pages are not also executable in the host.
+     * Ensure that guest-executable pages are not also executable, but are
+     * readable in the host.
      */
-    if(mprotect(vaddr_start, size, prot & ~(PROT_EXEC)) == -1)
+    host_prot = prot;
+    host_prot &= ~(PROT_EXEC);
+    host_prot |= PROT_READ;
+    if(mprotect(vaddr_start, size, host_prot) == -1)
         return -1;
 
     ret = 0;
