@@ -43,8 +43,7 @@ url {
   checksum: "sha512=${CHECKSUM}"
 }
 EOM
-# Eventually we want '' 'cross-aarch64' ...
-for VARIANT in ''; do
+for VARIANT in '' 'cross-aarch64'; do
     PKG_DIR=${OUTPUT_DIR}/packages/solo5${VARIANT}/solo5${VARIANT}.${OPAM_VERSION}
     mkdir -p ${PKG_DIR} || exit 1
     cat opam/solo5${VARIANT}.opam ${OUTPUT_DIR}/tmp/url \
