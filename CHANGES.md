@@ -1,3 +1,27 @@
+## v0.7.0 (2021-12-31)
+
+* Remove Genode bindings (#494, #506)
+  The Genode bindings becomes incompatible with the upcoming LLVM/Clang based
+  toolchain. It can be reinstated in the future if there is interest.
+
+  `GENODE_ABI_TARGET` is not removed to disallow to re-use it for another
+  purpose than the Genode binding.
+* New packaging, toolchains, cross-compilation (#494, #506)
+  + Make Solo5 installable system-wide and be able to packaging Solo5 for the
+    BSDs and Linux distributions
+  + Replace Solo5-internal use of `pkg-config` by generated toolchain wrappers
+    installed as "PREFIX/bin/ARCH-solo5-none-static-{cc,ld,objcopy}"
+  + Solo5 bindings (ABIs) are co-installable under the same PREFIX
+  + OPAM packaging is simplified (only one package `solo5` remains)
+  + Experimental: support for the cross-compilation (specially `aarch64`)
+* virtio: FreeBSD requires the grub-bhyve command (#506)
+* virtio: FreeBSD: wait a bit for `cat` to create the nmdm device (#506)
+* OpenBSD: all supported releases of OpenBSD use `ld.ldd` (#495, #506)
+* Be able to release our cross toolchain via our opam-release.sh script (#504)
+
+**NOTE**: `pkg-config` still is required by Solo5 to get flags from
+`libseccomp`.
+
 ## 0.6.9 (2021-12-13)
 
 * virtio: add missing reset for net and blk devices (#491)
