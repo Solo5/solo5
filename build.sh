@@ -23,8 +23,10 @@ do_info()
 {
     message "System information:"
     uname -a
-    CC=${CC:-cc}
-    LD=${LD:-ld}
+    # XXX: Only looking at TARGET_{CC,LD} here -- sync with what configure.sh
+    # does or add a "verbose" mode to that instead?
+    CC=${TARGET_CC:-cc}
+    LD=${TARGET_LD:-ld}
     echo "Compiler (${CC}) version:"
     ${CC} --version
     echo "Compiler version detail:"
@@ -51,11 +53,6 @@ do_basic()
     # Some CIs can now run tests, so do that.
     if [ -n "${SURF_RUN_TESTS}" ]; then
         message "Running tests:"
-        # XXX grub-bhyve is unstable under nested virt, so don't run the
-        # virtio tests on FreeBSD.
-        if [ "$(uname -s)" = "FreeBSD" ]; then
-            echo CONFIG_VIRTIO= >>Makeconf
-        fi
         try ${SURF_SUDO} tests/setup-tests.sh
         try ${SURF_SUDO} tests/run-tests.sh
         # On Linux x86_64 Debian VMs only, also test solo5-virtio-mkimage.
@@ -84,13 +81,10 @@ do_basic()
             fi
         fi
     fi
+    message "Testing 'make install'."
+    try ${MAKE} install DESTDIR=/tmp/install
     message "Testing 'make distrib'."
     try ${MAKE} distrib
-    message "Testing tools only build."
-    try ${MAKE} distclean
-    try ./configure.sh --only-tools
-    try ${MAKE}
-    try ${SURF_SUDO} ${MAKE} install-tools
 }
 
 do_e2e()
@@ -140,6 +134,9 @@ case "${SURF_BUILD_TYPE}" in
         ;;
 esac
 
-message "Success!"
+# surf-build sometimes fails spuriously with an 'EBADF: bad file descriptor,
+# write' just before exiting. We attempt to work around this in the CI driver
+# script by looking for the message below in the build log.
+message "BUILD SUCCEEDED"
 # NOTE: Failure exit status is returned in try(), if we got here then the build
 # NOTE: completed.

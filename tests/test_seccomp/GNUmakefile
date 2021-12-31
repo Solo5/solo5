@@ -23,6 +23,6 @@ test_NAME := test_seccomp
 CONFIG_HVT :=
 CONFIG_VIRTIO :=
 CONFIG_MUEN :=
-CONFIG_GENODE :=
+CONFIG_XEN :=
 
 include ../Makefile.tests

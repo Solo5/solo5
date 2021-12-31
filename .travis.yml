@@ -22,7 +22,7 @@ jobs:
     - name: Build and test spt (arm64)
       arch: arm64
     - name: Build and test spt (ppc64le)
-      env: CC=gcc-7
+      env: TARGET_CC=gcc-7
       arch: ppc64le
       before_install:
         - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test

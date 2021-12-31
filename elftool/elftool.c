@@ -40,7 +40,7 @@
 #include "json.h"
 #include "elf_abi.h"
 #include "mft_abi.h"
-#include "solo5_version.h"
+#include "version.h"
 
 /*
  * For "dump" functionality, we pull in the ELF loader and manifest validation

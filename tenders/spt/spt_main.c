@@ -36,7 +36,7 @@
 #include <unistd.h>
 
 #include "spt.h"
-#include "solo5_version.h"
+#include "version.h"
 
 extern struct spt_module __start_modules;
 extern struct spt_module __stop_modules;

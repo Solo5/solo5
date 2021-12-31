@@ -214,7 +214,9 @@ bhyve)
     # Bhyve will respond to interactive SIGINT correctly, the cat and VM itself
     # are cleaned up below.
     # XXX Can occasionally leak /dev/nmdm devices, oh well ...
+    # sleep a bit to ensure that cat has opened /dev/nmdm before stty
     cat ${TTYA} &
+    sleep 0.2
     CAT=$!
     cleanup ()
     {

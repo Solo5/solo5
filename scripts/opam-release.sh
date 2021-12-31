@@ -43,10 +43,10 @@ url {
   checksum: "sha512=${CHECKSUM}"
 }
 EOM
-for VARIANT in hvt spt virtio muen xen; do
-    PKG_DIR=${OUTPUT_DIR}/packages/solo5-bindings-${VARIANT}/solo5-bindings-${VARIANT}.${OPAM_VERSION}
+for VARIANT in '' 'cross-aarch64'; do
+    PKG_DIR=${OUTPUT_DIR}/packages/solo5${VARIANT}/solo5${VARIANT}.${OPAM_VERSION}
     mkdir -p ${PKG_DIR} || exit 1
-    cat opam/solo5-bindings-${VARIANT}.opam ${OUTPUT_DIR}/tmp/url \
+    cat opam/solo5${VARIANT}.opam ${OUTPUT_DIR}/tmp/url \
         > ${PKG_DIR}/opam || exit 1
     opam lint ${PKG_DIR}/opam || exit 1
 done
