@@ -60,6 +60,10 @@ Environment variables affecting the build system configuration:
     HOST_AR
         C compiler and ar tool used for host tools and tenders.
 
+    HOST_PKG_CONFIG
+        pkg-config executable to query for information on libraries needed to
+        build host tools and tenders.
+
     TARGET_CC
     TARGET_LD
     TARGET_OBJCOPY
@@ -284,6 +288,8 @@ case ${HOST_CC_MACHINE} in
         ;;
 esac
 
+HOST_PKG_CONFIG=${HOST_PKG_CONFIG:-pkg-config}
+
 CONFIG_SPT_TENDER_NO_PIE=
 CONFIG_SPT_TENDER_LIBSECCOMP_CFLAGS=
 CONFIG_SPT_TENDER_LIBSECCOMP_LDFLAGS=
@@ -298,24 +304,24 @@ if [ -n "${CONFIG_SPT_TENDER}" ]; then
         CONFIG_SPT_TENDER_NO_PIE=1
     fi
 
-    if ! command -v pkg-config >/dev/null; then
-        die "pkg-config is required"
+    if ! command -v $HOST_PKG_CONFIG >/dev/null; then
+        die "pkg-config is required: $HOST_PKG_CONFIG not in PATH"
     fi
-    if ! pkg-config libseccomp; then
+    if ! $HOST_PKG_CONFIG libseccomp; then
         die "libseccomp development headers are required"
     else
-        if ! pkg-config --atleast-version=2.3.3 libseccomp; then
+        if ! $HOST_PKG_CONFIG --atleast-version=2.3.3 libseccomp; then
             # TODO Make this a hard error once there are no distros with
             # libseccomp < 2.3.3 in the various CIs.
             warn "libseccomp >= 2.3.3 is required" \
                 "for correct spt tender operation"
             warn "Proceeding anyway, expect tests to fail"
-        elif ! pkg-config --atleast-version=2.4.1 libseccomp; then
+        elif ! $HOST_PKG_CONFIG --atleast-version=2.4.1 libseccomp; then
             warn "libseccomp < 2.4.1 has known vulnerabilities"
             warn "Proceeding anyway, but consider upgrading"
         fi
-        CONFIG_SPT_TENDER_LIBSECCOMP_CFLAGS="$(pkg-config --cflags libseccomp)"
-        CONFIG_SPT_TENDER_LIBSECCOMP_LDLIBS="$(pkg-config --libs libseccomp)"
+        CONFIG_SPT_TENDER_LIBSECCOMP_CFLAGS="$($HOST_PKG_CONFIG --cflags libseccomp)"
+        CONFIG_SPT_TENDER_LIBSECCOMP_LDLIBS="$($HOST_PKG_CONFIG --libs libseccomp)"
     fi
     if ! CC="${HOST_CC}" PKG_CFLAGS="${CONFIG_SPT_TENDER_LIBSECCOMP_CFLAGS}" \
         cc_check_header seccomp.h; then
