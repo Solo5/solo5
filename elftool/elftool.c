@@ -108,10 +108,10 @@ static void usage(const char *prog)
 
 static int elftool_gen_mft(const char *source, const char *output)
 {
-    FILE *sfp = fopen(source, "r");
+    FILE *sfp = strncmp(source, "-", 2) ? fopen(source, "r") : stdin;
     if (sfp == NULL)
         err(1, "%s: Could not open for reading", source);
-    FILE *ofp = fopen(output, "w");
+    FILE *ofp = strncmp(output, "-", 2) ? fopen(output, "w") : stdout;
     if (ofp == NULL)
         err(1, "%s: Could not open for writing", output);
 
