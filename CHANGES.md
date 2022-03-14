@@ -1,3 +1,15 @@
+## v0.7.1 (2022-03-14)
+
+* Use `note.not_openbsd` instead of `note.not-openbsd` as section name in
+  `solo5-stubs.ld` to be compatible with GNU ld 2.37 on e.g. Arch Linux, Fedora
+  35, Alpine 3.15 (@TheLortex, #509)
+* Fix `opam-release.sh`: the second variant is `-cross-aarch64`
+  (@dinosaure, #511)
+* elftool: support manifests read from stdin or written to stdout using the `-`
+  character (@ehmry, #510)
+* Fix the compilation of `test_tls` on `ppc64` architecture (@dinosaure,
+  @hannesm, #514)
+
 ## v0.7.0 (2021-12-31)
 
 * Remove Genode bindings (#494, #506)
