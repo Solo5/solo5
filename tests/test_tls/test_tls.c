@@ -93,8 +93,8 @@ int solo5_app_main(const struct solo5_start_info *si __attribute__((unused)))
     puts("\n**** Solo5 standalone test_tls ****\n\n");
 
 #if defined (__powerpc64__)
-    tcb1.tp = (void *)&tcb1._data + PPC64_TLS_OFFSET;
-    tcb2.tp = (void *)&tcb2._data + PPC64_TLS_OFFSET;
+    tcb1.tp = (void *) (PPC64_TLS_OFFSET + (uintptr_t)&tcb1._data);
+    tcb2.tp = (void *) (PPC64_TLS_OFFSET + (uintptr_t)&tcb2._data);
 #else
     tcb1.tp = &tcb1.tp;
     tcb2.tp = &tcb2.tp;
