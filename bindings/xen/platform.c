@@ -260,23 +260,6 @@ static void parse_multiboot(const void *arg)
     } else {
         cmdline[0] = 0;
     }
-
-    /*
-     * Look for the first chunk of memory at PLATFORM_MEM_START.
-     */
-    multiboot_memory_map_t *m = NULL;
-    uint32_t offset;
-
-    for (offset = 0; offset < mi->mmap_length;
-            offset += m->size + sizeof(m->size)) {
-        m = (void *)(uintptr_t)(mi->mmap_addr + offset);
-        if (m->addr == PLATFORM_MEM_START &&
-                m->type == MULTIBOOT_MEMORY_AVAILABLE) {
-            break;
-        }
-    }
-    assert(offset < mi->mmap_length);
-    mem_size = m->addr + m->len;
 }
 
 static void parse_hvm_start_info(const void *arg)
@@ -298,48 +281,6 @@ static void parse_hvm_start_info(const void *arg)
     }
     else {
         cmdline[0] = 0;
-    }
-
-    /*
-     * Detect physical memory. On PVH on x86, memory will start at 0 and
-     * may or may not be followed by a legacy memory hole at 640kB. Since we
-     * don't make any significant use of the low memory, we can simplify by
-     * just looking for the first chunk of memory that ends at >= 1mB
-     * (PLATFORM_MEM_START).
-     */
-    if (si->version >= 1 && si->memmap_entries > 0) {
-        assert(si->memmap_paddr);
-        struct hvm_memmap_table_entry *m =
-            (struct hvm_memmap_table_entry *)si->memmap_paddr;
-
-        for (unsigned i = 0; i < si->memmap_entries; i++) {
-            if (m[i].type == XEN_HVM_MEMMAP_TYPE_RAM &&
-                    m[i].addr + m[i].size >= PLATFORM_MEM_START) {
-                mem_size = (m[i].addr + m[i].size) & PAGE_MASK;
-                break;
-            }
-        }
-    }
-    /*
-     * No memory map in Xen hvm_start_info; try and get an E820-style memory
-     * map from Xen instead.
-     */
-    else {
-        struct e820_map_entry e820_map[32];
-        xen_memory_map_t xmm;
-        xmm.nr_entries = 32;
-        set_xen_guest_handle(xmm.buffer, e820_map);
-        int rc = hypercall__memory_op(XENMEM_memory_map, &xmm);
-        assert(rc == 0);
-        assert(xmm.nr_entries > 0);
-
-        for (unsigned i = 0; i < xmm.nr_entries; i++) {
-            if (e820_map[i].type == E820_MAP_TYPE_RAM &&
-                    e820_map[i].addr + e820_map[i].size >= PLATFORM_MEM_START) {
-                mem_size = (e820_map[i].addr + e820_map[i].size) & PAGE_MASK;
-                break;
-            }
-        }
     }
 }
 
@@ -369,6 +310,27 @@ void platform_init(const void *arg)
      */
     if (is_direct_pvh_boot)
         parse_hvm_start_info(arg);
+
+    /*
+     * Get an E820-style memory map from Xen.
+     */
+    {
+        struct e820_map_entry e820_map[32];
+        xen_memory_map_t xmm;
+        xmm.nr_entries = 32;
+        set_xen_guest_handle(xmm.buffer, e820_map);
+        int rc = hypercall__memory_op(XENMEM_memory_map, &xmm);
+        assert(rc == 0);
+        assert(xmm.nr_entries > 0);
+
+        for (unsigned i = 0; i < xmm.nr_entries; i++) {
+            if (e820_map[i].type == E820_MAP_TYPE_RAM &&
+                e820_map[i].addr + e820_map[i].size >= PLATFORM_MEM_START) {
+                mem_size = (e820_map[i].addr + e820_map[i].size) & PAGE_MASK;
+                break;
+            }
+        }
+    }
 
     assert(mem_size);
 
