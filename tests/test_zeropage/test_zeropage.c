@@ -21,6 +21,12 @@
 #include "solo5.h"
 #include "../../bindings/lib.c"
 
+/* 
+ * Silence GCC's array bounds warning when accessing memory at address "8".
+ * See https://gcc.gnu.org/bugzilla/show_bug.cgi?id=99578
+ */
+#pragma GCC diagnostic ignored "-Warray-bounds"
+
 static void puts(const char *s)
 {
     solo5_console_write(s, strlen(s));
