@@ -1,3 +1,22 @@
+## v0.7.2 (2022-05-27)
+
+* Suppress gcc array bounds warning in `test_zeropage` (@felixmoebius, #515)
+* Xen: retrieve `mem_size` uniformly via `XENMEM_memory_map` hypercall.
+  Previously, the memory map was extracted from the HVM start info (if
+  available and booting directly via PVH), or multiboot info (if booting via
+  multiboot). The fallback for direct PVH booting was the `XENMEM_memory_map`
+  hypercall (which retrieves an E820 memory map). This lead to three distinct
+  paths, with no fallback for the memory map not being present in the multiboot
+  info. With QubesOS 4.1 (Xen 4.14), this didn't work anymore (it worked with
+  QubesOS 4.0 (Xen 4.8)).
+  Now, there is a single path of the code, which uses the hypercall. Since this
+  is only executed once at startup, the overhead is negligible (@hannesm, #516,
+  review and discussions with @marmarek @xaki23 @palainp)
+* Xen: do not skip first token of command line when booted via multiboot.
+  This code originated from the virtio binding, but when booting on xen via
+  multiboot there is no additional token.
+  (@hannesm, #517, review and testing with @palainp @xaki23)
+
 ## v0.7.1 (2022-03-14)
 
 * Use `note.not_openbsd` instead of `note.not-openbsd` as section name in
