@@ -162,6 +162,13 @@ int tap_attach(const char *ifname)
 
 #elif defined(__FreeBSD__)
 
+    /*
+     * Avoid unused-but-set-variable warning on FreeBSD, where the tap device
+     * is only up once open() was called by the process.
+     */
+    if (!up)
+      ;
+
     char devname[strlen(ifname) + 6];
 
     snprintf(devname, sizeof devname, "/dev/%s", ifname);
