@@ -1,3 +1,9 @@
+## v0.7.3 (2022-07-20)
+
+* Fix broken API doc link in the README.md (@YuseiIto, #521)
+* Be more informative when `tap_attach` fails (@reynir, #522)
+* Ignore `up` variable to avoid compiler warning on FreeBSD (@hannesm, #520)
+
 ## v0.7.2 (2022-05-27)
 
 * Suppress gcc array bounds warning in `test_zeropage` (@felixmoebius, #515)
