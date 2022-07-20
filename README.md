@@ -14,7 +14,7 @@ hypervisors.
 
 Some of the unique features of Solo5:
 
-- a public ("guest-facing") [API](include/solo5/solo5.h) designed for ease of
+- a public ("guest-facing") [API](include/solo5.h) designed for ease of
   porting existing and future unikernel-native applications,
 - this aforementioned API facilitates the implementation of ("host-facing")
   _bindings_ and _tenders_ designed with isolation, a _minimal attack surface_
