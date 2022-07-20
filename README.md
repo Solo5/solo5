@@ -42,7 +42,7 @@ To get started as a developer with Solo5, please refer primarily to the
 instructions provided by the unikernel project you intend to develop
 applications with:
 
-- MirageOS: https://mirage.io/wiki/install
+- MirageOS: https://mirage.io/docs/install
 - IncludeOS: http://www.includeos.org/
 
 That said, we provide the following documentation, not specific to any
