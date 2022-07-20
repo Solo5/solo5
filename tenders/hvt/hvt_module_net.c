@@ -116,7 +116,7 @@ static int handle_cmdarg(char *cmdarg, struct mft *mft)
         }
         int fd = tap_attach(iface);
         if (fd < 0) {
-            warnx("Could not attach interface: %s", iface);
+            warnx("Could not attach interface: %s: %s", iface, strerror(errno));
             return -1;
         }
 
