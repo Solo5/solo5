@@ -30,9 +30,9 @@
 # symbols.
 
 prog="$(basename $0)"
-I="$(dirname $0)/../include"
+I="$(realpath $0 | xargs dirname)/../include"
 [ ! -d "${I}" ] && echo "$prog: Could not determine include path" 1>&2 && exit 1
-L="$(dirname $0)/../lib/@@CONFIG_TARGET_TRIPLE@@"
+L="$(realpath $0 | xargs dirname)/../lib/@@CONFIG_TARGET_TRIPLE@@"
 [ ! -d "${L}" ] && echo "$prog: Could not determine library path" 1>&2 && exit 1
 # we can't really tell if 'cc' is called with no input, but work around the
 # most obvious cases and stop them from "succeeding" and producing an "a.out"
