@@ -46,7 +46,7 @@ int block_attach(const char *path, off_t *capacity_)
         errx(1, "%s: Backing storage must be at least 1 block (512 bytes) "
                 "in size", path);
     if (capacity & (512 - 1))
-        err(1, "%s: Backing storage size must be block aligned (512 bytes)", path);
+        errx(1, "%s: Backing storage size must be block aligned (512 bytes)", path);
 
     *capacity_ = capacity;
     return fd;
