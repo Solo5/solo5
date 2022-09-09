@@ -44,11 +44,26 @@ static int handle_cmdarg(char *cmdarg, struct mft *mft)
 
     char name[MFT_NAME_SIZE];
     char path[PATH_MAX + 1];
-    int rc = sscanf(cmdarg,
-            "--block:%" XSTR(MFT_NAME_MAX) "[A-Za-z0-9]="
-            "%" XSTR(PATH_MAX) "s", name, path);
-    if (rc != 2)
+    uint16_t block_size;
+    do {
+        int rc = sscanf(cmdarg,
+                "--block:%" XSTR(MFT_NAME_MAX) "[A-Za-z0-9]:"
+                "%hu="
+                "%" XSTR(PATH_MAX) "s", name, &block_size, path);
+        if (rc == 3)
+            break;
+        block_size = 512;
+        rc = sscanf(cmdarg,
+                "--block:%" XSTR(MFT_NAME_MAX) "[A-Za-z0-9]="
+                "%" XSTR(PATH_MAX) "s", name, path);
+	if (rc == 2)
+            break;
+        goto match_fail;
+    } while (0);
+    if (block_size < 512 || block_size & (block_size - 1)) {
+        warnx("Block size must be a multiple of 2 greater than or equal 512");
         return -1;
+    }
     struct mft_entry *e = mft_get_by_name(mft, name, MFT_DEV_BLOCK_BASIC, NULL);
     if (e == NULL) {
         warnx("Resource not declared in manifest: '%s'", name);
@@ -56,7 +71,7 @@ static int handle_cmdarg(char *cmdarg, struct mft *mft)
     }
 
     off_t capacity;
-    int fd = block_attach(path, &capacity);
+    int fd = block_attach(path, block_size, &capacity);
     e->u.block_basic.capacity = capacity;
     e->u.block_basic.block_size = 512;
     e->b.hostfd = fd;
@@ -64,6 +79,9 @@ static int handle_cmdarg(char *cmdarg, struct mft *mft)
     module_in_use = true;
 
     return 0;
+
+match_fail:
+    return -1;
 }
 
 static int setup(struct spt *spt, struct mft *mft)

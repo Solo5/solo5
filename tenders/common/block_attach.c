@@ -29,12 +29,13 @@
 #include <sys/types.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <stdint.h>
 
 /*
  * Attach to the block device specified by (path), returning its capacity in
  * bytes in (*capacity).
  */
-int block_attach(const char *path, off_t *capacity_)
+int block_attach(const char *path, uint16_t block_size, off_t *capacity_)
 {
     int fd = open(path, O_RDWR);
     if (fd == -1)
@@ -42,11 +43,12 @@ int block_attach(const char *path, off_t *capacity_)
     off_t capacity = lseek(fd, 0, SEEK_END);
     if (capacity == -1)
         err(1, "%s: Could not determine capacity", path);
-    if (capacity < 512)
-        errx(1, "%s: Backing storage must be at least 1 block (512 bytes) "
-                "in size", path);
-    if (capacity & (512 - 1))
-        errx(1, "%s: Backing storage size must be block aligned (512 bytes)", path);
+    if (capacity < block_size)
+        errx(1, "%s: Backing storage must be at least 1 block (%hu bytes) "
+                "in size", path, block_size);
+    if ((capacity & (block_size - 1)) != 0)
+        errx(1, "%s: Backing storage size must be block aligned (%hu bytes)",
+                path, block_size);
 
     *capacity_ = capacity;
     return fd;

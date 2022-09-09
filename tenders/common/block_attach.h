@@ -28,11 +28,12 @@
 #define _GNU_SOURCE
 #define _FILE_OFFSET_BITS 64
 #include <sys/types.h>
+#include <stdint.h>
 
 /*
  * Attach to the block device specified by (path). Returns the file descriptor
  * and device capacity in * bytes in (*capacity).
  */
-int block_attach(const char *path, off_t *capacity_);
+int block_attach(const char *path, uint16_t block_size, off_t *capacity_);
 
 #endif /* COMMON_BLOCK_ATTACH_H */
