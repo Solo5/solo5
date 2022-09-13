@@ -108,50 +108,63 @@ static void hypercall_block_read(struct hvt *hvt, hvt_gpa_t gpa)
 
 static int handle_cmdarg(char *cmdarg, struct mft *mft)
 {
-    if (strncmp("--block:", cmdarg, 8) != 0)
+    enum {
+        opt_block,
+        opt_block_size,
+    } which;
+    if (strncmp("--block:", cmdarg, 8) == 0)
+        which = opt_block;
+    else if (strncmp("--block-size:", cmdarg, 13) == 0)
+        which = opt_block_size;
+    else
         return -1;
 
     char name[MFT_NAME_SIZE];
     char path[PATH_MAX + 1];
     uint16_t block_size;
-    do {
-        int rc = sscanf(cmdarg,
-                "--block:%" XSTR(MFT_NAME_MAX) "[A-Za-z0-9]:"
-                "%hu="
-                "%" XSTR(PATH_MAX) "s", name, &block_size, path);
-        if (rc == 3)
-            break;
+    if (which == opt_block) {
         block_size = 512;
-        rc = sscanf(cmdarg,
+        int rc = sscanf(cmdarg,
                 "--block:%" XSTR(MFT_NAME_MAX) "[A-Za-z0-9]="
                 "%" XSTR(PATH_MAX) "s", name, path);
-        if (rc == 2)
-            break;
-        goto match_fail;
-    } while (0);
-    if (block_size < 512 || block_size & (block_size - 1)) {
-        warnx("Block size must be a multiple of 2 greater than or equal 512");
-        return -1;
-    }
+        if (rc != 2)
+            return -1;
 
-    struct mft_entry *e = mft_get_by_name(mft, name, MFT_DEV_BLOCK_BASIC, NULL);
-    if (e == NULL) {
-        warnx("Resource not declared in manifest: '%s'", name);
-        return -1;
-    }
+        struct mft_entry *e = mft_get_by_name(mft, name, MFT_DEV_BLOCK_BASIC, NULL);
+        if (e == NULL) {
+            warnx("Resource not declared in manifest: '%s'", name);
+            return -1;
+        }
+        off_t capacity;
+        int fd = block_attach(path, block_size, &capacity);
+        /* e->u.block_basic.block_size is set either by option or generated
+         * later by setup().
+         */
+        e->u.block_basic.capacity = capacity;
+        e->b.hostfd = fd;
+        e->attached = true;
+        module_in_use = true;
+    } else if (which == opt_block_size) {
+        int rc = sscanf(cmdarg,
+                "--block-size:%" XSTR(MFT_NAME_MAX) "[A-Za-z0-9]="
+                "%hu",
+                name, &block_size);
+        if (rc != 2)
+            return -1;
+        if (block_size < 512 || block_size & (block_size - 1)) {
+            warnx("Block size must be a multiple of 2 greater than or equal 512");
+            return -1;
+        }
 
-    off_t capacity;
-    int fd = block_attach(path, block_size, &capacity);
-    e->u.block_basic.capacity = capacity;
-    e->u.block_basic.block_size = block_size;
-    e->b.hostfd = fd;
-    e->attached = true;
-    module_in_use = true;
+        struct mft_entry *e = mft_get_by_name(mft, name, MFT_DEV_BLOCK_BASIC, NULL);
+        if (e == NULL) {
+            warnx("Resource not declared in manifest: '%s'", name);
+            return -1;
+        }
+        e->u.block_basic.block_size = block_size;
+    }
 
     return 0;
-
-match_fail:
-    return -1;
 }
 
 static int setup(struct hvt *hvt, struct mft *mft)
@@ -164,6 +177,13 @@ static int setup(struct hvt *hvt, struct mft *mft)
                 hypercall_block_write) == 0);
     assert(hvt_core_register_hypercall(HVT_HYPERCALL_BLOCK_READ,
                 hypercall_block_read) == 0);
+
+    for (unsigned i = 0; i != mft->entries; i++) {
+        if (mft->e[i].type != MFT_DEV_BLOCK_BASIC || !mft->e[i].attached)
+            continue;
+        if (mft->e[i].u.block_basic.block_size == 0)
+            mft->e[i].u.block_basic.block_size = 512;
+    }
 
 #if HVT_FREEBSD_ENABLE_CAPSICUM
     cap_rights_t rights;
