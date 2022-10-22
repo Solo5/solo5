@@ -21,8 +21,8 @@
 #define __CPU_AARCH64_H__
 
 /* memory defines */
-#define PAGE_SIZE   4096
-#define PAGE_SHIFT  12
+#define PAGE_SHIFT  14
+#define PAGE_SIZE   (1 << 14)
 #define PAGE_MASK   ~(0xfff)
 
 #ifndef _BITUL
