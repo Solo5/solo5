@@ -22,7 +22,7 @@
 
 /* memory defines */
 #define PAGE_SHIFT  14
-#define PAGE_SIZE   (1 << 14)
+#define PAGE_SIZE   (1 << PAGE_SHIFT)
 #define PAGE_MASK   ~(0xfff)
 
 #ifndef _BITUL
