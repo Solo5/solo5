@@ -129,7 +129,7 @@ static int handle_cmdarg(char *cmdarg, struct mft *mft)
     if (which == opt_block) {
         block_size = 512;
         int rc = sscanf(cmdarg,
-                "--block:%" XSTR(MFT_NAME_MAX) "[A-Za-z0-9]="
+                BLOCK_PREFIX "%" XSTR(MFT_NAME_MAX) "[A-Za-z0-9]="
                 "%" XSTR(PATH_MAX) "s", name, path);
         if (rc != 2)
             return -1;
@@ -150,7 +150,7 @@ static int handle_cmdarg(char *cmdarg, struct mft *mft)
         module_in_use = true;
     } else if (which == opt_block_size) {
         int rc = sscanf(cmdarg,
-                "--block-sector-size:%" XSTR(MFT_NAME_MAX) "[A-Za-z0-9]="
+                BLOCK_SECTOR_SIZE_PREFIX "%" XSTR(MFT_NAME_MAX) "[A-Za-z0-9]="
                 "%hu",
                 name, &block_size);
         if (rc != 2)
