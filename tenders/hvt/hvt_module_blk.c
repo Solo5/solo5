@@ -197,7 +197,8 @@ static int setup(struct hvt *hvt, struct mft *mft)
 
 static char *usage(void)
 {
-    return "--block:NAME=PATH (attach block device/file at PATH as block storage NAME)";
+    return "--block:NAME=PATH (attach block device/file at PATH as block storage NAME)\n"
+	"  [ --block-size:NAME=BLOCKSIZE ] (set block size for block device NAME; must be a power of two greater than or equal 512)";
 }
 
 DECLARE_MODULE(block,
