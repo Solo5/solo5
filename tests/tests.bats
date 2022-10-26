@@ -481,9 +481,9 @@ xen_expect_abort() {
   expect_success
 }
 
-@test "blk block-size=4096 hvt" {
+@test "blk block-sector-size=4096 hvt" {
   setup_block
-  hvt_run --block:storage=${BLOCK} --block-size:storage=4096 -- test_blk/test_blk.hvt
+  hvt_run --block:storage=${BLOCK} --block-sector-size:storage=4096 -- test_blk/test_blk.hvt
   expect_success
 }
 
@@ -499,9 +499,9 @@ xen_expect_abort() {
   expect_success
 }
 
-@test "blk block-size=4096 spt" {
+@test "blk block-sector-size=4096 spt" {
   setup_block
-  spt_run --block:storage=${BLOCK} --block-size:storage=4096 -- test_blk/test_blk.spt
+  spt_run --block:storage=${BLOCK} --block-sector-size:storage=4096 -- test_blk/test_blk.spt
   expect_success
 }
 

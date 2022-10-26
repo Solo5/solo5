@@ -37,15 +37,19 @@
 
 static bool module_in_use;
 
+#define BLOCK_PREFIX "--block:"
+#define BLOCK_SECTOR_SIZE_PREFIX "--block-sector-size:"
+
 static int handle_cmdarg(char *cmdarg, struct mft *mft)
 {
     enum {
         opt_block,
         opt_block_size,
     } which;
-    if (strncmp("--block:", cmdarg, 8) == 0)
+    if (strncmp(BLOCK_PREFIX, cmdarg, sizeof(BLOCK_PREFIX) - 1) == 0)
         which = opt_block;
-    else if (strncmp("--block-size:", cmdarg, 13) == 0)
+    else if (strncmp(BLOCK_SECTOR_SIZE_PREFIX, cmdarg,
+                sizeof(BLOCK_SECTOR_SIZE_PREFIX) - 1) == 0)
         which = opt_block_size;
     else
         return -1;
@@ -77,7 +81,7 @@ static int handle_cmdarg(char *cmdarg, struct mft *mft)
         module_in_use = true;
     } else if (which == opt_block_size) {
         int rc = sscanf(cmdarg,
-                "--block-size:%" XSTR(MFT_NAME_MAX) "[A-Za-z0-9]="
+                "--block-sector-size:%" XSTR(MFT_NAME_MAX) "[A-Za-z0-9]="
                 "%hu",
                 name, &block_size);
         if (rc != 2)
@@ -147,7 +151,7 @@ static int setup(struct spt *spt, struct mft *mft)
 static char *usage(void)
 {
     return "--block:NAME=PATH (attach block device/file at PATH as block storage NAME)\n"
-	"  [ --block-size:NAME=BLOCKSIZE ] (set block size for block device NAME; must be a power of two greater than or equal 512)";
+	"  [ --block-sector-size:NAME=SECTORSIZE ] (set sector size for block device NAME; must be a power of two greater than or equal 512)";
 }
 
 DECLARE_MODULE(block,
