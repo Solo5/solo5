@@ -97,11 +97,11 @@ setup_block() {
 }
 
 hvt_run() {
-  run ${TIMEOUT} --foreground 60s ${HVT_TENDER} --mem=2 "$@"
+  run ${TIMEOUT} --foreground 60s "${HVT_TENDER}" --mem=2 "$@"
 }
 
 spt_run() {
-  run ${TIMEOUT} --foreground 60s ${SPT_TENDER} --mem=2 "$@"
+  run ${TIMEOUT} --foreground 60s "${SPT_TENDER}" --mem=2 "$@"
 }
 
 virtio_run() {
@@ -481,6 +481,12 @@ xen_expect_abort() {
   expect_success
 }
 
+@test "blk block-size=4096 hvt" {
+  setup_block
+  hvt_run --block:storage=${BLOCK} --block-size:storage=4096 -- test_blk/test_blk.hvt
+  expect_success
+}
+
 @test "blk virtio" {
   setup_block
   virtio_run -d ${BLOCK} -- test_blk/test_blk.virtio
@@ -490,6 +496,12 @@ xen_expect_abort() {
 @test "blk spt" {
   setup_block
   spt_run --block:storage=${BLOCK} -- test_blk/test_blk.spt
+  expect_success
+}
+
+@test "blk block-size=4096 spt" {
+  setup_block
+  spt_run --block:storage=${BLOCK} --block-size:storage=4096 -- test_blk/test_blk.spt
   expect_success
 }
 
