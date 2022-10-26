@@ -11,8 +11,9 @@ die ()
 VERSION_H="$1"
 
 # If we are being run from a release tarball, then a version.h.distrib must
-# be present, and we always use that as our source of truth.
-if [ ! -d "./.git" ]; then
+# be present, and we always use that as our source of truth. Allow ./.git
+# to be a file to support git worktrees.
+if [ ! -d "./.git" -a ! -f "./.git" ]; then
     if [ ! -f "${VERSION_H}.distrib" ]; then
 	die "${VERSION_H}.distrib: Not found, and we are not in a Git tree"
     fi
