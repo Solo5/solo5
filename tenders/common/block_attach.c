@@ -34,24 +34,16 @@
 
 /*
  * Attach to the block device specified by (path), returning its capacity in
- * bytes in (*capacity). The block size (block_size) must be a power of two.
+ * bytes in (*capacity).
  */
-int block_attach(const char *path, uint16_t block_size, off_t *capacity_)
+int block_attach(const char *path, off_t *capacity_)
 {
-    assert((block_size & (block_size - 1)) == 0);
     int fd = open(path, O_RDWR);
     if (fd == -1)
         err(1, "Could not open block device: %s", path);
     off_t capacity = lseek(fd, 0, SEEK_END);
     if (capacity == -1)
         err(1, "%s: Could not determine capacity", path);
-    if (capacity < block_size)
-        errx(1, "%s: Backing storage must be at least 1 block (%hu bytes) "
-                "in size", path, block_size);
-    /* this assumes block_size is a power of 2 */
-    if ((capacity & (block_size - 1)) != 0)
-        errx(1, "%s: Backing storage size must be block aligned (%hu bytes)",
-                path, block_size);
 
     *capacity_ = capacity;
     return fd;

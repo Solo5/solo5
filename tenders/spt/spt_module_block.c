@@ -55,10 +55,8 @@ static int handle_cmdarg(char *cmdarg, struct mft *mft)
         return -1;
 
     char name[MFT_NAME_SIZE];
-    char path[PATH_MAX + 1];
-    uint16_t block_size;
     if (which == opt_block) {
-        block_size = 512;
+        char path[PATH_MAX + 1];
         int rc = sscanf(cmdarg,
                 "--block:%" XSTR(MFT_NAME_MAX) "[A-Za-z0-9]="
                 "%" XSTR(PATH_MAX) "s", name, path);
@@ -71,7 +69,7 @@ static int handle_cmdarg(char *cmdarg, struct mft *mft)
             return -1;
         }
         off_t capacity;
-        int fd = block_attach(path, block_size, &capacity);
+        int fd = block_attach(path, &capacity);
         /* e->u.block_basic.block_size is set either by option or generated
          * later by setup().
          */
@@ -80,6 +78,7 @@ static int handle_cmdarg(char *cmdarg, struct mft *mft)
         e->attached = true;
         module_in_use = true;
     } else if (which == opt_block_size) {
+        uint16_t block_size;
         int rc = sscanf(cmdarg,
                 "--block-sector-size:%" XSTR(MFT_NAME_MAX) "[A-Za-z0-9]="
                 "%hu",
@@ -110,8 +109,25 @@ static int setup(struct spt *spt, struct mft *mft)
     for (unsigned i = 0; i != mft->entries; i++) {
         if (mft->e[i].type != MFT_DEV_BLOCK_BASIC || !mft->e[i].attached)
             continue;
+
+        /*
+         * We now set default block_size if needed, and check that the capacity
+         * is block aligned, and the capacity is not zero.
+         */
         if (mft->e[i].u.block_basic.block_size == 0)
             mft->e[i].u.block_basic.block_size = 512;
+        const char *name = mft->e[i].name;
+        uint16_t block_size = mft->e[i].u.block_basic.block_size;
+        off_t capacity = mft->e[i].u.block_basic.capacity;
+
+        assert((block_size & (block_size - 1)) == 0);
+        /* this assumes block_size is a power of 2 */
+        if ((capacity & (block_size - 1)) != 0)
+            errx(1, "%" XSTR(MFT_NAME_MAX) "s: Backing storage size must be block aligned (%hu bytes)",
+                    name, block_size);
+        if (capacity < block_size)
+            errx(1, "%" XSTR(MFT_NAME_MAX) "s: Backing storage must be at least 1 block (%hu bytes) "
+                    "in size", name, block_size);
 
         int rc = -1;
 
