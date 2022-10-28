@@ -200,10 +200,10 @@ static int setup(struct hvt *hvt, struct mft *mft)
         assert((block_size & (block_size - 1)) == 0);
         /* this assumes block_size is a power of 2 */
         if ((capacity & (block_size - 1)) != 0)
-            errx(1, "%" XSTR(MFT_NAME_MAX) "s: Backing storage size must be block aligned (%hu bytes)",
+            errx(1, "%." XSTR(MFT_NAME_MAX) "s: Backing storage size must be block aligned (%hu bytes)",
                     name, block_size);
         if (capacity < block_size)
-            errx(1, "%" XSTR(MFT_NAME_MAX) "s: Backing storage must be at least 1 block (%hu bytes) "
+            errx(1, "%." XSTR(MFT_NAME_MAX) "s: Backing storage must be at least 1 block (%hu bytes) "
                     "in size", name, block_size);
     }
 
