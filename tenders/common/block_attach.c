@@ -29,6 +29,8 @@
 #include <sys/types.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <stdint.h>
+#include <assert.h>
 
 /*
  * Attach to the block device specified by (path), returning its capacity in
@@ -42,11 +44,6 @@ int block_attach(const char *path, off_t *capacity_)
     off_t capacity = lseek(fd, 0, SEEK_END);
     if (capacity == -1)
         err(1, "%s: Could not determine capacity", path);
-    if (capacity < 512)
-        errx(1, "%s: Backing storage must be at least 1 block (512 bytes) "
-                "in size", path);
-    if (capacity & (512 - 1))
-        errx(1, "%s: Backing storage size must be block aligned (512 bytes)", path);
 
     *capacity_ = capacity;
     return fd;

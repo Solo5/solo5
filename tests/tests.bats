@@ -97,11 +97,11 @@ setup_block() {
 }
 
 hvt_run() {
-  run ${TIMEOUT} --foreground 60s ${HVT_TENDER} --mem=2 "$@"
+  run ${TIMEOUT} --foreground 60s "${HVT_TENDER}" --mem=2 "$@"
 }
 
 spt_run() {
-  run ${TIMEOUT} --foreground 60s ${SPT_TENDER} --mem=2 "$@"
+  run ${TIMEOUT} --foreground 60s "${SPT_TENDER}" --mem=2 "$@"
 }
 
 virtio_run() {
@@ -481,6 +481,36 @@ xen_expect_abort() {
   expect_success
 }
 
+@test "blk block-sector-size=4096 hvt" {
+  setup_block
+  hvt_run --block:storage=${BLOCK} --block-sector-size:storage=4096 -- test_blk/test_blk.hvt
+  expect_success
+}
+
+@test "blk misaligned hvt" {
+  dd if=/dev/zero of=${BATS_TMPDIR}/storage.img \
+      bs=2k count=3 status=none
+  hvt_run --block:storage=${BATS_TMPDIR}/storage.img \
+      --block-sector-size:storage=4096 -- test_blk/test_blk.hvt
+  [ "$status" = 1 ] && [[ "$output" == *"Backing storage size must be block aligned"* ]]
+}
+
+@test "blk odd hvt" {
+  dd if=/dev/zero of=${BATS_TMPDIR}/storage.img \
+      bs=521 count=3 status=none
+  hvt_run --block:storage=${BATS_TMPDIR}/storage.img \
+      --block-sector-size:storage=521 -- test_blk/test_blk.hvt
+  [ "$status" = 1 ] && [[ "$output" == *"Block size must be a multiple of 2"* ]]
+}
+
+@test "blk too small hvt" {
+  dd if=/dev/zero of=${BATS_TMPDIR}/storage.img \
+      bs=256 count=1 status=none
+  hvt_run --block:storage=${BATS_TMPDIR}/storage.img \
+      --block-sector-size:storage=256 -- test_blk/test_blk.hvt
+  [ "$status" = 1 ] && [[ "$output" == *"Block size must be a multiple of 2 greater than or equal 512"* ]]
+}
+
 @test "blk virtio" {
   setup_block
   virtio_run -d ${BLOCK} -- test_blk/test_blk.virtio
@@ -491,6 +521,36 @@ xen_expect_abort() {
   setup_block
   spt_run --block:storage=${BLOCK} -- test_blk/test_blk.spt
   expect_success
+}
+
+@test "blk block-sector-size=4096 spt" {
+  setup_block
+  spt_run --block:storage=${BLOCK} --block-sector-size:storage=4096 -- test_blk/test_blk.spt
+  expect_success
+}
+
+@test "blk misaligned spt" {
+  dd if=/dev/zero of=${BATS_TMPDIR}/storage.img \
+      bs=2k count=3 status=none
+  spt_run --block:storage=${BATS_TMPDIR}/storage.img \
+      --block-sector-size:storage=4096 -- test_blk/test_blk.spt
+  [ "$status" = 1 ] && [[ "$output" == *"Backing storage size must be block aligned"* ]]
+}
+
+@test "blk odd spt" {
+  dd if=/dev/zero of=${BATS_TMPDIR}/storage.img \
+      bs=521 count=3 status=none
+  spt_run --block:storage=${BATS_TMPDIR}/storage.img \
+      --block-sector-size:storage=521 -- test_blk/test_blk.spt
+  [ "$status" = 1 ] && [[ "$output" == *"Block size must be a multiple of 2"* ]]
+}
+
+@test "blk too small spt" {
+  dd if=/dev/zero of=${BATS_TMPDIR}/storage.img \
+      bs=256 count=1 status=none
+  spt_run --block:storage=${BATS_TMPDIR}/storage.img \
+      --block-sector-size:storage=256 -- test_blk/test_blk.spt
+  [ "$status" = 1 ] && [[ "$output" == *"Block size must be a multiple of 2 greater than or equal 512"* ]]
 }
 
 @test "net hvt" {

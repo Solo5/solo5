@@ -28,6 +28,7 @@
 #define _GNU_SOURCE
 #define _FILE_OFFSET_BITS 64
 #include <sys/types.h>
+#include <stdint.h>
 
 /*
  * Attach to the block device specified by (path). Returns the file descriptor
