@@ -22,6 +22,9 @@
 char *cmdline_parse(const char *cmdline)
 {
     const char opt_quiet[] = "--solo5:quiet";
+    const char opt_error[] = "--solo5:error";
+    const char opt_warn[] = "--solo5:warn";
+    const char opt_info[] = "--solo5:info";
     const char opt_debug[] = "--solo5:debug";
 
     const char *p = cmdline;
@@ -33,11 +36,31 @@ char *cmdline_parse(const char *cmdline)
 
     while (*p) {
         matched = false;
-        if (strncmp(p, opt_quiet, (sizeof(opt_quiet) - 1)) == 0) {
+        /* --solo5:quiet is slightly misleading as errors are still logged. */
+        if (strncmp(p, opt_quiet, (sizeof(opt_quiet) - 1)) == 0 ||
+                strncmp(p, opt_error, (sizeof(opt_error) - 1)) == 0) {
+            _Static_assert(sizeof(opt_quiet) == sizeof(opt_error),
+                    "sizeof(--solo5:quiet) != sizeof(--solo5:error");
             after = (char *) (p + (sizeof(opt_quiet) - 1));
             if (isspace(*after) || *after == '\0') {
                 log_set_level(ERROR);
                 p += (sizeof(opt_quiet) - 1);
+                matched = true;
+            }
+        }
+        else if (strncmp(p, opt_warn, (sizeof(opt_warn) - 1)) == 0) {
+            after = (char *) (p + (sizeof(opt_warn) - 1));
+            if (isspace(*after) || *after == '\0') {
+                log_set_level(WARN);
+                p += (sizeof(opt_warn) - 1);
+                matched = true;
+            }
+        }
+        else if (strncmp(p, opt_info, (sizeof(opt_info) - 1)) == 0) {
+            after = (char *) (p + (sizeof(opt_info) - 1));
+            if (isspace(*after) || *after == '\0') {
+                log_set_level(INFO);
+                p += (sizeof(opt_info) - 1);
                 matched = true;
             }
         }
