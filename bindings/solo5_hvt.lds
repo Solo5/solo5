@@ -35,8 +35,10 @@ ENTRY(_start)
  */
 PHDRS {
     interp PT_INTERP;
-    text PT_LOAD FLAGS(5); /* No FILEHDR or PHDRS, force R/E only.
+    text PT_LOAD FLAGS(1); /* No FILEHDR or PHDRS, force E only.
                               FLAGS values come from PF_x in elf.h */
+    rodata PT_LOAD FLAGS(4);
+
     data PT_LOAD;
     note.not_openbsd PT_NOTE; /* Must come first. */
     note.abi PT_NOTE;
@@ -50,7 +52,7 @@ SECTIONS {
     . = TEXT_START; /* No + SIZEOF_HEADERS */
 
     /*
-     * :text: The following input sections are placed in the R/E :text segment.
+     * :text: The following input sections are placed in the E :text segment.
      */
     _stext = .;
 
@@ -69,25 +71,25 @@ SECTIONS {
 
     /* Read-only data */
 
-    /* For Hvt, the ABI and MFT NOTEs are read-only and can be in :text. */
+    /* For Hvt, the ABI and MFT NOTEs are read-only and can be in :rodata. */
     .note.solo5.manifest :
     {
         *(.note.solo5.manifest*)
-    } :text :note.manifest
+    } :rodata :note.manifest
     .note.solo5.abi :
     {
         *(.note.solo5.abi*)
-    } :text :note.abi
+    } :rodata :note.abi
     .note.solo5.not_openbsd :
     {
         *(.note.solo5.not_openbsd*)
-    } :text :note.not_openbsd
+    } :rodata :note.not_openbsd
 
     .rodata :
     {
         *(.rodata)
         *(.rodata.*)
-    } :text
+    } :rodata
     .eh_frame :
     {
         *(.eh_frame)

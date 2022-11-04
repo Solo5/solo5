@@ -211,13 +211,17 @@ int hvt_guest_mprotect(void *t_arg, uint64_t addr_start, uint64_t addr_end,
     /*
      * Host-side page protections:
      *
-     * Ensure that guest-executable pages are not also executable in the host.
+     * Ensure that guest-executable pages are not also executable but are
+     * readable in the host.
      *
      * Guest-side page protections:
      *
      * Manipulating guest-side (EPT) mappings is currently not supported by
      * FreeBSD vmm, so there is nothing more we can do.
      */
-    prot &= ~(PROT_EXEC);
+    if(prot & PROT_EXEC) {
+        prot &= ~(PROT_EXEC);
+        prot |= PROT_READ;
+    }
     return mprotect(vaddr_start, size, prot);
 }
