@@ -28,7 +28,7 @@
 # linking a unikernel. No default for ABI is provided, as it is expected that a
 # caller directly using 'ld' knows what they are doing.
 
-L="$(dirname $0)/../lib/@@CONFIG_TARGET_TRIPLE@@"
+L="$(realpath $0 | xargs dirname)/../lib/@@CONFIG_TARGET_TRIPLE@@"
 [ ! -d "${L}" ] && echo "$0: Could not determine library path" 1>&2 && exit 1
 # ld accepts -z solo5-abi=ABI, but does not provide a default ABI
 # this is intentional
