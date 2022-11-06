@@ -10,8 +10,9 @@
   (@reynir, #527)
 * Use `realpath` to determine toolchain paths - allowing tools being symlinks
   as they are on NixOS (@greydot, #526)
-* Allow slack in sleep in test_time (@greydot, #525)
+* Allow slack in sleep in test\_time (@greydot, #525)
 * Fix build when using git worktree (.git being a file) (@reynir, #531)
+* Fix tests on OpenBSD 7.2 (@dinosaure, #535)
 
 ## v0.7.3 (2022-07-20)
 
