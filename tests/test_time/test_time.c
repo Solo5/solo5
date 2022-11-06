@@ -110,7 +110,7 @@ int solo5_app_main(const struct solo5_start_info *si __attribute__((unused)))
         /*
          * Verify that we did not sleep less than requested (see above).
          */
-        const solo5_time_t slack = 100000000ULL;
+        const solo5_time_t slack = 200000000ULL;
         if (delta < NSEC_PER_SEC - slack) {
             printf("[%d] ERROR: slept too little (expected at least %llu ns)\n",
                     iters, (unsigned long long)NSEC_PER_SEC);
