@@ -118,6 +118,7 @@ case "${SURF_BUILD_TYPE}" in
             git config --local user.email build@example.com
         fi
 
+	${SURF_SUDO} git config --global --add safe.directory $(pwd)
         do_info
         do_basic
         ;;
