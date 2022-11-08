@@ -1,3 +1,20 @@
+## v0.7.4 (2022-11-04)
+
+* Mark .text execute-only, currently only on OpenBSD (@adamsteen, #450)
+* Allow all log levels to be passed as command line parameter to the tender
+  (added --solo5:error, --solo5:warn, --solo5:info) (@reynir, #532)
+* Add tender command line argument --block-sector-size:<block>=int. This allows
+  to specify the desired block sector size. The default if not provided is 512,
+  the same that was used before (@reynir, #528, addresses partially #325)
+* Check that the file passed as block device is aligned to the block sector size
+  (@reynir, #527)
+* Use `realpath` to determine toolchain paths - allowing tools being symlinks
+  as they are on NixOS (@greydot, #526)
+* Allow slack in sleep in test\_time (@greydot, #525, #535)
+* Fix build when using git worktree (.git being a file) (@reynir, #531)
+* Fix tests on OpenBSD 7.2 (@dinosaure, #535)
+* Add `x-ci-failures` on our OPAM files about CentOS 7 (@dinosaure, #535)
+
 ## v0.7.3 (2022-07-20)
 
 * Fix broken API doc link in the README.md (@YuseiIto, #521)
