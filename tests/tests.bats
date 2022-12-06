@@ -262,6 +262,26 @@ xen_expect_abort() {
 #   [[ "$output" != *"Solo5:"* ]]
 # }
 
+@test "output hvt" {
+  hvt_run test_output/test_output.hvt Output_Solo5
+  [ "$status" -eq 0 ]
+}
+
+@test "output virtio" {
+  virtio_run test_output/test_output.virtio Output_Solo5
+  [ "$status" -eq 0 -o "$status" -eq 2 -o "$status" -eq 83 ]
+}
+
+@test "output spt" {
+  spt_run test_output/test_output.spt Output_Solo5
+  [ "$status" -eq 0 ]
+}
+
+@test "output xen" {
+  xen_run test_output/test_output.xen Ouput_Solo5
+  [ "$status" -eq 0 ]
+}
+
 @test "globals hvt" {
   hvt_run test_globals/test_globals.hvt
   expect_success
