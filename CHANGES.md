@@ -1,3 +1,18 @@
+## v0.7.5 (2022-12-07)
+
+* Since MirageOS moved from PV mode to PVH on Xen, and thus replacing Mini-OS
+  with solo5, there was an issue in the solo5 code which failed to properly
+  account the already written bytes on the console. This only occurs if the
+  output to be performed does not fit in a single output buffer (2048 bytes on
+  Xen).
+
+  The code in question set the number of bytes written to the last written count
+  `written = output_some(buf)`, instead of increasing the written count
+  `written += output_some(buf)`.
+
+  Thanks to Krzysztof Burghardt, Pierre Alain, Thomas Leonard & Hannes Mehnert
+  for the issue, review and proposal. The fix is available here: #538.
+
 ## v0.7.4 (2022-11-04)
 
 * Mark .text execute-only, currently only on OpenBSD (@adamsteen, #450)
