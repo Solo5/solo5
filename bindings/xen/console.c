@@ -108,7 +108,7 @@ void console_write(const char *buf, size_t len)
     do
     {
         /* Try and put some data into the ring. */
-        written = console_write_some(&buf[written], len - written);
+        written += console_write_some(&buf[written], len - written);
 
         /* Signal xenconsoled that new data is available. */
         hypercall_evtchn_send(console_evtchn);
