@@ -38,6 +38,8 @@ PHDRS {
     text PT_LOAD FLAGS(5); /* No FILEHDR or PHDRS, force R/E only.
                               FLAGS values come from PF_x in elf.h */
     data PT_LOAD;
+    tdata PT_TLS;
+    tbss PT_TLS;
     note.not_openbsd PT_NOTE; /* Must come first. */
     note.xen PT_NOTE;
     note.abi PT_NOTE;
@@ -120,21 +122,21 @@ SECTIONS {
     .tdata :
     {
         *(.tdata)
-    }
+    } :tdata
 
     . = ALIGN(CONSTANT(MAXPAGESIZE));
     _edata = .;
 
     /* Read-write data (uninitialized) */
-    .tbss :
-    {
-        *(.tbss)
-    }
     .bss :
     {
         *(.bss)
         *(COMMON)
     }
+    .tbss (NOLOAD) :
+    {
+        *(.tbss)
+    } :tbss
 
     . = ALIGN(CONSTANT(MAXPAGESIZE));
     _ebss = .;

@@ -39,6 +39,8 @@ PHDRS {
                               FLAGS values come from PF_x in elf.h */
     rodata PT_LOAD;
     data PT_LOAD;
+    tdata PT_TLS;
+    tbss PT_TLS;
     note.not_openbsd PT_NOTE; /* Must come first. */
     note.abi PT_NOTE;
     note.manifest PT_NOTE;
@@ -115,21 +117,21 @@ SECTIONS {
     .tdata :
     {
         *(.tdata)
-    }
+    } :tdata
 
     . = ALIGN(CONSTANT(MAXPAGESIZE));
     _edata = .;
 
     /* Read-write data (uninitialized) */
-    .tbss :
-    {
-        *(.tbss)
-    }
     .bss :
     {
         *(.bss)
         *(COMMON)
     }
+    .tbss (NOLOAD) :
+    {
+        *(.tbss)
+    } :tbss
 
     . = ALIGN(CONSTANT(MAXPAGESIZE));
     _ebss = .;
