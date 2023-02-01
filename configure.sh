@@ -379,7 +379,11 @@ case ${TARGET_CC_MACHINE} in
     x86_64-*|amd64-*)
         TARGET_ARCH=x86_64
         TARGET_LD_MAX_PAGE_SIZE=0x1000
-        CONFIG_HVT=1 CONFIG_SPT=1 CONFIG_VIRTIO=1 CONFIG_MUEN=1 CONFIG_XEN=1
+        if [ "${CONFIG_HOST}" = "OpenBSD" ]; then
+            CONFIG_HVT=1
+        else
+            CONFIG_HVT=1 CONFIG_SPT=1 CONFIG_VIRTIO=1 CONFIG_MUEN=1 CONFIG_XEN=1
+        fi
         ;;
     aarch64-*)
         TARGET_ARCH=aarch64
