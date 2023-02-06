@@ -416,15 +416,11 @@ xen_expect_abort() {
 }
 
 @test "tls hvt" {
-  skip_unless_host_is Linux
-
   hvt_run test_tls/test_tls.hvt
   expect_success
 }
 
 @test "tls virtio" {
-  skip_unless_host_is Linux # XXX is this necessary for virtio?
-
   virtio_run test_tls/test_tls.virtio
   virtio_expect_success
 }
