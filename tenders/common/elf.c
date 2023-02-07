@@ -243,7 +243,8 @@ void elf_load(int bin_fd, const char *bin_name, uint8_t *mem, size_t mem_size,
         Elf64_Xword p_align = phdr[ph_i].p_align;
         Elf64_Addr temp, p_vaddr_start, p_vaddr_end;
 
-        if (phdr[ph_i].p_type != PT_LOAD)
+        /* Skip non-PT_LOAD and empty PT_LOAD sections */
+        if (phdr[ph_i].p_type != PT_LOAD || p_filesz == 0)
             continue;
 
         if (p_vaddr < p_min_loadaddr)
