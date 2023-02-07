@@ -128,6 +128,10 @@ SECTIONS {
         _stdata = .;
         *(.tdata)
     } :tdata
+
+    . = ALIGN(CONSTANT(MAXPAGESIZE));
+    _etdata = .;
+
     .tbss (NOLOAD):
     {
         *(.tbss)
@@ -150,6 +154,6 @@ SECTIONS {
         *(.note.gnu.*)
     }
 
-    _ltdata = SIZEOF(.tdata);
+    _ltdata = _etdata - _stdata;
     _ltbss = SIZEOF(.tbss);
 }

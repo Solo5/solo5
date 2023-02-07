@@ -44,7 +44,7 @@ _multiboot_header:
 .long -(MULTIBOOT_HEADER_MAGIC+MYMULTIBOOT_FLAGS)
 .long _multiboot_header
 .long 0x100000
-.long _edata
+.long _etdata
 .long _ebss
 .long _start32
 

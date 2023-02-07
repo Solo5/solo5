@@ -29,10 +29,10 @@ static void puts(const char *s)
     solo5_console_write(s, strlen(s));
 }
 
-/* This just stub a libc malloc setup with a limited 1k heap.
+/* This just stub a libc malloc setup with a limited 64k heap.
  * This does not guard heap overwritting on stack, it's just a testfile.
  */
-#define heap_size 1024
+#define heap_size 65536
 static uint8_t heap[heap_size];
 static uintptr_t heap_top = (uintptr_t)&heap;
 
@@ -90,8 +90,13 @@ int solo5_app_main(const struct solo5_start_info *si __attribute__((unused)))
     printhex64((uint64_t)(LTBSS));
 
     tcb1 = malloc_stub(solo5_tls_size());
+    if (tcb1 == NULL)
+        return 10;
     memcpy(solo5_tls_data_offset(tcb1), TDATA, LTDATA);
+
     tcb2 = malloc_stub(solo5_tls_size());
+    if (tcb2 == NULL)
+        return 11;
     memcpy(solo5_tls_data_offset(tcb2), TDATA, LTDATA);
 
     if (solo5_set_tls_base(solo5_tls_tp_offset((uintptr_t)tcb1)) != SOLO5_R_OK)
