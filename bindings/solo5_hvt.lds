@@ -40,7 +40,7 @@ PHDRS {
     rodata PT_LOAD FLAGS(4);
 
     data PT_LOAD;
-    tdata PT_TLS;
+    tdata PT_LOAD;
     tbss PT_TLS;
     note.not_openbsd PT_NOTE; /* Must come first. */
     note.abi PT_NOTE;
@@ -115,13 +115,19 @@ SECTIONS {
         *(.data)
         *(.data.*)
     }
-    .tdata :
-    {
-        *(.tdata)
-    } :tdata
 
     . = ALIGN(CONSTANT(MAXPAGESIZE));
     _edata = .;
+
+    .tdata :
+    {
+        _stdata = .;
+        *(.tdata)
+    } :tdata
+    .tbss (NOLOAD):
+    {
+        *(.tbss)
+    } :tbss
 
     /* Read-write data (uninitialized) */
     .bss :
@@ -129,10 +135,6 @@ SECTIONS {
         *(.bss)
         *(COMMON)
     }
-    .tbss (NOLOAD) :
-    {
-        *(.tbss)
-    } :tbss
 
     . = ALIGN(CONSTANT(MAXPAGESIZE));
     _ebss = .;
@@ -143,4 +145,7 @@ SECTIONS {
     /DISCARD/ : {
         *(.note.gnu.*)
     }
+
+    _ltdata = SIZEOF(.tdata);
+    _ltbss = SIZEOF(.tbss);
 }

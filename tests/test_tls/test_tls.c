@@ -21,42 +21,33 @@
 #include "solo5.h"
 #include "../../bindings/lib.c"
 
-/*
- * XXX TODO: This test contains a bad, incomplete implementation of TLS.
- * It's unclear what we should be testing here, and what "TLS support" in
- * the context of Solo5 means at all.
- */
-
-#if defined(__x86_64__) || defined(__powerpc64__)
-/* Variant II */
-struct tcb {
-    volatile uint64_t _data;
-    void *tp;
-};
-
-#define PPC64_TLS_OFFSET 0x7000
-
-#elif defined(__aarch64__)
-/* Variant I */
-struct tcb {
-    void *tp;
-    void *pad;
-    volatile uint64_t _data;
-};
-#else
-#error Unsupported architecture
-#endif
-
-struct tcb tcb1;
-struct tcb tcb2;
+void* tcb1;
+void* tcb2;
 
 static void puts(const char *s)
 {
     solo5_console_write(s, strlen(s));
 }
 
-__thread volatile uint64_t _data;
+/* This just stub a libc malloc setup with a limited 1k heap.
+ * This does not guard heap overwritting on stack, it's just a testfile.
+ */
+#define heap_size 1024
+static uint8_t heap[heap_size];
+static uintptr_t heap_top = (uintptr_t)&heap;
 
+static void* malloc_stub(size_t size)
+{
+    if (heap_top + size <= (uintptr_t)&heap + heap_size)
+    {
+        heap_top += size;
+        return (void*)(heap_top - size);
+    }
+
+    return NULL;
+}
+
+__thread volatile uint64_t _data;
 uint64_t __attribute__ ((noinline)) get_data()
 {
     return _data;
@@ -67,35 +58,62 @@ void __attribute__ ((noinline)) set_data(uint64_t data)
     _data = data;
 }
 
+__thread volatile uint64_t _data_not_bss = 0x0000000000C0FFEE;
+uint64_t __attribute__ ((noinline)) get_data_not_bss()
+{
+    return _data_not_bss;
+}
+
+static void putc(const char c)
+{
+    solo5_console_write(&c, 1);
+}
+
+static void __attribute__ ((noinline)) printhex64(uint64_t x)
+{
+    char hex[] = "0123456789ABCDEF";
+	for(int i=60; i>=0; i-=4)
+	{
+		putc(hex[(x>>i)&0xf]);
+	}
+	putc('\n');
+}
+
 int solo5_app_main(const struct solo5_start_info *si __attribute__((unused)))
 {
     puts("\n**** Solo5 standalone test_tls ****\n\n");
+    puts(".tdata is at   0x");
+    printhex64((uint64_t)(TDATA));
+    puts(".tdata length is ");
+    printhex64((uint64_t)(LTDATA));
+    puts(".tbss  length is ");
+    printhex64((uint64_t)(LTBSS));
 
-#if defined (__powerpc64__)
-    tcb1.tp = (void *) (PPC64_TLS_OFFSET + (uintptr_t)&tcb1._data);
-    tcb2.tp = (void *) (PPC64_TLS_OFFSET + (uintptr_t)&tcb2._data);
-#else
-    tcb1.tp = &tcb1.tp;
-    tcb2.tp = &tcb2.tp;
-#endif
+    tcb1 = malloc_stub(solo5_tls_size());
+    memcpy(solo5_tls_data_offset(tcb1), TDATA, LTDATA);
+    tcb2 = malloc_stub(solo5_tls_size());
+    memcpy(solo5_tls_data_offset(tcb2), TDATA, LTDATA);
 
-    if (solo5_set_tls_base((uintptr_t)tcb1.tp) != SOLO5_R_OK)
+    if (solo5_set_tls_base(solo5_tls_tp_offset((uintptr_t)tcb1)) != SOLO5_R_OK)
         return 1;
     set_data(1);
 
-    if (solo5_set_tls_base((uintptr_t)tcb2.tp) != SOLO5_R_OK)
+    if (solo5_set_tls_base(solo5_tls_tp_offset((uintptr_t)tcb2)) != SOLO5_R_OK)
         return 2;
     set_data(2);
 
-    if (solo5_set_tls_base((uintptr_t)tcb1.tp) != SOLO5_R_OK)
+    if (solo5_set_tls_base(solo5_tls_tp_offset((uintptr_t)tcb1)) != SOLO5_R_OK)
         return 3;
     if (get_data() != 1)
         return 4;
 
-    if (solo5_set_tls_base((uintptr_t)tcb2.tp) != SOLO5_R_OK)
+    if (solo5_set_tls_base(solo5_tls_tp_offset((uintptr_t)tcb2)) != SOLO5_R_OK)
         return 5;
     if (get_data() != 2)
         return 6;
+
+    if (get_data_not_bss() != 0x0000000000C0FFEE)
+        return 7;
 
     puts("SUCCESS\n");
     return SOLO5_EXIT_SUCCESS;

@@ -126,6 +126,64 @@ void solo5_exit(int status) __attribute__((noreturn));
  */
 void solo5_abort(void) __attribute__((noreturn));
 
+
+/*
+ * XXX(palainp): This is an incomplete implementation of TLS.
+ * It's limited to the local-exec pattern (offset directly from the TLS_BASE
+ * register).
+ * The usage is as the following for each thread:
+ *   void* tcb1;                                      // defines a TLS block
+ *   tcb1 = calloc(solo5_tls_size(), sizeof(char));   // gets memory for it
+ *   memcpy(solo5_tls_data_offset(tcb1), TDATA, LTDATA);       // copy tdata
+ *   solo5_set_tls_base(solo5_tls_tp_offset((uintptr_t)tcb1);  // sets tp ptr
+ */
+
+/* _stdata is the address begining of the "not bss" thread variables block */
+extern char _stdata[];
+#define TDATA ((void*)_stdata)
+
+/* _ltdata and _ltbss are the lengths of the tdata and tbss blocks */
+extern char _ltdata[], _ltbss[];
+#define LTDATA ((size_t)_ltdata)
+#define LTBSS ((size_t)_ltbss)
+
+/* The following define the overhead to the tdata and tbss blocks
+ * It's processor related
+ */
+#if defined(__x86_64__) || defined(__powerpc64__)
+    /* Variant II */
+    struct tcb {
+        void* tp;
+    };
+    
+    /* solo5_tls_tp_offset tells where we need to set the tp pointer next to
+     * the data block. It depends on the Variant, for Variant II it's at the end.
+     */
+    #define solo5_tls_tp_offset(x) (x + LTDATA + LTBSS)
+    #define solo5_tls_data_offset(x) (x)
+    
+    #define PPC64_TLS_OFFSET 0x7000
+
+#elif defined(__aarch64__)
+    /* Variant I */
+    struct tcb {
+        void* tp;
+        void* pad;
+    };
+    
+    /* for Vairant I it's at the begining */
+    #define tp_offset(x) (x)
+    #define solo5_tls_data_offset(x) (x + sizeof(struct tcb))
+
+#else
+#error Unsupported architecture
+#endif
+
+/*
+ * Returns the size needed for the thread local storage.
+ */
+#define solo5_tls_size() (LTDATA + LTBSS + sizeof(struct tcb))
+
 /*
  * Set the architecture-specific TLS base register to (base).
  *
