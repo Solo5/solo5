@@ -115,6 +115,7 @@ SECTIONS {
         *(.data.*)
     }
 
+    . = ALIGN(CONSTANT(MAXPAGESIZE));
     /*
      * tdata and tbss have to be side by side to help the linker caculate the
      * various __thread variables offsets.
