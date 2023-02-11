@@ -21,8 +21,8 @@
 #include "solo5.h"
 #include "../../bindings/lib.c"
 
-void* tcb1;
-void* tcb2;
+uintptr_t tcb1;
+uintptr_t tcb2;
 
 static void puts(const char *s)
 {
@@ -64,55 +64,32 @@ uint64_t __attribute__ ((noinline)) get_data_not_bss()
     return _data_not_bss;
 }
 
-static void putc(const char c)
-{
-    solo5_console_write(&c, 1);
-}
-
-static void __attribute__ ((noinline)) printhex64(uint64_t x)
-{
-    char hex[] = "0123456789ABCDEF";
-	for(int i=60; i>=0; i-=4)
-	{
-		putc(hex[(x>>i)&0xf]);
-	}
-	putc('\n');
-}
-
 int solo5_app_main(const struct solo5_start_info *si __attribute__((unused)))
 {
     puts("\n**** Solo5 standalone test_tls ****\n\n");
-    puts(".tdata is at   0x");
-    printhex64((uint64_t)(TDATA));
-    puts(".tdata length is ");
-    printhex64((uint64_t)(LTDATA));
-    puts(".tbss  length is ");
-    printhex64((uint64_t)(LTBSS));
 
-    tcb1 = malloc_stub(solo5_tls_size());
-    if (tcb1 == NULL)
+    tcb1 = (uintptr_t)malloc_stub(solo5_tls_size());
+    if (solo5_tls_init(tcb1) != SOLO5_R_OK)
         return 10;
-    memcpy(solo5_tls_data_offset(tcb1), TDATA, LTDATA);
-
-    tcb2 = malloc_stub(solo5_tls_size());
-    if (tcb2 == NULL)
+ 
+    tcb2 = (uintptr_t)malloc_stub(solo5_tls_size());
+    if (solo5_tls_init(tcb2) != SOLO5_R_OK)
         return 11;
-    memcpy(solo5_tls_data_offset(tcb2), TDATA, LTDATA);
-
-    if (solo5_set_tls_base(solo5_tls_tp_offset((uintptr_t)tcb1)) != SOLO5_R_OK)
+ 
+    if (solo5_set_tls_base(solo5_tls_tp_offset(tcb1)) != SOLO5_R_OK)
         return 1;
     set_data(1);
 
-    if (solo5_set_tls_base(solo5_tls_tp_offset((uintptr_t)tcb2)) != SOLO5_R_OK)
+    if (solo5_set_tls_base(solo5_tls_tp_offset(tcb2)) != SOLO5_R_OK)
         return 2;
     set_data(2);
 
-    if (solo5_set_tls_base(solo5_tls_tp_offset((uintptr_t)tcb1)) != SOLO5_R_OK)
+    if (solo5_set_tls_base(solo5_tls_tp_offset(tcb1)) != SOLO5_R_OK)
         return 3;
     if (get_data() != 1)
         return 4;
 
-    if (solo5_set_tls_base(solo5_tls_tp_offset((uintptr_t)tcb2)) != SOLO5_R_OK)
+    if (solo5_set_tls_base(solo5_tls_tp_offset(tcb2)) != SOLO5_R_OK)
         return 5;
     if (get_data() != 2)
         return 6;
