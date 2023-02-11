@@ -196,7 +196,7 @@ xen_expect_abort() {
   run test_hello/test_hello.hvt
   case "${CONFIG_HOST}" in
   Linux)
-    [ "$status" -eq 127 ] && [[ "$output" == *"No such file or directory"* ]]
+    [ "$status" -eq 127 ] && ([[ "$output" == *"No such file or directory"* ]] || [[ "$output" == *"required file not found"* ]])
     ;;
   FreeBSD)
     # XXX: imgact_elf.c:load_interp() outputs the "ELF interpreter ... not
