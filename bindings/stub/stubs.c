@@ -107,17 +107,17 @@ solo5_result_t solo5_block_read(solo5_handle_t handle U, solo5_off_t offset U,
 
 size_t solo5_tls_size()
 {
-	return 0;
+    return 0;
 }
 
 uintptr_t solo5_tls_tp_offset(uintptr_t tls U)
 {
-	return 0;
+    return 0;
 }
 
 solo5_result_t solo5_tls_init(uintptr_t tls U)
 {
-	return SOLO5_R_EUNSPEC;
+    return SOLO5_R_EUNSPEC;
 }
 
 solo5_result_t solo5_set_tls_base(uintptr_t base U)
