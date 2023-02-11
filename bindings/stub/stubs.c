@@ -110,12 +110,12 @@ size_t solo5_tls_size()
 	return 0;
 }
 
-uintptr_t solo5_tls_tp_offset(uintptr_t U)
+uintptr_t solo5_tls_tp_offset(uintptr_t tls U)
 {
 	return 0;
 }
 
-solo5_result_t solo5_tls_init(uintptr_t U)
+solo5_result_t solo5_tls_init(uintptr_t tls U)
 {
 	return SOLO5_R_EUNSPEC;
 }
