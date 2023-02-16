@@ -244,13 +244,9 @@ void elf_load(int bin_fd, const char *bin_name, uint8_t *mem, size_t mem_size,
         Elf64_Addr temp, p_vaddr_start, p_vaddr_end;
 
         /*
-         * consider only non empty PT_LOAD and PT_TLS with R flag sections
-         * (*bss section have no flags in the linker scripts)
+         * consider only non empty PT_LOAD
          */
-        if (! \
-            (phdr[ph_i].p_filesz != 0 && \
-             (phdr[ph_i].p_type == PT_LOAD || \
-             (phdr[ph_i].p_type == PT_TLS && (phdr[ph_i].p_flags & PF_R)))))
+        if (phdr[ph_i].p_filesz == 0 || phdr[ph_i].p_type != PT_LOAD)
             continue;
 
         if (p_vaddr < p_min_loadaddr)

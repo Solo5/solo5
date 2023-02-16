@@ -38,7 +38,7 @@ PHDRS {
     text PT_LOAD FLAGS(5); /* No FILEHDR or PHDRS, force R/E only.
                               FLAGS values come from PF_x in elf.h */
     data PT_LOAD;
-    tdata PT_TLS FLAGS(4); /* RO: this have to be copied into each thread */
+    tdata PT_LOAD FLAGS(4); /* RO: this have to be copied into each thread */
     tbss PT_TLS FLAGS(0); /* no perm needed */
     bss PT_NULL FLAGS(0);
     note.not_openbsd PT_NOTE; /* Must come first. */
