@@ -38,12 +38,6 @@ extern char _ltdata[], _ltbss[];
         void* tp;
     };
 
-    /* solo5_tls_tp_offset tells where we need to set the tp pointer next to
-     * the data block. It depends on the Variant, for Variant II it's at the end.
-     */
-    #define _solo5_tls_tp_offset(x) (x + LTDATA + LTBSS)
-    #define _solo5_tls_data_offset(x) (x)
-
     #define PPC64_TLS_OFFSET 0x7000
 
 #elif defined(__aarch64__)
@@ -52,10 +46,6 @@ extern char _ltdata[], _ltbss[];
         void* tp;
         void* pad;
     };
-
-    /* for Vairant I it's at the begining */
-    #define _solo5_tls_tp_offset(x) (x)
-    #define _solo5_tls_data_offset(x) (x + sizeof(struct tcb))
 
 #else
 #error Unsupported architecture
@@ -68,7 +58,32 @@ size_t solo5_tls_size()
 
 uintptr_t solo5_tls_tp_offset(uintptr_t tls)
 {
-    return _solo5_tls_tp_offset(tls);
+    uintptr_t tp;
+#if defined(__powerpc64__)
+    tp = PPC64_TLS_OFFSET + tls;
+#elif defined(__x86_64__)
+    tp = tls + LTDATA + LTBSS;
+#elif defined(__aarch64__)
+    tp = tls;
+#else
+#error Unsupported architecture
+#endif
+
+    return tp;
+}
+
+uintptr_t _solo5_tls_data_offset(uintptr_t tls)
+{
+    uintptr_t data;
+#if defined(__x86_64__) || defined(__powerpc64__)
+    data = tls;
+#elif defined(__aarch64__)
+    data = data + sizeof(struct tcb);
+#else
+#error Unsupported architecture
+#endif
+
+    return data;
 }
 
 solo5_result_t solo5_tls_init(uintptr_t tls)
@@ -76,8 +91,8 @@ solo5_result_t solo5_tls_init(uintptr_t tls)
 	if ((void*)tls == NULL) return SOLO5_R_EINVAL;
 
     /* set tp at its proper place in the TLS block */
-    uintptr_t *tmp = (uintptr_t*)_solo5_tls_tp_offset(tls);
-    *tmp = _solo5_tls_tp_offset(tls);
+    uintptr_t *tmp = (uintptr_t*)solo5_tls_tp_offset(tls);
+    *tmp = *tmp;
 
     /* copy the .tdata values */
     memcpy((void*)_solo5_tls_data_offset(tls), TDATA, LTDATA);
