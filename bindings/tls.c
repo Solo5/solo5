@@ -92,7 +92,7 @@ solo5_result_t solo5_tls_init(uintptr_t tls)
 
     /* set tp at its proper place in the TLS block */
     uintptr_t *tmp = (uintptr_t*)solo5_tls_tp_offset(tls);
-    *tmp = solo5_tls_tp_offset(tls);
+    *tmp = (uintptr_t)tmp;
 
     /* copy the .tdata values */
     memcpy((void*)_solo5_tls_data_offset(tls), TDATA, LTDATA);
