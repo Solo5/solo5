@@ -128,9 +128,8 @@ void solo5_abort(void) __attribute__((noreturn));
 
 
 /*
- * XXX(palainp): This implementation of TLS is limited to the local-exec model
- * (offset directly from the TLS_BASE register) which is how Solo5 currently
- * use TLS.
+ * This implementation of TLS is limited to the local-exec model (offset
+ * directly from the TLS_BASE register) which is how Solo5 currently use TLS.
  * The usage is as the following for each thread:
  *   uintptr_t tcb1;                                  // define a TLS block
  *   tcb1 = (uintptr_t)calloc(solo5_tls_size(), sizeof(char));  // get memory

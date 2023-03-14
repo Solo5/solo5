@@ -88,7 +88,7 @@ uintptr_t _solo5_tls_data_offset(uintptr_t tls)
 
 solo5_result_t solo5_tls_init(uintptr_t tls)
 {
-	if ((void*)tls == NULL) return SOLO5_R_EINVAL;
+    if ((void*)tls == NULL) return SOLO5_R_EINVAL;
 
     /* set tp at its proper place in the TLS block */
     uintptr_t *tmp = (uintptr_t*)solo5_tls_tp_offset(tls);
