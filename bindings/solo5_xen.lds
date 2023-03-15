@@ -38,8 +38,9 @@ PHDRS {
     text PT_LOAD FLAGS(5); /* No FILEHDR or PHDRS, force R/E only.
                               FLAGS values come from PF_x in elf.h */
     data PT_LOAD;
-    tdata PT_TLS;
-    tbss PT_TLS;
+    tdata PT_LOAD FLAGS(4); /* RO: this have to be copied into each thread */
+    tbss PT_TLS FLAGS(0); /* no perm needed */
+    bss PT_NULL FLAGS(0);
     note.not_openbsd PT_NOTE; /* Must come first. */
     note.xen PT_NOTE;
     note.abi PT_NOTE;
@@ -119,24 +120,35 @@ SECTIONS {
         *(.data)
         *(.data.*)
     }
-    .tdata :
-    {
-        *(.tdata)
-    } :tdata
 
     . = ALIGN(CONSTANT(MAXPAGESIZE));
+    /*
+     * tdata and tbss have to be side by side to help the linker caculate the
+     * various __thread variables offsets.
+     */
+    .tdata :
+    {
+        _stdata = .;
+        *(.tdata)
+        . = ALIGN(CONSTANT(MAXPAGESIZE));
+    } :tdata
+
+    /*
+     * _edata is the address of the end of the area to be copied with multiboot
+     * (virtio and xen)
+     */
     _edata = .;
 
     /* Read-write data (uninitialized) */
+    .tbss :
+    {
+        *(.tbss)
+    } :tbss
     .bss :
     {
         *(.bss)
         *(COMMON)
-    }
-    .tbss (NOLOAD) :
-    {
-        *(.tbss)
-    } :tbss
+    } :bss
 
     . = ALIGN(CONSTANT(MAXPAGESIZE));
     _ebss = .;
@@ -147,4 +159,7 @@ SECTIONS {
     /DISCARD/ : {
         *(.note.gnu.*)
     }
+
+    _ltdata = _edata - _stdata;
+    _ltbss = SIZEOF(.tbss);
 }
