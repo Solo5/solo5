@@ -168,6 +168,25 @@ solo5_result_t solo5_set_tls_base(uintptr_t base);
 
 /*
  * Time.
+ *
+ * Solo5 implements 2 clocks:
+ * - the monotonic clock, a Time-Stamp Counter based clock
+ * - the wall clock from the host's wall clock
+ *
+ * The monotonic clock corresponds to the CPU time spent since the boot time.
+ * The monotonic cannot be relied upon to provide accurate results — unless
+ * great care is taken to correct the possible flaws. Indeed, if the
+ * microkernel is suspended by le système hôte, the monotonic clock will no
+ * longer be aligned with the "real time elapsed" since the boot.
+ *
+ * The wall clock corresponds to the host's clock. Indeed, each time
+ * `solo5_clock_wall` is called, a syscall/hypercall is made to get the host's
+ * clock. Compared to the monotonic clock, getting the host's clock may take
+ * some time.
+ *
+ * The use of these two clocks should therefore be well defined. One has the
+ * advantage of being very fast (but can shift in relation to the real elapsed
+ * time). The other is more accurate but requires more resources.
  */
 
 /*

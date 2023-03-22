@@ -70,9 +70,6 @@
 #define	RTC_STATUS_A	0x0a
 #define	RTC_UIP		(1<<7)
 
-/* RTC wall time offset at monotonic time base. */
-static uint64_t rtc_epochoffset;
-
 /*
  * TSC clock specific.
  */
@@ -144,7 +141,7 @@ static inline uint8_t rtc_read(uint8_t reg) {
  * Return current RTC time. Note that due to waiting for the update cycle to
  * complete, this call may take some time.
  */
-static uint64_t rtc_gettimeofday(void) {
+uint64_t rtc_gettimeofday(void) {
     struct bmk_clock_ymdhms dt;
 
     cpu_intr_disable();
@@ -189,18 +186,12 @@ uint64_t tscclock_monotonic(void) {
  * Calibrate TSC and initialise TSC clock.
  */
 int tscclock_init(void) {
-    uint64_t tsc_freq, rtc_boot;
+    uint64_t tsc_freq;
 
     /* Initialise i8254 timer channel 0 to mode 2 at 100 Hz */
     outb(TIMER_MODE, TIMER_SEL0 | TIMER_RATEGEN | TIMER_16BIT);
     outb(TIMER_CNTR, (TIMER_HZ / 100) & 0xff);
     outb(TIMER_CNTR, (TIMER_HZ / 100) >> 8);
-
-    /*
-     * Read RTC "time at boot". This must be done just before tsc_base is
-     * initialised in order to get a correct offset below.
-     */
-    rtc_boot = rtc_gettimeofday();
 
     /*
      * Calculate TSC frequency by calibrating against an 0.1s delay
@@ -229,24 +220,11 @@ int tscclock_init(void) {
     time_base = mul64_32(tsc_base, tsc_mult, 32);
 
     /*
-     * Compute RTC epoch offset by subtracting monotonic time_base from RTC
-     * time at boot.
-     */
-    rtc_epochoffset = rtc_boot - time_base;
-
-    /*
      * Initialise i8254 timer channel 0 to mode 4 (one shot).
      */
     outb(TIMER_MODE, TIMER_SEL0 | TIMER_ONESHOT | TIMER_16BIT);
 
     return 0;
-}
-
-/*
- * Return epoch offset (wall time offset to monotonic clock start).
- */
-uint64_t tscclock_epochoffset(void) {
-	return rtc_epochoffset;
 }
 
 /*

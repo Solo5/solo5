@@ -42,6 +42,7 @@ void console_write(const char *, size_t);
 int pvclock_init(void);
 uint64_t pvclock_monotonic(void);
 uint64_t pvclock_epochoffset(void);
+uint64_t pvclock_read_wall_clock(void);
 
 /* time.c: Timekeeping */
 void time_init(void);

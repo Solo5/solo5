@@ -32,7 +32,7 @@ solo5_time_t solo5_clock_monotonic(void)
 /* Return wall time in nsecs. */
 solo5_time_t solo5_clock_wall(void)
 {
-    return pvclock_monotonic() + pvclock_epochoffset();
+    return pvclock_read_wall_clock();
 }
 
 /*
