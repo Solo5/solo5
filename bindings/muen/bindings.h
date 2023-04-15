@@ -34,14 +34,12 @@
 #include "hvt_abi.h"
 #include "elf_abi.h"
 
-void time_init(const struct hvt_boot_info *bi);
+void time_init(void);
 void console_init(void);
 void net_init(const struct hvt_boot_info *bi);
 void block_init(const struct hvt_boot_info *bi);
 
 /* muen-clock.c: TSC-based clock */
-uint64_t tscclock_monotonic(void);
-int tscclock_init(uint64_t tsc_freq);
 uint64_t tscclock_epochoffset(void);
 
 void process_bootinfo(const void *arg);
