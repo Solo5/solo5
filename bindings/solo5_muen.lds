@@ -25,7 +25,7 @@
  * are unexpected input sections not named here, the result will probably not be
  * correct.
  */
-TEXT_START = 0x100000;
+TEXT_START = 0x200000;
 
 ENTRY(_start)
 
