@@ -22,10 +22,7 @@
 #include "sinfo.h"
 #include "mutimeinfo.h"
 
-static struct time_info_type *time_info;
-
-/* Wall time offset at monotonic time base. */
-static uint64_t wc_epochoffset;
+static volatile struct time_info_type *time_info;
 
 /* Base time values at the last call to clock_monotonic(). */
 static uint64_t time_base;
@@ -58,7 +55,7 @@ uint64_t tscclock_monotonic(void)
 
 int tscclock_init(uint64_t freq __attribute__((unused)))
 {
-    uint64_t tsc_freq;
+    uint64_t tsc_freq, tsc_time_base;
     const struct muen_resource_type *const
         region = muen_get_resource("time_info", MUEN_RES_MEMORY);
 
@@ -69,15 +66,15 @@ int tscclock_init(uint64_t freq __attribute__((unused)))
 
     time_info = (struct time_info_type *)region->data.mem.address;
 
-    wc_epochoffset = 0;
+    tsc_time_base = 0;
     cc_barrier();
 
     /* Wait until time information has been published */
     do
     {
-        wc_epochoffset = time_info->tsc_time_base * 1000;
+        tsc_time_base = time_info->tsc_time_base;
         cc_barrier();
-    } while (wc_epochoffset == 0);
+    } while (tsc_time_base == 0);
 
     tsc_freq = time_info->tsc_tick_rate_hz;
     /*
@@ -94,5 +91,19 @@ int tscclock_init(uint64_t freq __attribute__((unused)))
 
 uint64_t tscclock_epochoffset(void)
 {
-    return wc_epochoffset;
+    const struct time_info_type ti = *time_info;
+
+    return ti.tsc_time_base * 1000;
+}
+
+solo5_time_t solo5_clock_wall(void)
+{
+    solo5_time_t timestamp;
+
+    timestamp = tscclock_epochoffset();
+    if (timestamp != 0) {
+        timestamp += solo5_clock_monotonic();
+    }
+
+    return timestamp;
 }
