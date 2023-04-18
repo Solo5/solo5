@@ -42,7 +42,7 @@ solo5_time_t solo5_clock_wall(void)
     if (use_pvclock)
         return pvclock_monotonic() + pvclock_epochoffset();
     else
-        return tscclock_monotonic() + tscclock_epochoffset();
+        return (rtc_gettimeofday());
 }
 
 static int timer_handler(void *arg __attribute__((unused)))

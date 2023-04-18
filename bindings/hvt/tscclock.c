@@ -20,9 +20,6 @@
 
 #include "bindings.h"
 
-/* Wall clock offset at monotonic time base. */
-static uint64_t wc_epochoffset;
-
 /* Base time values at the last call to tscclock_monotonic(). */
 static uint64_t time_base;
 static uint64_t tsc_base;
@@ -45,7 +42,7 @@ static uint32_t tsc_mult;
 #endif
 
 /*
- * Beturn monotonic time using TSC clock.
+ * Return monotonic time using TSC clock.
  */
 uint64_t tscclock_monotonic(void)
 {
@@ -107,25 +104,5 @@ int tscclock_init(uint64_t tsc_freq)
     tsc_base = READ_CPU_TICKS();
     time_base = mul64_32(tsc_base, tsc_mult, tsc_shift);
 
-    /*
-     * Compute wall clock epoch offset by subtracting monotonic time_base from
-     * wall time at boot.
-     *
-     * TODO: This arrangement minimises the use of hypercalls, but is subject
-     * to clock skew over time and cannot get corrections from the host (via
-     * e.g. NTP). 
-     */
-    struct hvt_hc_walltime t;
-    hvt_do_hypercall(HVT_HYPERCALL_WALLTIME, &t);
-    wc_epochoffset = t.nsecs - time_base;
-
     return 0;
-}
-
-/*
- * Return epoch offset (wall time offset to monotonic clock start).
- */
-uint64_t tscclock_epochoffset(void)
-{
-	return wc_epochoffset;
 }

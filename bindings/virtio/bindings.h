@@ -46,7 +46,7 @@ uint64_t pvclock_epochoffset(void);
 /* tscclock.c: TSC/PIT-based clock and sleep */
 int tscclock_init(void);
 uint64_t tscclock_monotonic(void);
-uint64_t tscclock_epochoffset(void);
+uint64_t rtc_gettimeofday(void);
 void cpu_block(uint64_t until);
 
 /* pci.c: only enumerate for now */

@@ -33,5 +33,7 @@ uint64_t solo5_clock_monotonic(void)
 /* return wall time in nsecs */
 uint64_t solo5_clock_wall(void)
 {
-    return tscclock_monotonic() + tscclock_epochoffset();
+    struct hvt_hc_walltime t;
+    hvt_do_hypercall(HVT_HYPERCALL_WALLTIME, &t);
+    return t.nsecs;
 }
