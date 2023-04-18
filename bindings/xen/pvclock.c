@@ -99,7 +99,7 @@ uint64_t pvclock_monotonic(void)
 /*
  * Read wall time offset since system boot using PV clock.
  */
-uint64_t pvclock_read_wall_clock(void)
+static uint64_t pvclock_read_wall_clock(void)
 {
     uint32_t version;
     uint64_t wc_boot;

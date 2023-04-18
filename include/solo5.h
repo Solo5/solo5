@@ -187,6 +187,9 @@ solo5_result_t solo5_set_tls_base(uintptr_t base);
  * The use of these two clocks should therefore be well defined. One has the
  * advantage of being very fast (but can shift in relation to the real elapsed
  * time). The other is more accurate but requires more resources.
+ *
+ * NOTE: For the muen and xen target, we still use a TSC-based wall-clock. Muen
+ * or Xen are not able to expose an hypercall to know the host's wall-clock.
  */
 
 /*
