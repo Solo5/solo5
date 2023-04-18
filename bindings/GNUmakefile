@@ -55,7 +55,7 @@ virtio_SRCS := virtio/boot.S virtio/start.c $(common_SRCS) \
     virtio/virtio_net.c virtio/virtio_blk.c virtio/tscclock.c \
     virtio/clock_subr.c virtio/pvclock.c 
 
-muen_SRCS := muen/start.c $(common_SRCS) $(common_hvt_SRCS) muen/time.c \
+muen_SRCS := muen/start.c $(common_SRCS) $(common_hvt_SRCS) \
     muen/channel.c muen/reader.c muen/writer.c muen/muen-block.c \
     muen/muen-clock.c muen/muen-console.c muen/muen-net.c \
     muen/muen-platform_lifecycle.c muen/muen-yield.c muen/muen-sinfo.c

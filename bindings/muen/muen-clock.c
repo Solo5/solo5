@@ -22,10 +22,7 @@
 #include "sinfo.h"
 #include "mutimeinfo.h"
 
-static struct time_info_type *time_info;
-
-/* Wall time offset at monotonic time base. */
-static uint64_t wc_epochoffset;
+static volatile struct time_info_type *time_info;
 
 /* Base time values at the last call to clock_monotonic(). */
 static uint64_t time_base;
@@ -38,7 +35,7 @@ static uint32_t tsc_mult;
 static uint64_t current_start = 0;
 static uint64_t min_delta;
 
-uint64_t tscclock_monotonic(void)
+solo5_time_t solo5_clock_monotonic(void)
 {
     const uint64_t next_start = muen_get_sched_start();
     uint64_t tsc_now, tsc_delta;
@@ -56,28 +53,28 @@ uint64_t tscclock_monotonic(void)
     return time_base;
 }
 
-int tscclock_init(uint64_t freq __attribute__((unused)))
+void time_init(void)
 {
-    uint64_t tsc_freq;
+    uint64_t tsc_freq, tsc_time_base;
     const struct muen_resource_type *const
         region = muen_get_resource("time_info", MUEN_RES_MEMORY);
 
     if (!region) {
-        log(WARN, "Unable to retrieve Muen time info region\n");
-        return -1;
+        log(ERROR, "Unable to retrieve Muen time info region\n");
+        return;
     }
 
     time_info = (struct time_info_type *)region->data.mem.address;
 
-    wc_epochoffset = 0;
+    tsc_time_base = 0;
     cc_barrier();
 
     /* Wait until time information has been published */
     do
     {
-        wc_epochoffset = time_info->tsc_time_base * 1000;
+        tsc_time_base = time_info->tsc_time_base;
         cc_barrier();
-    } while (wc_epochoffset == 0);
+    } while (tsc_time_base == 0);
 
     tsc_freq = time_info->tsc_tick_rate_hz;
     /*
@@ -89,10 +86,23 @@ int tscclock_init(uint64_t freq __attribute__((unused)))
     time_base = 0;
     log(INFO, "Solo5: Clock source: Muen PV clock, TSC frequency %llu Hz\n",
         (unsigned long long)tsc_freq);
-    return 0;
 }
 
 uint64_t tscclock_epochoffset(void)
 {
-    return wc_epochoffset;
+    const struct time_info_type ti = *time_info;
+
+    return ti.tsc_time_base * 1000;
+}
+
+solo5_time_t solo5_clock_wall(void)
+{
+    solo5_time_t timestamp;
+
+    timestamp = tscclock_epochoffset();
+    if (timestamp != 0) {
+        timestamp += solo5_clock_monotonic();
+    }
+
+    return timestamp;
 }

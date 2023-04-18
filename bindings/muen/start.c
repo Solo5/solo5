@@ -41,7 +41,7 @@ void _start(void *arg)
     log(INFO, "Solo5: Bindings version %s\n", SOLO5_VERSION);
 
     mem_init();
-    time_init(arg);
+    time_init();
     block_init(arg);
     net_init(arg);
 
