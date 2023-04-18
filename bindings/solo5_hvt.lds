@@ -42,7 +42,7 @@ PHDRS {
     data PT_LOAD;
     tdata PT_LOAD FLAGS(4); /* RO: this have to be copied into each thread */
     tbss PT_TLS FLAGS(0); /* no perm needed */
-    bss PT_NULL FLAGS(0);
+    bss PT_LOAD;
     note.not_openbsd PT_NOTE; /* Must come first. */
     note.abi PT_NOTE;
     note.manifest PT_NOTE;
@@ -119,7 +119,7 @@ SECTIONS {
 
     . = ALIGN(CONSTANT(MAXPAGESIZE));
     /*
-     * tdata and tbss have to be side by side to help the linker caculate the
+     * tdata and tbss have to be side by side to help the linker calculate the
      * various __thread variables offsets.
      */
     .tdata :
