@@ -78,6 +78,7 @@ uintptr_t _solo5_tls_data_offset(uintptr_t tls)
 #if defined(__x86_64__) || defined(__powerpc64__)
     data = tls;
 #elif defined(__aarch64__)
+    data = tls;
     data = data + sizeof(struct tcb);
 #else
 #error Unsupported architecture
