@@ -8,7 +8,8 @@
 * Export TLS symbols (@palainp, @hannesm, @dinosaure, #546)
   **breaking change** due to #542 & #546, tenders must be **upgraded**. Indeed,
   solo5.0.7.* tenders will not be able to load correctly unikernels compiled
-  with solo5.0.8.0.
+  with solo5.0.8.0. The internal ABI version for `solo5-hvt`/`solo5-spt` was
+  upgraded accordingly.
 
   This version implements Thread Local Storage. The user can initialise a TLS
   block with `solo5_tls_init` on a pointer to `solo5_tls_size()` free bytes.
