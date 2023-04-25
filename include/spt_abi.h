@@ -38,7 +38,7 @@
  * in this file.
  */
 
-#define SPT_ABI_VERSION 1
+#define SPT_ABI_VERSION 2
 
 /*
  * Lowest virtual address at which guests can be loaded.
