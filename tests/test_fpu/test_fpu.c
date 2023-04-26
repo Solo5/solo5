@@ -30,7 +30,7 @@ int solo5_app_main(const struct solo5_start_info *si __attribute__((unused)))
 {
     puts("\n**** Solo5 standalone test_fpu ****\n\n");
 
-    float a, b, c[4];
+    float a, b, c[4] __attribute__((aligned(64)));
 
     c[0] = 2.0;
     c[1] = 5.0;
