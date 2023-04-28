@@ -36,6 +36,11 @@
   (@Kensan, @dinosaure, #551, #554)
 * Fix the cross-compilation of Solo5 for `aarch64`
   (@dinosaure, @palainp, @hannes, #555)
+* Increase the Muen ABI (2 to 3) due to TLS changes (@Kensan, #557)
+* Support lifecycle management for Muen (@Kensan, #557)
+  The user is able to configure automatic restarting of unikernels that invokes
+  `solo5_ext()`
+* Fix the `test_fpu` test & ensure the alignment of variables (@Kensan, #557)
 
 ## v0.7.5 (2022-12-07)
 
