@@ -63,7 +63,7 @@ DECLARE_ELF_INTERP
 ABI1_NOTE_DECLARE_BEGIN
 {
     .abi_target = MUEN_ABI_TARGET,
-    .abi_version = 2
+    .abi_version = 3
 }
 ABI1_NOTE_DECLARE_END
 

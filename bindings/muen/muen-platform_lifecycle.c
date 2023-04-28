@@ -19,10 +19,23 @@
  */
 
 #include "bindings.h"
+#include "sinfo.h"
 
 const struct mft *muen_manifest = NULL;
 
 extern const struct mft1_note __solo5_mft1_note;
+
+void trigger_exit_event()
+{
+    const struct muen_resource_type *const
+        event = muen_get_resource("solo5_exit", MUEN_RES_EVENT);
+
+    if (!event) {
+        return;
+    }
+
+    __asm__ __volatile__("vmcall": : "a"(event->data.number) : "memory");
+}
 
 void platform_init(const void *arg)
 {
@@ -47,6 +60,7 @@ void platform_exit(int status __attribute__((unused)),
 {
     const char msg[] = "Solo5: Halted\n";
     platform_puts(msg, strlen(msg));
+    trigger_exit_event();
     __asm__ __volatile__("cli; hlt");
     for (;;);
 }
