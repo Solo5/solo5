@@ -35,7 +35,7 @@
   with `PT_LOAD`. Tenders are available to load this section properly.
   (@Kensan, @dinosaure, #551, #554)
 * Fix the cross-compilation of Solo5 for `aarch64`
-  (@dinosaure, @palainp, @hannes, #555)
+  (@dinosaure, @palainp, @hannesm, #555)
 * Increase the Muen ABI (2 to 3) due to TLS changes (@Kensan, #557)
 * Support lifecycle management for Muen (@Kensan, #557)
   The user is able to configure automatic restarting of unikernels that invokes
