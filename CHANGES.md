@@ -1,3 +1,47 @@
+## v0.8.0 (2023-04-25)
+
+* Be able to build `spt`, `virtio`, `muen` and `xen` targets on OpenBSD
+  (@adamsteen, #544). This change does not allow us to "run" these targets on
+  OpenBSD
+* Fix linker scripts with TLS (Thread Local Storage) sections
+  (@palainp, @hannesm, @dinosaure, #542)
+* Export TLS symbols (@palainp, @hannesm, @dinosaure, #546)
+  **breaking change** due to #542 & #546, tenders must be **upgraded**. Indeed,
+  solo5.0.7.* tenders will not be able to load correctly unikernels compiled
+  with solo5.0.8.0. The internal ABI version for `solo5-hvt`/`solo5-spt` was
+  upgraded accordingly.
+
+  This version implements Thread Local Storage. The user can initialise a TLS
+  block with `solo5_tls_init` on a pointer to `solo5_tls_size()` free bytes.
+  Then, the user is able to set the `tp` (Thread Pointer) pointer via
+  `solo5_set_tls_base(solo5_tls_tp_offset(tls_block))`. More details are
+  available into `solo5.h`.
+
+  Note: this change does not allow a Solo5 unikernel to use multiple cores! It
+  only provides an API required by OCaml 5 / pthread to launch, at most, one
+  thread.
+* Fix tests reported by NixOS (@greydot, @ehmry, #547)
+* Split out the `time.c` implementation between Muen and HVT
+  (@dinosaure, @Kensan, #552)
+* User hypercall instead of TSC-based clock when the user asks for the
+  wall-clock (@dinosaure, @reynir, #549, #550)
+
+  Note: only hvt & virtio are updated to avoid a clock drift on the wall-clock.
+  Indeed, when the unikernel is suspended, the wall-clock is not updated. Muen
+  & Xen still use a TSC-based wall-clock. The spt target was already in sync
+  with the host's wall-clock.
+* Improve the muen clock (@Kensan, #553)
+* Fix the `.bss` section according to #542 & #546. The `.bss` section is tagged
+  with `PT_LOAD`. Tenders are available to load this section properly.
+  (@Kensan, @dinosaure, #551, #554)
+* Fix the cross-compilation of Solo5 for `aarch64`
+  (@dinosaure, @palainp, @hannesm, #555)
+* Increase the Muen ABI (2 to 3) due to TLS changes (@Kensan, #557)
+* Support lifecycle management for Muen (@Kensan, #557)
+  The user is able to configure automatic restarting of unikernels that invokes
+  `solo5_ext()`
+* Fix the `test_fpu` test & ensure the alignment of variables (@Kensan, #557)
+
 ## v0.7.5 (2022-12-07)
 
 * Since MirageOS moved from PV mode to PVH on Xen, and thus replacing Mini-OS
