@@ -89,6 +89,46 @@ Limited:
   purpose of providing low-level bootstrap code to MirageOS and do not provide
   any network or block I/O functionality.
 
+# Building a unikernel
+
+Solo5 can be installed via [`opam`](https://opam.ocaml.org) and provides a
+_toolchain_ which can be used to compile a simple program as a unikernel.
+
+```sh
+$ opam install solo5
+$ eval $(opam env)
+$ cat >main.c <<EOF
+int solo5_app_main(const struct solo5_start_info *info) {
+  return 0;
+}
+EOF
+$ export ARCH=x86_64 # can be changed to aarch64
+$ $ARCH-solo5-none-static-cc -c main.c -o main.o
+$ cat >manifest.json <<EOF
+{
+  "type": "solo5.manifest",
+  "version", 1,
+  "devices": []
+}
+EOF
+$ solo5-elftool gen-manifest manifest.json manifest.c
+$ $ARCH-solo5-none-static-cc -c manifest.c -o manifest.o
+$ $ARCH-solo5-none-static-ld manifest.o main.o -o main.hvt
+$ solo5-hvt main.hvt
+            |      ___|
+  __|  _ \  |  _ \ __ \
+\__ \ (   | | (   |  ) |
+____/\___/ _|\___/____/
+Solo5: Bindings version v0.7.5
+Solo5: Memory map: 512 MB addressable:
+Solo5:   reserved @ (0x0 - 0xfffff)
+Solo5:       text @ (0x100000 - 0x103fff)
+Solo5:     rodata @ (0x104000 - 0x105fff)
+Solo5:       data @ (0x106000 - 0x10afff)
+Solo5:       heap >= 0x10b000 < stack < 0x20000000
+Solo5: solo5_exit(0) called
+```
+
 # Running Solo5-based unikernels
 
 Solo5 itself does not provide a high-level mangement or orchestration layer for
