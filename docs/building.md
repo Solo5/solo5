@@ -98,6 +98,7 @@ _toolchain_ which can be used to compile a simple program as a unikernel.
 $ opam install solo5
 $ eval $(opam env)
 $ cat >main.c <<EOF
+#include <solo5.h>
 int solo5_app_main(const struct solo5_start_info *info) {
   return 0;
 }
@@ -107,13 +108,13 @@ $ $ARCH-solo5-none-static-cc -c main.c -o main.o
 $ cat >manifest.json <<EOF
 {
   "type": "solo5.manifest",
-  "version", 1,
+  "version": 1,
   "devices": []
 }
 EOF
 $ solo5-elftool gen-manifest manifest.json manifest.c
 $ $ARCH-solo5-none-static-cc -c manifest.c -o manifest.o
-$ $ARCH-solo5-none-static-ld manifest.o main.o -o main.hvt
+$ $ARCH-solo5-none-static-ld -z solo5-abi=hvt manifest.o main.o -o main.hvt
 $ solo5-hvt main.hvt
             |      ___|
   __|  _ \  |  _ \ __ \
