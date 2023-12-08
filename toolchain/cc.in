@@ -62,6 +62,9 @@ for arg do
     fi
 
     case "$arg" in
+        -dumpmachine)
+            M=dump
+            ;;
         -c|-S|-E)
             M=compile
             ;;
@@ -75,6 +78,10 @@ for arg do
     set -- "$@" "$arg"
 done
 case ${M} in
+    dump)
+        [ -n "${__V}" ] && set -x
+        exec @@CONFIG_TARGET_CC@@ -dumpmachine
+        ;;
     compile)
         [ -n "${__V}" ] && set -x
         exec @@CONFIG_TARGET_CC@@ \
