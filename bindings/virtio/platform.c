@@ -107,10 +107,9 @@ void platform_exit(int status __attribute__((unused)),
      */
     outw(0x501, 41);
 
-    /*
-     * If we got here, there is no way to initiate "shutdown" on virtio without
-     * ACPI, so just halt.
-     */
+    pci_acpi_poweroff();
+
+    /* If we got here, ACPI poweroff wasn't supported. So just halt. */
     platform_puts("Solo5: Halted\n", 14);
     cpu_halt();
 }
