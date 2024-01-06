@@ -142,7 +142,7 @@ void solo5_abort(void) __attribute__((noreturn));
 /*
  * Returns the size needed for the thread local storage.
  */
-size_t solo5_tls_size();
+size_t solo5_tls_size(void);
 
 /*
  * Returns the tp base address for the TLS block.

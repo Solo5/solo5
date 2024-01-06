@@ -51,7 +51,7 @@ extern char _ltdata[], _ltbss[];
 #error Unsupported architecture
 #endif
 
-size_t solo5_tls_size()
+size_t solo5_tls_size(void)
 {
     return (LTDATA + LTBSS + sizeof(struct tcb));
 }
