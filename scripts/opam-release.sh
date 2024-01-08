@@ -3,6 +3,9 @@
 # This script is used to generate OPAM metadata for publishing a Solo5 release
 # to ocaml/opam-repository. It should be run from the root of a clean, tagged
 # Solo5 git repository.
+# From Makefile.commmon, the '-Werror' should be removed for the tag of the
+# release, to avoid failures with future C compilers (which may add new
+# warnings).
 
 if [ ! -d "./opam" ]; then
     echo "ERROR: missing ./opam. Run this from the root of a Solo5 repository."
@@ -16,6 +19,13 @@ if ! echo "$GIT_VERSION" | egrep -q '^v[0-9]+.[0-9]+.[0-9]+$'; then
     echo "WARNING: Not a clean Git release: $GIT_VERSION"
     echo "WARNING: This is almost certainly not what you want."
     DEV=~dev
+fi
+
+WERROR=$(git grep -c ' -Werror' Makefile.common | cut -d ':' -f 2)
+if [ "$WERROR" -gt 0 ]; then
+    echo "WARNING: There are occurences of '-Werror' in 'Makefile.common'."
+    echo "WARNING: This is almost certainly not what you want."
+    exit 1
 fi
 
 TARBALL="solo5-${GIT_VERSION}.tar.gz"
