@@ -163,6 +163,10 @@ int hvt_vcpu_loop(struct hvt *hvt)
 {
     struct hvt_b *hvb = hvt->b;
     int ret;
+#if __FreeBSD_version >= 1400000
+    struct vm_exit vmexit;
+    hvb->vmrun.vm_exit = &vmexit;
+#endif
 
     while (1) {
         ret = ioctl(hvt->b->vmfd, VM_RUN, &hvb->vmrun);
@@ -178,7 +182,11 @@ int hvt_vcpu_loop(struct hvt *hvt)
         if (handled)
             continue;
 
+#if __FreeBSD_version >= 1400000
+        struct vm_exit *vme = &vmexit;
+#else
         struct vm_exit *vme = &hvb->vmrun.vm_exit;
+#endif
 
         switch (vme->exitcode) {
         case VM_EXITCODE_INOUT: {
