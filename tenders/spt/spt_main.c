@@ -146,13 +146,11 @@ int main(int argc, char **argv)
      * which will be the ELF file to load. Stop if a "terminal" option such as
      * --help is encountered.
      */
-    int argc1 = argc;
     char **argv1 = argv;
     while (*argv1 && *argv1[0] == '-') {
         if (strcmp("--", *argv1) == 0)
         {
             /* Consume and stop option processing */
-            argc1--;
             argv1++;
             break;
         }
@@ -162,7 +160,6 @@ int main(int argc, char **argv)
         else if(strcmp("--version", *argv1) == 0)
             version(prog);
 
-        argc1--;
         argv1++;
     }
     if (*argv1 == NULL) {
