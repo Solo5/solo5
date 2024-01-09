@@ -23,8 +23,8 @@ fi
 
 WERROR=$(git grep -c ' -Werror' Makefile.common | cut -d ':' -f 2)
 if [ "$WERROR" -gt 0 ]; then
-    echo "WARNING: There are occurences of '-Werror' in 'Makefile.common'."
-    echo "WARNING: This is almost certainly not what you want."
+    echo "ERROR: There are occurences of '-Werror' in 'Makefile.common'."
+    echo "ERROR: This is almost certainly not what you want."
     exit 1
 fi
 
