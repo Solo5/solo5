@@ -105,7 +105,7 @@ solo5_result_t solo5_block_read(solo5_handle_t handle U, solo5_off_t offset U,
     return SOLO5_R_EUNSPEC;
 }
 
-size_t solo5_tls_size()
+size_t solo5_tls_size(void)
 {
     return 0;
 }
