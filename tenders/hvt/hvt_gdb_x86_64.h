@@ -26,18 +26,9 @@
 #define HVT_GDB_X86_64_H
 
 /*
- * XXX: Can't find any gdb include file with the list of registers per
- * architecture (something like ia64_regs.h).  The closest I can get is a
- * list of the registers from gdb (debugging an ordinary x86_64 binary):
- *
- * (gdb) info registers
- * rax            0x0	0
- * rbx            0x0	0
- * rcx            0x0	0
- * ...
- * fs             0x0	0
- * gs             0x0	0
- * (gdb)
+ * XXX: While there is no header file in GDB to include here,
+ * the register structure is described in XML here:
+ * https://sourceware.org/git/?p=binutils-gdb.git;a=blob;f=gdb/features/i386/64bit-core.xml;h=5cbae2c0ef489699fa6c6e8ed07f5fe6d3b8a6b6;hb=HEAD
  */
 
 struct hvt_gdb_regs {
@@ -58,7 +49,8 @@ struct hvt_gdb_regs {
     uint64_t r14;
     uint64_t r15;
     uint64_t rip;
-    uint64_t eflags;
+    // In GDB wire protocol, EFLAGS is 32 bits.
+    uint32_t eflags;
 
     uint32_t cs;
     uint32_t ss;
