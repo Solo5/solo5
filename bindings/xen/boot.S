@@ -231,3 +231,5 @@ mxcsr_ptr:
  */
 .space 4096
 bootstack:
+
+.section .note.GNU-stack,"",%progbits

@@ -528,3 +528,5 @@ cpu_pdpt:
 cpu_pml4:
 	.quad cpu_pdpt + 0x3
 	.fill 0x1ff, 0x8, 0x0
+
+.section .note.GNU-stack,"",%progbits
