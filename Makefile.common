@@ -60,7 +60,7 @@ HOSTCFLAGS := -fstack-protector-strong -Wall -Werror -std=c11 -O2 -g
 HOSTCPPFLAGS := -I$(TOPDIR)/include
 HOSTLDFLAGS :=
 HOSTLDLIBS :=
-HOSTAR := ar
+HOSTAR := $(CONFIG_HOST_AR)
 
 define HOSTCOMPILE.c
 	@echo "HOSTCC $@"
