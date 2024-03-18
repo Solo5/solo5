@@ -201,3 +201,5 @@ ENTRY(_newstack)
 	cli
 	hlt
 END(_newstack)
+
+.section .note.GNU-stack,"",%progbits
