@@ -1,3 +1,14 @@
+## v0.8.1 (2024-04-05)
+
+* Update the documentation about how to use Solo5 (@fabbing, @dinosaure,
+  @Kensan, #558)
+* Fix few warnings about the new introduced TLS support (@greydot, #563)
+* Prevent the release if we get some errors with `-Werror` (@hannesm, @palainp,
+  #565)
+* Fix the `gdb` support and the `EFLAGS` register (@greydot, @reynir, #567)
+* Fix few warnings and errors on FreeBSD 14 (@hannesm, #564)
+* Allow to pass `HOSTAR` and `HOST_PKG_CONFIG` for the NixOS support (@sternenseemann, #508)
+
 ## v0.8.0 (2023-04-25)
 
 * Be able to build `spt`, `virtio`, `muen` and `xen` targets on OpenBSD
