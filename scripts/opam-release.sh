@@ -15,7 +15,7 @@ fi
 GIT_VERSION=$(git -C . describe --dirty --tags --always)
 
 DEV=
-if ! echo "$GIT_VERSION" | egrep -q '^v[0-9]+.[0-9]+.[0-9]+$'; then
+if ! echo "$GIT_VERSION" | grep -q -E '^v[0-9]+.[0-9]+.[0-9]+$'; then
     echo "WARNING: Not a clean Git release: $GIT_VERSION"
     echo "WARNING: This is almost certainly not what you want."
     DEV=~dev
