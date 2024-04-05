@@ -53,23 +53,29 @@ distrib-gen-version-h:
 	@echo "GEN $(VERSION_H).distrib"
 	scripts/gen_version_h.sh $(VERSION_H).distrib
 
+delete-werror:
+	sed -i -e 's/-Werror//g' Makefile.common
+
 # The following target should be used to generate a release tarball of Solo5.
 # The tarball will be generated from the currently checked-out branch. Note that
 # some files related to CI or E2E tests are deliberately not included, see
 # .gitattributes for a list.
 .PHONY: distrib
-distrib: GIT_VERSION = $(shell git -C . describe --dirty --tags --always)
+distrib: GIT_VERSION = $(shell git -C . describe --tags --always)
 distrib: GIT_OLDBRANCH = $(shell git rev-parse --abbrev-ref HEAD)
-distrib: distrib-gen-version-h
+distrib: distrib-gen-version-h delete-werror
 	git checkout -b distrib/$(GIT_VERSION)
 	git add $(VERSION_H).distrib
+	git add Makefile.common
 	git commit -m "Release tarball for $(GIT_VERSION)"
 	@echo DISTRIB solo5-$(GIT_VERSION).tar.gz
 	git archive --format=tar.gz --prefix=solo5-$(GIT_VERSION)/ \
 	    distrib/$(GIT_VERSION) >solo5-$(GIT_VERSION).tar.gz
+	GIT_VERSION=$(GIT_VERSION) ./scripts/opam-release.sh
 	-git checkout $(GIT_OLDBRANCH)
 	-git branch -D distrib/$(GIT_VERSION)
 	$(RM) $(VERSION_H).distrib
+	git checkout -- Makefile.common
 
 $(SUBDIRS):
 	@echo "MAKE $@"

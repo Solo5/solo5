@@ -12,7 +12,8 @@ if [ ! -d "./opam" ]; then
     exit 1
 fi
 
-GIT_VERSION=$(git -C . describe --dirty --tags --always)
+echo $GIT_VERSION
+GIT_VERSION=${GIT_VERSION:-$(git -C . describe --tags --always)}
 
 DEV=
 if ! echo "$GIT_VERSION" | grep -q -E '^v[0-9]+.[0-9]+.[0-9]+$'; then
@@ -22,7 +23,7 @@ if ! echo "$GIT_VERSION" | grep -q -E '^v[0-9]+.[0-9]+.[0-9]+$'; then
 fi
 
 WERROR=$(git grep -c ' -Werror' Makefile.common | cut -d ':' -f 2)
-if [ "$WERROR" -gt 0 ]; then
+if [ -n "$WERROR" ]; then
     echo "ERROR: There are occurences of '-Werror' in 'Makefile.common'."
     echo "ERROR: This is almost certainly not what you want."
     exit 1
