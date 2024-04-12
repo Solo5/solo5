@@ -284,6 +284,15 @@ case ${HOST_CC_MACHINE} in
     amd64-*openbsd*)
         CONFIG_HOST_ARCH=x86_64 CONFIG_HOST=OpenBSD
         CONFIG_HVT_TENDER=1
+        echo "${prog_NAME}: Checking for dev/vmm/vmm.h availability: "
+        if CC="${HOST_CC}" PKG_CFLAGS="" \
+            cc_check_header sys/types.h machine/vmmvar.h dev/vmm/vmm.h; then
+            echo "yes"
+            echo "#define HAVE_VMM_H 1" >tenders/hvt/hvt_openbsd_config.h
+        else
+            echo "no"
+            echo "#undef HAVE_VMM_H" >tenders/hvt/hvt_openbsd_config.h
+        fi
         ;;
     *)
         die "Unsupported host toolchain: ${HOST_CC_MACHINE}"
