@@ -51,6 +51,11 @@
 #include "hvt_openbsd.h"
 #include "hvt_cpu_x86_64.h"
 
+/* XCR0_X87 is the pre-7.5 name for XFEATURE_X87 */
+#ifndef XFEATURE_X87
+#define XFEATURE_X87 XCR0_X87
+#endif
+
 static struct vcpu_segment_info sreg_to_vsi(const struct x86_sreg *);
 
 static uint64_t get_tsc_freq(void)
@@ -129,7 +134,7 @@ void hvt_vcpu_init(struct hvt *hvt, hvt_gpa_t gpa_ep)
             .vrs_msrs[VCPU_REGS_CSTAR] = 0ULL,
             .vrs_msrs[VCPU_REGS_SFMASK] = 0ULL,
             .vrs_msrs[VCPU_REGS_KGSBASE] = 0ULL,
-            .vrs_crs[VCPU_REGS_XCR0] = XCR0_X87
+            .vrs_crs[VCPU_REGS_XCR0] = XFEATURE_X87
         }
     };
 
