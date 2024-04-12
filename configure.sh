@@ -109,14 +109,16 @@ EOM
 
 cc_check_header()
 {
-    ${CC} ${PKG_CFLAGS} -x c -o /dev/null - <<EOM >/dev/null 2>&1
-#include <$@>
+    (
+        for h in "$@"; do echo "#include <$h>"; done
+        cat << EOM
 
 int main(int argc, char *argv[])
 {
     return 0;
 }
 EOM
+    ) | ${CC} ${PKG_CFLAGS} -x c -o /dev/null - >/dev/null 2>&1
 }
 
 cc_check_lib()
