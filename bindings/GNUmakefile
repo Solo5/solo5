@@ -65,6 +65,7 @@ xen_SRCS := xen/boot.S xen/start.c $(common_SRCS) \
     xen/evtchn.c xen/time.c xen/pvclock.c xen/stubs.c
 
 CPPFLAGS+=-D__SOLO5_BINDINGS__
+CPPFLAGS+=-ffile-prefix-map=${TOPDIR}=.
 
 ifeq ($(CONFIG_TARGET_ARCH), x86_64)
 # Prevent the compiler from adding optimizations that use shared FPU state.
