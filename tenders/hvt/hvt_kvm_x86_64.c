@@ -116,7 +116,7 @@ void hvt_vcpu_init(struct hvt *hvt, hvt_gpa_t gpa_ep)
     if (ret != 1)
         errx(1, "KVM: host does not support KVM_CAP_GET_TSC_KHZ");
     int tsc_khz = ioctl(hvb->vcpufd, KVM_GET_TSC_KHZ);
-    if (tsc_khz == -1) {
+    if (tsc_khz < 0) {
         if (errno == EIO)
             errx(1, "KVM: host TSC is unstable, cannot continue");
         else

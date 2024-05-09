@@ -75,7 +75,7 @@
 #define X86_CR4_VMXE            _BITUL(X86_CR4_VMXE_BIT)
 
 /*
- * Intel SDM section 23.8 "Restrictions on VMX Operation" seems to imply that
+ * Intel SDM section 24.8 "Restrictions on VMX Operation" seems to imply that
  * X86_CR4_VMXE should be set on VMENTRY to support old processors, however KVM
  * (but not FreeBSD vmm) does not like us setting this bit. Leave it cleared
  * for now and revisit later.
