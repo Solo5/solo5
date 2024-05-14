@@ -146,7 +146,7 @@ kvm|qemu)
     hv_addargs -m ${MEM}
 
     # Kill all default devices provided by QEMU, we don't need them.
-    hv_addargs -nodefaults -no-acpi
+    hv_addargs -nodefaults -machine acpi=off
 
     # Console. We could use just "-nograhic -vga none", however that MUXes the
     # QEMU monitor on stdio which requires ^Ax to exit. This makes things look
