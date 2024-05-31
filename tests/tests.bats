@@ -97,7 +97,7 @@ setup_block() {
 }
 
 hvt_run() {
-  run ${TIMEOUT} --foreground 60s "${HVT_TENDER}" --mem=2 "$@"
+  run ${TIMEOUT} --foreground 60s "${HVT_TENDER}" --mem=4096 "$@"
 }
 
 spt_run() {
