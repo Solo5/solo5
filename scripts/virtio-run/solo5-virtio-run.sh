@@ -58,20 +58,77 @@ is_quiet ()
     [ -n "${QUIET}" ]
 }
 
+qemu_add_device ()
+{
+    DEVICE=$1
+    PCI_SLOT=$2
+    PS_HEX=$(printf "%x" ${PCI_SLOT})
+
+    OLDIFS=$IFS
+    IFS=:
+    set -- ${D}
+    IFS=$OLDIFS
+
+    TYPE=$1
+    NAME="$2"
+    shift; shift
+
+    case $TYPE in
+    BLK)
+        hv_addargs -drive id=drive${PCI_SLOT},file="${NAME}",if=none,format=raw
+        hv_addargs -device virtio-blk,drive=drive${PCI_SLOT},addr=0x${PS_HEX},bus=pci.0
+        ;;
+    NET)
+        hv_addargs -device virtio-net,netdev=n${PCI_SLOT},addr=0x${PS_HEX},bus=pci.0
+        hv_addargs -netdev tap,id=n${PCI_SLOT},ifname="${NAME}",script=no,downscript=no
+        ;;
+    *)
+        die "Unknown device type"
+        ;;
+    esac
+}
+
+bhyve_add_device ()
+{
+    DEVICE=$1
+    PCI_SLOT=$2
+
+    OLDIFS=$IFS
+    IFS=:
+    set -- ${D}
+    IFS=$OLDIFS
+
+    TYPE=$1
+    NAME="$2"
+    shift; shift
+
+    case $TYPE in
+    BLK)
+        hv_addargs -s ${PCI_SLOT}:0,virtio-blk,"${NAME}"
+        ;;
+    NET)
+        hv_addargs -s ${PCI_SLOT}:0,virtio-net,"${NAME}"
+        ;;
+    *)
+        die "Unknown device type"
+        ;;
+    esac
+}
+
 # Parse command line arguments.
 ARGS=$(getopt d:m:n:qH: $*)
 [ $? -ne 0 ] && usage
 set -- $ARGS
 MEM=128
 HV=best
-NETIF=
-BLKIMG=
+DEVICES=
 QUIET=
 while true; do
     case "$1" in
     -d)
         BLKIMG=$(readlink -f $2)
         [ -f ${BLKIMG} ] || die "not found: ${BLKIMG}"
+        DEVICES="${DEVICES} BLK:${BLKIMG}"
         shift; shift
         ;;
     -m)
@@ -87,6 +144,7 @@ while true; do
         ip a show ${NETIF} >/dev/null 2>&1 ||
             ifconfig ${NETIF} >/dev/null 2>&1 ||
             die "no such network interface: ${NETIF}"
+    	DEVICES="${DEVICES} NET:${NETIF}"
         shift; shift
         ;;
     -q)
@@ -154,15 +212,15 @@ kvm|qemu)
     # solo5-hvt.
     hv_addargs -display none -serial stdio
 
-    # Network
-    if [ -n "${NETIF}" ]; then
-        hv_addargs -device virtio-net,netdev=n0
-        hv_addargs -netdev tap,id=n0,ifname=${NETIF},script=no,downscript=no
-    fi
-    # Disk
-    if [ -n "${BLKIMG}" ]; then
-        hv_addargs -drive file=${BLKIMG},if=virtio,format=raw
-    fi
+    # Slots 0 and 1 are already used.
+    PCI_SLOT=2
+
+    for D in ${DEVICES}; do
+        qemu_add_device $D ${PCI_SLOT}
+        # The maximum PCI slot is 31. We don't check this as qemu will fail
+        # with a more helpful message.
+        PCI_SLOT=$((PCI_SLOT+1))
+    done
 
     # Used by automated tests on QEMU (see kernel/virtio/platform.c).
     hv_addargs -device isa-debug-exit
@@ -198,14 +256,16 @@ bhyve)
     TTYB=/dev/nmdm$$B
     hv_addargs -l com1,${TTYB}
     
-    # Network
-    if [ -n "${NETIF}" ]; then
-        hv_addargs -s 2:0,virtio-net,${NETIF}
-    fi
-    # Disk
-    if [ -n "${BLKIMG}" ]; then
-        hv_addargs -s 3:0,virtio-blk,${BLKIMG}
-    fi
+
+    # Slots 0 and 1 are already used.
+    PCI_SLOT=2
+
+    for D in ${DEVICES}; do
+        bhyve_add_device $D ${PCI_SLOT}
+        # The maximum PCI slot is 31. We don't check this as bhyve will fail
+        # with a more helpful message.
+        PCI_SLOT=$((PCI_SLOT+1))
+    done
 
     hv_addargs ${VMNAME}
 

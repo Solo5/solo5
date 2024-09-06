@@ -49,11 +49,29 @@ void _start(void *arg)
 }
 
 extern const struct mft1_note __solo5_mft1_note;
+
 /*
  * Will be initialised at start-up, and used by bindings to access (and
  * modify!) the in-built manifest.
  */
 struct mft *virtio_manifest = NULL;
+
+/* Will abort the program if any of the devices is not acquired. */
+static void mft_check_all_acquired()
+{
+    bool fail = false;
+    for (unsigned i = 0; i != virtio_manifest->entries; i++) {
+        if (!virtio_manifest->e[i].attached) {
+            log(WARN, "Solo5: Device '%s' of type %s not attached.",
+                    virtio_manifest->e[i].name, mft_type_to_string(virtio_manifest->e[i].type));
+            fail = true;
+        }
+    }
+    if (fail) {
+        log(ERROR, "Solo5: All declared devices must be attached. Aborting.\n");
+        solo5_abort();
+    }
+}
 
 static void _start2(void *arg __attribute__((unused)))
 {
@@ -75,14 +93,18 @@ static void _start2(void *arg __attribute__((unused)))
     size_t mft_size;
     mft_get_builtin_mft1_unconst(&__solo5_mft1_note, &mft, &mft_size);
     if (mft_validate(mft, mft_size) != 0) {
-	log(ERROR, "Solo5: Built-in manifest validation failed. Aborting.\n");
-	solo5_abort();
+	    log(ERROR, "Solo5: Built-in manifest validation failed. Aborting.\n");
+	    solo5_abort();
     }
     virtio_manifest = mft;
 
     mem_init();
     time_init();
-    pci_enumerate();
+    if (pci_enumerate() != 0) {
+	    log(ERROR, "Solo5: PCI enumeration failed. Aborting.\n");
+	    solo5_abort();
+    }
+    mft_check_all_acquired();
     cpu_intr_enable();
 
     mem_lock_heap(&si.heap_start, &si.heap_size);

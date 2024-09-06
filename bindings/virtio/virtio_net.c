@@ -28,9 +28,28 @@
 #define VIRTIO_NET_F_MAC (1 << 5) /* Host has given MAC address. */
 
 #define PKT_BUFFER_LEN 1526
+#define VIRTIO_NET_MTU 1500
 
-static struct virtq recvq;
-static struct virtq xmitq;
+extern struct mft *virtio_manifest;
+
+struct virtio_net_desc {
+    uint16_t pci_base; /* base in PCI config space */
+    struct virtq xmitq;
+    struct virtq recvq;
+    uint8_t net_mac[6];
+    uint16_t mtu;
+    solo5_handle_t handle;
+};
+
+#define VIRTIO_NET_MAX_ENTRIES  MFT_MAX_ENTRIES
+static struct virtio_net_desc nd_table[VIRTIO_NET_MAX_ENTRIES];
+static unsigned nd_num_entries = 0;
+
+#if MFT_MAX_ENTRIES > 64
+#error "Can not hold more than 64 devices in virtio_set_t"
+#endif
+
+typedef uint64_t virtio_set_t;
 
 #define VIRTQ_RECV 0
 #define VIRTQ_XMIT 1
@@ -56,25 +75,22 @@ struct __attribute__((__packed__)) virtio_net_hdr {
     uint16_t csum_offset;        /* Offset after that to place checksum */
 };
 
-static uint16_t virtio_net_pci_base; /* base in PCI config space */
-
-static uint8_t virtio_net_mac[6];
 static char virtio_net_mac_str[18];
 
 static bool net_configured;
-static bool net_acquired;
-static solo5_handle_t net_handle;
-extern struct mft *virtio_manifest;
 
 static int handle_virtio_net_interrupt(void *);
 
 /* WARNING: called in interrupt context */
-int handle_virtio_net_interrupt(void *arg __attribute__((unused)))
+int handle_virtio_net_interrupt(void *arg)
 {
+    struct virtio_net_desc *nd = (struct virtio_net_desc *)arg;
     uint8_t isr_status;
 
+    assert(nd != NULL);
+
     if (net_configured) {
-        isr_status = inb(virtio_net_pci_base + VIRTIO_PCI_ISR);
+        isr_status = inb(nd->pci_base + VIRTIO_PCI_ISR);
         if (isr_status & VIRTIO_PCI_ISR_HAS_INTR) {
             /* This interrupt is just to kick the application out of any
              * solo5_poll() that may be running. */
@@ -84,38 +100,39 @@ int handle_virtio_net_interrupt(void *arg __attribute__((unused)))
     return 0;
 }
 
-static void recv_setup(void)
+static void recv_setup(struct virtio_net_desc *nd)
 {
-    uint16_t mask = recvq.num - 1;
+    uint16_t mask = nd->recvq.num - 1;
     do {
         struct io_buffer *buf; /* header and data in a single descriptor */
-        buf = &recvq.bufs[recvq.next_avail & mask];
+        buf = &nd->recvq.bufs[nd->recvq.next_avail & mask];
         memset(buf->data, 0, PKT_BUFFER_LEN);
         buf->len = PKT_BUFFER_LEN;
         buf->extra_flags = VIRTQ_DESC_F_WRITE;
-        assert(virtq_add_descriptor_chain(&recvq,
-                                          recvq.next_avail & mask, 1) == 0);
-    } while ((recvq.next_avail & mask) != 0);
+        assert(virtq_add_descriptor_chain(&nd->recvq,
+                                          nd->recvq.next_avail & mask, 1) == 0);
+    } while ((nd->recvq.next_avail & mask) != 0);
 
-    outw(virtio_net_pci_base + VIRTIO_PCI_QUEUE_NOTIFY, VIRTQ_RECV);
+    outw(nd->pci_base + VIRTIO_PCI_QUEUE_NOTIFY, VIRTQ_RECV);
 }
 
 /* performance note: we perform a copy into the xmit buffer */
-int virtio_net_xmit_packet(const void *data, size_t len)
+int virtio_net_xmit_packet(struct virtio_net_desc *nd,
+                           const void *data, size_t len)
 {
-    uint16_t mask = xmitq.num - 1;
+    uint16_t mask = nd->xmitq.num - 1;
     uint16_t head;
     struct io_buffer *head_buf, *data_buf;
     int r;
 
     /* Consume used descriptors from all the previous tx'es. */
-    for (; xmitq.last_used != xmitq.used->idx; xmitq.last_used++)
-        xmitq.num_avail += 2; /* 2 descriptors per chain */
+    for (; nd->xmitq.last_used != nd->xmitq.used->idx; nd->xmitq.last_used++)
+        nd->xmitq.num_avail += 2; /* 2 descriptors per chain */
 
     /* next_avail is incremented by virtq_add_descriptor_chain below. */
-    head = xmitq.next_avail & mask;
-    head_buf = &xmitq.bufs[head];
-    data_buf = &xmitq.bufs[(head + 1) & mask];
+    head = nd->xmitq.next_avail & mask;
+    head_buf = &nd->xmitq.bufs[head];
+    data_buf = &nd->xmitq.bufs[(head + 1) & mask];
 
     /* The header buf */
     memset(head_buf->data, 0, sizeof(struct virtio_net_hdr));
@@ -128,14 +145,15 @@ int virtio_net_xmit_packet(const void *data, size_t len)
     data_buf->len = len;
     data_buf->extra_flags = 0;
 
-    r = virtq_add_descriptor_chain(&xmitq, head, 2);
+    r = virtq_add_descriptor_chain(&nd->xmitq, head, 2);
 
-    outw(virtio_net_pci_base + VIRTIO_PCI_QUEUE_NOTIFY, VIRTQ_XMIT);
+    outw(nd->pci_base + VIRTIO_PCI_QUEUE_NOTIFY, VIRTQ_XMIT);
 
     return r;
 }
 
-void virtio_config_network(struct pci_config_info *pci)
+static void virtio_net_config(struct virtio_net_desc *nd,
+                              struct pci_config_info *pci)
 {
     uint32_t host_features, guest_features;
     size_t pgs;
@@ -170,17 +188,17 @@ void virtio_config_network(struct pci_config_info *pci)
     outl(pci->base + VIRTIO_PCI_GUEST_FEATURES, guest_features);
 
     for (int i = 0; i < 6; i++) {
-        virtio_net_mac[i] = inb(pci->base + VIRTIO_PCI_CONFIG_OFF + i);
+        nd->net_mac[i] = inb(pci->base + VIRTIO_PCI_CONFIG_OFF + i);
     }
     snprintf(virtio_net_mac_str,
              sizeof(virtio_net_mac_str),
              "%02x:%02x:%02x:%02x:%02x:%02x",
-             virtio_net_mac[0],
-             virtio_net_mac[1],
-             virtio_net_mac[2],
-             virtio_net_mac[3],
-             virtio_net_mac[4],
-             virtio_net_mac[5]);
+             nd->net_mac[0],
+             nd->net_mac[1],
+             nd->net_mac[2],
+             nd->net_mac[3],
+             nd->net_mac[4],
+             nd->net_mac[5]);
     log(INFO, "Solo5: PCI:%02x:%02x: configured, mac=%s, features=0x%x\n",
         pci->bus, pci->dev, virtio_net_mac_str, host_features);
 
@@ -190,23 +208,24 @@ void virtio_config_network(struct pci_config_info *pci)
      * device's virtio configuration space, and population of virtqueues.
      */
 
-    virtq_init_rings(pci->base, &recvq, VIRTQ_RECV);
-    virtq_init_rings(pci->base, &xmitq, VIRTQ_XMIT);
+    virtq_init_rings(pci->base, &nd->recvq, VIRTQ_RECV);
+    virtq_init_rings(pci->base, &nd->xmitq, VIRTQ_XMIT);
 
-    pgs = (((recvq.num * sizeof (struct io_buffer)) - 1) >> PAGE_SHIFT) + 1;
-    recvq.bufs = mem_ialloc_pages(pgs);
-    assert(recvq.bufs);
-    memset(recvq.bufs, 0, pgs << PAGE_SHIFT);
+    pgs = (((nd->recvq.num * sizeof (struct io_buffer)) - 1) >> PAGE_SHIFT) + 1;
+    nd->recvq.bufs = mem_ialloc_pages(pgs);
+    assert(nd->recvq.bufs);
+    memset(nd->recvq.bufs, 0, pgs << PAGE_SHIFT);
 
-    pgs = (((recvq.num * sizeof (struct io_buffer)) - 1) >> PAGE_SHIFT) + 1;
-    xmitq.bufs = mem_ialloc_pages(pgs);
-    assert(xmitq.bufs);
-    memset(xmitq.bufs, 0, pgs << PAGE_SHIFT);
+    pgs = (((nd->recvq.num * sizeof (struct io_buffer)) - 1) >> PAGE_SHIFT) + 1;
+    nd->xmitq.bufs = mem_ialloc_pages(pgs);
+    assert(nd->xmitq.bufs);
+    memset(nd->xmitq.bufs, 0, pgs << PAGE_SHIFT);
 
-    virtio_net_pci_base = pci->base;
+    nd->pci_base = pci->base;
+    nd->mtu = VIRTIO_NET_MTU;
     net_configured = 1;
-    intr_register_irq(pci->irq, handle_virtio_net_interrupt, NULL);
-    recv_setup();
+    intr_register_irq(pci->irq, handle_virtio_net_interrupt, nd);
+    recv_setup(nd);
 
     /*
      * We don't need to get interrupts every time the device uses our
@@ -215,7 +234,7 @@ void virtio_config_network(struct pci_config_info *pci)
      * Interrupt").
      */
 
-    xmitq.avail->flags |= VIRTQ_AVAIL_F_NO_INTERRUPT;
+    nd->xmitq.avail->flags |= VIRTQ_AVAIL_F_NO_INTERRUPT;
 
     /*
      * 8. Set the DRIVER_OK status bit. At this point the device is "live".
@@ -224,26 +243,34 @@ void virtio_config_network(struct pci_config_info *pci)
     outb(pci->base + VIRTIO_PCI_STATUS, VIRTIO_PCI_STATUS_DRIVER_OK);
 }
 
-/* Returns 1 if there is a pending used descriptor for us to read. */
-int virtio_net_pkt_poll(void)
+/* Returns 1 if there is a pending used descriptors for us to read.
+FIXME: palainp, the description does not match the behaviour of the function */
+static void virtio_net_pkt_poll(virtio_set_t *ready_set)
 {
-    if (!net_configured)
-        return 0;
+    unsigned idx;
+    *ready_set = 0;
 
-    /* The device increments used->idx whenever it uses a packet (i.e. it put
-     * a packet on our receive queue) and if it's ahead of last_used it means
-     * that we have a pending packet. */
-    if (recvq.last_used == recvq.used->idx)
-        return 0;
-    else
-        return 1;
+    if (!net_configured)
+        return;
+
+    assert(nd_num_entries < VIRTIO_NET_MAX_ENTRIES);
+
+    for (idx = 0; idx < nd_num_entries; idx++) {
+        struct virtio_net_desc *nd = &nd_table[idx];
+        /* The device increments used->idx whenever it uses a packet (i.e. it
+         * put a packet on our receive queue) and if it's ahead of last_used
+         * it means that we have a pending packet. */
+        if (nd->recvq.last_used != nd->recvq.used->idx)
+            *ready_set |= 1ULL << idx;
+    }
 }
 
 /* Get the data from the next_avail (top-most) receive buffer/descriptpr in
  * the available ring. */
-uint8_t *virtio_net_recv_pkt_get(size_t *size)
+static uint8_t *virtio_net_recv_pkt_get(struct virtio_net_desc *nd,
+        size_t *size)
 {
-    uint16_t mask = recvq.num - 1;
+    uint16_t mask = nd->recvq.num - 1;
     struct virtq_used_elem *e;
     struct io_buffer *buf;
     uint16_t desc_idx;
@@ -251,13 +278,13 @@ uint8_t *virtio_net_recv_pkt_get(size_t *size)
     /* The device increments used->idx whenever it uses a packet (i.e. it put
      * a packet on our receive queue) and if it's ahead of last_used it means
      * that we have a pending packet. */
-    if (recvq.last_used == recvq.used->idx)
+    if (nd->recvq.last_used == nd->recvq.used->idx)
         return NULL;
 
-    e = &(recvq.used->ring[recvq.last_used & mask]);
+    e = &(nd->recvq.used->ring[nd->recvq.last_used & mask]);
     desc_idx = e->id;
 
-    buf = (struct io_buffer *) recvq.desc[desc_idx].addr;
+    buf = (struct io_buffer *) nd->recvq.desc[desc_idx].addr;
     buf->len = e->len;
 
     /* Remove the virtio_net_hdr */
@@ -267,55 +294,96 @@ uint8_t *virtio_net_recv_pkt_get(size_t *size)
 
 /* Return the next_avail (top-most) receive buffer/descriptor to the available
  * ring. */
-void virtio_net_recv_pkt_put(void)
+static void virtio_net_recv_pkt_put(struct virtio_net_desc *nd)
 {
-    uint16_t mask = recvq.num - 1;
-    recvq.bufs[recvq.next_avail & mask].len = PKT_BUFFER_LEN;
-    recvq.bufs[recvq.next_avail & mask].extra_flags = VIRTQ_DESC_F_WRITE;
+    uint16_t mask = nd->recvq.num - 1;
+    nd->recvq.bufs[nd->recvq.next_avail & mask].len = PKT_BUFFER_LEN;
+    nd->recvq.bufs[nd->recvq.next_avail & mask].extra_flags = VIRTQ_DESC_F_WRITE;
 
     /* This sets the returned descriptor to be ready for incoming packets, and
      * advances the next_avail index. */
-    assert(virtq_add_descriptor_chain(&recvq, recvq.next_avail & mask, 1) == 0);
-    outw(virtio_net_pci_base + VIRTIO_PCI_QUEUE_NOTIFY, VIRTQ_RECV);
+    assert(virtq_add_descriptor_chain(&nd->recvq, nd->recvq.next_avail & mask, 1) == 0);
+    outw(nd->pci_base + VIRTIO_PCI_QUEUE_NOTIFY, VIRTQ_RECV);
 }
 
-/*
- * FIXME: This is a single-device implementation of the new manifest-based
- * APIs. On virtio, this call has the following semantics:
- *
- * 1. The first call to solo5_net_acquire() asking for a handle to a valid
- *    network device (one specified in the application manifest) will succeed,
- *    and return a handle for the sole virtio network device.
- * 2. All subsequent calls will return an error.
- *
- * Note that the presence of a virtio network device is registered during boot
- * in (net_configured), and the initial acquisition by solo5_net_acquire() is
- * registered in (net_acquired).
- */
+int virtio_config_network(struct pci_config_info *pci, solo5_handle_t mft_index)
+{
+    unsigned nd_index = nd_num_entries;
+
+    if (nd_index >= MFT_MAX_ENTRIES) {
+        log(WARN, "Solo5: Virtio net: PCI:%02x:%02x not configured: "
+            "too many devices\n", pci->bus, pci->dev);
+        return -1;
+    }
+
+    struct mft_entry *e = mft_get_by_index(virtio_manifest,
+            mft_index, MFT_DEV_NET_BASIC);
+    if (e == NULL) {
+        log(WARN, "Solo5: Virtio net: PCI:%02x:%02x not in manifest\n",
+             pci->bus, pci->dev);
+        return -1;
+    }
+
+    struct virtio_net_desc *nd = &nd_table[nd_index];
+
+    virtio_net_config(nd, pci);
+    e->u.net_basic.mtu = nd->mtu;
+    e->b.hostfd = nd_index;
+    memcpy(e->u.net_basic.mac, nd->net_mac, sizeof e->u.net_basic.mac);
+    /*
+     * We need to map virtio net descriptors to solo5 handles in order to
+     * convert virtio ready sets to solo5 ready sets (in virtio_to_handle_set).
+     */
+    nd->handle = mft_index;
+    e->attached = true;
+
+    nd_num_entries++;
+    return 0;
+}
+
 solo5_result_t solo5_net_acquire(const char *name, solo5_handle_t *h,
         struct solo5_net_info *info)
 {
-    if (!net_configured || net_acquired)
+    unsigned mft_index;
+    struct mft_entry *mft_e;
+
+    if (!net_configured)
         return SOLO5_R_EUNSPEC;
 
-    unsigned mft_index;
-    struct mft_entry *mft_e = mft_get_by_name(virtio_manifest, name,
-            MFT_DEV_NET_BASIC, &mft_index);
+    mft_e = mft_get_by_name(virtio_manifest, name, MFT_DEV_NET_BASIC, &mft_index);
     if (mft_e == NULL)
         return SOLO5_R_EINVAL;
-    net_handle = mft_index;
-    net_acquired = true;
 
-    memcpy(info->mac_address, virtio_net_mac, sizeof info->mac_address);
-    info->mtu = 1500;
+    memcpy(info->mac_address, mft_e->u.net_basic.mac, sizeof info->mac_address);
+    info->mtu = mft_e->u.net_basic.mtu;
     *h = mft_index;
     log(INFO, "Solo5: Application acquired '%s' as network device\n", name);
     return SOLO5_R_OK;
 }
 
+/*
+ * Convert the set of virtio devices to a set of solo5 handles.
+ * XXX: consider filtering out the handles that were not acquired.
+ */
+solo5_handle_set_t virtio_to_handle_set(virtio_set_t virtio_set)
+{
+    solo5_handle_set_t handle_set = 0;
+    unsigned idx;
+
+    assert(nd_num_entries < VIRTIO_NET_MAX_ENTRIES);
+
+    for (idx = 0; idx < nd_num_entries; idx++) {
+        if (virtio_set & (1ULL << idx)) {
+            solo5_handle_t handle = nd_table[idx].handle;
+            handle_set |= 1ULL << handle;
+        }
+    }
+    return handle_set;
+}
+
 void solo5_yield(solo5_time_t deadline, solo5_handle_set_t *ready_set)
 {
-    solo5_handle_set_t tmp_ready_set = 0;
+    virtio_set_t virtio_set = 0;
 
     /*
      * cpu_block() as currently implemented will only poll for the maximum time
@@ -324,16 +392,21 @@ void solo5_yield(solo5_time_t deadline, solo5_handle_set_t *ready_set)
      */
     cpu_intr_disable();
     do {
-        if (net_acquired && virtio_net_pkt_poll()) {
-            tmp_ready_set |= 1UL << net_handle;
+        virtio_net_pkt_poll(&virtio_set);
+        if (virtio_set != 0)
             break;
-        }
 
         cpu_block(deadline);
     } while (solo5_clock_monotonic() < deadline);
-    if (!tmp_ready_set && net_acquired && virtio_net_pkt_poll())
-        tmp_ready_set |= 1UL << net_handle;
+    if (virtio_set == 0)
+        virtio_net_pkt_poll(&virtio_set);
     cpu_intr_enable();
+
+    solo5_handle_set_t tmp_ready_set;
+    if (virtio_set != 0)
+        tmp_ready_set = virtio_to_handle_set(virtio_set);
+    else
+        tmp_ready_set = 0;
 
     if (ready_set)
         *ready_set = tmp_ready_set;
@@ -342,47 +415,64 @@ void solo5_yield(solo5_time_t deadline, solo5_handle_set_t *ready_set)
 solo5_result_t solo5_net_write(solo5_handle_t h, const uint8_t *buf,
         size_t size)
 {
-    if (!net_acquired || h != net_handle)
+    struct mft_entry *e = mft_get_by_index(virtio_manifest, h, MFT_DEV_NET_BASIC);
+    if (e == NULL)
         return SOLO5_R_EINVAL;
 
-    int rv = virtio_net_xmit_packet(buf, size);
+    assert(e->attached);
+    assert(e->b.hostfd < VIRTIO_NET_MAX_ENTRIES);
+
+    int rv = virtio_net_xmit_packet(&nd_table[e->b.hostfd], buf, size);
     return (rv == 0) ? SOLO5_R_OK : SOLO5_R_EUNSPEC;
 }
 
-solo5_result_t solo5_net_read(solo5_handle_t h, uint8_t *buf, size_t size,
-        size_t *read_size)
+/* Returns 0 if a packet was read, -1 if there is there is no pending packet. */
+static int virtio_net_recv(struct virtio_net_desc *nd, uint8_t *buf,
+        size_t size, size_t *read_size)
 {
     uint8_t *pkt;
     size_t len = size;
 
-    if (!net_acquired || h != net_handle)
-        return SOLO5_R_EINVAL;
 
     /* We only need interrupts to wake up the application when it's sleeping
      * and waiting for incoming packets. The app is definitely not doing that
      * now (as we are here), so disable them. */
-    recvq.avail->flags |= VIRTQ_AVAIL_F_NO_INTERRUPT;
 
-    pkt = virtio_net_recv_pkt_get(&len);
+    nd->recvq.avail->flags |= VIRTQ_AVAIL_F_NO_INTERRUPT;
+
+    pkt = virtio_net_recv_pkt_get(nd, &len);
     if (!pkt) {
-        recvq.avail->flags &= ~VIRTQ_AVAIL_F_NO_INTERRUPT;
-        return SOLO5_R_AGAIN;
+        nd->recvq.avail->flags &= ~VIRTQ_AVAIL_F_NO_INTERRUPT;
+        return -1;
     }
 
     assert(len <= size);
     assert(len <= PKT_BUFFER_LEN);
     *read_size = len;
-
     /* also, it's clearly not zero copy */
     memcpy(buf, pkt, len);
 
     /* Consume the recently used descriptor. */
-    recvq.last_used++;
-    recvq.num_avail++;
+    nd->recvq.last_used++;
+    nd->recvq.num_avail++;
 
-    virtio_net_recv_pkt_put();
+    virtio_net_recv_pkt_put(nd);
 
-    recvq.avail->flags &= ~VIRTQ_AVAIL_F_NO_INTERRUPT;
+    nd->recvq.avail->flags &= ~VIRTQ_AVAIL_F_NO_INTERRUPT;
 
-    return SOLO5_R_OK;
+    return 0;
+}
+
+solo5_result_t solo5_net_read(solo5_handle_t h, uint8_t *buf, size_t size,
+        size_t *read_size)
+{
+    struct mft_entry *e = mft_get_by_index(virtio_manifest, h, MFT_DEV_NET_BASIC);
+    if (e == NULL)
+        return SOLO5_R_EINVAL;
+
+    assert(e->attached);
+    assert(e->b.hostfd < VIRTIO_NET_MAX_ENTRIES);
+
+    int rv = virtio_net_recv(&nd_table[e->b.hostfd], buf, size, read_size);
+    return (rv == 0) ? SOLO5_R_OK : SOLO5_R_AGAIN;
 }
