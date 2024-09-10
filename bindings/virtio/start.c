@@ -93,16 +93,27 @@ static void _start2(void *arg __attribute__((unused)))
     size_t mft_size;
     mft_get_builtin_mft1_unconst(&__solo5_mft1_note, &mft, &mft_size);
     if (mft_validate(mft, mft_size) != 0) {
-	    log(ERROR, "Solo5: Built-in manifest validation failed. Aborting.\n");
-	    solo5_abort();
+        log(ERROR, "Solo5: Built-in manifest validation failed. Aborting.\n");
+        solo5_abort();
     }
     virtio_manifest = mft;
+
+    /*
+     * Attach the first entry if its type is really MFT_RESERVED_FIRST.
+     * Abort otherwise.
+     */
+    struct mft_entry *e = mft_get_by_index(virtio_manifest, 0, MFT_RESERVED_FIRST);
+    if (e == NULL) {
+        log(ERROR, "Solo5: first entry in manifest is not of type MFT_RESERVED_FIRST\n");
+        solo5_abort();
+    }
+    e->attached = true;
 
     mem_init();
     time_init();
     if (pci_enumerate() != 0) {
-	    log(ERROR, "Solo5: PCI enumeration failed. Aborting.\n");
-	    solo5_abort();
+        log(ERROR, "Solo5: PCI enumeration failed. Aborting.\n");
+        solo5_abort();
     }
     mft_check_all_acquired();
     cpu_intr_enable();

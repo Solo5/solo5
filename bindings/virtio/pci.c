@@ -53,7 +53,12 @@
 } while (0)
 
 
-static solo5_handle_t mft_index = 0;
+/* in tenders/common/mft.c:
+ * The manifest must contain at least one entry, and the first entry must
+ * be of type MFT_RESERVED_FIRST with an empty name.
+ * -> Therefore we need to start mft_index at 1
+ */
+static solo5_handle_t mft_index = 1;
 #define PCI_CONF_SUBSYS_NET 1
 #define PCI_CONF_SUBSYS_BLK 2
 
@@ -63,7 +68,6 @@ static solo5_handle_t mft_index = 0;
  */
 static int virtio_config(struct pci_config_info *pci)
 {
-    /* we only support one net device and one blk device */
     switch (pci->subsys_id) {
     case PCI_CONF_SUBSYS_NET:
         log(INFO, "Solo5: PCI:%02x:%02x: virtio-net device, base=0x%x, irq=%u\n",
