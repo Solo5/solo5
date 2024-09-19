@@ -107,6 +107,12 @@ void solo5_yield(solo5_time_t deadline, solo5_handle_set_t *ready_set)
         }
     };
     /*
+     * Ensure that it.it_value is always non-zero, otherwise the following
+     * epoll_wait() will hang if there are no other descriptors in the waitset
+     * due to the timer never firing. See timefd_settime(2).
+     */
+    it.it_value.tv_nsec |= 1;
+    /*
      * On spt, given that Solo5 monotonic time is identical to CLOCK_MONOTONIC,
      * we can just pass the deadline into the timerfd as an absolute timeout,
      * saving a clock_gettime() call in the process.
