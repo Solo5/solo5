@@ -184,8 +184,6 @@ static int setup(struct hvt *hvt, struct mft *mft)
     for (unsigned i = 0; i != mft->entries; i++) {
         if (mft->e[i].type != MFT_DEV_BLOCK_BASIC || !mft->e[i].attached)
             continue;
-        if (mft->e[i].u.block_basic.block_size == 0)
-            mft->e[i].u.block_basic.block_size = 512;
 
         /*
          * We now set default block_size if needed, and check that the capacity
