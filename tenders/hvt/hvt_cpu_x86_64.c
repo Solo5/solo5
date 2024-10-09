@@ -52,6 +52,11 @@ void hvt_x86_setup_pagetables(uint8_t *mem, size_t mem_size)
     uint64_t *pde = (uint64_t *)(mem + X86_PDE_BASE);
     uint64_t *pt0e = (uint64_t *)(mem + X86_PT0E_BASE);
     uint64_t paddr;
+    /*
+     * See Intel SDM Volume 3A, section 4.5 "4-Level Paging and 5-Level Paging"
+     * and Figure 4-9. "Linear-Address Translation to a 2-MByte Page using
+     * 4-Level Paging"
+     */
 
     /*
      * We currently use 2MB pages.  Sanity check that the guest size is a
