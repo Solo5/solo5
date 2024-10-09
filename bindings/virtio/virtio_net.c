@@ -243,8 +243,7 @@ static void virtio_net_config(struct virtio_net_desc *nd,
     outb(pci->base + VIRTIO_PCI_STATUS, VIRTIO_PCI_STATUS_DRIVER_OK);
 }
 
-/* Returns 1 if there is a pending used descriptors for us to read.
-FIXME: palainp, the description does not match the behaviour of the function */
+/* Set ready for each net interface if there is pending data to read. */
 static void virtio_net_pkt_poll(virtio_set_t *ready_set)
 {
     unsigned idx;
