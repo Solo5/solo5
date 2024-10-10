@@ -75,7 +75,7 @@ struct hvt *hvt_init(size_t mem_size)
     if (hvb->vcpurun == MAP_FAILED)
         err(1, "KVM: VCPU mmap failed");
 
-    /* XXX(reynir): probably very unlikely to fail... */
+    /* (reynir, 2024-05-08): probably very unlikely to fail... */
     ret = ioctl(hvb->kvmfd, KVM_CHECK_EXTENSION, KVM_CAP_USER_MEMORY);
     if (ret == -1)
         err(1, "KVM: ioctl (KVM_CHECK_EXTENSION) failed");
