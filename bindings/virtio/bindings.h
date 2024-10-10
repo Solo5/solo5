@@ -59,15 +59,9 @@ struct pci_config_info {
     uint8_t irq;
 };
 
-void pci_enumerate(void);
+int pci_enumerate(void);
 
-/* virtio.c: mostly net for now */
-void virtio_config_network(struct pci_config_info *);
-void virtio_config_block(struct pci_config_info *);
-
-uint8_t *virtio_net_pkt_get(size_t *size);  /* get a pointer to recv'd data */
-void virtio_net_pkt_put(void);      /* we're done with recv'd data */
-int virtio_net_xmit_packet(const void *data, size_t len);
-int virtio_net_pkt_poll(void);      /* test if packet(s) are available */
+int virtio_config_network(struct pci_config_info *, solo5_handle_t);
+int virtio_config_block(struct pci_config_info *, solo5_handle_t);
 
 #endif /* __VIRTIO_BINDINGS_H__ */

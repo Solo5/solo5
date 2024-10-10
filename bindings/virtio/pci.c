@@ -53,44 +53,61 @@
 } while (0)
 
 
-static uint32_t net_devices_found;
-static uint32_t blk_devices_found;
-
+/* in tenders/common/mft.c:
+ * The manifest must contain at least one entry, and the first entry must
+ * be of type MFT_RESERVED_FIRST with an empty name.
+ * -> Therefore we need to start mft_index at 1
+ */
+static solo5_handle_t mft_index = 1;
 #define PCI_CONF_SUBSYS_NET 1
 #define PCI_CONF_SUBSYS_BLK 2
 
-static void virtio_config(struct pci_config_info *pci)
+/*
+ * mft_index tracks the order in which devices are found (given by the
+ * PCI slots). This is used to map found devices to devices in the manifest.
+ */
+static int virtio_config(struct pci_config_info *pci)
 {
-    /* we only support one net device and one blk device */
     switch (pci->subsys_id) {
     case PCI_CONF_SUBSYS_NET:
         log(INFO, "Solo5: PCI:%02x:%02x: virtio-net device, base=0x%x, irq=%u\n",
             pci->bus, pci->dev, pci->base, pci->irq);
-        if (!net_devices_found++)
-            virtio_config_network(pci);
-        else
-            log(WARN, "Solo5: PCI:%02x:%02x: not configured\n", pci->bus,
-                pci->dev);
+        if (virtio_config_network(pci, mft_index) != 0)
+            return -1;
+        mft_index++;
         break;
     case PCI_CONF_SUBSYS_BLK:
         log(INFO, "Solo5: PCI:%02x:%02x: virtio-block device, base=0x%x, irq=%u\n",
             pci->bus, pci->dev, pci->base, pci->irq);
-        if (!blk_devices_found++)
-            virtio_config_block(pci);
-        else
-            log(WARN, "Solo5: PCI:%02x:%02x: not configured\n", pci->bus,
-                pci->dev);
+        if (virtio_config_block(pci, mft_index) != 0)
+            return -1;
+        mft_index++;
         break;
     default:
+        /* Most likely this is something like a virtio_scsi device
+           that we can not handle. Let's not handle nor count it
+           in pci_virtio_index. */
         log(WARN, "Solo5: PCI:%02x:%02x: unknown virtio device (0x%x)\n",
             pci->bus, pci->dev, pci->subsys_id);
-        return;
     }
+    return 0;
 }
 
 #define VENDOR_QUMRANET_VIRTIO 0x1af4
 
-void pci_enumerate(void)
+/*
+ * Every PCI device found in pci_enumerate is attempted to be assigned to a
+ * device from the application manifest in the order in which they are found. This
+ * order is given by the PCI slot number which is controlled in
+ * solo5-virtio-run.sh.
+ * 
+ * This funtion can fail if the type of a device just found does not match the
+ * type of the next expected device in the manifest. Devices whose type (e.g.,
+ * virtio_scsi) is unknown is just skipped.
+ * 
+ * Returns 0 on success, -1 otherwise.
+ */
+int pci_enumerate(void)
 {
     uint32_t bus;
     uint8_t dev;
@@ -116,8 +133,10 @@ void pci_enumerate(void)
                 PCI_CONF_READ(uint16_t, &pci.base, config_addr, IOBAR);
                 PCI_CONF_READ(uint8_t, &pci.irq, config_addr, IRQ);
 
-                virtio_config(&pci);
+                if (virtio_config(&pci) != 0)
+                    return -1;
             }
         }
     }
+    return 0;
 }
