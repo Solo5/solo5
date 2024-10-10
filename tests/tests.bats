@@ -623,7 +623,7 @@ xen_expect_abort() {
   expect_success
 }
 
-test "net_2if virtio" {
+@test "net_2if virtio" {
   [ $(id -u) -ne 0 ] && skip "Need root to run this test, for ping -f"
   [ "${CONFIG_HOST}" = "OpenBSD" ] && skip "breaks on OpenBSD due to #374"
 

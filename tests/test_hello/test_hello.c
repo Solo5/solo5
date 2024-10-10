@@ -40,8 +40,10 @@ int solo5_app_main(const struct solo5_start_info *si)
 
     puts("'\n");
 
-    /* "Hello_Solo5" will be passed in via the command line */
-    if (strcmp(si->cmdline, "Hello_Solo5") == 0)
+    /* "Hello_Solo5" will be passed at the end of the command line
+     * NOTE: on hvt, we only have "Hello_Solo5", on Xen and Virtio, we have the
+     * name of the executable. */
+    if (strcmp(si->cmdline + len - 11, "Hello_Solo5") == 0)
         puts("SUCCESS\n");
 
     return SOLO5_EXIT_SUCCESS;

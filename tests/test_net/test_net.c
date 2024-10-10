@@ -374,12 +374,25 @@ static bool ping_serve(void)
     return true;
 }
 
+int is_alpha(char chr) {
+    return ((chr >= 0x61 && chr <= 0x7a) || (chr >= 0x41 && chr <= 0x5a));
+}
+
 int solo5_app_main(const struct solo5_start_info *si)
 {
     puts("\n**** Solo5 standalone test_net ****\n\n");
 
-    if (strlen(si->cmdline) >= 1) {
-        switch (si->cmdline[0]) {
+    /* NOTE: Since #584 & #517, [cmdline] contains the name of the executable
+     * for Xen and Virtio - but it's not the case for [hvt]. We must look from
+     * the end of [cmdline] the argument given to the unikernel in any cases. */
+    size_t len = strlen(si->cmdline);
+    const char *p = si->cmdline + len - 1;
+
+    while (p != si->cmdline && is_alpha(*p)) p--;
+    if (strlen(p) >= 1 && p[0] == ' ') p++;
+
+    if (strlen(p) >= 1) {
+        switch (p[0]) {
         case 'v':
             opt_verbose = true;
             break;
