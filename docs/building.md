@@ -178,6 +178,9 @@ cd /dev
 ifconfig tap100 inet 10.0.0.1 netmask 255.255.255.0
 ```
 
+In case your unikernel needs to access internet (which is not the case in this
+example), you may need to add "ip forwarding" and a NAT to your host system.
+
 ## _hvt_: Running on Linux, FreeBSD and OpenBSD with hardware virtualization
 
 The _hvt_ ("hardware virtualized tender") target supports Linux, FreeBSD and
