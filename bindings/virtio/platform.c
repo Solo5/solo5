@@ -39,6 +39,18 @@ void platform_init(const void *arg)
         char *mi_cmdline = (char *)(uint64_t)mi->cmdline;
         size_t cmdline_len = strlen(mi_cmdline);
 
+        /*
+         * Skip the first token in the cmdline as it is an opaque "name" for
+         * the kernel coming from the bootloader.
+         */
+        for (; *mi_cmdline; mi_cmdline++, cmdline_len--) {
+            if (*mi_cmdline == ' ') {
+                mi_cmdline++;
+                cmdline_len--;
+                break;
+            }
+        }
+
         if (cmdline_len >= sizeof(cmdline)) {
             cmdline_len = sizeof(cmdline) - 1;
             log(WARN, "Solo5: warning: command line too long, truncated\n");
