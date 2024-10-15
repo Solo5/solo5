@@ -1,3 +1,18 @@
+## v0.9.0 (2024-10-11)
+
+* Fetch `stdadomic.h` from system on FreeBSD (#574, @shym, @hannesm)
+* Improve documentation about NAT & deployement (#575, @panglesd, @reynir)
+* Ensure reproducibility of installed objects (#576, @dinosaure)
+* Allow 4GB of memory for the unikernel (#577, @mato, @reynir, @Kensan,
+  @hannesm)
+* Fix error path execution about unstable TSC from system (#578, @reynir,
+  @hannesm)
+* `-no-acpi` is deprecated, use `-machine acpi=off` (#579, @wegank)
+* Fix yield on `spt` target (#582, @reynir, @Firobe)
+* Delete redundant check (#583, @hannesm, @PizieDust)
+* Multiple net devices for `virtio` targets (#581, @ricarkol, @palainp, @reynir,
+  @hannesm)
+
 ## v0.8.1 (2024-04-05)
 
 * Update the documentation about how to use Solo5 (@fabbing, @dinosaure,
@@ -7,7 +22,8 @@
   #565)
 * Fix the `gdb` support and the `EFLAGS` register (@greydot, @reynir, #567)
 * Fix few warnings and errors on FreeBSD 14 (@hannesm, #564)
-* Allow to pass `HOSTAR` and `HOST_PKG_CONFIG` for the NixOS support (@sternenseemann, #508)
+* Allow to pass `HOSTAR` and `HOST_PKG_CONFIG` for the NixOS support
+  (@sternenseemann, #508)
 
 ## v0.8.0 (2023-04-25)
 
@@ -536,7 +552,8 @@ High-level user-visible changes in this release:
 * Support for building the `virtio` backend on FreeBSD.
 * The `virtio` drivers are now stable and tested on QEMU/KVM, FreeBSD/bhyve and
   Google Compute Engine.
-* A new option (`--net-mac`) for specifying a user-defined MAC address to `ukvm`.
+* A new option (`--net-mac`) for specifying a user-defined MAC address to
+  `ukvm`.
 * A new script [solo5-mkimage.sh](tools/mkimage/solo5-mkimage.sh) for building
   MBR-partitioned disk images with a bootloader and Solo5 (`virtio` backed)
   unikernel, with integrated support for building images for Google Compute
