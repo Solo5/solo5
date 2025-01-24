@@ -72,7 +72,8 @@ if CC=${CONFIG_TARGET_CC} cc_is_clang; then
         FreeBSD|OpenBSD)
             SRCDIR=/usr/include
             SRCS="float.h stddef.h stdint.h stdbool.h stdarg.h"
-            [ "${CONFIG_HOST}" = "FreeBSD" ] && SRCS="${SRCS} stdatomic.h"
+            [ "${CONFIG_HOST}" = "FreeBSD" ] && \
+                SRCS="${SRCS} stdalign.h stdatomic.h"
             DEPS="$(mktemp)"
             CC=${CONFIG_TARGET_CC} cc_get_header_deps ${SRCDIR} ${SRCS} \
                 >${DEPS} || \
