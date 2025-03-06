@@ -47,3 +47,4 @@ unikernels (a.k.a.  library operating systems).
 This package provides the Solo5 components needed to build and
 run MirageOS unikernels on the host system.
 """
+x-maintenance-intent: [ "(latest)" ]
