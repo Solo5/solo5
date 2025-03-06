@@ -39,3 +39,4 @@ unikernels (a.k.a.  library operating systems).
 This package provides the Solo5 components needed to cross-build
 MirageOS unikernels for the aarch64 architecture.
 """
+x-maintenance-intent: [ "(latest)" ]
