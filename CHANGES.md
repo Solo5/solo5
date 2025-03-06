@@ -1,3 +1,7 @@
+## v0.9.1 (2025-03-06)
+
+* Fetch `stdalign.h` from system on FreeBSD (#590, @shym, @dinosaure)
+
 ## v0.9.0 (2024-10-11)
 
 * Fetch `stdadomic.h` from system on FreeBSD (#574, @shym, @hannesm)
