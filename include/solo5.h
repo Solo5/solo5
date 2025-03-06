@@ -176,7 +176,7 @@ solo5_result_t solo5_set_tls_base(uintptr_t base);
  * The monotonic clock corresponds to the CPU time spent since the boot time.
  * The monotonic cannot be relied upon to provide accurate results — unless
  * great care is taken to correct the possible flaws. Indeed, if the
- * microkernel is suspended by le système hôte, the monotonic clock will no
+ * microkernel is suspended by the host system, the monotonic clock will no
  * longer be aligned with the "real time elapsed" since the boot.
  *
  * The wall clock corresponds to the host's clock. Indeed, each time
