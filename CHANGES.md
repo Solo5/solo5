@@ -1,6 +1,7 @@
 ## v0.9.1 (2025-03-06)
 
 * Fetch `stdalign.h` from system on FreeBSD (#590, @shym, @dinosaure)
+* Fix the documentation about clocks (sorry for my french) by @dinosaure in #591
 
 ## v0.9.0 (2024-10-11)
 
