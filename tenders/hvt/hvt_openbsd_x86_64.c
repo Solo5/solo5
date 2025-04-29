@@ -196,6 +196,7 @@ int hvt_vcpu_loop(struct hvt *hvt)
 
                     hvt_gpa_t gpa = vei->vei.vei_data;
                     fn(hvt, gpa);
+                    vei->vrs.vrs_gprs[VCPU_REGS_RIP] += vei->vei.vei_insn_len;
                     break;
 #if defined(VMM_IOC_MPROTECT_EPT)
                 case VMX_EXIT_EPT_VIOLATION:
