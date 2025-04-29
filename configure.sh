@@ -485,11 +485,11 @@ case ${CONFIG_HOST} in
         ;;
     OpenBSD)
         TARGET_LD="${TARGET_LD:-ld.lld}"
-        TARGET_OBJCOPY="${TARGET_OBJCOPY:-objcopy}"
+        TARGET_OBJCOPY="${TARGET_OBJCOPY:-llvm-objcopy}"
         # [LLD] OpenBSD's LLD needs to be explicitly told not to produce PIE
         # executables.
-        TARGET_CC_LDFLAGS="-Wl,-nopie"
-        TARGET_LD_LDFLAGS="-nopie"
+        TARGET_CC_LDFLAGS="-Wl,-nopie,--no-execute-only"
+        TARGET_LD_LDFLAGS="-nopie --no-execute-only"
         TARGET_CC_CFLAGS="-fno-emulated-tls"
         ;;
     *)
