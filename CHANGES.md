@@ -1,3 +1,8 @@
+## v0.9.2 (2025-07-15)
+
+- Send FPU info to GDB in HVT server (@greydot, #571)
+- Support of OpenBSD 7.5 (@shym, @adamsteen, @omegametabroccolo, #573)
+
 ## v0.9.1 (2025-03-06)
 
 * Fetch `stdalign.h` from system on FreeBSD (#590, @shym, @dinosaure)
