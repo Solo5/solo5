@@ -109,14 +109,16 @@ EOM
 
 cc_check_header()
 {
-    ${CC} ${PKG_CFLAGS} -x c -o /dev/null - <<EOM >/dev/null 2>&1
-#include <$@>
+    (
+        for h in "$@"; do echo "#include <$h>"; done
+        cat << EOM
 
 int main(int argc, char *argv[])
 {
     return 0;
 }
 EOM
+    ) | ${CC} ${PKG_CFLAGS} -x c -o /dev/null - >/dev/null 2>&1
 }
 
 cc_check_lib()
@@ -282,6 +284,15 @@ case ${HOST_CC_MACHINE} in
     amd64-*openbsd*)
         CONFIG_HOST_ARCH=x86_64 CONFIG_HOST=OpenBSD
         CONFIG_HVT_TENDER=1
+        echo "${prog_NAME}: Checking for dev/vmm/vmm.h availability: "
+        if CC="${HOST_CC}" PKG_CFLAGS="" \
+            cc_check_header sys/types.h machine/vmmvar.h dev/vmm/vmm.h; then
+            echo "yes"
+            echo "#define HAVE_VMM_H 1" >tenders/hvt/hvt_openbsd_config.h
+        else
+            echo "no"
+            echo "#undef HAVE_VMM_H" >tenders/hvt/hvt_openbsd_config.h
+        fi
         ;;
     *)
         die "Unsupported host toolchain: ${HOST_CC_MACHINE}"
@@ -474,11 +485,11 @@ case ${CONFIG_HOST} in
         ;;
     OpenBSD)
         TARGET_LD="${TARGET_LD:-ld.lld}"
-        TARGET_OBJCOPY="${TARGET_OBJCOPY:-objcopy}"
+        TARGET_OBJCOPY="${TARGET_OBJCOPY:-llvm-objcopy}"
         # [LLD] OpenBSD's LLD needs to be explicitly told not to produce PIE
         # executables.
-        TARGET_CC_LDFLAGS="-Wl,-nopie"
-        TARGET_LD_LDFLAGS="-nopie"
+        TARGET_CC_LDFLAGS="-Wl,-nopie,--no-execute-only"
+        TARGET_LD_LDFLAGS="-nopie --no-execute-only"
         TARGET_CC_CFLAGS="-fno-emulated-tls"
         ;;
     *)

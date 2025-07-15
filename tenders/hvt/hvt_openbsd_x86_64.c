@@ -42,9 +42,19 @@
 #include <machine/vmmvar.h>
 #include <machine/specialreg.h>
 
+#include "hvt_openbsd_config.h"
+#ifdef HAVE_VMM_H
+#include <dev/vmm/vmm.h>
+#endif
+
 #include "hvt.h"
 #include "hvt_openbsd.h"
 #include "hvt_cpu_x86_64.h"
+
+/* XCR0_X87 is the pre-7.5 name for XFEATURE_X87 */
+#ifndef XFEATURE_X87
+#define XFEATURE_X87 XCR0_X87
+#endif
 
 static struct vcpu_segment_info sreg_to_vsi(const struct x86_sreg *);
 
@@ -124,7 +134,7 @@ void hvt_vcpu_init(struct hvt *hvt, hvt_gpa_t gpa_ep)
             .vrs_msrs[VCPU_REGS_CSTAR] = 0ULL,
             .vrs_msrs[VCPU_REGS_SFMASK] = 0ULL,
             .vrs_msrs[VCPU_REGS_KGSBASE] = 0ULL,
-            .vrs_crs[VCPU_REGS_XCR0] = XCR0_X87
+            .vrs_crs[VCPU_REGS_XCR0] = XFEATURE_X87
         }
     };
 
@@ -154,11 +164,8 @@ int hvt_vcpu_loop(struct hvt *hvt)
 
     vrp->vrp_vm_id = hvb->vcp_id;
     vrp->vrp_vcpu_id = hvb->vcpu_id;
-    vrp->vrp_continue = 0;
 
     for (;;) {
-        vrp->vrp_irq = 0xFFFF;
-
         if (ioctl(hvb->vmd_fd, VMM_IOC_RUN, vrp) < 0) {
             err(1, "hvt_vcpu_loop: vm / vcpu run ioctl failed");
         }
@@ -189,6 +196,7 @@ int hvt_vcpu_loop(struct hvt *hvt)
 
                     hvt_gpa_t gpa = vei->vei.vei_data;
                     fn(hvt, gpa);
+                    vei->vrs.vrs_gprs[VCPU_REGS_RIP] += vei->vei.vei_insn_len;
                     break;
 #if defined(VMM_IOC_MPROTECT_EPT)
                 case VMX_EXIT_EPT_VIOLATION:
@@ -206,8 +214,6 @@ int hvt_vcpu_loop(struct hvt *hvt)
                     errx(1, "unhandled exit: unknown exit reason 0x%x",
                         vrp->vrp_exit_reason);
             }
-
-            vrp->vrp_continue = 1;
         }
     }
 }
