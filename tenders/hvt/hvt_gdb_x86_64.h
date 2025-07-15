@@ -25,6 +25,17 @@
 #ifndef HVT_GDB_X86_64_H
 #define HVT_GDB_X86_64_H
 
+// NOTE:
+// structures defined here MUST BE packed in order to avoid padding.
+// FPU registers in x86 are 80 bits wide and C compilers WILL insert
+// padding otherwise, making serialisation trickier.
+
+// GDB expects FPU registers as 80 bit numbers,
+// but C doesn't have a type for this.
+struct fpu_reg { unsigned char data[10]; } __attribute__((packed));
+
+#define FPU_REGS 8
+
 /*
  * XXX: While there is no header file in GDB to include here,
  * the register structure is described in XML here:
@@ -58,6 +69,16 @@ struct hvt_gdb_regs {
     uint32_t es;
     uint32_t fs;
     uint32_t gs;
-};
+
+    struct fpu_reg st[FPU_REGS];
+    uint32_t fctrl;
+    uint32_t fstat;
+    uint32_t ftag;
+    uint32_t fiseg;
+    uint32_t fioff;
+    uint32_t foseg;
+    uint32_t fooff;
+    uint32_t fop;
+} __attribute__((packed));
 
 #endif /* HVT_GDB_X86_64_H */
