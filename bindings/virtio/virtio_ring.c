@@ -26,7 +26,7 @@
  * There is no official max queue size. But we've seen 4096, so let's use the
  * double of that.
  */
-#define VIRTQ_MAX_QUEUE_SIZE 8192
+#define VIRTQ_MAX_QUEUE_SIZE 32768
 
 
 /*
