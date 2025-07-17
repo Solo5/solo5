@@ -21,6 +21,12 @@
 #include "solo5.h"
 #include "../../bindings/lib.c"
 
+/*
+ * Silence GCC's (legitimate) static buffer overflow warning
+ * when smashing the stack.
+ */
+#pragma GCC diagnostic ignored "-Wstringop-overflow"
+
 static void puts(const char *s)
 {
     solo5_console_write(s, strlen(s));
