@@ -48,3 +48,4 @@ This package provides the Solo5 components needed to build and
 run MirageOS unikernels on the host system.
 """
 x-maintenance-intent: [ "(latest)" ]
+x-ci-accept-failures: [ "opensuse-15.6" ] # too old GCC compiler (OpenSUSE uses GCC 7 and we require GCC 10)
