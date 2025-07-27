@@ -25,7 +25,9 @@
  * Silence GCC's (legitimate) static buffer overflow warning
  * when smashing the stack.
  */
+#if !defined(__OpenBSD__)
 #pragma GCC diagnostic ignored "-Wstringop-overflow"
+#endif
 
 static void puts(const char *s)
 {
