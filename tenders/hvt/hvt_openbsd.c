@@ -185,7 +185,7 @@ int hvt_guest_mprotect(void *t_arg, uint64_t addr_start, uint64_t addr_end,
      * Ensure that guest-executable pages are not also executable, but are
      * readable in the host.
      */
-    host_prot = prot;
+    int host_prot = prot;
     host_prot &= ~(PROT_EXEC);
     host_prot |= PROT_READ;
     if(mprotect(vaddr_start, size, host_prot) == -1)
