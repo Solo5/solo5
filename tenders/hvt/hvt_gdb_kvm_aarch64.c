@@ -83,13 +83,13 @@ int hvt_gdb_read_last_signal(struct hvt *hvt, int *signal)
     return -1;
 }
 
-int hvt_gdb_add_breakpoint(struct hvt *hvt, uint32_t type,
+int hvt_gdb_add_breakpoint(struct hvt *hvt, gdb_breakpoint_type type,
                             hvt_gpa_t addr, size_t len)
 {
     return -1;
 }
 
-int hvt_gdb_remove_breakpoint(struct hvt *hvt, uint32_t type,
+int hvt_gdb_remove_breakpoint(struct hvt *hvt, gdb_breakpoint_type type,
                                hvt_gpa_t addr, size_t len)
 {
     return -1;
