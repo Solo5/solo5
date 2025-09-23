@@ -1,3 +1,9 @@
+## v0.9.3 (2025-09-23)
+
+- Fix `test_ssp` on OpenBSD (@omegametabroccolo, #599)
+- Fix build of hvt on aarch64 (#601, @cmainas)
+- Adapt OpenBSD hvt tender with the new `vmm(4)` (@omegametabroccolo, @hannesm, #600)
+
 ## v0.9.2 (2025-07-15)
 
 - Send FPU info to GDB in HVT server (@greydot, #571)
