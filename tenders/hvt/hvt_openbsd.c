@@ -82,7 +82,9 @@ struct hvt *hvt_init(size_t mem_size)
     struct hvt_b *hvb;
     struct vm_create_params *vcp;
     struct vm_mem_range *vmr;
+#if OpenBSD <= 202504
     void *p;
+#endif
 
     if(geteuid() != 0) {
         errno = EPERM;
@@ -121,6 +123,7 @@ struct hvt *hvt_init(size_t mem_size)
     vcp->vcp_memranges[0].vmr_size = mem_size;
 
     vmr = &vcp->vcp_memranges[0];
+#ifdef OpenBSD <= 202504
     p = mmap(NULL, vmr->vmr_size, PROT_READ | PROT_WRITE,
         MAP_PRIVATE | MAP_ANON, -1, 0);
     if (p == MAP_FAILED)
@@ -129,10 +132,15 @@ struct hvt *hvt_init(size_t mem_size)
     vmr->vmr_va = (vaddr_t)p;
     hvt->mem = p;
     hvt->mem_size = mem_size;
+#endif
 
     if (ioctl(hvb->vmd_fd, VMM_IOC_CREATE, vcp) < 0)
         err(1, "create vmm ioctl failed - exiting");
 
+#ifdef OpenBSD > 202504
+    hvt->mem = (uint8_t *)vmr->vmr_va;
+    hvt->mem_size = mem_size;
+#endif
     hvb->vcp_id = vcp->vcp_id;
     hvb->vcpu_id = 0; // the first and only cpu is at 0
 
@@ -175,7 +183,6 @@ int hvt_guest_mprotect(void *t_arg, uint64_t addr_start, uint64_t addr_end,
         int prot)
 {
     struct hvt *hvt = t_arg;
-    int host_prot, ret;
 
     assert(addr_start <= hvt->mem_size);
     assert(addr_end <= hvt->mem_size);
@@ -186,20 +193,19 @@ int hvt_guest_mprotect(void *t_arg, uint64_t addr_start, uint64_t addr_end,
     size_t size = addr_end - addr_start;
     assert(size > 0 && size <= hvt->mem_size);
 
+#if defined(VMM_IOC_MPROTECT_EPT)
     /*
      * Host-side page protections:
      *
      * Ensure that guest-executable pages are not also executable, but are
      * readable in the host.
      */
-    host_prot = prot;
+    int host_prot = prot;
     host_prot &= ~(PROT_EXEC);
     host_prot |= PROT_READ;
     if(mprotect(vaddr_start, size, host_prot) == -1)
         return -1;
 
-    ret = 0;
-#if defined(VMM_IOC_MPROTECT_EPT)
     /*
      * Guest-side page protections:
      */
@@ -223,5 +229,5 @@ int hvt_guest_mprotect(void *t_arg, uint64_t addr_start, uint64_t addr_end,
        err(1, "mprotect ept vmm ioctl failed - exiting");
     }
 #endif
-    return ret;
+    return 0;
 }
