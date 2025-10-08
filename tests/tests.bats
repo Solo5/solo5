@@ -84,6 +84,7 @@ setup() {
   NET0_IP=10.0.0.2
   NET1=tap101
   NET1_IP=10.1.0.2
+  NET2=tap102
 }
 
 teardown() {
@@ -641,6 +642,20 @@ xen_expect_abort() {
   ( sleep 1; ${TIMEOUT} 60s ping -fq -c 50000 ${NET1_IP} ) &
   spt_run --net:service0=${NET0} --net:service1=${NET1} -- \
       test_net_2if/test_net_2if.spt limit
+  expect_success
+}
+
+@test "net_mtu hvt" {
+  skip_unless_root
+  hvt_run --net:service0=${NET2} -- test_net_mtu/test_net_mtu.hvt
+  [[ "$output" == *"MTU is 9000"* ]]
+  expect_success
+}
+
+@test "net_mtu spt" {
+  skip_unless_root
+  spt_run --net:service0=${NET2} -- test_net_mtu/test_net_mtu.spt
+  [[ "$output" == *"MTU is 9000"* ]]
   expect_success
 }
 

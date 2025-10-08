@@ -59,7 +59,7 @@
 
 #endif
 
-int tap_attach(const char *ifname)
+int tap_attach(const char *ifname, int *mtu)
 {
     int fd;
 
@@ -159,6 +159,26 @@ int tap_attach(const char *ifname)
         errno = EINVAL;
         return -1;
     }
+    /*
+     * Get the configured MTU.
+     */
+    memset(&ifr, 0, sizeof(ifr));
+    strncpy(ifr.ifr_name, ifname, IFNAMSIZ - 1);
+    int sock = socket(AF_INET, SOCK_DGRAM, 0);
+    if (sock < 0) {
+        err = errno;
+        close(fd);
+        close(sock);
+        errno = err;
+        return -1;
+    }
+    if (ioctl(sock, SIOCGIFMTU, &ifr) == -1) {
+        err = errno;
+        close(fd);
+        errno = err;
+        return -1;
+    }
+    *mtu = ifr.ifr_mtu;
 
 #elif defined(__FreeBSD__)
 
@@ -175,6 +195,7 @@ int tap_attach(const char *ifname)
     fd = open(devname, O_RDWR | O_NONBLOCK);
     if (fd == -1)
         return -1;
+    *mtu = 1500; /* TODO */
 
 #elif defined(__OpenBSD__)
 
@@ -189,6 +210,7 @@ int tap_attach(const char *ifname)
     fd = open(devname, O_RDWR | O_NONBLOCK);
     if (fd == -1)
         return -1;
+    *mtu = 1500; /* TODO */
 #endif
 
     return fd;
