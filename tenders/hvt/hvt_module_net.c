@@ -114,7 +114,7 @@ static int handle_cmdarg(char *cmdarg, struct mft *mft)
             warnx("Resource not declared in manifest: '%s'", name);
             return -1;
         }
-	int mtu = -1;
+        int mtu = -1;
         int fd = tap_attach(iface, &mtu);
         if (fd < 0 || mtu < 0) {
             warnx("Could not attach interface: %s: %s", iface, strerror(errno));

@@ -178,6 +178,7 @@ int tap_attach(const char *ifname, int *mtu)
         errno = err;
         return -1;
     }
+    close(sock);
     *mtu = ifr.ifr_mtu;
 
 #elif defined(__FreeBSD__)
