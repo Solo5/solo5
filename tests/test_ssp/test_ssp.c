@@ -25,7 +25,7 @@
  * Silence GCC's (legitimate) static buffer overflow warning
  * when smashing the stack.
  */
-#if !defined(__OpenBSD__)
+#if !defined(__clang__)
 #pragma GCC diagnostic ignored "-Wstringop-overflow"
 #endif
 
