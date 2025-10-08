@@ -175,6 +175,7 @@ int tap_attach(const char *ifname, int *mtu)
     if (ioctl(sock, SIOCGIFMTU, &ifr) == -1) {
         err = errno;
         close(fd);
+        close(sock);
         errno = err;
         return -1;
     }
