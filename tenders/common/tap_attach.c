@@ -115,15 +115,15 @@ int tap_attach(const char *ifname, int *mtu)
         return -1;
     }
 
+    struct ifreq ifr;
+    int err;
+
 #if defined(__linux__)
 
     if (!up) {
         errno = ENETDOWN;
         return -1;
     }
-
-    int err;
-    struct ifreq ifr;
 
     fd = open("/dev/net/tun", O_RDWR | O_NONBLOCK);
     if (fd == -1)
@@ -159,6 +159,38 @@ int tap_attach(const char *ifname, int *mtu)
         errno = EINVAL;
         return -1;
     }
+
+#elif defined(__FreeBSD__)
+
+    /*
+     * Avoid unused-but-set-variable warning on FreeBSD, where the tap device
+     * is only up once open() was called by the process.
+     */
+    if (!up)
+      ;
+
+    char devname[strlen(ifname) + 6];
+
+    snprintf(devname, sizeof devname, "/dev/%s", ifname);
+    fd = open(devname, O_RDWR | O_NONBLOCK);
+    if (fd == -1)
+        return -1;
+
+#elif defined(__OpenBSD__)
+
+    if (!up) {
+        errno = ENETDOWN;
+        return -1;
+    }
+
+    char devname[strlen(ifname) + 6];
+
+    snprintf(devname, sizeof devname, "/dev/%s", ifname);
+    fd = open(devname, O_RDWR | O_NONBLOCK);
+    if (fd == -1)
+        return -1;
+#endif
+
     /*
      * Get the configured MTU.
      */
@@ -181,39 +213,6 @@ int tap_attach(const char *ifname, int *mtu)
     }
     close(sock);
     *mtu = ifr.ifr_mtu;
-
-#elif defined(__FreeBSD__)
-
-    /*
-     * Avoid unused-but-set-variable warning on FreeBSD, where the tap device
-     * is only up once open() was called by the process.
-     */
-    if (!up)
-      ;
-
-    char devname[strlen(ifname) + 6];
-
-    snprintf(devname, sizeof devname, "/dev/%s", ifname);
-    fd = open(devname, O_RDWR | O_NONBLOCK);
-    if (fd == -1)
-        return -1;
-    *mtu = 1500; /* TODO */
-
-#elif defined(__OpenBSD__)
-
-    if (!up) {
-        errno = ENETDOWN;
-        return -1;
-    }
-
-    char devname[strlen(ifname) + 6];
-
-    snprintf(devname, sizeof devname, "/dev/%s", ifname);
-    fd = open(devname, O_RDWR | O_NONBLOCK);
-    if (fd == -1)
-        return -1;
-    *mtu = 1500; /* TODO */
-#endif
 
     return fd;
 }
