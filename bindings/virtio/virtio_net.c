@@ -197,11 +197,10 @@ static void virtio_net_config(struct virtio_net_desc *nd,
        - 16 bit status[2]
        - 16 bit max_virtqueue_pairs[2]
        - 16 bit mtu[2]
-       So we read offset 10 and 11.
+       So we read 16 bit at offset 10.
     */
     if (host_features & VIRTIO_NET_F_MTU) {
-      nd->mtu = inb(pci->base + VIRTIO_PCI_CONFIG_OFF + 6 + 2 + 2 + 1) << 8;
-      nd->mtu = nd->mtu + inb(pci->base + VIRTIO_PCI_CONFIG_OFF + 6 + 2 + 2);
+      nd->mtu = inw(pci->base + VIRTIO_PCI_CONFIG_OFF + 6 + 2 + 2);
     } else
       nd->mtu = VIRTIO_NET_MTU;
 
