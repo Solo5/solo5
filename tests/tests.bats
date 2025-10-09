@@ -78,6 +78,9 @@ setup() {
     [ -z "${CONFIG_XEN}" ] && skip
     [ ! -x "$(command -v xl)" ] && skip "xl not available"
     [ $(id -u) -ne 0 ] && skip "need root to run Xen tests"
+    ;;
+  *elftool)
+    ELFTOOL=../elftool/solo5-elftool
   esac
 
   NET0=tap100
@@ -117,6 +120,10 @@ xen_run() {
     xl create -F -c /dev/null \
       name=\"${TEST_NAME}\" kernel=\"${TEST_DIR}/${TEST_NAME}.xen\" \
       type=\"pvh\" memory=32 cmdline=\"$@\"
+}
+
+elftool_manifest() {
+  ${ELFTOOL} gen-manifest "$1" /dev/null
 }
 
 # Given a list of arguments in the format HOST[_RELEASE], returns true iff CONFIG_HOST
@@ -685,4 +692,10 @@ xen_expect_abort() {
 
   spt_run ${DEVS} -- test_mft_maxdevices/test_mft_maxdevices.spt
   expect_success
+}
+
+@test "too_many_entries elftool" {
+  elftool_manifest test_too_many_entries/manifest.json
+  [ "$status" -eq 1 ] && \
+    [[ "$output" == *"too many entries, maximum 63"* ]]
 }
