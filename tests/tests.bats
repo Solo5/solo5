@@ -659,6 +659,13 @@ xen_expect_abort() {
   expect_success
 }
 
+@test "net_mtu virtio" {
+  skip_unless_root
+  virtio_run -n ${NET2}:9000 -- test_net_mtu/test_net_mtu.virtio
+  [[ "$output" == *"MTU is 9000"* ]]
+  virtio_expect_success
+}
+
 @test "dumpcore hvt" {
   [ "${CONFIG_HOST_ARCH}" = "x86_64" ] || skip "not implemented for ${CONFIG_HOST_ARCH}"
   skip_unless_host_is Linux FreeBSD
