@@ -303,7 +303,8 @@ void elf_load(int bin_fd, const char *bin_name, uint8_t *mem, size_t mem_size,
             /*
              * Double check result for host (caller) address space overflow.
              */
-            assert((mem + e_end) >= (mem + p_min_loadaddr));
+            if ((mem + e_end) < (mem + p_min_loadaddr))
+                goto out_error;
         }
 
         /*
@@ -315,7 +316,8 @@ void elf_load(int bin_fd, const char *bin_name, uint8_t *mem, size_t mem_size,
         /*
          * Double check result for host (caller) address space overflow.
          */
-        assert(host_vaddr >= (mem + p_min_loadaddr));
+        if (host_vaddr < (mem + p_min_loadaddr))
+            goto out_error;
         nbytes = pread_in_full(bin_fd, host_vaddr, p_filesz,
                 phdr[ph_i].p_offset);
         if (nbytes < 0)
@@ -476,7 +478,8 @@ int elf_load_note(int bin_fd, const char *bin_name, uint32_t note_type,
     assert(note_offset >= sizeof nhdr);
     note_pad = note_offset - sizeof nhdr;
     note_size = nhdr.h.n_descsz - note_pad;
-    assert(note_size != 0 && note_size <= nhdr.h.n_descsz);
+    if(note_size <= 0 || note_size > nhdr.h.n_descsz)
+        goto out_invalid;
     note_data = malloc(note_size);
     if (note_data == NULL)
         goto out_error;
