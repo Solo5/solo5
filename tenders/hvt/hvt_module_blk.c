@@ -56,8 +56,7 @@ static void hypercall_block_write(struct hvt *hvt, hvt_gpa_t gpa)
     ssize_t ret;
     off_t pos, end;
 
-    assert(wr->len <= SSIZE_MAX);
-    if (wr->offset >= e->u.block_basic.capacity) {
+    if (wr->len > SSIZE_MAX || wr->offset >= e->u.block_basic.capacity) {
         wr->ret = SOLO5_R_EINVAL;
         return;
     }
@@ -88,8 +87,7 @@ static void hypercall_block_read(struct hvt *hvt, hvt_gpa_t gpa)
     ssize_t ret;
     off_t pos, end;
 
-    assert(rd->len <= SSIZE_MAX);
-    if (rd->offset >= e->u.block_basic.capacity) {
+    if (rd->len > SSIZE_MAX || rd->offset >= e->u.block_basic.capacity) {
         rd->ret = SOLO5_R_EINVAL;
         return;
     }
