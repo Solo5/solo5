@@ -123,7 +123,7 @@ xen_run() {
 }
 
 elftool_manifest() {
-  ${ELFTOOL} gen-manifest "$1" /dev/null
+  run ${ELFTOOL} gen-manifest "$1" /dev/null
 }
 
 # Given a list of arguments in the format HOST[_RELEASE], returns true iff CONFIG_HOST
