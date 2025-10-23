@@ -1,0 +1,19 @@
+name: Ubuntu-arm
+on: [push, pull_request]
+jobs:
+  Build:
+    name: ARM64
+    strategy:
+      matrix:
+        operating-system: [ubuntu-24.04-arm]
+    runs-on: ${{ matrix.operating-system }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo apt-get install -y libseccomp-dev pkg-config ${{ matrix.cc }}
+      - name: Build
+        run: |
+          ./configure.sh
+          make

@@ -1,0 +1,23 @@
+name: FreeBSD
+on: [push, pull_request]
+jobs:
+  Build:
+    name: AMD64
+    strategy:
+      matrix:
+        operating-system: [ubuntu-latest]
+    runs-on: ${{ matrix.operating-system }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: FreeBSD action
+        id: test
+        uses: vmactions/freebsd-vm@v1
+        with:
+          usesh: true
+          prepare: |
+            pkg install -y pkgconf gmake git
+          run: |
+            git config --global --add safe.directory /home/runner/work/solo5/solo5
+            ./configure.sh
+            gmake
