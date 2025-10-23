@@ -75,8 +75,7 @@ static void hypercall_net_read(struct hvt *hvt, hvt_gpa_t gpa)
     int ret;
 
     ret = read(e->b.hostfd, HVT_CHECKED_GPA_P(hvt, rd->data, rd->len), rd->len);
-    if ((ret == 0) ||
-        (ret == -1 && errno == EAGAIN)) {
+    if (ret == -1 && errno == EAGAIN) {
         rd->ret = SOLO5_R_AGAIN;
         return;
     }
