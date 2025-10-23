@@ -16,11 +16,8 @@
 # NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
 # CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-include $(TOPDIR)/Makefile.common
-
 test_NAME := test_too_many_entries
 
 .PHONY: all
 all:
-all_TARGETS :=
 
