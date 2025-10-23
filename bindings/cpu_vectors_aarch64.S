@@ -203,3 +203,5 @@ ENTRY(cpu_exception_vectors)
     EXCEPTION_ENTRY cpu_el0_fiq_invalid         // FIQ 32-bit EL0
     EXCEPTION_ENTRY cpu_el0_error_invalid       // Error 32-bit EL0
 END(cpu_exception_vectors)
+
+#include "noexecstack.h"

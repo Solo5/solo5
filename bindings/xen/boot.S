@@ -18,6 +18,7 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#include "../noexecstack.h"
 #include "../cpu_x86_64.h"
 #include "xen/elfnote.h"
 #include "../virtio/multiboot.h"

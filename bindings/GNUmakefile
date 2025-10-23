@@ -76,7 +76,7 @@ endif
 %.o: %.c %.d
 	$(COMPILE.c)
 
-%.o: %.S %.d
+%.o: %.S %.d noexecstack.h
 	$(COMPILE.S)
 
 %.d: ;
@@ -170,6 +170,18 @@ solo5_xen.o: $(xen_OBJS)
 
 CPPFLAGS+=-D__XEN_INTERFACE_VERSION__=__XEN_LATEST_INTERFACE_VERSION__
 endif
+
+noexecstack.c:
+	@echo GEN noexecstack.c
+	printf 'int f() {\n  return 0;\n}\n' > $@
+
+noexecstack.s: noexecstack.c
+	@echo GEN noexecstack.s
+	$(CC) $(CFLAGS) $(CPPFLAGS) -S $< -o $@
+
+noexecstack.h: noexecstack.s
+	@echo GEN noexecstack.h
+	grep -F .note.GNU-stack $< > $@ || true
 
 all: $(all_TARGETS)
 

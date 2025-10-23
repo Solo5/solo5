@@ -28,6 +28,7 @@
 
 #include "multiboot.h"
 #include "../cpu_x86_64.h"
+#include "../noexecstack.h"
 
 #define ENTRY(x) .text; .globl x; .type x,%function; x:
 #define END(x)   .size x, . - x

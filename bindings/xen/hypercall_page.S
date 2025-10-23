@@ -132,3 +132,5 @@ DECLARE_HYPERCALL(arch_4)
 DECLARE_HYPERCALL(arch_5)
 DECLARE_HYPERCALL(arch_6)
 DECLARE_HYPERCALL(arch_7)
+
+#include "../noexecstack.h"
