@@ -1,0 +1,36 @@
+name: Ubuntu
+on: [push, pull_request]
+jobs:
+  Build:
+    name: AMD64
+    strategy:
+      matrix:
+        operating-system: [ubuntu-latest]
+        cc: [gcc, clang]
+    runs-on: ${{ matrix.operating-system }}
+    env:
+      CC: ${{ matrix.cc }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo apt-get install -y libseccomp-dev pkg-config ${{ matrix.cc }}
+      - name: Build
+        run: |
+          ${CC} --version
+          ./configure.sh
+          make
+      - name: Enable KVM group perms
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          sudo apt-get update
+          sudo apt-get install -y libvirt-clients libvirt-daemon-system libvirt-daemon virtinst bridge-utils qemu-kvm qemu-system-x86
+          sudo usermod -a -G kvm,libvirt $USER
+      - name: Test
+        run: |
+          cd tests
+          sudo ./setup-tests.sh
+          sudo ./run-tests.sh
