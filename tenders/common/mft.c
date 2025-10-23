@@ -142,6 +142,9 @@ const char *mft_type_to_string(mft_type_t type)
         case MFT_RESERVED_FIRST:
             return "RESERVED_FIRST";
         default:
-            assert(false);
+            /* This is used only to pretty print the content of the manifest so
+               a generic error is probably good enough, if only partially
+               informative */
+            return "<undefined type>";
     }
 }

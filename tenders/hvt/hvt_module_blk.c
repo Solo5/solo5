@@ -26,8 +26,10 @@
 #define _FILE_OFFSET_BITS 64
 #include <assert.h>
 #include <err.h>
+#include <errno.h>
 #include <limits.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
@@ -56,8 +58,7 @@ static void hypercall_block_write(struct hvt *hvt, hvt_gpa_t gpa)
     ssize_t ret;
     off_t pos, end;
 
-    assert(wr->len <= SSIZE_MAX);
-    if (wr->offset >= e->u.block_basic.capacity) {
+    if (wr->len > SSIZE_MAX || wr->offset >= e->u.block_basic.capacity) {
         wr->ret = SOLO5_R_EINVAL;
         return;
     }
@@ -70,7 +71,14 @@ static void hypercall_block_write(struct hvt *hvt, hvt_gpa_t gpa)
 
     ret = pwrite(e->b.hostfd, HVT_CHECKED_GPA_P(hvt, wr->data, wr->len),
             wr->len, pos);
-    assert(ret == wr->len);
+    if (ret != wr->len) {
+        if (ret == -1)
+            fprintf(stderr, "Fatal error when writing: %s\n", strerror(errno));
+        else
+            fprintf(stderr, "Fatal error: wrote only %ld out of %ld bytes\n",
+                ret, wr->len);
+        exit(1);
+    }
     wr->ret = SOLO5_R_OK;
 }
 
@@ -88,8 +96,7 @@ static void hypercall_block_read(struct hvt *hvt, hvt_gpa_t gpa)
     ssize_t ret;
     off_t pos, end;
 
-    assert(rd->len <= SSIZE_MAX);
-    if (rd->offset >= e->u.block_basic.capacity) {
+    if (rd->len > SSIZE_MAX || rd->offset >= e->u.block_basic.capacity) {
         rd->ret = SOLO5_R_EINVAL;
         return;
     }
@@ -102,7 +109,14 @@ static void hypercall_block_read(struct hvt *hvt, hvt_gpa_t gpa)
 
     ret = pread(e->b.hostfd, HVT_CHECKED_GPA_P(hvt, rd->data, rd->len), rd->len,
             pos);
-    assert(ret == rd->len);
+    if (ret != rd->len) {
+        if (ret == -1)
+            fprintf(stderr, "Fatal error when reading: %s\n", strerror(errno));
+        else
+            fprintf(stderr, "Fatal error: read only %ld out of %ld bytes\n",
+                ret, rd->len);
+        exit(1);
+    }
     rd->ret = SOLO5_R_OK;
 }
 
