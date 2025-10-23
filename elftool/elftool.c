@@ -165,8 +165,13 @@ static int elftool_gen_mft(const char *source, const char *output)
         errx(1, "%s:%zu: .version: invalid version %lld, expected %d",
                 source, jversion->line, jversion->u.i, MFT_VERSION);
     if (entries > MFT_MAX_ENTRIES)
+        /*
+         * Subtract one from MFT_MAX_ENTRIES in the error message. The caller
+         * shouldn't be bothered with the implicit MFT_RESERVED_FIRST entry in
+         * the error message.
+         */
         errx(1, "%s:%zu: .devices[]: too many entries, maximum %d",
-                source, jdevices->line, MFT_MAX_ENTRIES);
+                source, jdevices->line, MFT_MAX_ENTRIES - 1);
 
     fprintf(ofp, out_header, SOLO5_VERSION, entries, entries);
     for (jvalue **i = jdevices->u.v; *i; ++i) {
