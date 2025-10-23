@@ -7,8 +7,8 @@
 # release, to avoid failures with future C compilers (which may add new
 # warnings).
 
-if [ ! -d "./opam" ]; then
-    echo "ERROR: missing ./opam. Run this from the root of a Solo5 repository."
+if [ ! -f "./solo5.opam" ]; then
+    echo "ERROR: missing ./solo5.opam. Run this from the root of a Solo5 repository."
     exit 1
 fi
 
@@ -42,7 +42,7 @@ OPAM_VERSION=$(echo -n "${GIT_VERSION}" | cut -d- -f1 | tr -d v)
 [ -n "${DEV}" ] && OPAM_VERSION="${OPAM_VERSION}${DEV}"
 echo "OPAM version: ${OPAM_VERSION}"
 
-OUTPUT_DIR=./opam/release
+OUTPUT_DIR=./release
 if [ -d ${OUTPUT_DIR} ]; then
     echo "Deleting existing output directory: ${OUTPUT_DIR}"
     rm -rf ${OUTPUT_DIR}
@@ -57,13 +57,13 @@ EOM
 for VARIANT in '' '-cross-aarch64'; do
     PKG_DIR=${OUTPUT_DIR}/packages/solo5${VARIANT}/solo5${VARIANT}.${OPAM_VERSION}
     mkdir -p ${PKG_DIR} || exit 1
-    cat opam/solo5${VARIANT}.opam ${OUTPUT_DIR}/tmp/url \
+    cat solo5${VARIANT}.opam ${OUTPUT_DIR}/tmp/url \
         > ${PKG_DIR}/opam || exit 1
     opam lint ${PKG_DIR}/opam || exit 1
 done
 
 echo "Done. Submit ${OUTPUT_DIR}/packages as a PR to opam-repository."
-echo "Example: cp -r opam/release/packages path/to/opam-repository"
+echo "Example: cp -r release/packages path/to/opam-repository"
 echo "         cd path/to/opam/repository"
 echo "         git checkout -b solo5.${OPAM_VERSION}"
 echo "         git add ."

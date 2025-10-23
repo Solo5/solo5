@@ -164,8 +164,11 @@ The main components of Solo5 are:
 - [tests/](../tests/): self tests used as part of our CI system.
 - [scripts/](../scripts/): extra tooling and scripts (mainly to support the
   _virtio_ target).
-- [opam/](../opam/): package definitions and pkg-config files for integration
-  with OPAM and MirageOS.
+- [solo5.opam](../solo5.opam): package definitions and pkg-config files for
+  integration with OPAM and MirageOS.
+- [solo5-cross-aarch64.opam](../solo5-cross-arch64.opam): package definitions
+  and pkg-config files for integration with OPAM and MirageOS (cross-compilation
+  from amd64 to aarch64).
 
 The code is architected to split processor architecture and/or host operating
 system (_target_)-specific modules from shared functionality where possible.
