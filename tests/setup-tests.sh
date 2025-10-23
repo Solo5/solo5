@@ -40,6 +40,8 @@ Linux)
     ip tuntap add tap101 mode tap
     ip addr add 10.1.0.1/24 dev tap101
     ip link set dev tap101 up
+    ip tuntap add tap102 mode tap
+    ip link set dev tap102 up mtu 9000
     ;;
 FreeBSD)
     kldload vmm
