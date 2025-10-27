@@ -1,8 +1,24 @@
+## v0.10.0 (2025-10-27)
+
+- Fix compilation on OpenBSD about `#ifdef` (@omegametabroccolo, @hannesm,
+  @reynir, #614, related with #600)
+- Add GitHub actions to test Solo5 on different platforms (@hannesm, #616, #617
+  & #540)
+- Do not use `-Wstringopt-overflow` when we use `clang` for `test_ssp`
+  (@hannesm, #607)
+- Show errors and exit instead of `assert false` (@shym, @edwintorok, @hannesm,
+  @reynir, #613 & #612)
+- Define `.note.GNU-stack` when it's needed (@shym, @Kensan, @hannesm, @palainp,
+  @dinosaure, #619, #570 & #562)
+- Detect MTU on TAP interface for hvt, spt and virtio (@reynir, @hannesm,
+  @dinosaure, #605 & #606)
+
 ## v0.9.3 (2025-09-23)
 
 - Fix `test_ssp` on OpenBSD (@omegametabroccolo, #599)
 - Fix build of hvt on aarch64 (#601, @cmainas)
-- Adapt OpenBSD hvt tender with the new `vmm(4)` (@omegametabroccolo, @hannesm, #600)
+- Adapt OpenBSD hvt tender with the new `vmm(4)` (@omegametabroccolo, @hannesm,
+  #600)
 
 ## v0.9.2 (2025-07-15)
 
