@@ -120,3 +120,5 @@ IRQ_ENTRY 12
 IRQ_ENTRY 13
 IRQ_ENTRY 14
 IRQ_ENTRY 15
+
+#include "noexecstack.h"
