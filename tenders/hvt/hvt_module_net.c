@@ -28,6 +28,7 @@
 #include <inttypes.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
@@ -53,11 +54,18 @@ static void hypercall_net_write(struct hvt *hvt, hvt_gpa_t gpa)
         return;
     }
 
-    int ret;
+    ssize_t ret;
 
     ret = write(e->b.hostfd, HVT_CHECKED_GPA_P(hvt, wr->data, wr->len),
             wr->len);
-    assert(wr->len == ret);
+    if (ret != wr->len) {
+        if (ret == -1)
+            fprintf(stderr, "Fatal error when writing: %s\n", strerror(errno));
+        else
+            fprintf(stderr, "Fatal error: wrote only %ld out of %ld bytes\n",
+                ret, wr->len);
+        exit(1);
+    }
     wr->ret = SOLO5_R_OK;
 }
 
@@ -72,7 +80,7 @@ static void hypercall_net_read(struct hvt *hvt, hvt_gpa_t gpa)
         return;
     }
 
-    int ret;
+    ssize_t ret;
 
     ret = read(e->b.hostfd, HVT_CHECKED_GPA_P(hvt, rd->data, rd->len), rd->len);
     if ((ret == 0) ||
@@ -80,7 +88,13 @@ static void hypercall_net_read(struct hvt *hvt, hvt_gpa_t gpa)
         rd->ret = SOLO5_R_AGAIN;
         return;
     }
-    assert(ret > 0);
+    if (ret <= 0) {
+        if (ret == -1)
+            fprintf(stderr, "Fatal error when reading: %s\n", strerror(errno));
+        else
+            fprintf(stderr, "Fatal error: read returned %ld\n", ret);
+        exit(1);
+    }
     rd->len = ret;
     rd->ret = SOLO5_R_OK;
 }

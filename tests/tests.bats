@@ -699,3 +699,9 @@ xen_expect_abort() {
   [ "$status" -eq 1 ] && \
     [[ "$output" == *"too many entries, maximum 63"* ]]
 }
+
+@test "buggyelf hvt" {
+  hvt_run test_buggyelf/buggyelf.hvt
+  [ "$status" -eq 1 ] && \
+    [[ "$output" == *"Invalid or unsupported executable"* ]]
+}
