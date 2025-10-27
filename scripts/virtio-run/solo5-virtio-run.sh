@@ -71,6 +71,7 @@ qemu_add_device ()
 
     TYPE=$1
     NAME="$2"
+    MTU="$3"
     shift; shift
 
     case $TYPE in
@@ -79,7 +80,11 @@ qemu_add_device ()
         hv_addargs -device virtio-blk,drive=drive${PCI_SLOT},addr=0x${PS_HEX},bus=pci.0
         ;;
     NET)
-        hv_addargs -device virtio-net,netdev=n${PCI_SLOT},addr=0x${PS_HEX},bus=pci.0
+        if [ -z "$MTU" ]; then
+            hv_addargs -device virtio-net,netdev=n${PCI_SLOT},addr=0x${PS_HEX},bus=pci.0
+        else
+            hv_addargs -device virtio-net,netdev=n${PCI_SLOT},addr=0x${PS_HEX},bus=pci.0,host_mtu=${MTU}
+        fi
         hv_addargs -netdev tap,id=n${PCI_SLOT},ifname="${NAME}",script=no,downscript=no
         ;;
     *)
@@ -100,6 +105,7 @@ bhyve_add_device ()
 
     TYPE=$1
     NAME="$2"
+    MTU="$3"
     shift; shift
 
     case $TYPE in
@@ -107,7 +113,11 @@ bhyve_add_device ()
         hv_addargs -s ${PCI_SLOT}:0,virtio-blk,"${NAME}"
         ;;
     NET)
-        hv_addargs -s ${PCI_SLOT}:0,virtio-net,"${NAME}"
+        if [ -z "$MTU" ]; then
+            hv_addargs -s ${PCI_SLOT}:0,virtio-net,"${NAME}"
+        else
+            hv_addargs -s ${PCI_SLOT}:0,virtio-net,"${NAME},mtu=${MTU}"
+        fi
         ;;
     *)
         die "Unknown device type"
@@ -144,7 +154,7 @@ while true; do
         ip a show ${NETIF} >/dev/null 2>&1 ||
             ifconfig ${NETIF} >/dev/null 2>&1 ||
             die "no such network interface: ${NETIF}"
-    	DEVICES="${DEVICES} NET:${NETIF}"
+        DEVICES="${DEVICES} NET:${NETIF}"
         shift; shift
         ;;
     -q)

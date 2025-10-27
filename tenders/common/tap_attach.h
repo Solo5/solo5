@@ -32,7 +32,7 @@
  * Returns -1 and an appropriate errno on failure (ENOENT if the interface does
  * not exist), and the tap device file descriptor on success.
  */
-int tap_attach(const char *ifname);
+int tap_attach(const char *ifname, int *mtu);
 
 /*
  * Generate a random, locally-administered and unicast MAC address, and store it

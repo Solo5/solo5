@@ -66,8 +66,9 @@ static int handle_cmdarg(char *cmdarg, struct mft *mft)
             warnx("Resource not declared in manifest: '%s'", name);
             return -1;
         }
-        int fd = tap_attach(iface);
-        if (fd < 0) {
+        int mtu = -1;
+        int fd = tap_attach(iface, &mtu);
+        if (fd < 0 || mtu < 0) {
             warnx("Could not attach interface: %s: %s", iface, strerror(errno));
             return -1;
         }
@@ -75,7 +76,7 @@ static int handle_cmdarg(char *cmdarg, struct mft *mft)
         /* e->u.net_basic.mac[] is set either by option or generated later by
          * setup().
          */
-        e->u.net_basic.mtu = 1500; /* TODO */
+        e->u.net_basic.mtu = mtu;
         e->b.hostfd = fd;
         e->attached = true;
         module_in_use = true;

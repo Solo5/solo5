@@ -25,6 +25,7 @@
 /* The feature bitmap for virtio net */
 #define VIRTIO_NET_F_CSUM       0 /* Host handles pkts w/ partial csum */
 #define VIRTIO_NET_F_GUEST_CSUM        1 /* Guest handles pkts w/ partial csum */
+#define VIRTIO_NET_F_MTU (1 << 3)
 #define VIRTIO_NET_F_MAC (1 << 5) /* Host has given MAC address. */
 
 #define PKT_BUFFER_LEN 1526
@@ -190,6 +191,19 @@ static void virtio_net_config(struct virtio_net_desc *nd,
     for (int i = 0; i < 6; i++) {
         nd->net_mac[i] = inb(pci->base + VIRTIO_PCI_CONFIG_OFF + i);
     }
+
+    /* the struct virtio_net_config contains:
+       - 48 bit mac[6]
+       - 16 bit status[2]
+       - 16 bit max_virtqueue_pairs[2]
+       - 16 bit mtu[2]
+       So we read 16 bit at offset 10.
+    */
+    if (host_features & VIRTIO_NET_F_MTU) {
+      nd->mtu = inw(pci->base + VIRTIO_PCI_CONFIG_OFF + 6 + 2 + 2);
+    } else
+      nd->mtu = VIRTIO_NET_MTU;
+
     snprintf(virtio_net_mac_str,
              sizeof(virtio_net_mac_str),
              "%02x:%02x:%02x:%02x:%02x:%02x",
@@ -199,8 +213,8 @@ static void virtio_net_config(struct virtio_net_desc *nd,
              nd->net_mac[3],
              nd->net_mac[4],
              nd->net_mac[5]);
-    log(INFO, "Solo5: PCI:%02x:%02x: configured, mac=%s, features=0x%x\n",
-        pci->bus, pci->dev, virtio_net_mac_str, host_features);
+    log(INFO, "Solo5: PCI:%02x:%02x: configured, mac=%s, mtu=%d, features=0x%x\n",
+        pci->bus, pci->dev, virtio_net_mac_str, nd->mtu, host_features);
 
     /*
      * 7. Perform device-specific setup, including discovery of virtqueues for
@@ -222,7 +236,6 @@ static void virtio_net_config(struct virtio_net_desc *nd,
     memset(nd->xmitq.bufs, 0, pgs << PAGE_SHIFT);
 
     nd->pci_base = pci->base;
-    nd->mtu = VIRTIO_NET_MTU;
     net_configured = 1;
     intr_register_irq(pci->irq, handle_virtio_net_interrupt, nd);
     recv_setup(nd);
