@@ -277,7 +277,7 @@ static void virtio_net_pkt_poll(virtio_set_t *ready_set)
     }
 }
 
-/* Get the data from the next_avail (top-most) receive buffer/descriptpr in
+/* Get the data from the next_avail (top-most) receive buffer/descriptor in
  * the available ring. */
 static uint8_t *virtio_net_recv_pkt_get(struct virtio_net_desc *nd,
         size_t *size)
