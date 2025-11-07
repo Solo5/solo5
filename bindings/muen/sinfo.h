@@ -21,7 +21,7 @@
 #ifndef __MUEN_SINFO_H__
 #define __MUEN_SINFO_H__
 
-#define MUEN_SUBJECT_INFO_MAGIC        0x03006f666e69756dULL
+#define MUEN_SUBJECT_INFO_MAGIC        0x04006f666e69756dULL
 
 #define MAX_RESOURCE_COUNT 255
 #define MAX_NAME_LENGTH    63
@@ -67,6 +67,7 @@ enum muen_memory_kind {
     MUEN_MEM_SUBJ_DEVICE,
     MUEN_MEM_SUBJ_SOLO5_BOOT_INFO,
     MUEN_MEM_SUBJ_CRASH_AUDIT,
+    MUEN_MEM_SUBJ_DEVICETREE,
     MUEN_MEM_KRNL_IFACE
 } __attribute__((__packed__));
 
