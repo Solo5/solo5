@@ -211,14 +211,14 @@ void elf_load(int bin_fd, const char *bin_name, uint8_t *mem, size_t mem_size,
     if (nbytes < 0)
         goto out_error;
     if (nbytes != sizeof(Elf64_Ehdr))
-        goto out_ehdr_size_disparity; //out_invalid; 
+        goto out_ehdr_size_disparity; 
     if (!ehdr_is_valid(ehdr))
-        goto out_invalid; //Might change this, but it seems pretty valid as an error message (ask profesh to make is_valid better)
+        goto out_invalid; 
     /*
      * e_entry must be non-zero and within range of our memory allocation.
      */
     if (ehdr->e_entry < p_min_loadaddr || ehdr->e_entry >= mem_size)
-        goto out_invalid_e_entry; //out_invalid;
+        goto out_invalid_e_entry;
     e_entry = ehdr->e_entry;
 
     size_t ph_size = ehdr->e_phnum * ehdr->e_phentsize;
@@ -229,7 +229,7 @@ void elf_load(int bin_fd, const char *bin_name, uint8_t *mem, size_t mem_size,
     if (nbytes < 0)
         goto out_error;
     if (nbytes != ph_size)
-        goto out_phdr_size_disparity; //out_invalid;
+        goto out_phdr_size_disparity;
 
     /*
      * Load all program segments with the PT_LOAD directive.
@@ -250,14 +250,14 @@ void elf_load(int bin_fd, const char *bin_name, uint8_t *mem, size_t mem_size,
             continue;
 
         if (p_vaddr < p_min_loadaddr)
-            goto out_p_vaddr_out_of_range; //out_invalid;
+            goto out_p_vaddr_out_of_range;
         /*
          * The ELF specification mandates that program headers are sorted on
          * p_vaddr in ascending order. Enforce this, at the same time avoiding
          * any surprises later.
          */
         if (p_vaddr < plast_vaddr)
-            goto out_p_vaddr_unsorted; //out_invalid;
+            goto out_p_vaddr_unsorted;
         else
             plast_vaddr = p_vaddr;
         /*
@@ -265,36 +265,36 @@ void elf_load(int bin_fd, const char *bin_name, uint8_t *mem, size_t mem_size,
          * and verify result is within range.
          */
         if (align_down(p_vaddr, p_align, &p_vaddr_start))
-            goto out_p_vaddr_start_out_of_range;  //out_invalid;
+            goto out_p_vaddr_start_out_of_range;
         if (p_vaddr_start < p_min_loadaddr)
-            goto out_p_vaddr_start_out_of_range; //out_invalid;
+            goto out_p_vaddr_start_out_of_range;
         /*
          * Disallow overlapping segments. This may be overkill, but in practice
          * the Solo5 toolchains do not produce such executables.
          */
         if (p_vaddr_start < e_end)
-            goto out_p_vaddr_start_out_of_range; //out_invalid;
+            goto out_p_vaddr_start_out_of_range;
         /*
          * Verify p_vaddr + p_filesz is within range.
          */
         if (p_vaddr >= mem_size)
-            goto out_program_f_segment_outside_range; //out_invalid;  could improve
+            goto out_p_filesz_outside_range;
         if (add_overflow(p_vaddr, p_filesz, temp))
-            goto out_program_f_segment_outside_range; //out_invalid;
+            goto out_p_filesz_outside_range;
         if (temp > mem_size)
-            goto out_program_f_segment_outside_range; //out_invalid;
+            goto out_p_filesz_outside_range;
         /*
          * Compute p_vaddr_end = p_vaddr + p_memsz, aligned up to requested
          * alignment and verify result is within range.
          */
         if (p_memsz < p_filesz)
-            goto out_program_mem_segment_outside_range; //out_invalid;
+            goto out_p_memsz_outside_range;
         if (add_overflow(p_vaddr, p_memsz, p_vaddr_end))
-            goto out_program_mem_segment_outside_range; //out_invalid;
+            goto out_p_memsz_outside_range;
         if (align_up(p_vaddr_end, p_align, &p_vaddr_end))
-            goto out_program_mem_segment_outside_range; //out_invalid;
+            goto out_p_memsz_outside_range;
         if (p_vaddr_end > mem_size)
-            goto out_program_mem_segment_outside_range; //out_invalid;
+            goto out_p_memsz_outside_range;
         /*
          * Keep track of the highest byte of memory occupied by the program.
          */
@@ -323,7 +323,7 @@ void elf_load(int bin_fd, const char *bin_name, uint8_t *mem, size_t mem_size,
         if (nbytes < 0)
             goto out_error;
         if (nbytes != p_filesz)
-            goto out_host_f_segment_disparity; //out_invalid;
+            goto out_host_f_segment_disparity;
         memset(host_vaddr + p_filesz, 0, p_memsz - p_filesz);
 
         /*
@@ -333,9 +333,9 @@ void elf_load(int bin_fd, const char *bin_name, uint8_t *mem, size_t mem_size,
          * size.
          */
         if (p_vaddr_start & (EM_PAGE_SIZE - 1))
-            goto out_arch_page_misaligned; //out_invalid;
+            goto out_arch_page_misaligned;
         if (p_vaddr_end & (EM_PAGE_SIZE - 1))
-            goto out_arch_page_misaligned; //out_invalid;
+            goto out_arch_page_misaligned;
         int prot = PROT_NONE;
         if (phdr[ph_i].p_flags & PF_R)
             prot |= PROT_READ;
@@ -362,53 +362,53 @@ void elf_load(int bin_fd, const char *bin_name, uint8_t *mem, size_t mem_size,
 
 out_error:
     warn("%s", bin_name);
-    goto ptr_cleanup;
+    goto mem_cleanup;
 
 out_invalid:
     warnx("%s: Invalid or unsupported executable", bin_name);
-    goto ptr_cleanup;
+    goto mem_cleanup;
 
 out_ehdr_size_disparity:
     warnx("%s: Elf header does not match the expected size", bin_name);
-    goto ptr_cleanup;  
+    goto mem_cleanup;  
     
 out_invalid_e_entry:
     warnx("%s: e_entry does not fall within the memory allocation range", bin_name);
-    goto ptr_cleanup;  
+    goto mem_cleanup;  
 
 out_phdr_size_disparity:
     warnx("%s: Program header does not match the expected size", bin_name);
-    goto ptr_cleanup; 
+    goto mem_cleanup; 
 
 out_p_vaddr_out_of_range:
     warnx("%s: p_vaddr outside of valid memory range", bin_name);
-    goto ptr_cleanup;
+    goto mem_cleanup;
 
 out_p_vaddr_unsorted:
     warnx("%s: p_vaddr is not in ascending order", bin_name);
-    goto ptr_cleanup;
+    goto mem_cleanup;
 
 out_p_vaddr_start_out_of_range:
     warnx("%s: p_vaddr_start is outside of memory range", bin_name);
-    goto ptr_cleanup;
+    goto mem_cleanup;
 
-out_program_f_segment_outside_range:
+out_p_filesz_outside_range:
     warnx("%s: Program file segment falls outside of valid range", bin_name);
-    goto ptr_cleanup;
+    goto mem_cleanup;
 
-out_program_mem_segment_outside_range:  //possibly rename, quite long
+out_p_memsz_outside_range:  //possibly rename, quite long
     warnx("%s: Program memory segment falls outside of valid range", bin_name);
-    goto ptr_cleanup;
+    goto mem_cleanup;
 
 out_host_f_segment_disparity:
     warnx("%s: Host file segment mismatched", bin_name);
-    goto ptr_cleanup;    
+    goto mem_cleanup;    
 
 out_arch_page_misaligned:
     warnx("%s: ", bin_name);
-    goto ptr_cleanup;
+    goto mem_cleanup;
 
-ptr_cleanup:
+mem_cleanup:
     free(ehdr);
     free(phdr);
     exit(1); 
@@ -431,9 +431,9 @@ int elf_load_note(int bin_fd, const char *bin_name, uint32_t note_type,
     if (nbytes < 0)
         goto out_error;
     if (nbytes != sizeof(Elf64_Ehdr))
-        goto out_invalid;
+        goto out_ehdr_size_disparity;
     if (!ehdr_is_valid(ehdr))
-        goto out_invalid;
+        goto out_invalid_e_entry;
 
     size_t ph_size = ehdr->e_phnum * ehdr->e_phentsize;
     phdr = malloc(ph_size);
@@ -443,7 +443,7 @@ int elf_load_note(int bin_fd, const char *bin_name, uint32_t note_type,
     if (nbytes < 0)
         goto out_error;
     if (nbytes != ph_size)
-        goto out_invalid;
+        goto out_phdr_size_disparity;
 
     /*
      * Find the phdr containing the Solo5 NOTE of type note_type, and sanity
@@ -460,7 +460,7 @@ int elf_load_note(int bin_fd, const char *bin_name, uint32_t note_type,
              * p_filesz is less than minimum possible size of a NOTE header,
              * reject the executable.
              */
-            goto out_invalid;
+            goto out_nhdr_invalid_size;
         if (phdr[ph_i].p_filesz < sizeof nhdr)
             /*
              * p_filesz is less than minimum possible size of a Solo5 NOTE
@@ -472,7 +472,7 @@ int elf_load_note(int bin_fd, const char *bin_name, uint32_t note_type,
         if (nbytes < 0)
             goto out_error;
         if (nbytes != sizeof nhdr)
-            goto out_invalid;
+            goto out_nhdr_size_disparity;
         if (nhdr.h.n_namesz != sizeof(SOLO5_NOTE_NAME))
             /*
              * Not a Solo5-owned NOTE or invalid n_namesz, skip.
@@ -493,9 +493,9 @@ int elf_load_note(int bin_fd, const char *bin_name, uint32_t note_type,
          * cross-check with p_filesz.
          */
         if (nhdr.h.n_descsz < 1 || nhdr.h.n_descsz > max_note_size)
-            goto out_invalid;
+            goto out_nhdr_invalid_size;
         if (phdr[ph_i].p_filesz < sizeof nhdr + nhdr.h.n_descsz)
-            goto out_invalid;
+            goto out_nhdr_invalid_size;
 
         note_found = true;
         break;
@@ -520,7 +520,7 @@ int elf_load_note(int bin_fd, const char *bin_name, uint32_t note_type,
     note_pad = note_offset - sizeof nhdr;
     note_size = nhdr.h.n_descsz - note_pad;
     if(note_size <= 0 || note_size > nhdr.h.n_descsz)
-        goto out_invalid;
+        goto out_nhdr_invalid_size;
     note_data = malloc(note_size);
     if (note_data == NULL)
         goto out_error;
@@ -529,7 +529,7 @@ int elf_load_note(int bin_fd, const char *bin_name, uint32_t note_type,
     if (nbytes < 0)
         goto out_error;
     if (nbytes != note_size)
-        goto out_invalid;
+        goto out_nhdr_size_disparity;
 
     *out_note_data = note_data;
     *out_note_size = note_size;
@@ -539,13 +539,34 @@ int elf_load_note(int bin_fd, const char *bin_name, uint32_t note_type,
 
 out_error:
     warn("%s", bin_name);
-    free(ehdr);
-    free(phdr);
-    free(note_data);
-    exit(1);
+    goto mem_cleanup;
 
 out_invalid:
     warnx("%s: Invalid or unsupported executable", bin_name);
+    goto mem_cleanup;
+
+out_ehdr_size_disparity:
+    warnx("%s: Elf header does not match the expected size", bin_name);
+    goto mem_cleanup;  
+    
+out_invalid_e_entry:
+    warnx("%s: e_entry does not fall within the memory allocation range", bin_name);
+    goto mem_cleanup; 
+    
+out_phdr_size_disparity:
+    warnx("%s: Program header does not match the expected size", bin_name);
+    goto mem_cleanup; 
+
+
+out_nhdr_invalid_size:
+    warnx("%s: Note does not fall within valid size", bin_name);
+    goto mem_cleanup; 
+
+out_nhdr_size_disparity:
+    warnx("%s: Bytes read mismatches note size", bin_name);
+    goto mem_cleanup; 
+    
+mem_cleanup:
     free(ehdr);
     free(phdr);
     free(note_data);
