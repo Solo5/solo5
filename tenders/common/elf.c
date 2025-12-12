@@ -213,7 +213,7 @@ void elf_load(int bin_fd, const char *bin_name, uint8_t *mem, size_t mem_size,
     if (nbytes != sizeof(Elf64_Ehdr))
         goto out_ehdr_size_disparity; 
     if (!ehdr_is_valid(ehdr))
-        goto out_invalid; 
+        goto out_invalid;
     /*
      * e_entry must be non-zero and within range of our memory allocation.
      */
@@ -370,15 +370,15 @@ out_invalid:
 
 out_ehdr_size_disparity:
     warnx("%s: Elf header does not match the expected size", bin_name);
-    goto mem_cleanup;  
+    goto mem_cleanup;
     
 out_invalid_e_entry:
     warnx("%s: e_entry does not fall within the memory allocation range", bin_name);
-    goto mem_cleanup;  
+    goto mem_cleanup;
 
 out_phdr_size_disparity:
     warnx("%s: Program header does not match the expected size", bin_name);
-    goto mem_cleanup; 
+    goto mem_cleanup;
 
 out_p_vaddr_out_of_range:
     warnx("%s: p_vaddr outside of valid memory range", bin_name);
@@ -396,13 +396,13 @@ out_p_filesz_outside_range:
     warnx("%s: Program file segment falls outside of valid range", bin_name);
     goto mem_cleanup;
 
-out_p_memsz_outside_range:  //possibly rename, quite long
+out_p_memsz_outside_range:
     warnx("%s: Program memory segment falls outside of valid range", bin_name);
     goto mem_cleanup;
 
 out_host_f_segment_disparity:
     warnx("%s: Host file segment mismatched", bin_name);
-    goto mem_cleanup;    
+    goto mem_cleanup;
 
 out_arch_page_misaligned:
     warnx("%s: ", bin_name);
@@ -411,7 +411,7 @@ out_arch_page_misaligned:
 mem_cleanup:
     free(ehdr);
     free(phdr);
-    exit(1); 
+    exit(1);
 }
 
 int elf_load_note(int bin_fd, const char *bin_name, uint32_t note_type,
@@ -547,24 +547,24 @@ out_invalid:
 
 out_ehdr_size_disparity:
     warnx("%s: Elf header does not match the expected size", bin_name);
-    goto mem_cleanup;  
+    goto mem_cleanup;
     
 out_invalid_e_entry:
     warnx("%s: e_entry does not fall within the memory allocation range", bin_name);
-    goto mem_cleanup; 
+    goto mem_cleanup;
     
 out_phdr_size_disparity:
     warnx("%s: Program header does not match the expected size", bin_name);
-    goto mem_cleanup; 
+    goto mem_cleanup;
 
 
 out_nhdr_invalid_size:
     warnx("%s: Note does not fall within valid size", bin_name);
-    goto mem_cleanup; 
+    goto mem_cleanup;
 
 out_nhdr_size_disparity:
     warnx("%s: Bytes read mismatches note size", bin_name);
-    goto mem_cleanup; 
+    goto mem_cleanup;
     
 mem_cleanup:
     free(ehdr);
