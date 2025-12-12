@@ -725,5 +725,5 @@ xen_expect_abort() {
 @test "buggyelf hvt" {
   hvt_run test_buggyelf/buggyelf.hvt
   [ "$status" -eq 1 ] && \
-    [[ "$output" == *"Invalid or unsupported executable"* ]]
+    [[ "$output" == *"Note does not fall within valid size"* ]]
 }
