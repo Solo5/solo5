@@ -541,10 +541,6 @@ out_error:
     warn("%s", bin_name);
     goto mem_cleanup;
 
-out_invalid:
-    warnx("%s: Invalid or unsupported executable", bin_name);
-    goto mem_cleanup;
-
 out_ehdr_size_disparity:
     warnx("%s: Elf header does not match the expected size", bin_name);
     goto mem_cleanup;
@@ -556,7 +552,6 @@ out_invalid_e_entry:
 out_phdr_size_disparity:
     warnx("%s: Program header does not match the expected size", bin_name);
     goto mem_cleanup;
-
 
 out_nhdr_invalid_size:
     warnx("%s: Note does not fall within valid size", bin_name);
