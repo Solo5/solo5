@@ -111,7 +111,6 @@ static void usage(const char *prog)
     fprintf(stderr, "    --version (display version information)\n");
     fprintf(stderr, "Compiled-in modules: ");
     for (struct hvt_module *m = &__start_modules; m < &__stop_modules; m++) {
-        assert(m->name);
         fprintf(stderr, "%s ", m->name);
     }
     fprintf(stderr, "\n");
