@@ -490,7 +490,7 @@ case ${CONFIG_HOST} in
         # executables.
         TARGET_CC_LDFLAGS="-Wl,-nopie,--no-execute-only"
         TARGET_LD_LDFLAGS="-nopie --no-execute-only"
-        TARGET_CC_CFLAGS="-fno-emulated-tls"
+        TARGET_CC_CFLAGS="${TARGET_CC_CFLAGS} -fno-emulated-tls"
         ;;
     *)
         die "Unsupported host system: ${CONFIG_HOST}"
