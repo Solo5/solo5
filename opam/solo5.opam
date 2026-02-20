@@ -37,7 +37,6 @@ available: [
   (arch = "x86_64" | arch = "arm64" | arch = "ppc64") &
   (os = "linux" | os = "freebsd" | os = "openbsd")
 ]
-x-ci-accept-failures: [ "centos-7" ]
 synopsis: "Solo5 sandboxed execution environment"
 description: """
 Solo5 is a sandboxed execution environment primarily intended
@@ -48,4 +47,4 @@ This package provides the Solo5 components needed to build and
 run MirageOS unikernels on the host system.
 """
 x-maintenance-intent: [ "(latest)" ]
-x-ci-accept-failures: [ "opensuse-15.6" ] # too old GCC compiler (OpenSUSE uses GCC 7 and we require GCC 10)
+x-ci-accept-failures: [ "centos-7" "opensuse-15.6" ] # too old GCC compiler (OpenSUSE uses GCC 7 and we require GCC 10)
