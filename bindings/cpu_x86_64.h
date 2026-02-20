@@ -72,8 +72,8 @@
 #define X86_EFER_NXE_BIT        11 /* No-execute enable */
 #define X86_EFER_NXE            _BITUL(X86_EFER_NXE_BIT)
 
-#define PAGE_SIZE               4096
 #define PAGE_SHIFT              12
+#define PAGE_SIZE               (1 << PAGE_SHIFT)
 #define PAGE_MASK               ~(0xfff)
 
 /*

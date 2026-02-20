@@ -51,13 +51,13 @@
  */
 #if defined(__x86_64__)
 #define EM_TARGET EM_X86_64
-#define EM_PAGE_SIZE 0x1000
+#define EM_PAGE_SIZE (1 << 12)
 #elif defined(__aarch64__)
 #define EM_TARGET EM_AARCH64
-#define EM_PAGE_SIZE 0x1000
+#define EM_PAGE_SIZE (1 << 14)
 #elif defined(__powerpc64__)
 #define EM_TARGET EM_PPC64
-#define EM_PAGE_SIZE 0x10000
+#define EM_PAGE_SIZE (1 << 16)
 #else
 #error Unsupported target
 #endif

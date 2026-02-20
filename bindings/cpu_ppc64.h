@@ -21,8 +21,8 @@
 #define __CPU_PPC64_H__
 
 /* memory defines */
-#define PAGE_SIZE   (64 * 1024)
 #define PAGE_SHIFT  16
+#define PAGE_SIZE   (1 << PAGE_SHIFT)
 #define PAGE_MASK   ~(0xffff)
 
 #define CR0_SO      (0x80000000 >> 3) /* summary overflow;
