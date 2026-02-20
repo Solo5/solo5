@@ -426,7 +426,7 @@ TARGET_CC_IS_OPENBSD=
 if CC="${TARGET_CC}" cc_is_clang; then
     TARGET_CC_CFLAGS=-nostdlibinc
     # XXX Clang warns for no good reason if -nostdlibinc is used and no
-    # compliation is performed. We could work around this by using --config
+    # compilation is performed. We could work around this by using --config
     # which "claims" all command line arguments as "used", but this is easier
     # for now.
     TARGET_CC_CFLAGS="${TARGET_CC_CFLAGS} -Wno-unused-command-line-argument"
