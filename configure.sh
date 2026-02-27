@@ -458,9 +458,6 @@ echo "${prog_NAME}:" \
 
 # TARGET_CC_LDFLAGS are used by "cc as linker"; TARGET_LD_LDFLAGS are used by
 # the plain "ld" wrapper.
-# TODO: Are there Linux distributions with toolchains configured to force PIE
-# even if -static is used? If yes, these will need treatment similar to OpenBSD
-# below, and/or disabling PIE in "cc".
 TARGET_CC_LDFLAGS=
 TARGET_LD_LDFLAGS=
 case ${CONFIG_HOST} in
@@ -470,9 +467,12 @@ case ${CONFIG_HOST} in
         # support it and Linux "cc" toolchains insist on adding it by default
         # which leads to linkers warning if it is enabled but the input section
         # is subsequently discarded.
+        # The '-no-pie' exists because some Linux distributions
+        # (e.g. Alpine >= 3.23) package a GCC which passes '-pie' to ld even 
+        # when '-static' is present.
         TARGET_LD="${TARGET_LD:-ld}"
         TARGET_OBJCOPY="${TARGET_OBJCOPY:-objcopy}"
-        TARGET_CC_LDFLAGS="-Wl,--build-id=none"
+        TARGET_CC_LDFLAGS="-Wl,--build-id=none,-no-pie"
         ;;
     FreeBSD)
         TARGET_LD="${TARGET_LD:-ld.lld}"
