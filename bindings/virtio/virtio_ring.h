@@ -33,6 +33,15 @@
 #ifndef VIRTQUEUE_H
 #define VIRTQUEUE_H
 
+/*
+ * Memory barriers for virtio shared memory synchronization with the host.
+ * Even with a single guest vCPU, barriers are needed because the host
+ * hypervisor runs on a different physical CPU and accesses the shared vring.
+ */
+#define virtio_wmb() __asm__ __volatile__("sfence" ::: "memory")
+#define virtio_rmb() __asm__ __volatile__("lfence" ::: "memory")
+#define virtio_mb()  __asm__ __volatile__("mfence" ::: "memory")
+
 typedef uint16_t le16;
 typedef uint32_t le32;
 typedef uint64_t le64;

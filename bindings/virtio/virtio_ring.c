@@ -75,8 +75,12 @@ int virtq_add_descriptor_chain(struct virtq *vq,
     desc->flags &= ~VIRTQ_DESC_F_NEXT;
 
     vq->num_avail -= num;
-    /* Memory barriers should be unnecessary with one processor */
     vq->avail->ring[vq->avail->idx & mask] = head;
+    /*
+     * Ensure the descriptor and avail ring entries are visible to the host
+     * before updating avail->idx.
+     */
+    virtio_wmb();
     /* avail->idx always increments and wraps naturally at 65536 */
     vq->avail->idx++;
     vq->next_avail += num;

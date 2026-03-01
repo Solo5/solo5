@@ -114,6 +114,7 @@ static void recv_setup(struct virtio_net_desc *nd)
                                           nd->recvq.next_avail & mask, 1) == 0);
     } while ((nd->recvq.next_avail & mask) != 0);
 
+    virtio_mb();
     outw(nd->pci_base + VIRTIO_PCI_QUEUE_NOTIFY, VIRTQ_RECV);
 }
 
@@ -148,6 +149,7 @@ int virtio_net_xmit_packet(struct virtio_net_desc *nd,
 
     r = virtq_add_descriptor_chain(&nd->xmitq, head, 2);
 
+    virtio_mb();
     outw(nd->pci_base + VIRTIO_PCI_QUEUE_NOTIFY, VIRTQ_XMIT);
 
     return r;
@@ -293,6 +295,7 @@ static uint8_t *virtio_net_recv_pkt_get(struct virtio_net_desc *nd,
     if (nd->recvq.last_used == nd->recvq.used->idx)
         return NULL;
 
+    virtio_rmb();
     e = &(nd->recvq.used->ring[nd->recvq.last_used & mask]);
     desc_idx = e->id;
 
@@ -315,6 +318,7 @@ static void virtio_net_recv_pkt_put(struct virtio_net_desc *nd)
     /* This sets the returned descriptor to be ready for incoming packets, and
      * advances the next_avail index. */
     assert(virtq_add_descriptor_chain(&nd->recvq, nd->recvq.next_avail & mask, 1) == 0);
+    virtio_mb();
     outw(nd->pci_base + VIRTIO_PCI_QUEUE_NOTIFY, VIRTQ_RECV);
 }
 

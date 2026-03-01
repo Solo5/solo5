@@ -98,6 +98,7 @@ static uint16_t virtio_blk_op(struct virtio_blk_desc *bd,
 
     assert(virtq_add_descriptor_chain(&bd->blkq, head, 3) == 0);
 
+    virtio_mb();
     outw(bd->pci_base + VIRTIO_PCI_QUEUE_NOTIFY, VIRTQ_BLK);
 
     return head;
@@ -128,6 +129,7 @@ static int virtio_blk_op_sync(struct virtio_blk_desc *bd,
     while (bd->blkq.used->idx != bd->blkq.avail->idx)
         ;
 
+    virtio_rmb();
     /* Consume all the recently used descriptors. */
     for (; bd->blkq.used->idx != bd->blkq.last_used; bd->blkq.last_used++) {
         struct virtq_used_elem *e;
