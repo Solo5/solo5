@@ -125,11 +125,26 @@ int virtio_net_xmit_packet(struct virtio_net_desc *nd,
     uint16_t mask = nd->xmitq.num - 1;
     uint16_t head;
     struct io_buffer *head_buf, *data_buf;
-    int r;
 
     /* Consume used descriptors from all the previous tx'es. */
     for (; nd->xmitq.last_used != nd->xmitq.used->idx; nd->xmitq.last_used++)
         nd->xmitq.num_avail += 2; /* 2 descriptors per chain */
+
+    if (nd->xmitq.num_avail < 2) {
+        /*
+         * Queue is full. Kick the host so it processes pending buffers,
+         * then spin until at least one descriptor chain is reclaimed.
+         */
+        virtio_mb();
+        outw(nd->pci_base + VIRTIO_PCI_QUEUE_NOTIFY, VIRTQ_XMIT);
+
+        while (nd->xmitq.last_used == nd->xmitq.used->idx)
+            ;
+        virtio_rmb();
+        for (; nd->xmitq.last_used != nd->xmitq.used->idx;
+               nd->xmitq.last_used++)
+            nd->xmitq.num_avail += 2;
+    }
 
     /* next_avail is incremented by virtq_add_descriptor_chain below. */
     head = nd->xmitq.next_avail & mask;
@@ -147,12 +162,13 @@ int virtio_net_xmit_packet(struct virtio_net_desc *nd,
     data_buf->len = len;
     data_buf->extra_flags = 0;
 
-    r = virtq_add_descriptor_chain(&nd->xmitq, head, 2);
+    virtq_add_descriptor_chain(&nd->xmitq, head, 2);
 
     virtio_mb();
-    outw(nd->pci_base + VIRTIO_PCI_QUEUE_NOTIFY, VIRTQ_XMIT);
+    if (virtq_notify_needed(&nd->xmitq))
+        outw(nd->pci_base + VIRTIO_PCI_QUEUE_NOTIFY, VIRTQ_XMIT);
 
-    return r;
+    return 0;
 }
 
 static void virtio_net_config(struct virtio_net_desc *nd,
@@ -186,8 +202,9 @@ static void virtio_net_config(struct virtio_net_desc *nd,
     host_features = inl(pci->base + VIRTIO_PCI_HOST_FEATURES);
     assert(host_features & VIRTIO_NET_F_MAC);
 
-    /* only negotiate that the mac was set for now */
     guest_features = VIRTIO_NET_F_MAC;
+    if (host_features & (1 << VIRTIO_F_EVENT_IDX))
+        guest_features |= (1 << VIRTIO_F_EVENT_IDX);
     outl(pci->base + VIRTIO_PCI_GUEST_FEATURES, guest_features);
 
     for (int i = 0; i < 6; i++) {
@@ -239,6 +256,12 @@ static void virtio_net_config(struct virtio_net_desc *nd,
 
     nd->pci_base = pci->base;
     net_configured = 1;
+
+    if (guest_features & (1 << VIRTIO_F_EVENT_IDX)) {
+        nd->recvq.uses_event_idx = 1;
+        nd->xmitq.uses_event_idx = 1;
+    }
+
     intr_register_irq(pci->irq, handle_virtio_net_interrupt, nd);
     recv_setup(nd);
 
@@ -249,7 +272,15 @@ static void virtio_net_config(struct virtio_net_desc *nd,
      * Interrupt").
      */
 
-    nd->xmitq.avail->flags |= VIRTQ_AVAIL_F_NO_INTERRUPT;
+    if (nd->xmitq.uses_event_idx) {
+        /*
+         * Set used_event to a value that will never be reached, effectively
+         * suppressing interrupts for the transmit queue.
+         */
+        *virtq_used_event(&nd->xmitq) = nd->xmitq.used->idx - 1;
+    } else {
+        nd->xmitq.avail->flags |= VIRTQ_AVAIL_F_NO_INTERRUPT;
+    }
 
     /*
      * 8. Set the DRIVER_OK status bit. At this point the device is "live".
@@ -319,7 +350,8 @@ static void virtio_net_recv_pkt_put(struct virtio_net_desc *nd)
      * advances the next_avail index. */
     assert(virtq_add_descriptor_chain(&nd->recvq, nd->recvq.next_avail & mask, 1) == 0);
     virtio_mb();
-    outw(nd->pci_base + VIRTIO_PCI_QUEUE_NOTIFY, VIRTQ_RECV);
+    if (virtq_notify_needed(&nd->recvq))
+        outw(nd->pci_base + VIRTIO_PCI_QUEUE_NOTIFY, VIRTQ_RECV);
 }
 
 int virtio_config_network(struct pci_config_info *pci, solo5_handle_t mft_index)
@@ -454,11 +486,22 @@ static int virtio_net_recv(struct virtio_net_desc *nd, uint8_t *buf,
      * and waiting for incoming packets. The app is definitely not doing that
      * now (as we are here), so disable them. */
 
-    nd->recvq.avail->flags |= VIRTQ_AVAIL_F_NO_INTERRUPT;
+    if (nd->recvq.uses_event_idx) {
+        /*
+         * Set used_event to a value that will never be reached, effectively
+         * suppressing interrupts while we process packets.
+         */
+        *virtq_used_event(&nd->recvq) = nd->recvq.used->idx - 1;
+    } else {
+        nd->recvq.avail->flags |= VIRTQ_AVAIL_F_NO_INTERRUPT;
+    }
 
     pkt = virtio_net_recv_pkt_get(nd, &len);
     if (!pkt) {
-        nd->recvq.avail->flags &= ~VIRTQ_AVAIL_F_NO_INTERRUPT;
+        if (nd->recvq.uses_event_idx)
+            *virtq_used_event(&nd->recvq) = nd->recvq.used->idx;
+        else
+            nd->recvq.avail->flags &= ~VIRTQ_AVAIL_F_NO_INTERRUPT;
         return -1;
     }
 
@@ -474,7 +517,10 @@ static int virtio_net_recv(struct virtio_net_desc *nd, uint8_t *buf,
 
     virtio_net_recv_pkt_put(nd);
 
-    nd->recvq.avail->flags &= ~VIRTQ_AVAIL_F_NO_INTERRUPT;
+    if (nd->recvq.uses_event_idx)
+        *virtq_used_event(&nd->recvq) = nd->recvq.used->idx;
+    else
+        nd->recvq.avail->flags &= ~VIRTQ_AVAIL_F_NO_INTERRUPT;
 
     return 0;
 }

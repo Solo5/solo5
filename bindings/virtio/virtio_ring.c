@@ -95,6 +95,8 @@ void virtq_init_rings(uint16_t pci_base, struct virtq *vq, int selector)
     
     outw(pci_base + VIRTIO_PCI_QUEUE_SEL, selector);
     vq->last_used = vq->next_avail = 0;
+    vq->uses_event_idx = 0;
+    vq->last_notified_idx = 0;
     vq->num = vq->num_avail = inw(pci_base + VIRTIO_PCI_QUEUE_SIZE);
 
     pgs = ((VIRTQ_SIZE(vq->num) - 1) >> PAGE_SHIFT) + 1;

@@ -76,12 +76,14 @@ typedef uint64_t le64;
 #define VIRTQ_OFF_AVAIL_RING(q) (VIRTQ_OFF_AVAIL(q)             \
                                  + sizeof(struct virtq_avail))
 #define VIRTQ_OFF_PADDING(q) (VIRTQ_OFF_AVAIL_RING(q)       \
-                              + (sizeof(le16) * (q)))
+                              + (sizeof(le16) * (q))        \
+                              + sizeof(le16)) /* used_event */
 #define VIRTQ_OFF_USED(q) ((VIRTQ_OFF_PADDING(q) + PAGE_SIZE - 1) & PAGE_MASK)
 #define VIRTQ_OFF_USED_RING(q) (VIRTQ_OFF_USED(q) + sizeof(struct virtq_used))
 
 #define VIRTQ_SIZE(q) (VIRTQ_OFF_USED_RING(q) \
-                                   + (sizeof(struct virtq_used_elem) * (q)))
+                                   + (sizeof(struct virtq_used_elem) * (q)) \
+                                   + sizeof(le16)) /* avail_event */
 
 /* Virtqueue descriptors: 16 bytes.
  * These can chain together via "next". */
@@ -151,6 +153,10 @@ struct virtq {
         /* Indexes in the descriptors array */
         uint16_t last_used;
         uint16_t next_avail;
+
+        /* VIRTIO_F_EVENT_IDX support */
+        uint8_t uses_event_idx;
+        uint16_t last_notified_idx;
 };
 
 static inline int virtq_need_event(uint16_t event_idx, uint16_t new_idx, uint16_t old_idx)
@@ -169,6 +175,25 @@ static inline le16 *virtq_avail_event(struct virtq *vq)
 {
         /* For backwards compat, avail event index is at *end* of used ring. */
         return (le16 *)&vq->used->ring[vq->num];
+}
+
+/*
+ * Check whether the host needs to be notified about new available buffers.
+ * When EVENT_IDX is negotiated, the host writes avail_event to tell us
+ * the next index it expects to be notified about. We only notify if the
+ * new index crosses that threshold.
+ * Without EVENT_IDX, fall back to checking the USED_F_NO_NOTIFY flag.
+ */
+static inline int virtq_notify_needed(struct virtq *vq)
+{
+        if (vq->uses_event_idx) {
+                uint16_t old = vq->last_notified_idx;
+                uint16_t new = vq->avail->idx;
+                vq->last_notified_idx = new;
+                virtio_mb();
+                return virtq_need_event(*virtq_avail_event(vq), new, old);
+        }
+        return !(vq->used->flags & VIRTQ_USED_F_NO_NOTIFY);
 }
 
 /*
