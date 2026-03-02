@@ -88,7 +88,7 @@
     (((~0UL) << (l)) & (~0UL >> (63 - (h))))
 
 /* Definitions of Page tables */
-#define PAGE_SHIFT  12
+#define PAGE_SHIFT  14
 #define PAGE_SIZE   (1 << (PAGE_SHIFT))
 
 /*
