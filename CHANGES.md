@@ -1,3 +1,16 @@
+## v0.10.1 (2026-03-03)
+
+- VirtIO: negotiate EVENT_IDX, improves network performance roughly by a factor
+  of 2 (#630 @dinosaure)
+- Add better error reporting for ELF loader (#624 @m-wkr @hannesm, fixes #396)
+- configure.sh: Linux: force -no-pie for TARGET_CC_LDFLAGS (#629 @Firobe,
+  fixes #626 reported by @kit-ty-kate)
+- configure.sh: OpenBSD: fix TARGET_CC_FLAGS (#627 @omegametabroccolo)
+- Muen: update sinfo to 04 (@reet-, #622)
+- Opam: uniquify x-ci-accept-failures (@hannesm, adapted from @art-w
+  https://github.com/ocaml/opam-repository/pull/28865)
+- Fix typos (#621 #628 @hannesm)
+
 ## v0.10.0 (2025-10-27)
 
 - Fix compilation on OpenBSD about `#ifdef` (@omegametabroccolo, @hannesm,
