@@ -219,8 +219,8 @@ void elf_load(int bin_fd, const char *bin_name, uint8_t *mem, size_t mem_size,
         goto mem_cleanup;
     }
     if (nbytes != sizeof(Elf64_Ehdr)) {
-        warnx("%s: INV_EXE: elf header does not match the expected size"
-              " (%zu != %lu)", bin_name, nbytes, sizeof(Elf64_Ehdr));
+        warnx("%s: %s: elf header does not match the expected size"
+              " (%zu != %lu)", bin_name, INV_EXE, nbytes, sizeof(Elf64_Ehdr));
         goto mem_cleanup;
     }
     if (!ehdr_is_valid(ehdr)) {
@@ -232,8 +232,8 @@ void elf_load(int bin_fd, const char *bin_name, uint8_t *mem, size_t mem_size,
      * e_entry must be non-zero and within range of our memory allocation.
      */
     if (ehdr->e_entry < p_min_loadaddr || ehdr->e_entry >= mem_size) {
-        warnx("%s: INV_EXE: e_entry does not fall within the memory allocation"
-              " range (%llu < %llu || %llu >= %zu)", bin_name,
+        warnx("%s: %s: e_entry does not fall within the memory allocation"
+              " range (%llu < %llu || %llu >= %zu)", bin_name, INV_EXE,
               (unsigned long long)ehdr->e_entry,
               (unsigned long long)p_min_loadaddr,
               (unsigned long long)ehdr->e_entry, mem_size);
@@ -254,8 +254,9 @@ void elf_load(int bin_fd, const char *bin_name, uint8_t *mem, size_t mem_size,
         goto mem_cleanup;
     }
     if (nbytes != ph_size) {
-        warnx("%s: INV_EXE: program header does not match the expected size"
-              " (%zu != %zu while loading elf)", bin_name, nbytes, ph_size);
+        warnx("%s: %s: program header does not match the expected size"
+              " (%zu != %zu while loading elf)", bin_name, INV_EXE, nbytes,
+              ph_size);
         goto mem_cleanup;
     }
 
@@ -278,8 +279,9 @@ void elf_load(int bin_fd, const char *bin_name, uint8_t *mem, size_t mem_size,
             continue;
 
         if (p_vaddr < p_min_loadaddr) {
-            warnx("%s: INV_EXE: phdr[%u].p_vaddr outside of valid memory range"
-                  " (%llu < %llu)", bin_name, ph_i, (unsigned long long)p_vaddr,
+            warnx("%s: %s: phdr[%u].p_vaddr outside of valid memory range"
+                  " (%llu < %llu)", bin_name, INV_EXE, ph_i,
+                  (unsigned long long)p_vaddr,
                   (unsigned long long)p_min_loadaddr);
             goto mem_cleanup;
         }
@@ -289,8 +291,9 @@ void elf_load(int bin_fd, const char *bin_name, uint8_t *mem, size_t mem_size,
          * any surprises later.
          */
         if (p_vaddr < plast_vaddr) {
-            warnx("%s: INV_EXE: phdr[%u].p_vaddr is not in ascending order"
-                  " (%llu < %llu)", bin_name, ph_i, (unsigned long long)p_vaddr,
+            warnx("%s: %s: phdr[%u].p_vaddr is not in ascending order"
+                  " (%llu < %llu)", bin_name, INV_EXE, ph_i,
+                  (unsigned long long)p_vaddr,
                   (unsigned long long)plast_vaddr);
             goto mem_cleanup;
         }
@@ -301,16 +304,16 @@ void elf_load(int bin_fd, const char *bin_name, uint8_t *mem, size_t mem_size,
          * and verify result is within range.
          */
         if (align_down(p_vaddr, p_align, &p_vaddr_start)) {
-            warnx("%s: INV_EXE: phdr[%u].p_vaddr is outside of memory range"
+            warnx("%s: %s: phdr[%u].p_vaddr is outside of memory range"
                   " (align_down with %llu (p_vaddr) and %llu (p_align) failed)",
-                  bin_name, ph_i, (unsigned long long)p_vaddr,
+                  bin_name, INV_EXE, ph_i, (unsigned long long)p_vaddr,
                   (unsigned long long)p_align);
             goto mem_cleanup;
         }
         if (p_vaddr_start < p_min_loadaddr) {
-            warnx("%s: INV_EXE: phdr[%u].p_vaddr_start is outside of memory"
-                  " range (%llu < %llu (p_min_loadaddr))", bin_name, ph_i,
-                  (unsigned long long)p_vaddr_start,
+            warnx("%s: %s: phdr[%u].p_vaddr_start is outside of memory"
+                  " range (%llu < %llu (p_min_loadaddr))", bin_name, INV_EXE,
+                  ph_i, (unsigned long long)p_vaddr_start,
                   (unsigned long long)p_min_loadaddr);
             goto mem_cleanup;
         }
@@ -319,8 +322,8 @@ void elf_load(int bin_fd, const char *bin_name, uint8_t *mem, size_t mem_size,
          * the Solo5 toolchains do not produce such executables.
          */
         if (p_vaddr_start < e_end) {
-            warnx("%s: INV_EXE: phdr[%u].p_vaddr_start is outside of memory"
-                  " range (%llu < %llu (e_end))", bin_name, ph_i,
+            warnx("%s: %s: phdr[%u].p_vaddr_start is outside of memory"
+                  " range (%llu < %llu (e_end))", bin_name, INV_EXE, ph_i,
                   (unsigned long long)p_vaddr_start, (unsigned long long)e_end);
             goto mem_cleanup;
         }
@@ -328,22 +331,22 @@ void elf_load(int bin_fd, const char *bin_name, uint8_t *mem, size_t mem_size,
          * Verify p_vaddr + p_filesz is within range.
          */
         if (p_vaddr >= mem_size) {
-            warnx("%s: INV_EXE: phdr[%u] program file segment falls outside of"
-                  " valid range (%llu >= %zu (mem_size))", bin_name, ph_i,
-                  (unsigned long long)p_vaddr, mem_size);
+            warnx("%s: %s: phdr[%u] program file segment falls outside of"
+                  " valid range (%llu >= %zu (mem_size))", bin_name, INV_EXE,
+                  ph_i, (unsigned long long)p_vaddr, mem_size);
             goto mem_cleanup;
         }
         if (add_overflow(p_vaddr, p_filesz, temp)) {
-            warnx("%s: INV_EXE: phdr[%u] program file segment falls outside of"
+            warnx("%s: %s: phdr[%u] program file segment falls outside of"
                   " valid range (%llu (p_vaddr) + %llu (p_filesz) overflow)",
-                  bin_name, ph_i, (unsigned long long)p_vaddr,
+                  bin_name, INV_EXE, ph_i, (unsigned long long)p_vaddr,
                   (unsigned long long)p_filesz);
             goto mem_cleanup;
         }
         if (temp > mem_size) {
-            warnx("%s: INV_EXE: phdr[%u] program file segment falls outside of"
+            warnx("%s: %s: phdr[%u] program file segment falls outside of"
                   " valid range (%llu (p_vaddr + p_filesz) > %zu (mem_size))",
-                  bin_name, ph_i, (unsigned long long)temp, mem_size);
+                  bin_name, INV_EXE, ph_i, (unsigned long long)temp, mem_size);
             goto mem_cleanup;
         }
         /*
@@ -351,30 +354,31 @@ void elf_load(int bin_fd, const char *bin_name, uint8_t *mem, size_t mem_size,
          * alignment and verify result is within range.
          */
         if (p_memsz < p_filesz) {
-            warnx("%s: INV_EXE: phdr[%u] program memory segment falls outside"
+            warnx("%s: %s: phdr[%u] program memory segment falls outside"
                   " of valid range (%llu (p_memsz) < %llu (p_filesz))",
-                  bin_name, ph_i, (unsigned long long)p_memsz,
+                  bin_name, INV_EXE, ph_i, (unsigned long long)p_memsz,
                   (unsigned long long)p_filesz);
             goto mem_cleanup;
         }
         if (add_overflow(p_vaddr, p_memsz, p_vaddr_end)) {
-            warnx("%s: INV_EXE: phdr[%u] program memory segment falls outside"
+            warnx("%s: %s: phdr[%u] program memory segment falls outside"
                   " of valid range (%llu (p_vaddr) + %llu (p_memsz) overflow)",
-                  bin_name, ph_i, (unsigned long long)p_vaddr,
+                  bin_name, INV_EXE, ph_i, (unsigned long long)p_vaddr,
                   (unsigned long long)p_memsz);
             goto mem_cleanup;
         }
         if (align_up(p_vaddr_end, p_align, &p_vaddr_end)) {
-            warnx("%s: INV_EXE: phdr[%u] program memory segment falls outside"
+            warnx("%s: %s: phdr[%u] program memory segment falls outside"
                   " of valid range (align_up with %llu (p_vaddr_end) and %llu"
-                  " (p_align) failed)", bin_name, ph_i,
+                  " (p_align) failed)", bin_name, INV_EXE, ph_i,
                   (unsigned long long)p_vaddr_end, (unsigned long long)p_align);
             goto mem_cleanup;
         }
         if (p_vaddr_end > mem_size) {
-            warnx("%s: INV_EXE: phdr[%u] program memory segment falls outside"
-                  " of valid range (%llu (p_vaddr + p_memsz) > %zu (mem_size))",
-                  bin_name, ph_i, (unsigned long long)p_vaddr_end, mem_size);
+            warnx("%s: %s: phdr[%u] program memory segment falls outside of"
+                  " valid range (%llu (p_vaddr + p_memsz) > %zu (mem_size))",
+                  bin_name, INV_EXE, ph_i, (unsigned long long)p_vaddr_end,
+                  mem_size);
             goto mem_cleanup;
         }
         /*
@@ -386,8 +390,9 @@ void elf_load(int bin_fd, const char *bin_name, uint8_t *mem, size_t mem_size,
              * Double check result for host (caller) address space overflow.
              */
             if ((mem + e_end) < (mem + p_min_loadaddr)) {
-              warnx("%s: INV_EXE: phdr[%u] address space overflow"
-                    " ((mem + e_end) < (mem + p_min_loaddr))", bin_name, ph_i);
+              warnx("%s: %s: phdr[%u] address space overflow"
+                    " ((mem + e_end) < (mem + p_min_loaddr))",
+                    bin_name, INV_EXE, ph_i);
               goto mem_cleanup;
             }
         }
@@ -402,8 +407,8 @@ void elf_load(int bin_fd, const char *bin_name, uint8_t *mem, size_t mem_size,
          * Double check result for host (caller) address space overflow.
          */
         if (host_vaddr < (mem + p_min_loadaddr)) {
-            warnx("%s: INV_EXE: phdr[%u] address space overflow"
-                  " (host_vaddr < (mem + p_min_loaddr))", bin_name, ph_i);
+            warnx("%s: %s: phdr[%u] address space overflow (host_vaddr <"
+                  " (mem + p_min_loaddr))", bin_name, INV_EXE, ph_i);
             goto mem_cleanup;
         }
         nbytes = pread_in_full(bin_fd, host_vaddr, p_filesz,
@@ -428,14 +433,15 @@ void elf_load(int bin_fd, const char *bin_name, uint8_t *mem, size_t mem_size,
          * size.
          */
         if (p_vaddr_start & (EM_PAGE_SIZE - 1)) {
-            warnx("%s: INV_EXE: phdr[%u] p_vaddr_start not aligned with"
-                  " architectural page size (%llu & (%u - 1))", bin_name, ph_i,
-                  (unsigned long long)p_vaddr_start, EM_PAGE_SIZE - 1);
+            warnx("%s: %s: phdr[%u] p_vaddr_start not aligned with"
+                  " architectural page size (%llu & (%u - 1))", bin_name,
+                  INV_EXE, ph_i, (unsigned long long)p_vaddr_start,
+                  EM_PAGE_SIZE - 1);
             goto mem_cleanup;
         }
         if (p_vaddr_end & (EM_PAGE_SIZE - 1)) {
-            warnx("%s: INV_EXE: phdr[%u] p_vaddr_end not aligned with"
-                  " architectural page size (%llu & (%u - 1))", bin_name, ph_i,
+            warnx("%s: %s: phdr[%u] p_vaddr_end not aligned with architectural"
+                  " page size (%llu & (%u - 1))", bin_name, INV_EXE, ph_i,
                   (unsigned long long)p_vaddr_end, EM_PAGE_SIZE - 1);
             goto mem_cleanup;
         }
@@ -447,8 +453,8 @@ void elf_load(int bin_fd, const char *bin_name, uint8_t *mem, size_t mem_size,
         if (phdr[ph_i].p_flags & PF_X)
             prot |= PROT_EXEC;
         if (prot & PROT_WRITE && prot & PROT_EXEC) {
-            warnx("%s: INV_EXE: phdr[%u] requests WRITE and EXEC permissions",
-                  bin_name, ph_i);
+            warnx("%s: %s: phdr[%u] requests WRITE and EXEC permissions",
+                  bin_name, INV_EXE, ph_i);
             goto mem_cleanup;
         }
         assert(t_guest_mprotect != NULL);
@@ -494,13 +500,13 @@ int elf_load_note(int bin_fd, const char *bin_name, uint32_t note_type,
         goto mem_cleanup;
     }
     if (nbytes != sizeof(Elf64_Ehdr)) {
-        warnx("%s: INV_EXE: elf header does not match the expected size"
-              " (%zu != %lu)", bin_name, nbytes, sizeof(Elf64_Ehdr));
+        warnx("%s: %s: elf header does not match the expected size"
+              " (%zu != %lu)", bin_name, INV_EXE, nbytes, sizeof(Elf64_Ehdr));
         goto mem_cleanup;
     }
     if (!ehdr_is_valid(ehdr)) {
-        warnx("%s: INV_EXE: invalid or unsupported executable (elf header"
-              " invalid while loading note)", bin_name);
+        warnx("%s: %s: invalid or unsupported executable (elf header invalid"
+              " while loading note)", bin_name, INV_EXE);
         goto mem_cleanup;
     }
 
@@ -517,8 +523,9 @@ int elf_load_note(int bin_fd, const char *bin_name, uint32_t note_type,
         goto mem_cleanup;
     }
     if (nbytes != ph_size) {
-        warnx("%s: INV_EXE: program header does not match the expected size"
-              " (%zu != %zu while loading note)", bin_name, nbytes, ph_size);
+        warnx("%s: %s: program header does not match the expected size"
+              " (%zu != %zu while loading note)", bin_name, INV_EXE, nbytes,
+              ph_size);
         goto mem_cleanup;
     }
 
@@ -537,8 +544,8 @@ int elf_load_note(int bin_fd, const char *bin_name, uint32_t note_type,
              * p_filesz is less than minimum possible size of a NOTE header,
              * reject the executable.
              */
-            warnx("%s: INV_EXE: phdr[%u].p_filesz note does not fall within"
-                  " valid size (%llu < %lu)", bin_name, ph_i,
+            warnx("%s: %s: phdr[%u].p_filesz note does not fall within"
+                  " valid size (%llu < %lu)", bin_name, INV_EXE, ph_i,
                   (unsigned long long)phdr[ph_i].p_filesz, sizeof(Elf64_Nhdr));
             goto mem_cleanup;
         }
@@ -580,14 +587,14 @@ int elf_load_note(int bin_fd, const char *bin_name, uint32_t note_type,
          * cross-check with p_filesz.
          */
         if (nhdr.h.n_descsz < 1 || nhdr.h.n_descsz > max_note_size) {
-            warnx("%s: INV_EXE: phdr[%u] note does not fall within valid size"
-                  " (%u < 1 || %u > %zu)", bin_name, ph_i, nhdr.h.n_descsz,
-                  nhdr.h.n_descsz, max_note_size);
+            warnx("%s: %s: phdr[%u] note does not fall within valid size"
+                  " (%u < 1 || %u > %zu)", bin_name, INV_EXE, ph_i,
+                  nhdr.h.n_descsz, nhdr.h.n_descsz, max_note_size);
             goto mem_cleanup;
         }
         if (phdr[ph_i].p_filesz < sizeof nhdr + nhdr.h.n_descsz) {
-            warnx("%s: INV_EXE: phdr[%u] note does not fall within valid size"
-                  " (%llu < %lu)", bin_name, ph_i,
+            warnx("%s: %s: phdr[%u] note does not fall within valid size"
+                  " (%llu < %lu)", bin_name, INV_EXE, ph_i,
                   (unsigned long long)phdr[ph_i].p_filesz,
                   sizeof nhdr + nhdr.h.n_descsz);
             goto mem_cleanup;
