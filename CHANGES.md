@@ -2,6 +2,7 @@
 
 - VirtIO: negotiate EVENT_IDX, improves network performance roughly by a factor
   of 2 (#630 @dinosaure)
+- VirtIO: add memory barriers (#630 @dinosaure)
 - Add better error reporting for ELF loader (#624 @m-wkr @hannesm, fixes #396)
 - configure.sh: Linux: force -no-pie for TARGET_CC_LDFLAGS (#629 @Firobe,
   fixes #626 reported by @kit-ty-kate)
