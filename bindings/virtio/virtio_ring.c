@@ -75,8 +75,12 @@ int virtq_add_descriptor_chain(struct virtq *vq,
     desc->flags &= ~VIRTQ_DESC_F_NEXT;
 
     vq->num_avail -= num;
-    /* Memory barriers should be unnecessary with one processor */
     vq->avail->ring[vq->avail->idx & mask] = head;
+    /*
+     * Ensure the descriptor and avail ring entries are visible to the host
+     * before updating avail->idx.
+     */
+    virtio_wmb();
     /* avail->idx always increments and wraps naturally at 65536 */
     vq->avail->idx++;
     vq->next_avail += num;
@@ -91,6 +95,8 @@ void virtq_init_rings(uint16_t pci_base, struct virtq *vq, int selector)
     
     outw(pci_base + VIRTIO_PCI_QUEUE_SEL, selector);
     vq->last_used = vq->next_avail = 0;
+    vq->uses_event_idx = 0;
+    vq->last_notified_idx = 0;
     vq->num = vq->num_avail = inw(pci_base + VIRTIO_PCI_QUEUE_SIZE);
 
     pgs = ((VIRTQ_SIZE(vq->num) - 1) >> PAGE_SHIFT) + 1;

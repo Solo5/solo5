@@ -98,7 +98,9 @@ static uint16_t virtio_blk_op(struct virtio_blk_desc *bd,
 
     assert(virtq_add_descriptor_chain(&bd->blkq, head, 3) == 0);
 
-    outw(bd->pci_base + VIRTIO_PCI_QUEUE_NOTIFY, VIRTQ_BLK);
+    virtio_mb();
+    if (virtq_notify_needed(&bd->blkq))
+        outw(bd->pci_base + VIRTIO_PCI_QUEUE_NOTIFY, VIRTQ_BLK);
 
     return head;
 }
@@ -128,6 +130,7 @@ static int virtio_blk_op_sync(struct virtio_blk_desc *bd,
     while (bd->blkq.used->idx != bd->blkq.avail->idx)
         ;
 
+    virtio_rmb();
     /* Consume all the recently used descriptors. */
     for (; bd->blkq.used->idx != bd->blkq.last_used; bd->blkq.last_used++) {
         struct virtq_used_elem *e;
@@ -162,8 +165,9 @@ static void virtio_blk_config(struct virtio_blk_desc *bd,
 
     host_features = inl(pci->base + VIRTIO_PCI_HOST_FEATURES);
 
-    /* don't negotiate anything for now */
     guest_features = 0;
+    if (host_features & (1 << VIRTIO_F_EVENT_IDX))
+        guest_features |= (1 << VIRTIO_F_EVENT_IDX);
     outl(pci->base + VIRTIO_PCI_GUEST_FEATURES, guest_features);
 
     bd->sector_size = VIRTIO_BLK_SECTOR_SIZE;
@@ -182,12 +186,18 @@ static void virtio_blk_config(struct virtio_blk_desc *bd,
 
     bd->pci_base = pci->base;
 
+    if (guest_features & (1 << VIRTIO_F_EVENT_IDX))
+        bd->blkq.uses_event_idx = 1;
+
     /*
      * We don't need to get interrupts every time the device uses our
      * descriptors.
      */
 
-    bd->blkq.avail->flags |= VIRTQ_AVAIL_F_NO_INTERRUPT;
+    if (bd->blkq.uses_event_idx)
+        *virtq_used_event(&bd->blkq) = bd->blkq.used->idx - 1;
+    else
+        bd->blkq.avail->flags |= VIRTQ_AVAIL_F_NO_INTERRUPT;
 
     outb(pci->base + VIRTIO_PCI_STATUS, VIRTIO_PCI_STATUS_DRIVER_OK);
 }
