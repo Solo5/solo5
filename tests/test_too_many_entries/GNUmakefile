@@ -18,6 +18,7 @@
 
 test_NAME := test_too_many_entries
 
-.PHONY: all
+.PHONY: all clean
 all:
+clean:
 
