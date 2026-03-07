@@ -277,8 +277,11 @@ solo5_result_t solo5_block_write(solo5_handle_t h, solo5_off_t offset,
      * implementation which does a memcpy() on VIRTIO_BLK_T_OUT, however the
      * internal interfaces should be refactored to reflect this.
      */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-qual"
     int rv = virtio_blk_op_sync(bd, VIRTIO_BLK_T_OUT, sector,
         (uint8_t *)buf, size);
+#pragma GCC diagnostic pop
     return (rv == 0) ? SOLO5_R_OK : SOLO5_R_EUNSPEC;
 }
 

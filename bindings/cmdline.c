@@ -19,7 +19,7 @@
  */
 #include "bindings.h"
 
-char *cmdline_parse(const char *cmdline)
+const char *cmdline_parse(const char *cmdline)
 {
     const char opt_quiet[] = "--solo5:quiet";
     const char opt_error[] = "--solo5:error";
@@ -29,7 +29,7 @@ char *cmdline_parse(const char *cmdline)
 
     const char *p = cmdline;
     bool matched;
-    char *after;
+    const char *after;
 
     while (*p && isspace(*p))
         p++;
@@ -41,7 +41,7 @@ char *cmdline_parse(const char *cmdline)
                 strncmp(p, opt_error, (sizeof(opt_error) - 1)) == 0) {
             _Static_assert(sizeof(opt_quiet) == sizeof(opt_error),
                     "sizeof(--solo5:quiet) != sizeof(--solo5:error");
-            after = (char *) (p + (sizeof(opt_quiet) - 1));
+            after = (const char *) (p + (sizeof(opt_quiet) - 1));
             if (isspace(*after) || *after == '\0') {
                 log_set_level(ERROR);
                 p += (sizeof(opt_quiet) - 1);
@@ -49,7 +49,7 @@ char *cmdline_parse(const char *cmdline)
             }
         }
         else if (strncmp(p, opt_warn, (sizeof(opt_warn) - 1)) == 0) {
-            after = (char *) (p + (sizeof(opt_warn) - 1));
+            after = (const char *) (p + (sizeof(opt_warn) - 1));
             if (isspace(*after) || *after == '\0') {
                 log_set_level(WARN);
                 p += (sizeof(opt_warn) - 1);
@@ -57,7 +57,7 @@ char *cmdline_parse(const char *cmdline)
             }
         }
         else if (strncmp(p, opt_info, (sizeof(opt_info) - 1)) == 0) {
-            after = (char *) (p + (sizeof(opt_info) - 1));
+            after = (const char *) (p + (sizeof(opt_info) - 1));
             if (isspace(*after) || *after == '\0') {
                 log_set_level(INFO);
                 p += (sizeof(opt_info) - 1);
@@ -65,7 +65,7 @@ char *cmdline_parse(const char *cmdline)
             }
         }
         else if (strncmp(p, opt_debug, (sizeof(opt_debug) - 1)) == 0) {
-            after = (char *) (p + (sizeof(opt_debug) - 1));
+            after = (const char *) (p + (sizeof(opt_debug) - 1));
             if (isspace(*after) || *after == '\0') {
                 log_set_level(DEBUG);
                 p += (sizeof(opt_debug) - 1);
@@ -81,5 +81,5 @@ char *cmdline_parse(const char *cmdline)
         }
     }
 
-    return (char *) p;
+    return (const char *) p;
 }
