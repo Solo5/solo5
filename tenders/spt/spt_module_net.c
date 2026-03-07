@@ -143,7 +143,7 @@ static int setup(struct spt *spt, struct mft *mft)
     return 0;
 }
 
-static char *usage(void)
+static const char *usage(void)
 {
     return "--net:NAME=IFACE | @NN (attach tap at IFACE or at fd @NN as network NAME)\n"
         "  [ --net-mac:NAME=HWADDR ] (set HWADDR for network NAME)";

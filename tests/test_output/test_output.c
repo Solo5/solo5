@@ -28,7 +28,7 @@ static void puts(const char *s)
 
 int solo5_app_main(const struct solo5_start_info *si __attribute__((unused)))
 {
-    char* str =
+    const char* str =
       "**** Solo5 standalone test_output **** (55 characters)\n"
       "**** Solo5 standalone test_output **** (111 characters)\n"
       "**** Solo5 standalone test_output **** (167 characters)\n"

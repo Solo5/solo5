@@ -93,7 +93,7 @@ void *memmove(void *dest, const void *src, size_t n)
                 if (!n--) return dest;
                 *d++ = *s++;
             }
-            for (; n>=WS; n-=WS, d+=WS, s+=WS) *(WT *)d = *(WT *)s;
+            for (; n>=WS; n-=WS, d+=WS, s+=WS) *(WT *)d = *(const WT *)s;
         }
         for (; n; n--) *d++ = *s++;
     } else {
@@ -102,7 +102,7 @@ void *memmove(void *dest, const void *src, size_t n)
                 if (!n--) return dest;
                 d[n] = s[n];
             }
-            while (n>=WS) n-=WS, *(WT *)(d+n) = *(WT *)(s+n);
+            while (n>=WS) n-=WS, *(WT *)(d+n) = *(const WT *)(s+n);
         }
         while (n) n--, d[n] = s[n];
     }
@@ -120,7 +120,7 @@ int memcmp(const void *vl, const void *vr, size_t n)
 int strcmp(const char *l, const char *r)
 {
     for (; *l==*r && *l; l++, r++);
-    return *(unsigned char *)l - *(unsigned char *)r;
+    return *(const unsigned char *)l - *(const unsigned char *)r;
 }
 
 char *strcpy(char *restrict dest, const char *restrict src)
@@ -154,7 +154,7 @@ int isspace(int c)
 
 int strncmp(const char *_l, const char *_r, size_t n)
 {
-    const unsigned char *l=(void *)_l, *r=(void *)_r;
+    const unsigned char *l=(const void *)_l, *r=(const void *)_r;
     if (!n--) return 0;
     for (; *l && *r && n && *l == *r ; l++, r++, n--);
     return *l - *r;

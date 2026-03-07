@@ -58,11 +58,11 @@ static void hypercall_net_write(struct hvt *hvt, hvt_gpa_t gpa)
 
     ret = write(e->b.hostfd, HVT_CHECKED_GPA_P(hvt, wr->data, wr->len),
             wr->len);
-    if (ret != wr->len) {
-        if (ret == -1)
-            fprintf(stderr, "Fatal error when writing: %s\n", strerror(errno));
-        else
-            fprintf(stderr, "Fatal error: wrote only %ld out of %ld bytes\n",
+    if (ret == -1) {
+        fprintf(stderr, "Fatal error when writing: %s\n", strerror(errno));
+        exit(1);
+    } else if ((size_t) ret != wr->len) {
+        fprintf(stderr, "Fatal error: wrote only %ld out of %ld bytes\n",
                 ret, wr->len);
         exit(1);
     }
@@ -195,7 +195,7 @@ static int setup(struct hvt *hvt, struct mft *mft)
     return 0;
 }
 
-static char *usage(void)
+static const char *usage(void)
 {
     return "--net:NAME=IFACE | @NN (attach tap at IFACE or at fd @NN as network NAME)\n"
         "  [ --net-mac:NAME=HWADDR ] (set HWADDR for network NAME)";

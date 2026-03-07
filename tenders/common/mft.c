@@ -83,18 +83,6 @@ int mft_validate(const struct mft *mft, size_t mft_size)
     return 0;
 }
 
-void mft_get_builtin_mft1_unconst(const struct mft1_note *note,
-        struct mft **out_mft, size_t *out_mft_size)
-{
-    /*
-     * Get the built-in manifest out of the ELF NOTE. Note that the size must
-     * be adjusted from n_descsz to remove any internal alignment.
-     */
-    *out_mft = (struct mft *)&note->m;
-    *out_mft_size = note->h.n_descsz -
-        (offsetof(struct mft1_note, m) - sizeof (struct mft1_nhdr));
-}
-
 void mft_get_builtin_mft1(const struct mft1_note *note,
         const struct mft **out_mft, size_t *out_mft_size)
 {
@@ -107,7 +95,7 @@ void mft_get_builtin_mft1(const struct mft1_note *note,
         (offsetof(struct mft1_note, m) - sizeof (struct mft1_nhdr));
 }
 
-struct mft_entry *mft_get_by_name(const struct mft *mft, const char *name,
+struct mft_entry *_mft_get_by_name(const struct mft *mft, const char *name,
         mft_type_t type, unsigned *index)
 {
     for (unsigned i = 0; i != mft->entries; i++) {
@@ -115,20 +103,20 @@ struct mft_entry *mft_get_by_name(const struct mft *mft, const char *name,
                 && strncmp(mft->e[i].name, name, MFT_NAME_SIZE) == 0) {
             if (index != NULL)
                 *index = i;
-            return (struct mft_entry *)&mft->e[i];
+            return (struct mft_entry *)(uintptr_t)&mft->e[i];
         }
     }
     return NULL;
 }
 
-struct mft_entry *mft_get_by_index(const struct mft *mft, unsigned index,
+struct mft_entry *_mft_get_by_index(const struct mft *mft, unsigned index,
         mft_type_t type)
 {
     if (index >= mft->entries)
         return NULL;
-    else if (mft->e[index].type == type)
-        return (struct mft_entry *)&mft->e[index];
-    else
+    else if (mft->e[index].type == type) {
+        return (struct mft_entry *)(uintptr_t)&mft->e[index];
+    } else
         return NULL;
 }
 

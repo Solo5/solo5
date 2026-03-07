@@ -54,14 +54,14 @@ extern const struct mft1_note __solo5_mft1_note;
  * Will be initialised at start-up, and used by bindings to access (and
  * modify!) the in-built manifest.
  */
-struct mft *virtio_manifest = NULL;
+const struct mft *virtio_manifest = NULL;
 
 /* Will abort the program if any of the devices is not acquired. */
 static void mft_check_all_acquired()
 {
     bool fail = false;
     for (unsigned i = 0; i != virtio_manifest->entries; i++) {
-        if (!virtio_manifest->e[i].attached) {
+        if (i > 0 && !virtio_manifest->e[i].attached) {
             log(WARN, "Solo5: Device '%s' of type %s not attached.",
                     virtio_manifest->e[i].name, mft_type_to_string(virtio_manifest->e[i].type));
             fail = true;
@@ -89,9 +89,9 @@ static void _start2(void *arg __attribute__((unused)))
      * Get the built-in manifest out of the ELF NOTE and validate it.
      * Once validated, it is available for access globally by the bindings.
      */
-    struct mft *mft;
+    const struct mft *mft;
     size_t mft_size;
-    mft_get_builtin_mft1_unconst(&__solo5_mft1_note, &mft, &mft_size);
+    mft_get_builtin_mft1(&__solo5_mft1_note, &mft, &mft_size);
     if (mft_validate(mft, mft_size) != 0) {
         log(ERROR, "Solo5: Built-in manifest validation failed. Aborting.\n");
         solo5_abort();
@@ -102,12 +102,11 @@ static void _start2(void *arg __attribute__((unused)))
      * Attach the first entry if its type is really MFT_RESERVED_FIRST.
      * Abort otherwise.
      */
-    struct mft_entry *e = mft_get_by_index(virtio_manifest, 0, MFT_RESERVED_FIRST);
+    const struct mft_entry *e = mft_get_by_index(virtio_manifest, 0, MFT_RESERVED_FIRST);
     if (e == NULL) {
         log(ERROR, "Solo5: first entry in manifest is not of type MFT_RESERVED_FIRST\n");
         solo5_abort();
     }
-    e->attached = true;
 
     mem_init();
     time_init();

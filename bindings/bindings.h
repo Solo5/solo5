@@ -119,7 +119,7 @@ void platform_intr_mask_irq(unsigned irq);
 void platform_intr_ack_irq(unsigned irq);
 
 /* cmdline.c: command line parsing */
-char *cmdline_parse(const char *cmdline);
+const char *cmdline_parse(const char *cmdline);
 
 /* log.c: */
 typedef enum {
@@ -142,7 +142,7 @@ void log_set_level(log_level_t level);
  */
 static inline bool atomic_sync_bts(int nr, volatile void *bits)
 {
-    uint8_t *byte = ((uint8_t *)bits) + (nr >> 3);
+    volatile uint8_t *byte = ((volatile uint8_t *)bits) + (nr >> 3);
     uint8_t bit = 1 << (nr & 7);
     uint8_t orig;
 
@@ -155,7 +155,7 @@ static inline bool atomic_sync_bts(int nr, volatile void *bits)
  */
 static inline bool atomic_sync_btc(int nr, volatile void *bits)
 {
-    uint8_t *byte = ((uint8_t *)bits) + (nr >> 3);
+    volatile uint8_t *byte = ((volatile uint8_t *)bits) + (nr >> 3);
     uint8_t bit = 1 << (nr & 7);
     uint8_t orig;
 
@@ -168,7 +168,7 @@ static inline bool atomic_sync_btc(int nr, volatile void *bits)
  */
 static inline bool sync_bt(int nr, const volatile void *bits)
 {
-    const uint8_t *byte = ((uint8_t *)bits) + (nr >> 3);
+    const volatile uint8_t *byte = ((const volatile uint8_t *)bits) + (nr >> 3);
     uint8_t bit = 1 << (nr & 7);
     uint8_t result;
 

@@ -234,7 +234,7 @@ static void parse_multiboot(const void *arg)
      * The multiboot structures may be anywhere in memory, so take a copy of
      * the command line before we initialise memory allocation.
      */
-    const struct multiboot_info *mi = (struct multiboot_info *)arg;
+    const struct multiboot_info *mi = (const struct multiboot_info *)arg;
 
     if (mi->flags & MULTIBOOT_INFO_CMDLINE) {
         char *mi_cmdline = (char *)(uint64_t)mi->cmdline;
@@ -256,7 +256,7 @@ static void parse_hvm_start_info(const void *arg)
      * The Xen hvm_start_info may be anywhere in memory, so take a copy of
      * the command line before we initialise memory allocation.
      */
-    const struct hvm_start_info *si = (struct hvm_start_info *)arg;
+    const struct hvm_start_info *si = (const struct hvm_start_info *)arg;
     if (si->cmdline_paddr) {
         char *hvm_cmdline = (char *)si->cmdline_paddr;
         size_t cmdline_len = strlen(hvm_cmdline);
@@ -276,7 +276,7 @@ void platform_init(const void *arg)
 {
     bool is_direct_pvh_boot;
 
-    if (*((uint32_t*)arg) == XEN_HVM_START_MAGIC_VALUE)
+    if (*((const uint32_t*)arg) == XEN_HVM_START_MAGIC_VALUE)
         is_direct_pvh_boot = true;
     else
         is_direct_pvh_boot = false;

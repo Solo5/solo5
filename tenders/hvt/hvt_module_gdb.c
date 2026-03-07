@@ -306,7 +306,7 @@ retry:
  * Send packet of the form $<packet info>#<checksum> without waiting for an ACK
  * from the debugger. Only send_response
  */
-static void send_packet_no_ack(char *buffer)
+static void send_packet_no_ack(const char *buffer)
 {
     unsigned char checksum;
     int count;
@@ -340,7 +340,7 @@ static void send_packet_no_ack(char *buffer)
  * Send a packet and wait for a successful ACK of '+' from the debugger.
  * An ACK of '-' means that we have to resend.
  */
-static void send_packet(char *buffer)
+static void send_packet(const char *buffer)
 {
     char ch;
 
@@ -662,7 +662,7 @@ static int handle_cmdarg(char *cmdarg, struct mft *mft)
     return -1;
 }
 
-static char *usage(void)
+static const char *usage(void)
 {
     return "--gdb (optional flag for running in a gdb debug session)\n"
         "  [ --gdb-port=1234 ] (port to use) ";

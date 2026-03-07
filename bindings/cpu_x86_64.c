@@ -165,7 +165,7 @@ void cpu_init(void)
     idt_init();
 }
 
-static char *traps[32] = {
+static const char *traps[32] = {
     "#DE", "#DB", "#NMI", "#BP", "#OF", "#BR", "#UD", "#NM", "#DF", "#9", "#TS",
     "#NP", "#SS", "#GP", "#PF", "#15", "#MF", "#AC", "#MC", "#XM", "#VE", "#21",
     "#22", "#23", "#24", "#25", "#26", "#27", "#28", "#29", "#30", "#31"

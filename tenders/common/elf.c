@@ -253,7 +253,7 @@ void elf_load(int bin_fd, const char *bin_name, uint8_t *mem, size_t mem_size,
               " elf", bin_name, nbytes);
         goto mem_cleanup;
     }
-    if (nbytes != ph_size) {
+    if ((size_t)nbytes != ph_size) {
         warnx("%s: %s: program header does not match the expected size"
               " (%zu != %zu while loading elf)", bin_name, INV_EXE, nbytes,
               ph_size);
@@ -418,7 +418,7 @@ void elf_load(int bin_fd, const char *bin_name, uint8_t *mem, size_t mem_size,
                   nbytes);
             goto mem_cleanup;
         }
-        if (nbytes != p_filesz) {
+        if ((size_t)nbytes != p_filesz) {
             warnx("%s: phdr[%u] host file segment mismatched (pread_in_full"
                   " returned %zu != %llu (p_filesz))", bin_name, ph_i, nbytes,
                   (unsigned long long)p_filesz);
@@ -522,7 +522,7 @@ int elf_load_note(int bin_fd, const char *bin_name, uint32_t note_type,
               " note", bin_name, nbytes);
         goto mem_cleanup;
     }
-    if (nbytes != ph_size) {
+    if ((size_t)nbytes != ph_size) {
         warnx("%s: %s: program header does not match the expected size"
               " (%zu != %zu while loading note)", bin_name, INV_EXE, nbytes,
               ph_size);
@@ -640,7 +640,7 @@ int elf_load_note(int bin_fd, const char *bin_name, uint32_t note_type,
               bin_name, ph_i, nbytes);
         goto mem_cleanup;
     }
-    if (nbytes != note_size) {
+    if ((size_t)nbytes != note_size) {
         warnx("%s: phdr[%u] bytes read mismatches note size (%zu != %zu)",
               bin_name, ph_i, nbytes, note_size);
         goto mem_cleanup;
