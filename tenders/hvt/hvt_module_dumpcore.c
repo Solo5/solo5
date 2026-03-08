@@ -159,9 +159,7 @@ void hvt_dumpcore_hook(struct hvt *hvt, int status, void *cookie)
         { .iov_base = &pnote, .iov_len = sizeof pnote },
         { .iov_base = &pload, .iov_len = sizeof pload },
         { .iov_base = &nhdr, .iov_len = sizeof nhdr },
-        /* NOTE(dinosaure): (void *)name == (void *)&name, because we defined
-         * const char name[..] = ... We just would like to respect -Wcast-qual */
-        { .iov_base = (void *)&name, .iov_len = nhdr.n_namesz }
+        { .iov_base = (void *)(uintptr_t)name, .iov_len = nhdr.n_namesz }
     };
     ssize_t iovlen = sizeof ehdr + sizeof pnote + sizeof pload + sizeof nhdr \
                     + nhdr.n_namesz;
