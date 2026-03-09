@@ -30,8 +30,7 @@ static void puts(const char *s)
     solo5_console_write(s, strlen(s));
 }
 
-static void printf(const char *fmt, ...)
-    __attribute__ ((format (printf, 1, 2)));
+static void printf(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
 
 static void printf(const char *fmt, ...)
 {
@@ -47,13 +46,12 @@ static void printf(const char *fmt, ...)
         const char trunc[] = "(truncated)\n";
         solo5_console_write(buffer, sizeof buffer - 1);
         solo5_console_write(trunc, sizeof trunc - 1);
-    }
-    else {
+    } else {
         solo5_console_write(buffer, size);
     }
 }
 
-#define HLEN_ETHER  6
+#define HLEN_ETHER 6
 
 static void tohexs(char *dst, uint8_t *src, size_t size)
 {
@@ -110,8 +108,7 @@ int solo5_app_main(const struct solo5_start_info *si)
     if (print_mtu()) {
         puts("SUCCESS\n");
         return SOLO5_EXIT_SUCCESS;
-    }
-    else {
+    } else {
         puts("FAILURE\n");
         return SOLO5_EXIT_FAILURE;
     }

@@ -38,7 +38,8 @@
 #include "hvt_kvm.h"
 #include "hvt_cpu_x86_64.h"
 
-void hvt_mem_size(size_t *mem_size) {
+void hvt_mem_size(size_t *mem_size)
+{
     hvt_x86_mem_size(mem_size);
 }
 
@@ -48,7 +49,7 @@ static void setup_cpuid(struct hvt_b *hvb)
     int max_entries = 100;
 
     kvm_cpuid = calloc(1, sizeof(*kvm_cpuid) +
-                          max_entries * sizeof(*kvm_cpuid->entries));
+                              max_entries * sizeof(*kvm_cpuid->entries));
     assert(kvm_cpuid);
     kvm_cpuid->nent = max_entries;
 
@@ -67,14 +68,18 @@ static struct kvm_segment sreg_to_kvm(const struct x86_sreg *sreg)
      * On x86, (struct kvm_segment) maps 1:1 to our shadow register
      * representation.
      */
-    struct kvm_segment kvm = {
-        .base = sreg->base,
-        .limit = sreg->limit,
-        .selector = sreg->selector * 8,
-        .type = sreg->type, .present = sreg->p, .dpl = sreg->dpl,
-        .db = sreg->db, .s = sreg->s, .l = sreg->l, .g = sreg->g,
-        .avl = sreg->avl, .unusable = sreg->unusable
-    };
+    struct kvm_segment kvm = {.base = sreg->base,
+                              .limit = sreg->limit,
+                              .selector = sreg->selector * 8,
+                              .type = sreg->type,
+                              .present = sreg->p,
+                              .dpl = sreg->dpl,
+                              .db = sreg->db,
+                              .s = sreg->s,
+                              .l = sreg->l,
+                              .g = sreg->g,
+                              .avl = sreg->avl,
+                              .unusable = sreg->unusable};
     return kvm;
 }
 
@@ -101,10 +106,9 @@ void hvt_vcpu_init(struct hvt *hvt, hvt_gpa_t gpa_ep)
         .fs = sreg_to_kvm(&hvt_x86_sreg_data),
         .gs = sreg_to_kvm(&hvt_x86_sreg_data),
 
-        .gdt = { .base = X86_GDT_BASE, .limit = X86_GDTR_LIMIT },
+        .gdt = {.base = X86_GDT_BASE, .limit = X86_GDTR_LIMIT},
         .tr = sreg_to_kvm(&hvt_x86_sreg_tr),
-        .ldt = sreg_to_kvm(&hvt_x86_sreg_unusable)
-    };
+        .ldt = sreg_to_kvm(&hvt_x86_sreg_unusable)};
 
     ret = ioctl(hvb->vcpufd, KVM_SET_SREGS, &sregs);
     if (ret == -1)
@@ -164,9 +168,8 @@ int hvt_vcpu_loop(struct hvt *hvt)
                 if (ret == -1)
                     err(1, "KVM: ioctl (GET_REGS) failed after guest fault");
                 errx(1, "KVM: host/guest translation fault: rip=0x%llx",
-                        regs.rip);
-            }
-            else
+                     regs.rip);
+            } else
                 err(1, "KVM: ioctl (RUN) failed");
         }
 
@@ -180,11 +183,10 @@ int hvt_vcpu_loop(struct hvt *hvt)
 
         switch (run->exit_reason) {
         case KVM_EXIT_IO: {
-            if (run->io.direction != KVM_EXIT_IO_OUT
-                    || run->io.size != 4)
+            if (run->io.direction != KVM_EXIT_IO_OUT || run->io.size != 4)
                 errx(1, "Invalid guest port access: port=0x%x", run->io.port);
             if (run->io.port < HVT_HYPERCALL_PIO_BASE ||
-                    run->io.port >= (HVT_HYPERCALL_PIO_BASE + HVT_HYPERCALL_MAX))
+                run->io.port >= (HVT_HYPERCALL_PIO_BASE + HVT_HYPERCALL_MAX))
                 errx(1, "Invalid guest port access: port=0x%x", run->io.port);
 
             int nr = run->io.port - HVT_HYPERCALL_PIO_BASE;
@@ -200,8 +202,7 @@ int hvt_vcpu_loop(struct hvt *hvt)
             if (fn == NULL)
                 errx(1, "Invalid guest hypercall: num=%d", nr);
 
-            hvt_gpa_t gpa =
-                *(uint32_t *)((uint8_t *)run + run->io.data_offset);
+            hvt_gpa_t gpa = *(uint32_t *)((uint8_t *)run + run->io.data_offset);
             fn(hvt, gpa);
             break;
         }
@@ -220,7 +221,7 @@ int hvt_vcpu_loop(struct hvt *hvt)
             if (ret == -1)
                 err(1, "KVM: ioctl (GET_REGS) failed after unhandled exit");
             errx(1, "KVM: unhandled exit: exit_reason=0x%x, rip=0x%llx",
-                    run->exit_reason, regs.rip);
+                 run->exit_reason, regs.rip);
         }
         } /* switch(run->exit_reason) */
     }

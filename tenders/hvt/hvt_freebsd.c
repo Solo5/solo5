@@ -70,12 +70,13 @@ static void cleanup_vm(void)
 {
     if (cleanup_hvt != NULL) {
 #if HVT_FREEBSD_ENABLE_CAPSICUM
-       cap_sysctlbyname(capsysctl, "hw.vmm.destroy", NULL, NULL,
-                cleanup_hvt->b->vmname, strlen(cleanup_hvt->b->vmname));
-       cap_close(capsysctl);
+        cap_sysctlbyname(capsysctl, "hw.vmm.destroy", NULL, NULL,
+                         cleanup_hvt->b->vmname,
+                         strlen(cleanup_hvt->b->vmname));
+        cap_close(capsysctl);
 #else
-       sysctlbyname("hw.vmm.destroy", NULL, NULL, cleanup_hvt->b->vmname,
-                strlen(cleanup_hvt->b->vmname));
+        sysctlbyname("hw.vmm.destroy", NULL, NULL, cleanup_hvt->b->vmname,
+                     strlen(cleanup_hvt->b->vmname));
 #endif
     }
 }
@@ -90,14 +91,14 @@ struct hvt *hvt_init(size_t mem_size)
 {
     int ret;
 
-    struct hvt *hvt = malloc(sizeof (struct hvt));
+    struct hvt *hvt = malloc(sizeof(struct hvt));
     if (hvt == NULL)
         err(1, "malloc");
-    memset(hvt, 0, sizeof (struct hvt));
-    struct hvt_b *hvb = malloc(sizeof (struct hvt_b));
+    memset(hvt, 0, sizeof(struct hvt));
+    struct hvt_b *hvb = malloc(sizeof(struct hvt_b));
     if (hvb == NULL)
         err(1, "malloc");
-    memset(hvb, 0, sizeof (struct hvt_b));
+    memset(hvb, 0, sizeof(struct hvt_b));
     hvt->b = hvb;
     hvb->vmfd = -1;
 
@@ -119,40 +120,44 @@ struct hvt *hvt_init(size_t mem_size)
         err(1, "open(%s)", vmmdevname);
     atexit(cleanup_vmfd);
 
-    struct vm_capability vmcap = {
-        .cpuid = 0, .captype = VM_CAP_HALT_EXIT, .capval = 1
-    };
+    struct vm_capability vmcap = {.cpuid = 0,
+                                  .captype = VM_CAP_HALT_EXIT,
+                                  .capval = 1};
     ret = ioctl(hvb->vmfd, VM_SET_CAPABILITY, &vmcap);
     if (ret == -1)
         err(1, "set VM_CAP_HALT_EXIT");
 
-    struct vm_memseg memseg = {
-        .segid = 0, .len = mem_size
-    };
+    struct vm_memseg memseg = {.segid = 0, .len = mem_size};
     ret = ioctl(hvb->vmfd, VM_ALLOC_MEMSEG, &memseg);
     if (ret == -1)
         err(1, "VM_ALLOC_MEMSEG");
 
-    struct vm_memmap memmap = {
-        .gpa = 0, .len = mem_size, .segid = 0, .segoff = 0,
-        .prot = PROT_READ | PROT_WRITE | PROT_EXEC, .flags = 0
-    };
+    struct vm_memmap memmap = {.gpa = 0,
+                               .len = mem_size,
+                               .segid = 0,
+                               .segoff = 0,
+                               .prot = PROT_READ | PROT_WRITE | PROT_EXEC,
+                               .flags = 0};
     ret = ioctl(hvb->vmfd, VM_MMAP_MEMSEG, &memmap);
     if (ret == -1)
         err(1, "VM_MMAP_MEMSEG");
 
-    hvt->mem = mmap(NULL, mem_size, PROT_READ | PROT_WRITE, MAP_SHARED,
-            hvb->vmfd, 0);
+    hvt->mem =
+        mmap(NULL, mem_size, PROT_READ | PROT_WRITE, MAP_SHARED, hvb->vmfd, 0);
     if (hvt->mem == MAP_FAILED)
         err(1, "mmap");
     hvt->mem_size = mem_size;
 
 #if HVT_FREEBSD_ENABLE_CAPSICUM
     cap_rights_t rights;
-    const cap_ioctl_t cmds[] = { VM_RUN, VM_SET_CAPABILITY, VM_ALLOC_MEMSEG,
-                                 VM_MMAP_MEMSEG, VM_SET_SEGMENT_DESCRIPTOR,
-                                 VM_SET_REGISTER, VM_GET_REGISTER,
-                                 VM_ACTIVATE_CPU };
+    const cap_ioctl_t cmds[] = {VM_RUN,
+                                VM_SET_CAPABILITY,
+                                VM_ALLOC_MEMSEG,
+                                VM_MMAP_MEMSEG,
+                                VM_SET_SEGMENT_DESCRIPTOR,
+                                VM_SET_REGISTER,
+                                VM_GET_REGISTER,
+                                VM_ACTIVATE_CPU};
     cap_rights_init(&rights, CAP_IOCTL, CAP_MMAP_RW);
     if (cap_rights_limit(hvb->vmfd, &rights) == -1)
         err(1, "cap_rights_limit() failed");
@@ -195,7 +200,7 @@ void hvt_drop_privileges()
 #endif
 
 int hvt_guest_mprotect(void *t_arg, uint64_t addr_start, uint64_t addr_end,
-        int prot)
+                       int prot)
 {
     struct hvt *hvt = t_arg;
 
@@ -219,7 +224,7 @@ int hvt_guest_mprotect(void *t_arg, uint64_t addr_start, uint64_t addr_end,
      * Manipulating guest-side (EPT) mappings is currently not supported by
      * FreeBSD vmm, so there is nothing more we can do.
      */
-    if(prot & PROT_EXEC) {
+    if (prot & PROT_EXEC) {
         prot &= ~(PROT_EXEC);
         prot |= PROT_READ;
     }

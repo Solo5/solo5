@@ -188,4 +188,8 @@ else
 install: install-tools install-tenders install-headers install-toolchain
 endif
 
+rwildcard=$(foreach d,$(wildcard $(1:=/*)),$(call rwildcard,$d,$2) $(filter $(subst *,%,$2),$d))
+FILES=$(call rwildcard,.,*.c) $(call rwildcard,.,*.h)
+CLANG_FORMAT ?= clang-format
+
 $(V).SILENT:

@@ -23,7 +23,7 @@
 static const struct mft *mft;
 
 solo5_result_t solo5_block_write(solo5_handle_t handle, solo5_off_t offset,
-        const uint8_t *buf, size_t size)
+                                 const uint8_t *buf, size_t size)
 {
     const struct mft_entry *e =
         mft_get_by_index(mft, handle, MFT_DEV_BLOCK_BASIC);
@@ -56,7 +56,7 @@ solo5_result_t solo5_block_write(solo5_handle_t handle, solo5_off_t offset,
 }
 
 solo5_result_t solo5_block_read(solo5_handle_t handle, solo5_off_t offset,
-        uint8_t *buf, size_t size)
+                                uint8_t *buf, size_t size)
 {
     const struct mft_entry *e =
         mft_get_by_index(mft, handle, MFT_DEV_BLOCK_BASIC);
@@ -89,7 +89,7 @@ solo5_result_t solo5_block_read(solo5_handle_t handle, solo5_off_t offset,
 }
 
 solo5_result_t solo5_block_acquire(const char *name, solo5_handle_t *handle,
-        struct solo5_block_info *info)
+                                   struct solo5_block_info *info)
 {
     unsigned index;
     const struct mft_entry *e =

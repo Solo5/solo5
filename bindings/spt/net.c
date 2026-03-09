@@ -39,7 +39,7 @@ void net_init(struct spt_boot_info *bi)
 }
 
 solo5_result_t solo5_net_acquire(const char *name, solo5_handle_t *handle,
-        struct solo5_net_info *info)
+                                 struct solo5_net_info *info)
 {
     unsigned index;
     const struct mft_entry *e =
@@ -50,13 +50,12 @@ solo5_result_t solo5_net_acquire(const char *name, solo5_handle_t *handle,
 
     *handle = index;
     info->mtu = e->u.net_basic.mtu;
-    memcpy(info->mac_address, e->u.net_basic.mac,
-            sizeof info->mac_address);
+    memcpy(info->mac_address, e->u.net_basic.mac, sizeof info->mac_address);
     return SOLO5_R_OK;
 }
 
 solo5_result_t solo5_net_read(solo5_handle_t handle, uint8_t *buf, size_t size,
-        size_t *read_size)
+                              size_t *read_size)
 {
     const struct mft_entry *e =
         mft_get_by_index(mft, handle, MFT_DEV_NET_BASIC);
@@ -76,7 +75,7 @@ solo5_result_t solo5_net_read(solo5_handle_t handle, uint8_t *buf, size_t size,
 }
 
 solo5_result_t solo5_net_write(solo5_handle_t handle, const uint8_t *buf,
-        size_t size)
+                               size_t size)
 {
     const struct mft_entry *e =
         mft_get_by_index(mft, handle, MFT_DEV_NET_BASIC);
@@ -100,12 +99,9 @@ void solo5_yield(solo5_time_t deadline, solo5_handle_set_t *ready_set)
     struct sys_epoll_event revents[nevents];
     solo5_handle_set_t tmp_ready_set = 0;
     struct sys_itimerspec it = {
-        .it_interval = { 0 },
-        .it_value = {
-            .tv_sec = deadline / 1000000000ULL,
-            .tv_nsec = deadline % 1000000000ULL
-        }
-    };
+        .it_interval = {0},
+        .it_value = {.tv_sec = deadline / 1000000000ULL,
+                     .tv_nsec = deadline % 1000000000ULL}};
     /*
      * Ensure that it.it_value is always non-zero, otherwise the following
      * epoll_wait() will hang if there are no other descriptors in the waitset
@@ -117,7 +113,8 @@ void solo5_yield(solo5_time_t deadline, solo5_handle_set_t *ready_set)
      * we can just pass the deadline into the timerfd as an absolute timeout,
      * saving a clock_gettime() call in the process.
      */
-    assert(sys_timerfd_settime(timerfd, SYS_TFD_TIMER_ABSTIME, &it, NULL) != -1);
+    assert(sys_timerfd_settime(timerfd, SYS_TFD_TIMER_ABSTIME, &it, NULL) !=
+           -1);
     /*
      * We can always safely restart this call on EINTR, since the internal
      * timerfd is independent of its invocation.
@@ -129,7 +126,7 @@ void solo5_yield(solo5_time_t deadline, solo5_handle_set_t *ready_set)
         int orig_nrevents = nrevents;
         for (int i = 0; i < orig_nrevents; i++)
             if (revents[i].data == SPT_INTERNAL_TIMERFD)
-                nrevents -= 1;          /* Disregard in total reported events */
+                nrevents -= 1; /* Disregard in total reported events */
             else
                 tmp_ready_set |= 1ULL << revents[i].data;
     }

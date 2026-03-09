@@ -31,10 +31,10 @@
 
 #include "xen.h"
 
-#define XEN_ARGO_DOMID_ANY       DOMID_INVALID
+#define XEN_ARGO_DOMID_ANY DOMID_INVALID
 
 /* The maximum size of an Argo ring is defined to be: 16MB (0x1000000 bytes). */
-#define XEN_ARGO_MAX_RING_SIZE  (0x1000000ULL)
+#define XEN_ARGO_MAX_RING_SIZE (0x1000000ULL)
 
 /* Fixed-width type for "argo port" number. Nothing to do with evtchns. */
 typedef uint32_t xen_argo_port_t;
@@ -48,31 +48,27 @@ typedef uint64_t xen_argo_gfn_t;
  * an array of xen_argo_iov_t structs on the hypervisor stack, so could cause
  * stack overflow if the value is too large.
  * The Linux Argo driver never passes more than two iovs.
-*/
-#define XEN_ARGO_MAXIOV          8U
+ */
+#define XEN_ARGO_MAXIOV 8U
 
-typedef struct xen_argo_iov
-{
+typedef struct xen_argo_iov {
     XEN_GUEST_HANDLE(uint8) iov_hnd;
     uint32_t iov_len;
     uint32_t pad;
 } xen_argo_iov_t;
 
-typedef struct xen_argo_addr
-{
+typedef struct xen_argo_addr {
     xen_argo_port_t aport;
     domid_t domain_id;
     uint16_t pad;
 } xen_argo_addr_t;
 
-typedef struct xen_argo_send_addr
-{
+typedef struct xen_argo_send_addr {
     struct xen_argo_addr src;
     struct xen_argo_addr dst;
 } xen_argo_send_addr_t;
 
-typedef struct xen_argo_ring
-{
+typedef struct xen_argo_ring {
     /* Guests should use atomic operations to access rx_ptr */
     uint32_t rx_ptr;
     /* Guests should use atomic operations to access tx_ptr */
@@ -85,16 +81,14 @@ typedef struct xen_argo_ring
     uint8_t ring[XEN_FLEX_ARRAY_DIM];
 } xen_argo_ring_t;
 
-typedef struct xen_argo_register_ring
-{
+typedef struct xen_argo_register_ring {
     xen_argo_port_t aport;
     domid_t partner_id;
     uint16_t pad;
     uint32_t len;
 } xen_argo_register_ring_t;
 
-typedef struct xen_argo_unregister_ring
-{
+typedef struct xen_argo_unregister_ring {
     xen_argo_port_t aport;
     domid_t partner_id;
     uint16_t pad;
@@ -107,20 +101,19 @@ typedef struct xen_argo_unregister_ring
  * Notify flags
  */
 /* Ring exists */
-#define XEN_ARGO_RING_EXISTS            (1U << 0)
+#define XEN_ARGO_RING_EXISTS (1U << 0)
 /* Ring is shared, not unicast */
-#define XEN_ARGO_RING_SHARED            (1U << 1)
+#define XEN_ARGO_RING_SHARED (1U << 1)
 /* Ring is empty */
-#define XEN_ARGO_RING_EMPTY             (1U << 2)
+#define XEN_ARGO_RING_EMPTY (1U << 2)
 /* Sufficient space to queue space_required bytes might exist */
-#define XEN_ARGO_RING_SUFFICIENT        (1U << 3)
+#define XEN_ARGO_RING_SUFFICIENT (1U << 3)
 /* Insufficient ring size for space_required bytes */
-#define XEN_ARGO_RING_EMSGSIZE          (1U << 4)
+#define XEN_ARGO_RING_EMSGSIZE (1U << 4)
 /* Too many domains waiting for available space signals for this ring */
-#define XEN_ARGO_RING_EBUSY             (1U << 5)
+#define XEN_ARGO_RING_EBUSY (1U << 5)
 
-typedef struct xen_argo_ring_data_ent
-{
+typedef struct xen_argo_ring_data_ent {
     struct xen_argo_addr ring;
     uint16_t flags;
     uint16_t pad;
@@ -128,15 +121,13 @@ typedef struct xen_argo_ring_data_ent
     uint32_t max_message_size;
 } xen_argo_ring_data_ent_t;
 
-typedef struct xen_argo_ring_data
-{
+typedef struct xen_argo_ring_data {
     uint32_t nent;
     uint32_t pad;
     struct xen_argo_ring_data_ent data[XEN_FLEX_ARRAY_DIM];
 } xen_argo_ring_data_t;
 
-struct xen_argo_ring_message_header
-{
+struct xen_argo_ring_message_header {
     uint32_t len;
     struct xen_argo_addr source;
     uint32_t message_type;
@@ -167,7 +158,7 @@ struct xen_argo_ring_message_header
  * arg3: unsigned long npages
  * arg4: unsigned long flags (32-bit value)
  */
-#define XEN_ARGO_OP_register_ring     1
+#define XEN_ARGO_OP_register_ring 1
 
 /* Register op flags */
 /*
@@ -176,7 +167,7 @@ struct xen_argo_ring_message_header
  * If clear, reregistration occurs if the ring exists, with the new ring
  * taking the place of the old, preserving tx_ptr if it remains valid.
  */
-#define XEN_ARGO_REGISTER_FLAG_FAIL_EXIST  0x1
+#define XEN_ARGO_REGISTER_FLAG_FAIL_EXIST 0x1
 
 #ifdef __XEN__
 /* Mask for all defined flags. */
@@ -193,7 +184,7 @@ struct xen_argo_ring_message_header
  * arg3: 0 (ZERO)
  * arg4: 0 (ZERO)
  */
-#define XEN_ARGO_OP_unregister_ring     2
+#define XEN_ARGO_OP_unregister_ring 2
 
 /*
  * XEN_ARGO_OP_sendv
@@ -219,7 +210,7 @@ struct xen_argo_ring_message_header
  * arg3: unsigned long niov
  * arg4: unsigned long message type (32-bit value)
  */
-#define XEN_ARGO_OP_sendv               3
+#define XEN_ARGO_OP_sendv 3
 
 /*
  * XEN_ARGO_OP_notify
@@ -250,6 +241,6 @@ struct xen_argo_ring_message_header
  * arg3: 0 (ZERO)
  * arg4: 0 (ZERO)
  */
-#define XEN_ARGO_OP_notify              4
+#define XEN_ARGO_OP_notify 4
 
 #endif

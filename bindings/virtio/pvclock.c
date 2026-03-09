@@ -77,21 +77,22 @@ struct pvclock_wall_clock {
 static volatile struct pvclock_vcpu_time_info pvclock_ti;
 static volatile struct pvclock_wall_clock pvclock_wc;
 
-uint64_t pvclock_monotonic(void) {
+uint64_t pvclock_monotonic(void)
+{
     uint32_t version;
     uint64_t delta, time_now;
 
     do {
         version = pvclock_ti.version;
-        __asm__ ("mfence" ::: "memory");
+        __asm__("mfence" ::: "memory");
         delta = cpu_rdtsc() - pvclock_ti.tsc_timestamp;
         if (pvclock_ti.tsc_shift < 0)
             delta >>= -pvclock_ti.tsc_shift;
         else
             delta <<= pvclock_ti.tsc_shift;
         time_now = mul64_32(delta, pvclock_ti.tsc_to_system_mul, 32) +
-            pvclock_ti.system_time;
-        __asm__ ("mfence" ::: "memory");
+                   pvclock_ti.system_time;
+        __asm__("mfence" ::: "memory");
     } while ((pvclock_ti.version & 1) || (pvclock_ti.version != version));
 
     return time_now;
@@ -102,21 +103,22 @@ uint64_t pvclock_monotonic(void) {
  */
 static uint64_t pvclock_read_wall_clock(void)
 {
-	uint32_t version;
-	uint64_t wc_boot;
+    uint32_t version;
+    uint64_t wc_boot;
 
-	do {
-		version = pvclock_wc.version;
-		__asm__ ("mfence" ::: "memory");
-		wc_boot = pvclock_wc.sec * NSEC_PER_SEC;
-		wc_boot += pvclock_wc.nsec;
-		__asm__ ("mfence" ::: "memory");
-	} while ((pvclock_wc.version & 1) || (pvclock_wc.version != version));
+    do {
+        version = pvclock_wc.version;
+        __asm__("mfence" ::: "memory");
+        wc_boot = pvclock_wc.sec * NSEC_PER_SEC;
+        wc_boot += pvclock_wc.nsec;
+        __asm__("mfence" ::: "memory");
+    } while ((pvclock_wc.version & 1) || (pvclock_wc.version != version));
 
-	return wc_boot;
+    return wc_boot;
 }
 
-int pvclock_init(void) {
+int pvclock_init(void)
+{
     uint32_t eax, ebx, ecx, edx;
     uint32_t msr_kvm_system_time, msr_kvm_wall_clock;
 
@@ -128,27 +130,21 @@ int pvclock_init(void) {
     if (eax & (1 << 3)) {
         msr_kvm_system_time = 0x4b564d01;
         msr_kvm_wall_clock = 0x4b564d00;
-    }
-    else if (eax & (1 << 0)) {
+    } else if (eax & (1 << 0)) {
         msr_kvm_system_time = 0x12;
         msr_kvm_wall_clock = 0x11;
-    }
-    else {
+    } else {
         return 1;
     }
 
     log(INFO, "Solo5: Clock source: KVM paravirtualized clock\n");
 
-    __asm__ __volatile("wrmsr" ::
-        "c" (msr_kvm_system_time),
-        "a" ((uint32_t)((uintptr_t)&pvclock_ti | 0x1)),
-        "d" ((uint32_t)((uintptr_t)&pvclock_ti >> 32))
-    );
-    __asm__ __volatile("wrmsr" ::
-        "c" (msr_kvm_wall_clock),
-        "a" ((uint32_t)((uintptr_t)&pvclock_wc)),
-        "d" ((uint32_t)((uintptr_t)&pvclock_wc >> 32))
-    );
+    __asm__ __volatile("wrmsr" ::"c"(msr_kvm_system_time),
+                       "a"((uint32_t)((uintptr_t)&pvclock_ti | 0x1)),
+                       "d"((uint32_t)((uintptr_t)&pvclock_ti >> 32)));
+    __asm__ __volatile("wrmsr" ::"c"(msr_kvm_wall_clock),
+                       "a"((uint32_t)((uintptr_t)&pvclock_wc)),
+                       "d"((uint32_t)((uintptr_t)&pvclock_wc >> 32)));
     /* Initialise epoch offset using wall clock time */
     wc_epochoffset = pvclock_read_wall_clock();
 
@@ -158,6 +154,7 @@ int pvclock_init(void) {
 /*
  * Return epoch offset (wall time offset to monotonic clock start).
  */
-uint64_t pvclock_epochoffset(void) {
-	return wc_epochoffset;
+uint64_t pvclock_epochoffset(void)
+{
+    return wc_epochoffset;
 }

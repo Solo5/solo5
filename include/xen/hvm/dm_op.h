@@ -142,18 +142,16 @@ struct xen_dm_op_ioreq_server_range {
     uint16_t pad;
     /* IN - type of range */
     uint32_t type;
-# define XEN_DMOP_IO_RANGE_PORT   0 /* I/O port range */
-# define XEN_DMOP_IO_RANGE_MEMORY 1 /* MMIO range */
-# define XEN_DMOP_IO_RANGE_PCI    2 /* PCI segment/bus/dev/func range */
+#define XEN_DMOP_IO_RANGE_PORT 0 /* I/O port range */
+#define XEN_DMOP_IO_RANGE_MEMORY 1 /* MMIO range */
+#define XEN_DMOP_IO_RANGE_PCI 2 /* PCI segment/bus/dev/func range */
     /* IN - inclusive start and end of range */
     uint64_aligned_t start, end;
 };
 
-#define XEN_DMOP_PCI_SBDF(s,b,d,f) \
-	((((s) & 0xffff) << 16) |  \
-	 (((b) & 0xff) << 8) |     \
-	 (((d) & 0x1f) << 3) |     \
-	 ((f) & 0x07))
+#define XEN_DMOP_PCI_SBDF(s, b, d, f)                                          \
+    ((((s) & 0xffff) << 16) | (((b) & 0xff) << 8) | (((d) & 0x1f) << 3) |      \
+     ((f) & 0x07))
 
 /*
  * XEN_DMOP_set_ioreq_server_state: Enable or disable the IOREQ Server <id>
@@ -215,7 +213,7 @@ struct xen_dm_op_set_pci_intx_level {
     uint16_t domain;
     uint8_t bus, device, intx;
     /* IN - Level: 0 -> deasserted, 1 -> asserted */
-    uint8_t  level;
+    uint8_t level;
 };
 
 /*
@@ -226,9 +224,9 @@ struct xen_dm_op_set_pci_intx_level {
 
 struct xen_dm_op_set_isa_irq_level {
     /* IN - ISA IRQ (0-15) */
-    uint8_t  isa_irq;
+    uint8_t isa_irq;
     /* IN - Level: 0 -> deasserted, 1 -> asserted */
-    uint8_t  level;
+    uint8_t level;
 };
 
 /*
@@ -238,9 +236,9 @@ struct xen_dm_op_set_isa_irq_level {
 
 struct xen_dm_op_set_pci_link_route {
     /* PCI INTx line (0-3) */
-    uint8_t  link;
+    uint8_t link;
     /* ISA IRQ (1-15) or 0 -> disable link */
-    uint8_t  isa_irq;
+    uint8_t isa_irq;
 };
 
 /*
@@ -312,12 +310,12 @@ struct xen_dm_op_inject_event {
     /* IN - event type (DMOP_EVENT_* ) */
     uint8_t type;
 /* NB. This enumeration precisely matches hvm.h:X86_EVENTTYPE_* */
-# define XEN_DMOP_EVENT_ext_int    0 /* external interrupt */
-# define XEN_DMOP_EVENT_nmi        2 /* nmi */
-# define XEN_DMOP_EVENT_hw_exc     3 /* hardware exception */
-# define XEN_DMOP_EVENT_sw_int     4 /* software interrupt (CD nn) */
-# define XEN_DMOP_EVENT_pri_sw_exc 5 /* ICEBP (F1) */
-# define XEN_DMOP_EVENT_sw_exc     6 /* INT3 (CC), INTO (CE) */
+#define XEN_DMOP_EVENT_ext_int 0 /* external interrupt */
+#define XEN_DMOP_EVENT_nmi 2 /* nmi */
+#define XEN_DMOP_EVENT_hw_exc 3 /* hardware exception */
+#define XEN_DMOP_EVENT_sw_int 4 /* software interrupt (CD nn) */
+#define XEN_DMOP_EVENT_pri_sw_exc 5 /* ICEBP (F1) */
+#define XEN_DMOP_EVENT_sw_exc 6 /* INT3 (CC), INTO (CE) */
     /* IN - instruction length */
     uint8_t insn_len;
     uint8_t pad0;
@@ -354,17 +352,17 @@ struct xen_dm_op_inject_msi {
 #define XEN_DMOP_map_mem_type_to_ioreq_server 15
 
 struct xen_dm_op_map_mem_type_to_ioreq_server {
-    ioservid_t id;      /* IN - ioreq server id */
-    uint16_t type;      /* IN - memory type */
-    uint32_t flags;     /* IN - types of accesses to be forwarded to the
-                           ioreq server. flags with 0 means to unmap the
-                           ioreq server */
+    ioservid_t id; /* IN - ioreq server id */
+    uint16_t type; /* IN - memory type */
+    uint32_t flags; /* IN - types of accesses to be forwarded to the
+                       ioreq server. flags with 0 means to unmap the
+                       ioreq server */
 
 #define XEN_DMOP_IOREQ_MEM_ACCESS_READ (1u << 0)
 #define XEN_DMOP_IOREQ_MEM_ACCESS_WRITE (1u << 1)
 
-    uint64_t opaque;    /* IN/OUT - only used for hypercall continuation,
-                           has to be set to zero by the caller */
+    uint64_t opaque; /* IN/OUT - only used for hypercall continuation,
+                        has to be set to zero by the caller */
 };
 
 /*
@@ -374,8 +372,8 @@ struct xen_dm_op_map_mem_type_to_ioreq_server {
 #define XEN_DMOP_remote_shutdown 16
 
 struct xen_dm_op_remote_shutdown {
-    uint32_t reason;       /* SHUTDOWN_* => enum sched_shutdown_reason */
-                           /* (Other reason values are not blocked) */
+    uint32_t reason; /* SHUTDOWN_* => enum sched_shutdown_reason */
+    /* (Other reason values are not blocked) */
 };
 
 /*
@@ -404,16 +402,16 @@ struct xen_dm_op_relocate_memory {
 
 struct xen_dm_op_pin_memory_cacheattr {
     uint64_aligned_t start; /* Start gfn. */
-    uint64_aligned_t end;   /* End gfn. */
+    uint64_aligned_t end; /* End gfn. */
 /* Caching types: these happen to be the same as x86 MTRR/PAT type codes. */
-#define XEN_DMOP_MEM_CACHEATTR_UC  0
-#define XEN_DMOP_MEM_CACHEATTR_WC  1
-#define XEN_DMOP_MEM_CACHEATTR_WT  4
-#define XEN_DMOP_MEM_CACHEATTR_WP  5
-#define XEN_DMOP_MEM_CACHEATTR_WB  6
+#define XEN_DMOP_MEM_CACHEATTR_UC 0
+#define XEN_DMOP_MEM_CACHEATTR_WC 1
+#define XEN_DMOP_MEM_CACHEATTR_WT 4
+#define XEN_DMOP_MEM_CACHEATTR_WP 5
+#define XEN_DMOP_MEM_CACHEATTR_WB 6
 #define XEN_DMOP_MEM_CACHEATTR_UCM 7
 #define XEN_DMOP_DELETE_MEM_CACHEATTR (~(uint32_t)0)
-    uint32_t type;          /* XEN_DMOP_MEM_CACHEATTR_* */
+    uint32_t type; /* XEN_DMOP_MEM_CACHEATTR_* */
     uint32_t pad;
 };
 
@@ -436,7 +434,7 @@ struct xen_dm_op {
         struct xen_dm_op_inject_event inject_event;
         struct xen_dm_op_inject_msi inject_msi;
         struct xen_dm_op_map_mem_type_to_ioreq_server
-                map_mem_type_to_ioreq_server;
+            map_mem_type_to_ioreq_server;
         struct xen_dm_op_remote_shutdown remote_shutdown;
         struct xen_dm_op_relocate_memory relocate_memory;
         struct xen_dm_op_pin_memory_cacheattr pin_memory_cacheattr;

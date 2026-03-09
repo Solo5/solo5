@@ -26,7 +26,7 @@ static void puts(const char *s)
     solo5_console_write(s, strlen(s));
 }
 
-__attribute__((section (".data"), noinline)) void nothing(void)
+__attribute__((section(".data"), noinline)) void nothing(void)
 {
     __asm__("");
 }

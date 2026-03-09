@@ -26,9 +26,11 @@
 /**
  * Initialize channel with given parameters.
  */
-void muen_channel_init_writer(struct muchannel *channel, const uint64_t protocol,
-                  const uint64_t element_size, const uint64_t channel_size,
-                  const uint64_t epoch);
+void muen_channel_init_writer(struct muchannel *channel,
+                              const uint64_t protocol,
+                              const uint64_t element_size,
+                              const uint64_t channel_size,
+                              const uint64_t epoch);
 
 /**
  * Deactivate channel.
@@ -38,6 +40,6 @@ void muen_channel_deactivate(struct muchannel *channel);
 /**
  * Write element to given channel.
  */
-void muen_channel_write(struct muchannel *channel, const void * const element);
+void muen_channel_write(struct muchannel *channel, const void *const element);
 
 #endif

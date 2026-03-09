@@ -23,7 +23,7 @@
 #include "sinfo.h"
 #include "muschedinfo.h"
 
-#define SINFO_ADDR      0xe00000000UL
+#define SINFO_ADDR 0xe00000000UL
 #define SCHED_INFO_ADDR 0xe00008000UL
 
 static char subject_name[MAX_NAME_LENGTH + 1];
@@ -38,8 +38,7 @@ static volatile struct scheduling_info_type *sched_info =
 bool muen_names_equal(const struct muen_name_type *const n1,
                       const char *const n2)
 {
-    return n1->length == strlen(n2)
-        && strncmp(n1->data, n2, n1->length) == 0;
+    return n1->length == strlen(n2) && strncmp(n1->data, n2, n1->length) == 0;
 }
 
 struct iterator {
@@ -64,8 +63,8 @@ static bool iterate_resources(struct iterator *const iter)
         iter->res++;
         iter->idx++;
     }
-    return iter->idx < sinfo->resource_count
-        && iter->res->kind != MUEN_RES_NONE;
+    return iter->idx < sinfo->resource_count &&
+           iter->res->kind != MUEN_RES_NONE;
 }
 
 inline bool muen_check_magic(void)
@@ -73,7 +72,7 @@ inline bool muen_check_magic(void)
     return sinfo->magic == MUEN_SUBJECT_INFO_MAGIC;
 }
 
-const char * muen_get_subject_name(void)
+const char *muen_get_subject_name(void)
 {
     if (!muen_check_magic())
         return NULL;
@@ -87,10 +86,10 @@ const char * muen_get_subject_name(void)
     return subject_name;
 }
 
-const struct muen_resource_type *
-muen_get_resource(const char *const name, enum muen_resource_kind kind)
+const struct muen_resource_type *muen_get_resource(const char *const name,
+                                                   enum muen_resource_kind kind)
 {
-    struct iterator i = { NULL, 0 };
+    struct iterator i = {NULL, 0};
 
     while (iterate_resources(&i))
         if (i.res->kind == kind && muen_names_equal(&i.res->name, name))
@@ -99,13 +98,12 @@ muen_get_resource(const char *const name, enum muen_resource_kind kind)
     return NULL;
 }
 
-const struct muen_device_type * muen_get_device(const uint16_t sid)
+const struct muen_device_type *muen_get_device(const uint16_t sid)
 {
-    struct iterator i = { NULL, 0 };
+    struct iterator i = {NULL, 0};
 
     while (iterate_resources(&i))
-        if (i.res->kind == MUEN_RES_DEVICE &&
-                i.res->data.dev.sid == sid)
+        if (i.res->kind == MUEN_RES_DEVICE && i.res->data.dev.sid == sid)
             return &i.res->data.dev;
 
     return NULL;
@@ -113,7 +111,7 @@ const struct muen_device_type * muen_get_device(const uint16_t sid)
 
 bool muen_for_each_resource(resource_cb func, void *data)
 {
-    struct iterator i = { NULL, 0 };
+    struct iterator i = {NULL, 0};
 
     while (iterate_resources(&i))
         if (!func(i.res, data))

@@ -33,7 +33,7 @@ void platform_init(const void *arg)
      * The multiboot structures may be anywhere in memory, so take a copy of
      * the command line before we initialise memory allocation.
      */
-    const struct multiboot_info *mi = (struct multiboot_info *)arg;
+    const struct multiboot_info *mi = (const struct multiboot_info *)arg;
 
     if (mi->flags & MULTIBOOT_INFO_CMDLINE) {
         char *mi_cmdline = (char *)(uint64_t)mi->cmdline;
@@ -67,10 +67,10 @@ void platform_init(const void *arg)
     uint32_t offset;
 
     for (offset = 0; offset < mi->mmap_length;
-            offset += m->size + sizeof(m->size)) {
+         offset += m->size + sizeof(m->size)) {
         m = (void *)(uintptr_t)(mi->mmap_addr + offset);
         if (m->addr == PLATFORM_MEM_START &&
-                m->type == MULTIBOOT_MEMORY_AVAILABLE) {
+            m->type == MULTIBOOT_MEMORY_AVAILABLE) {
             break;
         }
     }
@@ -98,7 +98,7 @@ uint64_t platform_mem_size(void)
 }
 
 void platform_exit(int status __attribute__((unused)),
-    void *cookie __attribute__((unused)))
+                   void *cookie __attribute__((unused)))
 {
     /*
      * Poke the QEMU "isa-debug-exit" device to "shutdown". Should be harmless

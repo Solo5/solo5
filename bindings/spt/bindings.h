@@ -73,13 +73,13 @@ struct sys_epoll_event {
 } EPOLL_PACKED;
 
 long sys_epoll_pwait(long epfd, void *events, long maxevents, long timeout,
-        void *sigmask, long sigsetsize);
+                     void *sigmask, long sigsetsize);
 
 #define SYS_TFD_TIMER_ABSTIME (1 << 0)
 
 long sys_timerfd_settime(long fd, long flags, const void *utmr, void *otmr);
 
-#define SYS_ARCH_SET_FS		0x1002
+#define SYS_ARCH_SET_FS 0x1002
 
 long sys_arch_prctl(long code, long addr);
 

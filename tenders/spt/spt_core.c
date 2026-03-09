@@ -69,10 +69,10 @@ static bool use_exec_heap = false;
 
 struct spt *spt_init(size_t mem_size)
 {
-    struct spt *spt = malloc(sizeof (struct spt));
+    struct spt *spt = malloc(sizeof(struct spt));
     if (spt == NULL)
         err(1, "malloc");
-    memset(spt, 0, sizeof (struct spt));
+    memset(spt, 0, sizeof(struct spt));
 
 #if defined(__PIE__)
     /*
@@ -100,8 +100,7 @@ struct spt *spt_init(size_t mem_size)
     assert((uint64_t)&__executable_start >= (1ULL << 30));
     if ((uint64_t)(mem_size - 1) >= (uint64_t)&__executable_start) {
         uint64_t max_mem_size_mb = (uint64_t)&__executable_start >> 20;
-        warnx("Maximum guest memory size (%lu MB) exceeded.",
-                max_mem_size_mb);
+        warnx("Maximum guest memory size (%lu MB) exceeded.", max_mem_size_mb);
         errx(1, "Either decrease --mem-size, or recompile solo5-spt"
                 " as a PIE executable.");
     }
@@ -130,7 +129,7 @@ struct spt *spt_init(size_t mem_size)
      */
     int prot = PROT_READ | PROT_WRITE | (use_exec_heap ? PROT_EXEC : 0);
     spt->mem = mmap((void *)SPT_HOST_MEM_BASE, mem_size - SPT_HOST_MEM_BASE,
-            prot, MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED, -1, 0);
+                    prot, MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED, -1, 0);
     if (spt->mem == MAP_FAILED)
         err(1, "Error allocating guest memory");
     assert(spt->mem == (void *)SPT_HOST_MEM_BASE);
@@ -156,7 +155,7 @@ struct spt *spt_init(size_t mem_size)
 }
 
 int spt_guest_mprotect(void *t_arg, uint64_t addr_start, uint64_t addr_end,
-        int prot)
+                       int prot)
 {
     struct spt *spt = t_arg;
 
@@ -185,10 +184,10 @@ static void setup_cmdline(uint8_t *cmdline, int argc, char **argv)
 
     for (; *argv; argc--, argv++) {
         size_t alen = snprintf((char *)cmdline, cmdline_free, "%s%s", *argv,
-                (argc > 1) ? " " : "");
+                               (argc > 1) ? " " : "");
         if (alen >= cmdline_free) {
             errx(1, "Guest command line too long (max=%d characters)",
-                    SPT_CMDLINE_SIZE - 1);
+                 SPT_CMDLINE_SIZE - 1);
             break;
         }
         cmdline_free -= alen;
@@ -197,13 +196,12 @@ static void setup_cmdline(uint8_t *cmdline, int argc, char **argv)
 }
 
 void spt_boot_info_init(struct spt *spt, uint64_t p_end, int cmdline_argc,
-        char **cmdline_argv, struct mft *mft, size_t mft_size)
+                        char **cmdline_argv, struct mft *mft, size_t mft_size)
 {
     uint64_t lowmem_pos = SPT_BOOT_INFO_BASE;
 
-    struct spt_boot_info *bi =
-        (struct spt_boot_info *)(spt->mem + lowmem_pos);
-    lowmem_pos += sizeof (struct spt_boot_info);
+    struct spt_boot_info *bi = (struct spt_boot_info *)(spt->mem + lowmem_pos);
+    lowmem_pos += sizeof(struct spt_boot_info);
     bi->mem_size = spt->mem_size;
     bi->kernel_end = p_end;
     bi->epollfd = spt->epollfd;
@@ -287,9 +285,8 @@ void spt_run(struct spt *spt, uint64_t p_entry)
         err(1, "prctl(PR_SET_NO_NEW_PRIVS) failed");
     struct sock_filter dummy[1];
     struct sock_fprog prog = {
-        .len = (unsigned short) (sb.st_size / sizeof dummy[0]),
-        .filter = (struct sock_filter *)bpf_prgm
-    };
+        .len = (unsigned short)(sb.st_size / sizeof dummy[0]),
+        .filter = (struct sock_filter *)bpf_prgm};
     /*
      * Check that we did not truncate the BPF filter due to overflow in the
      * calculation above.
@@ -320,36 +317,37 @@ static int setup(struct spt *spt, struct mft *mft)
     int rc = -1;
 
     rc = seccomp_rule_add(spt->sc_ctx, SCMP_ACT_ALLOW, SCMP_SYS(write), 1,
-            SCMP_A0(SCMP_CMP_EQ, 1));
+                          SCMP_A0(SCMP_CMP_EQ, 1));
     if (rc != 0)
         errx(1, "seccomp_rule_add(write, fd=1) failed: %s", strerror(-rc));
     rc = seccomp_rule_add(spt->sc_ctx, SCMP_ACT_ALLOW, SCMP_SYS(exit_group), 0);
     if (rc != 0)
         errx(1, "seccomp_rule_add(exit_group) failed: %s", strerror(-rc));
     rc = seccomp_rule_add(spt->sc_ctx, SCMP_ACT_ALLOW, SCMP_SYS(epoll_pwait), 1,
-            SCMP_A0(SCMP_CMP_EQ, spt->epollfd));
+                          SCMP_A0(SCMP_CMP_EQ, spt->epollfd));
     if (rc != 0)
         errx(1, "seccomp_rule_add(epoll_pwait) failed: %s", strerror(-rc));
-    rc = seccomp_rule_add(spt->sc_ctx, SCMP_ACT_ALLOW,
-            SCMP_SYS(timerfd_settime), 1, SCMP_A0(SCMP_CMP_EQ, spt->timerfd));
+    rc =
+        seccomp_rule_add(spt->sc_ctx, SCMP_ACT_ALLOW, SCMP_SYS(timerfd_settime),
+                         1, SCMP_A0(SCMP_CMP_EQ, spt->timerfd));
     if (rc != 0)
         errx(1, "seccomp_rule_add(timerfd_settime) failed: %s", strerror(-rc));
     rc = seccomp_rule_add(spt->sc_ctx, SCMP_ACT_ALLOW, SCMP_SYS(clock_gettime),
-            1, SCMP_A0(SCMP_CMP_EQ, CLOCK_MONOTONIC));
+                          1, SCMP_A0(SCMP_CMP_EQ, CLOCK_MONOTONIC));
     if (rc != 0)
         errx(1, "seccomp_rule_add(clock_gettime, CLOCK_MONOTONIC) failed: %s",
-                strerror(-rc));
+             strerror(-rc));
     rc = seccomp_rule_add(spt->sc_ctx, SCMP_ACT_ALLOW, SCMP_SYS(clock_gettime),
-            1, SCMP_A0(SCMP_CMP_EQ, CLOCK_REALTIME));
+                          1, SCMP_A0(SCMP_CMP_EQ, CLOCK_REALTIME));
     if (rc != 0)
         errx(1, "seccomp_rule_add(clock_gettime, CLOCK_REALTIME) failed: %s",
-                strerror(-rc));
+             strerror(-rc));
 #if defined(__x86_64__)
-    rc = seccomp_rule_add(spt->sc_ctx, SCMP_ACT_ALLOW, SCMP_SYS(arch_prctl),
-            1, SCMP_A0(SCMP_CMP_EQ, ARCH_SET_FS));
+    rc = seccomp_rule_add(spt->sc_ctx, SCMP_ACT_ALLOW, SCMP_SYS(arch_prctl), 1,
+                          SCMP_A0(SCMP_CMP_EQ, ARCH_SET_FS));
     if (rc != 0)
         errx(1, "seccomp_rule_add(arch_prctl, ARCH_SET_FS) failed: %s",
-                strerror(-rc));
+             strerror(-rc));
 #endif
 
     return 0;
@@ -362,8 +360,5 @@ static char *usage(void)
            " makes the heap and stack executable.";
 }
 
-DECLARE_MODULE(core,
-    .setup = setup,
-    .handle_cmdarg = handle_cmdarg,
-    .usage = usage
-)
+DECLARE_MODULE(core, .setup = setup, .handle_cmdarg = handle_cmdarg,
+               .usage = usage)

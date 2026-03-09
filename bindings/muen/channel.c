@@ -20,7 +20,7 @@
 
 #include "channel.h"
 
-inline bool muen_channel_is_active(const struct muchannel * const channel)
+inline bool muen_channel_is_active(const struct muchannel *const channel)
 {
     return channel->hdr.epoch != MUCHANNEL_NULL_EPOCH;
 }

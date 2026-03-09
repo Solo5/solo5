@@ -24,7 +24,7 @@
  * This header file is included by all bindings, and apart from the common
  * internal interfaces includes and defines all necessary C99 runtime
  * interfaces used by bindings.
-*/
+ */
 
 #ifndef __BINDINGS_H__
 #define __BINDINGS_H__
@@ -61,15 +61,15 @@ void _assert_fail(const char *, const char *, const char *)
 void _abort(const char *, const char *, const char *, void *)
     __attribute__((noreturn));
 
-#define PANIC(s, r)                            \
-    do {                                       \
-        _abort(__FILE__, STR(__LINE__), s, r); \
+#define PANIC(s, r)                                                            \
+    do {                                                                       \
+        _abort(__FILE__, STR(__LINE__), s, r);                                 \
     } while (0)
 
-#define assert(e)                                      \
-    do {                                               \
-        if (!(e))                                      \
-            _assert_fail(__FILE__, STR(__LINE__), #e); \
+#define assert(e)                                                              \
+    do {                                                                       \
+        if (!(e))                                                              \
+            _assert_fail(__FILE__, STR(__LINE__), #e);                         \
     } while (0)
 
 /* cpu_<architecture>.c: low-level CPU functions */
@@ -119,30 +119,30 @@ void platform_intr_mask_irq(unsigned irq);
 void platform_intr_ack_irq(unsigned irq);
 
 /* cmdline.c: command line parsing */
-char *cmdline_parse(const char *cmdline);
+const char *cmdline_parse(const char *cmdline);
 
 /* log.c: */
 typedef enum {
-    ERROR=0,
-    WARN, 
-    INFO, 
+    ERROR = 0,
+    WARN,
+    INFO,
     DEBUG,
 } log_level_t;
 int log(log_level_t level, const char *fmt, ...)
-	__attribute__ ((format (printf, 2, 3)));
+    __attribute__((format(printf, 2, 3)));
 void log_set_level(log_level_t level);
 
 /* compiler-only memory "barrier" */
 #define cc_barrier() __asm__ __volatile__("" : : : "memory")
 
-#define NSEC_PER_SEC	1000000000ULL
+#define NSEC_PER_SEC 1000000000ULL
 
 /*
  * Atomically test-and-set bit (nr) in (*bits). Fully synchronous.
  */
 static inline bool atomic_sync_bts(int nr, volatile void *bits)
 {
-    uint8_t *byte = ((uint8_t *)bits) + (nr >> 3);
+    volatile uint8_t *byte = ((volatile uint8_t *)bits) + (nr >> 3);
     uint8_t bit = 1 << (nr & 7);
     uint8_t orig;
 
@@ -155,7 +155,7 @@ static inline bool atomic_sync_bts(int nr, volatile void *bits)
  */
 static inline bool atomic_sync_btc(int nr, volatile void *bits)
 {
-    uint8_t *byte = ((uint8_t *)bits) + (nr >> 3);
+    volatile uint8_t *byte = ((volatile uint8_t *)bits) + (nr >> 3);
     uint8_t bit = 1 << (nr & 7);
     uint8_t orig;
 
@@ -168,7 +168,7 @@ static inline bool atomic_sync_btc(int nr, volatile void *bits)
  */
 static inline bool sync_bt(int nr, const volatile void *bits)
 {
-    const uint8_t *byte = ((uint8_t *)bits) + (nr >> 3);
+    const volatile uint8_t *byte = ((const volatile uint8_t *)bits) + (nr >> 3);
     uint8_t bit = 1 << (nr & 7);
     uint8_t result;
 
@@ -182,7 +182,7 @@ static inline bool sync_bt(int nr, const volatile void *bits)
  * Fully synchronous.
  */
 static inline void atomic_sync_xchg(volatile unsigned long *ptr,
-        unsigned long val, unsigned long *result)
+                                    unsigned long val, unsigned long *result)
 {
     __atomic_exchange(ptr, &val, result, __ATOMIC_SEQ_CST);
 }

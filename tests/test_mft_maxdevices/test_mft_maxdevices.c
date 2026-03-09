@@ -31,7 +31,7 @@ int solo5_app_main(const struct solo5_start_info *si __attribute__((unused)))
     puts("\n**** Solo5 standalone test_mft_maxdevices ****\n\n");
 
     solo5_handle_t storage0, storage62;
-    struct solo5_block_info bi; 
+    struct solo5_block_info bi;
 
     if (solo5_block_acquire("storage0", &storage0, &bi) != SOLO5_R_OK) {
         puts("FAILURE\n");

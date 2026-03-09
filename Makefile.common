@@ -30,7 +30,7 @@ include $(TOPDIR)/Makeconf
 # target.
 #
 CC := __V=$(V) $(TOPDIR)/toolchain/bin/$(CONFIG_TARGET_TRIPLE)-cc
-CFLAGS := -std=c11 -Wall -Wextra -Werror -O2 -g
+CFLAGS := -std=c11 -Wall -Wshadow -Wpointer-arith -Wcast-qual -Wsign-compare -Wextra -Werror -O2 -g
 CPPFLAGS :=
 LD := __V=$(V) $(TOPDIR)/toolchain/bin/$(CONFIG_TARGET_TRIPLE)-ld
 LDFLAGS :=
@@ -56,7 +56,7 @@ endef
 # artifacts built to run on the (Solo5 tender's) *host*.
 #
 HOSTCC := $(CONFIG_HOST_CC)
-HOSTCFLAGS := -fstack-protector-strong -Wall -Werror -std=c11 -O2 -g
+HOSTCFLAGS := -fstack-protector-strong -Wall -Wshadow -Wpointer-arith -Wcast-qual -Wsign-compare -Werror -std=c11 -O2 -g
 HOSTCPPFLAGS := -I$(TOPDIR)/include
 HOSTLDFLAGS :=
 HOSTLDLIBS :=

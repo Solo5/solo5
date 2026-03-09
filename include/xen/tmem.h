@@ -32,42 +32,42 @@
 #if __XEN_INTERFACE_VERSION__ < 0x00041300
 
 /* version of ABI */
-#define TMEM_SPEC_VERSION          1
+#define TMEM_SPEC_VERSION 1
 
-#define TMEM_NEW_POOL              1
-#define TMEM_DESTROY_POOL          2
-#define TMEM_PUT_PAGE              4
-#define TMEM_GET_PAGE              5
-#define TMEM_FLUSH_PAGE            6
-#define TMEM_FLUSH_OBJECT          7
+#define TMEM_NEW_POOL 1
+#define TMEM_DESTROY_POOL 2
+#define TMEM_PUT_PAGE 4
+#define TMEM_GET_PAGE 5
+#define TMEM_FLUSH_PAGE 6
+#define TMEM_FLUSH_OBJECT 7
 #if __XEN_INTERFACE_VERSION__ < 0x00040400
-#define TMEM_NEW_PAGE              3
-#define TMEM_READ                  8
-#define TMEM_WRITE                 9
-#define TMEM_XCHG                 10
+#define TMEM_NEW_PAGE 3
+#define TMEM_READ 8
+#define TMEM_WRITE 9
+#define TMEM_XCHG 10
 #endif
 
 /* Privileged commands now called via XEN_SYSCTL_tmem_op. */
-#define TMEM_AUTH                 101 /* as XEN_SYSCTL_TMEM_OP_SET_AUTH. */
-#define TMEM_RESTORE_NEW          102 /* as XEN_SYSCTL_TMEM_OP_SET_POOL. */
+#define TMEM_AUTH 101 /* as XEN_SYSCTL_TMEM_OP_SET_AUTH. */
+#define TMEM_RESTORE_NEW 102 /* as XEN_SYSCTL_TMEM_OP_SET_POOL. */
 
 /* Bits for HYPERVISOR_tmem_op(TMEM_NEW_POOL) */
-#define TMEM_POOL_PERSIST          1
-#define TMEM_POOL_SHARED           2
-#define TMEM_POOL_PRECOMPRESSED    4
-#define TMEM_POOL_PAGESIZE_SHIFT   4
-#define TMEM_POOL_PAGESIZE_MASK  0xf
-#define TMEM_POOL_VERSION_SHIFT   24
-#define TMEM_POOL_VERSION_MASK  0xff
-#define TMEM_POOL_RESERVED_BITS  0x00ffff00
+#define TMEM_POOL_PERSIST 1
+#define TMEM_POOL_SHARED 2
+#define TMEM_POOL_PRECOMPRESSED 4
+#define TMEM_POOL_PAGESIZE_SHIFT 4
+#define TMEM_POOL_PAGESIZE_MASK 0xf
+#define TMEM_POOL_VERSION_SHIFT 24
+#define TMEM_POOL_VERSION_MASK 0xff
+#define TMEM_POOL_RESERVED_BITS 0x00ffff00
 
 /* Bits for client flags (save/restore) */
-#define TMEM_CLIENT_COMPRESS       1
-#define TMEM_CLIENT_FROZEN         2
+#define TMEM_CLIENT_COMPRESS 1
+#define TMEM_CLIENT_FROZEN 2
 
 /* Special errno values */
-#define EFROZEN                 1000
-#define EEMPTY                  1001
+#define EFROZEN 1000
+#define EEMPTY 1001
 
 struct xen_tmem_oid {
     uint64_t oid[3];
@@ -107,7 +107,7 @@ typedef struct tmem_op tmem_op_t;
 DEFINE_XEN_GUEST_HANDLE(tmem_op_t);
 #endif
 
-#endif  /* __XEN_INTERFACE_VERSION__ < 0x00041300 */
+#endif /* __XEN_INTERFACE_VERSION__ < 0x00041300 */
 
 #endif /* __XEN_PUBLIC_TMEM_H__ */
 

@@ -33,13 +33,13 @@ typedef enum _gdb_breakpoint_type {
     GDB_BREAKPOINT_MAX
 } gdb_breakpoint_type;
 
-#define GDB_SIGNAL_FIRST         0
-#define GDB_SIGNAL_QUIT          3
-#define GDB_SIGNAL_KILL          9
-#define GDB_SIGNAL_TRAP          5
-#define GDB_SIGNAL_SEGV          11
-#define GDB_SIGNAL_TERM          15
-#define GDB_SIGNAL_IO            23
-#define GDB_SIGNAL_DEFAULT       144
+#define GDB_SIGNAL_FIRST 0
+#define GDB_SIGNAL_QUIT 3
+#define GDB_SIGNAL_KILL 9
+#define GDB_SIGNAL_TRAP 5
+#define GDB_SIGNAL_SEGV 11
+#define GDB_SIGNAL_TERM 15
+#define GDB_SIGNAL_IO 23
+#define GDB_SIGNAL_DEFAULT 144
 
 #endif /* #ifndef HVT_GDB_H */

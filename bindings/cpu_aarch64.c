@@ -31,19 +31,15 @@ struct regs {
     uint64_t esr_el1;
 };
 
-static const char *exception_modes[]= {
-    "Synchronous Abort",
-    "IRQ",
-    "FIQ",
-    "Error"
-};
+static const char *exception_modes[] = {"Synchronous Abort", "IRQ", "FIQ",
+                                        "Error"};
 
 void cpu_init(void)
 {
     __asm__ __volatile__("msr VBAR_EL1, %0"
-            :
-            : "r" ((uint64_t)&cpu_exception_vectors)
-            : "memory");
+                         :
+                         : "r"((uint64_t)&cpu_exception_vectors)
+                         : "memory");
 }
 
 static void dump_registers(struct regs *regs)
@@ -56,27 +52,26 @@ static void dump_registers(struct regs *regs)
     log(INFO, "\t LR     : 0x%016lx\n", regs->lr);
     log(INFO, "\t PSTATE : 0x%016lx\n", regs->spsr_el1);
 
-    for (idx = 0; idx < 28; idx+=4)
+    for (idx = 0; idx < 28; idx += 4)
         log(INFO, "\t x%02d ~ x%02d: 0x%016lx 0x%016lx 0x%016lx 0x%016lx\n",
             idx, idx + 3, regs->xreg[idx], regs->xreg[idx + 1],
             regs->xreg[idx + 2], regs->xreg[idx + 3]);
 
-    log(INFO, "\t x28 ~ x29: 0x%016lx 0x%016lx\n", regs->xreg[28], regs->xreg[29]);
+    log(INFO, "\t x28 ~ x29: 0x%016lx 0x%016lx\n", regs->xreg[28],
+        regs->xreg[29]);
 }
 
 void cpu_trap_handler(struct regs *regs, int el, int mode, int is_valid)
 {
     const uint32_t exception_cls = ESR_EC(regs->esr_el1);
 
-    log(INFO, "Solo5: Trap: EL%d %s%s caught\n",
-        el, is_valid ? "" : "Invalid ", exception_modes[mode]);
+    log(INFO, "Solo5: Trap: EL%d %s%s caught\n", el, is_valid ? "" : "Invalid ",
+        exception_modes[mode]);
 
-    if (exception_cls == ESR_EC_DABT_LOW ||
-        exception_cls == ESR_EC_DABT_CUR) {
-            uint64_t addr;
-            __asm__ __volatile__("mrs %0, FAR_EL1"
-                                 :"=&r"(addr) ::);
-            log(INFO, "Data Abort Address: 0x%016lx\n", addr);
+    if (exception_cls == ESR_EC_DABT_LOW || exception_cls == ESR_EC_DABT_CUR) {
+        uint64_t addr;
+        __asm__ __volatile__("mrs %0, FAR_EL1" : "=&r"(addr)::);
+        log(INFO, "Data Abort Address: 0x%016lx\n", addr);
     }
 
     dump_registers(regs);

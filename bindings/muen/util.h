@@ -23,7 +23,7 @@
 
 #include "bindings.h"
 
-static inline void serialized_copy(const uint64_t * const src, uint64_t *dst)
+static inline void serialized_copy(const uint64_t *const src, uint64_t *dst)
 {
     cc_barrier();
     *dst = *src;

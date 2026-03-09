@@ -25,8 +25,7 @@
 #include "../../bindings/lib.c"
 #include "../../bindings/printf.c"
 
-static void printf(const char *fmt, ...)
-    __attribute__ ((format (printf, 1, 2)));
+static void printf(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
 
 static void printf(const char *fmt, ...)
 {
@@ -42,8 +41,7 @@ static void printf(const char *fmt, ...)
         const char trunc[] = "(truncated)\n";
         solo5_console_write(buffer, sizeof buffer - 1);
         solo5_console_write(trunc, sizeof trunc - 1);
-    }
-    else {
+    } else {
         solo5_console_write(buffer, size);
     }
 }
@@ -85,7 +83,7 @@ int solo5_app_main(const struct solo5_start_info *si __attribute__((unused)))
     solo5_yield(ta, NULL);
     tb = solo5_clock_monotonic();
     printf("Overhead of solo5_yield(): %llu ns\n",
-            (unsigned long long)(tb - ta));
+           (unsigned long long)(tb - ta));
 
     /*
      * Always run the following test 5 times, to get more information in CI/
@@ -113,7 +111,7 @@ int solo5_app_main(const struct solo5_start_info *si __attribute__((unused)))
         const solo5_time_t slack = 200000000ULL;
         if (delta < NSEC_PER_SEC - slack) {
             printf("[%d] ERROR: slept too little (expected at least %llu ns)\n",
-                    iters, (unsigned long long)NSEC_PER_SEC);
+                   iters, (unsigned long long)NSEC_PER_SEC);
             failed = true;
             continue;
         }
@@ -123,7 +121,7 @@ int solo5_app_main(const struct solo5_start_info *si __attribute__((unused)))
          */
         if (delta > (NSEC_PER_SEC + slack)) {
             printf("[%d] ERROR: slept too much (expected at most %llu ns)\n",
-                    iters, (unsigned long long)slack);
+                   iters, (unsigned long long)slack);
             failed = true;
             continue;
         }
@@ -137,7 +135,7 @@ int solo5_app_main(const struct solo5_start_info *si __attribute__((unused)))
     ta = solo5_clock_wall();
     if (ta < (1483228800ULL * NSEC_PER_SEC)) {
         printf("ERROR: wall time is not 2017 or later (got %llu ns)\n",
-                (unsigned long long)ta);
+               (unsigned long long)ta);
         return SOLO5_EXIT_FAILURE;
     }
 

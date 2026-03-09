@@ -54,12 +54,12 @@
  * "POSIX time" to/from "YY/MM/DD/hh/mm/ss"
  */
 struct bmk_clock_ymdhms {
-	uint64_t dt_year;
-	uint8_t dt_mon;
-	uint8_t dt_day;
-	uint8_t dt_hour;
-	uint8_t dt_min;
-	uint8_t dt_sec;
+    uint64_t dt_year;
+    uint8_t dt_mon;
+    uint8_t dt_day;
+    uint8_t dt_hour;
+    uint8_t dt_min;
+    uint8_t dt_sec;
 };
 
 uint64_t clock_ymdhms_to_secs(struct bmk_clock_ymdhms *);
@@ -67,10 +67,9 @@ uint64_t clock_ymdhms_to_secs(struct bmk_clock_ymdhms *);
 /*
  * BCD to binary.
  */
-static inline unsigned int
-bcdtobin(unsigned int bcd)
+static inline unsigned int bcdtobin(unsigned int bcd)
 {
-	return ((bcd >> 4) & 0x0f) * 10 + (bcd & 0x0f);
+    return ((bcd >> 4) & 0x0f) * 10 + (bcd & 0x0f);
 }
 
 #endif /* _BMK_CLOCK_SUBR_H_ */

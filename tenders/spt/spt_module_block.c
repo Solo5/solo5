@@ -49,7 +49,7 @@ static int handle_cmdarg(char *cmdarg, struct mft *mft)
     if (strncmp(BLOCK_PREFIX, cmdarg, sizeof(BLOCK_PREFIX) - 1) == 0)
         which = opt_block;
     else if (strncmp(BLOCK_SECTOR_SIZE_PREFIX, cmdarg,
-                sizeof(BLOCK_SECTOR_SIZE_PREFIX) - 1) == 0)
+                     sizeof(BLOCK_SECTOR_SIZE_PREFIX) - 1) == 0)
         which = opt_block_size;
     else
         return -1;
@@ -58,12 +58,14 @@ static int handle_cmdarg(char *cmdarg, struct mft *mft)
     if (which == opt_block) {
         char path[PATH_MAX + 1];
         int rc = sscanf(cmdarg,
-                "--block:%" XSTR(MFT_NAME_MAX) "[A-Za-z0-9]="
-                "%" XSTR(PATH_MAX) "s", name, path);
+                        "--block:%" XSTR(MFT_NAME_MAX) "[A-Za-z0-9]="
+                                                       "%" XSTR(PATH_MAX) "s",
+                        name, path);
         if (rc != 2)
             return -1;
 
-        struct mft_entry *e = mft_get_by_name(mft, name, MFT_DEV_BLOCK_BASIC, NULL);
+        struct mft_entry *e =
+            mft_get_by_name(mft, name, MFT_DEV_BLOCK_BASIC, NULL);
         if (e == NULL) {
             warnx("Resource not declared in manifest: '%s'", name);
             return -1;
@@ -79,18 +81,21 @@ static int handle_cmdarg(char *cmdarg, struct mft *mft)
         module_in_use = true;
     } else if (which == opt_block_size) {
         uint16_t block_size;
-        int rc = sscanf(cmdarg,
-                "--block-sector-size:%" XSTR(MFT_NAME_MAX) "[A-Za-z0-9]="
-                "%hu",
-                name, &block_size);
+        int rc =
+            sscanf(cmdarg,
+                   "--block-sector-size:%" XSTR(MFT_NAME_MAX) "[A-Za-z0-9]="
+                                                              "%hu",
+                   name, &block_size);
         if (rc != 2)
             return -1;
         if (block_size < 512 || block_size & (block_size - 1)) {
-            warnx("Block size must be a multiple of 2 greater than or equal 512");
+            warnx(
+                "Block size must be a multiple of 2 greater than or equal 512");
             return -1;
         }
 
-        struct mft_entry *e = mft_get_by_name(mft, name, MFT_DEV_BLOCK_BASIC, NULL);
+        struct mft_entry *e =
+            mft_get_by_name(mft, name, MFT_DEV_BLOCK_BASIC, NULL);
         if (e == NULL) {
             warnx("Resource not declared in manifest: '%s'", name);
             return -1;
@@ -123,11 +128,16 @@ static int setup(struct spt *spt, struct mft *mft)
         assert((block_size & (block_size - 1)) == 0);
         /* this assumes block_size is a power of 2 */
         if ((capacity & (block_size - 1)) != 0)
-            errx(1, "%." XSTR(MFT_NAME_MAX) "s: Backing storage size must be block aligned (%hu bytes)",
-                    name, block_size);
+            errx(1,
+                 "%." XSTR(MFT_NAME_MAX) "s: Backing storage size must be "
+                                         "block aligned (%hu bytes)",
+                 name, block_size);
         if (capacity < block_size)
-            errx(1, "%." XSTR(MFT_NAME_MAX) "s: Backing storage must be at least 1 block (%hu bytes) "
-                    "in size", name, block_size);
+            errx(1,
+                 "%." XSTR(MFT_NAME_MAX) "s: Backing storage must be at least "
+                                         "1 block (%hu bytes) "
+                                         "in size",
+                 name, block_size);
 
         int rc = -1;
 
@@ -141,24 +151,24 @@ static int setup(struct spt *spt, struct mft *mft)
          * block_size, so we implement the above by ensuring that (A2 ==
          * block_size) && (A3 <= (capacity - block_size) holds.
          */
-        rc = seccomp_rule_add(spt->sc_ctx, SCMP_ACT_ALLOW,
-                SCMP_SYS(pread64), 3,
-                SCMP_A0(SCMP_CMP_EQ, mft->e[i].b.hostfd),
-                SCMP_A2(SCMP_CMP_EQ, mft->e[i].u.block_basic.block_size),
-                SCMP_A3(SCMP_CMP_LE,
-                    (mft->e[i].u.block_basic.capacity - mft->e[i].u.block_basic.block_size)));
+        rc = seccomp_rule_add(
+            spt->sc_ctx, SCMP_ACT_ALLOW, SCMP_SYS(pread64), 3,
+            SCMP_A0(SCMP_CMP_EQ, mft->e[i].b.hostfd),
+            SCMP_A2(SCMP_CMP_EQ, mft->e[i].u.block_basic.block_size),
+            SCMP_A3(SCMP_CMP_LE, (mft->e[i].u.block_basic.capacity -
+                                  mft->e[i].u.block_basic.block_size)));
         if (rc != 0)
             errx(1, "seccomp_rule_add(pread64, fd=%d) failed: %s",
-                    mft->e[i].b.hostfd, strerror(-rc));
-        rc = seccomp_rule_add(spt->sc_ctx, SCMP_ACT_ALLOW,
-                SCMP_SYS(pwrite64), 3,
-                SCMP_A0(SCMP_CMP_EQ, mft->e[i].b.hostfd),
-                SCMP_A2(SCMP_CMP_EQ, mft->e[i].u.block_basic.block_size),
-                SCMP_A3(SCMP_CMP_LE,
-                    (mft->e[i].u.block_basic.capacity - mft->e[i].u.block_basic.block_size)));
+                 mft->e[i].b.hostfd, strerror(-rc));
+        rc = seccomp_rule_add(
+            spt->sc_ctx, SCMP_ACT_ALLOW, SCMP_SYS(pwrite64), 3,
+            SCMP_A0(SCMP_CMP_EQ, mft->e[i].b.hostfd),
+            SCMP_A2(SCMP_CMP_EQ, mft->e[i].u.block_basic.block_size),
+            SCMP_A3(SCMP_CMP_LE, (mft->e[i].u.block_basic.capacity -
+                                  mft->e[i].u.block_basic.block_size)));
         if (rc != 0)
             errx(1, "seccomp_rule_add(pwrite64, fd=%d) failed: %s",
-                    mft->e[i].b.hostfd, strerror(-rc));
+                 mft->e[i].b.hostfd, strerror(-rc));
     }
 
     return 0;
@@ -166,12 +176,12 @@ static int setup(struct spt *spt, struct mft *mft)
 
 static char *usage(void)
 {
-    return "--block:NAME=PATH (attach block device/file at PATH as block storage NAME)\n"
-	"  [ --block-sector-size:NAME=SECTORSIZE ] (set sector size for block device NAME; must be a power of two greater than or equal 512)";
+    return "--block:NAME=PATH (attach block device/file at PATH as block "
+           "storage NAME)\n"
+           "  [ --block-sector-size:NAME=SECTORSIZE ] (set sector size for "
+           "block device NAME; must be a power of two greater than or equal "
+           "512)";
 }
 
-DECLARE_MODULE(block,
-    .setup = setup,
-    .handle_cmdarg = handle_cmdarg,
-    .usage = usage
-)
+DECLARE_MODULE(block, .setup = setup, .handle_cmdarg = handle_cmdarg,
+               .usage = usage)

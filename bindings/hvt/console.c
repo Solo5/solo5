@@ -24,7 +24,7 @@ int platform_puts(const char *buf, int n)
 {
     struct hvt_hc_puts str;
 
-    str.data = (char *)buf;
+    str.data = (const char *)buf;
     str.len = n;
 
     hvt_do_hypercall(HVT_HYPERCALL_PUTS, &str);

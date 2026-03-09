@@ -38,7 +38,7 @@
  *                           Protocol version
  ******************************************************************************
  */
-#define XENDISPL_PROTOCOL_VERSION     "1"
+#define XENDISPL_PROTOCOL_VERSION "1"
 
 /*
  ******************************************************************************
@@ -108,16 +108,16 @@
  *--------------------------------- Backend -----------------------------------
  *
  * /local/domain/0/backend/vdispl/1/0/frontend-id = "1"
- * /local/domain/0/backend/vdispl/1/0/frontend = "/local/domain/1/device/vdispl/0"
- * /local/domain/0/backend/vdispl/1/0/state = "4"
- * /local/domain/0/backend/vdispl/1/0/versions = "1,2"
+ * /local/domain/0/backend/vdispl/1/0/frontend =
+ * "/local/domain/1/device/vdispl/0" /local/domain/0/backend/vdispl/1/0/state =
+ * "4" /local/domain/0/backend/vdispl/1/0/versions = "1,2"
  *
  *--------------------------------- Frontend ----------------------------------
  *
  * /local/domain/1/device/vdispl/0/backend-id = "0"
- * /local/domain/1/device/vdispl/0/backend = "/local/domain/0/backend/vdispl/1/0"
- * /local/domain/1/device/vdispl/0/state = "4"
- * /local/domain/1/device/vdispl/0/version = "1"
+ * /local/domain/1/device/vdispl/0/backend =
+ * "/local/domain/0/backend/vdispl/1/0" /local/domain/1/device/vdispl/0/state =
+ * "4" /local/domain/1/device/vdispl/0/version = "1"
  * /local/domain/1/device/vdispl/0/be-alloc = "1"
  *
  *-------------------------- Connector 0 configuration ------------------------
@@ -343,39 +343,39 @@
  * Request codes [0; 15] are reserved and must not be used
  */
 
-#define XENDISPL_OP_DBUF_CREATE       0x10
-#define XENDISPL_OP_DBUF_DESTROY      0x11
-#define XENDISPL_OP_FB_ATTACH         0x12
-#define XENDISPL_OP_FB_DETACH         0x13
-#define XENDISPL_OP_SET_CONFIG        0x14
-#define XENDISPL_OP_PG_FLIP           0x15
+#define XENDISPL_OP_DBUF_CREATE 0x10
+#define XENDISPL_OP_DBUF_DESTROY 0x11
+#define XENDISPL_OP_FB_ATTACH 0x12
+#define XENDISPL_OP_FB_DETACH 0x13
+#define XENDISPL_OP_SET_CONFIG 0x14
+#define XENDISPL_OP_PG_FLIP 0x15
 
 /*
  ******************************************************************************
  *                                 EVENT CODES
  ******************************************************************************
  */
-#define XENDISPL_EVT_PG_FLIP          0x00
+#define XENDISPL_EVT_PG_FLIP 0x00
 
 /*
  ******************************************************************************
  *               XENSTORE FIELD AND PATH NAME STRINGS, HELPERS
  ******************************************************************************
  */
-#define XENDISPL_DRIVER_NAME          "vdispl"
+#define XENDISPL_DRIVER_NAME "vdispl"
 
-#define XENDISPL_LIST_SEPARATOR       ","
+#define XENDISPL_LIST_SEPARATOR ","
 #define XENDISPL_RESOLUTION_SEPARATOR "x"
 
-#define XENDISPL_FIELD_BE_VERSIONS    "versions"
-#define XENDISPL_FIELD_FE_VERSION     "version"
-#define XENDISPL_FIELD_REQ_RING_REF   "req-ring-ref"
-#define XENDISPL_FIELD_REQ_CHANNEL    "req-event-channel"
-#define XENDISPL_FIELD_EVT_RING_REF   "evt-ring-ref"
-#define XENDISPL_FIELD_EVT_CHANNEL    "evt-event-channel"
-#define XENDISPL_FIELD_RESOLUTION     "resolution"
-#define XENDISPL_FIELD_BE_ALLOC       "be-alloc"
-#define XENDISPL_FIELD_UNIQUE_ID      "unique-id"
+#define XENDISPL_FIELD_BE_VERSIONS "versions"
+#define XENDISPL_FIELD_FE_VERSION "version"
+#define XENDISPL_FIELD_REQ_RING_REF "req-ring-ref"
+#define XENDISPL_FIELD_REQ_CHANNEL "req-event-channel"
+#define XENDISPL_FIELD_EVT_RING_REF "evt-ring-ref"
+#define XENDISPL_FIELD_EVT_CHANNEL "evt-event-channel"
+#define XENDISPL_FIELD_RESOLUTION "resolution"
+#define XENDISPL_FIELD_BE_ALLOC "be-alloc"
+#define XENDISPL_FIELD_UNIQUE_ID "unique-id"
 
 /*
  ******************************************************************************
@@ -496,7 +496,7 @@
  *   below)
  */
 
-#define XENDISPL_DBUF_FLG_REQ_ALLOC       (1 << 0)
+#define XENDISPL_DBUF_FLG_REQ_ALLOC (1 << 0)
 
 struct xendispl_dbuf_create_req {
     uint64_t dbuf_cookie;
@@ -853,11 +853,12 @@ struct xendispl_event_page {
 #define XENDISPL_EVENT_PAGE_SIZE 4096
 #define XENDISPL_IN_RING_OFFS (sizeof(struct xendispl_event_page))
 #define XENDISPL_IN_RING_SIZE (XENDISPL_EVENT_PAGE_SIZE - XENDISPL_IN_RING_OFFS)
-#define XENDISPL_IN_RING_LEN (XENDISPL_IN_RING_SIZE / sizeof(struct xendispl_evt))
-#define XENDISPL_IN_RING(page) \
-	((struct xendispl_evt *)((char *)(page) + XENDISPL_IN_RING_OFFS))
-#define XENDISPL_IN_RING_REF(page, idx) \
-	(XENDISPL_IN_RING((page))[(idx) % XENDISPL_IN_RING_LEN])
+#define XENDISPL_IN_RING_LEN                                                   \
+    (XENDISPL_IN_RING_SIZE / sizeof(struct xendispl_evt))
+#define XENDISPL_IN_RING(page)                                                 \
+    ((struct xendispl_evt *)((char *)(page) + XENDISPL_IN_RING_OFFS))
+#define XENDISPL_IN_RING_REF(page, idx)                                        \
+    (XENDISPL_IN_RING((page))[(idx) % XENDISPL_IN_RING_LEN])
 
 #endif /* __XEN_PUBLIC_IO_DISPLIF_H__ */
 

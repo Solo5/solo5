@@ -30,15 +30,15 @@
  * Save/restore header: general info about the save file.
  */
 
-#define HVM_FILE_MAGIC   0x54381286
+#define HVM_FILE_MAGIC 0x54381286
 #define HVM_FILE_VERSION 0x00000001
 
 struct hvm_save_header {
-    uint32_t magic;             /* Must be HVM_FILE_MAGIC */
-    uint32_t version;           /* File format version */
-    uint64_t changeset;         /* Version of Xen that saved this file */
-    uint32_t cpuid;             /* CPUID[0x01][%eax] on the saving machine */
-    uint32_t gtsc_khz;        /* Guest's TSC frequency in kHz */
+    uint32_t magic; /* Must be HVM_FILE_MAGIC */
+    uint32_t version; /* File format version */
+    uint64_t changeset; /* Version of Xen that saved this file */
+    uint32_t cpuid; /* CPUID[0x01][%eax] on the saving machine */
+    uint32_t gtsc_khz; /* Guest's TSC frequency in kHz */
 };
 
 DECLARE_HVM_SAVE_TYPE(HEADER, 1, struct hvm_save_header);
@@ -53,7 +53,7 @@ DECLARE_HVM_SAVE_TYPE(HEADER, 1, struct hvm_save_header);
  */
 
 struct hvm_hw_cpu {
-    uint8_t  fpu_regs[512];
+    uint8_t fpu_regs[512];
 
     uint64_t rax;
     uint64_t rbx;
@@ -150,24 +150,24 @@ struct hvm_hw_cpu {
     union {
         uint32_t pending_event;
         struct {
-            uint8_t  pending_vector:8;
-            uint8_t  pending_type:3;
-            uint8_t  pending_error_valid:1;
-            uint32_t pending_reserved:19;
-            uint8_t  pending_valid:1;
+            uint8_t pending_vector : 8;
+            uint8_t pending_type : 3;
+            uint8_t pending_error_valid : 1;
+            uint32_t pending_reserved : 19;
+            uint8_t pending_valid : 1;
         };
     };
     /* error code for pending event */
     uint32_t error_code;
 
-#define _XEN_X86_FPU_INITIALISED        0
-#define XEN_X86_FPU_INITIALISED         (1U<<_XEN_X86_FPU_INITIALISED)
+#define _XEN_X86_FPU_INITIALISED 0
+#define XEN_X86_FPU_INITIALISED (1U << _XEN_X86_FPU_INITIALISED)
     uint32_t flags;
     uint32_t pad0;
 };
 
 struct hvm_hw_cpu_compat {
-    uint8_t  fpu_regs[512];
+    uint8_t fpu_regs[512];
 
     uint64_t rax;
     uint64_t rbx;
@@ -264,26 +264,26 @@ struct hvm_hw_cpu_compat {
     union {
         uint32_t pending_event;
         struct {
-            uint8_t  pending_vector:8;
-            uint8_t  pending_type:3;
-            uint8_t  pending_error_valid:1;
-            uint32_t pending_reserved:19;
-            uint8_t  pending_valid:1;
+            uint8_t pending_vector : 8;
+            uint8_t pending_type : 3;
+            uint8_t pending_error_valid : 1;
+            uint32_t pending_reserved : 19;
+            uint8_t pending_valid : 1;
         };
     };
     /* error code for pending event */
     uint32_t error_code;
 };
 
-static inline int _hvm_hw_fix_cpu(void *h, uint32_t size) {
+static inline int _hvm_hw_fix_cpu(void *h, uint32_t size)
+{
 
     union hvm_hw_cpu_union {
         struct hvm_hw_cpu nat;
         struct hvm_hw_cpu_compat cmp;
     } *ucpu = (union hvm_hw_cpu_union *)h;
 
-    if ( size == sizeof(struct hvm_hw_cpu_compat) )
-    {
+    if (size == sizeof(struct hvm_hw_cpu_compat)) {
         /*
          * If we copy from the end backwards, we should
          * be able to do the modification in-place.
@@ -299,7 +299,7 @@ static inline int _hvm_hw_fix_cpu(void *h, uint32_t size) {
     return 0;
 }
 
-DECLARE_HVM_SAVE_TYPE_COMPAT(CPU, 2, struct hvm_hw_cpu, \
+DECLARE_HVM_SAVE_TYPE_COMPAT(CPU, 2, struct hvm_hw_cpu,
                              struct hvm_hw_cpu_compat, _hvm_hw_fix_cpu);
 
 /*
@@ -321,31 +321,31 @@ struct hvm_hw_vpic {
      * Bit 2: ICW1.IC4  (1 == ICW4 included in init sequence)
      * Bit 3: ICW1.SNGL (0 == ICW3 included in init sequence)
      */
-    uint8_t init_state:4;
+    uint8_t init_state : 4;
 
     /* IR line with highest priority. */
-    uint8_t priority_add:4;
+    uint8_t priority_add : 4;
 
     /* Reads from A=0 obtain ISR or IRR? */
-    uint8_t readsel_isr:1;
+    uint8_t readsel_isr : 1;
 
     /* Reads perform a polling read? */
-    uint8_t poll:1;
+    uint8_t poll : 1;
 
     /* Automatically clear IRQs from the ISR during INTA? */
-    uint8_t auto_eoi:1;
+    uint8_t auto_eoi : 1;
 
     /* Automatically rotate IRQ priorities during AEOI? */
-    uint8_t rotate_on_auto_eoi:1;
+    uint8_t rotate_on_auto_eoi : 1;
 
     /* Exclude slave inputs when considering in-service IRQs? */
-    uint8_t special_fully_nested_mode:1;
+    uint8_t special_fully_nested_mode : 1;
 
     /* Special mask mode excludes masked IRs from AEOI and priority checks. */
-    uint8_t special_mask_mode:1;
+    uint8_t special_mask_mode : 1;
 
     /* Is this a master PIC or slave PIC? (NB. This is not programmable.) */
-    uint8_t is_master:1;
+    uint8_t is_master : 1;
 
     /* Edge/trigger selection. */
     uint8_t elcr;
@@ -361,32 +361,31 @@ DECLARE_HVM_SAVE_TYPE(PIC, 3, struct hvm_hw_vpic);
  * IO-APIC
  */
 
-union vioapic_redir_entry
-{
+union vioapic_redir_entry {
     uint64_t bits;
     struct {
         uint8_t vector;
-        uint8_t delivery_mode:3;
-        uint8_t dest_mode:1;
-        uint8_t delivery_status:1;
-        uint8_t polarity:1;
-        uint8_t remote_irr:1;
-        uint8_t trig_mode:1;
-        uint8_t mask:1;
-        uint8_t reserve:7;
+        uint8_t delivery_mode : 3;
+        uint8_t dest_mode : 1;
+        uint8_t delivery_status : 1;
+        uint8_t polarity : 1;
+        uint8_t remote_irr : 1;
+        uint8_t trig_mode : 1;
+        uint8_t mask : 1;
+        uint8_t reserve : 7;
         uint8_t reserved[4];
         uint8_t dest_id;
     } fields;
 };
 
-#define VIOAPIC_NUM_PINS  48 /* 16 ISA IRQs, 32 non-legacy PCI IRQS. */
+#define VIOAPIC_NUM_PINS 48 /* 16 ISA IRQs, 32 non-legacy PCI IRQS. */
 
-#define XEN_HVM_VIOAPIC(name, cnt)                      \
-    struct name {                                       \
-        uint64_t base_address;                          \
-        uint32_t ioregsel;                              \
-        uint32_t id;                                    \
-        union vioapic_redir_entry redirtbl[cnt];        \
+#define XEN_HVM_VIOAPIC(name, cnt)                                             \
+    struct name {                                                              \
+        uint64_t base_address;                                                 \
+        uint32_t ioregsel;                                                     \
+        uint32_t id;                                                           \
+        union vioapic_redir_entry redirtbl[cnt];                               \
     }
 
 XEN_HVM_VIOAPIC(hvm_hw_vioapic, VIOAPIC_NUM_PINS);
@@ -405,10 +404,10 @@ DECLARE_HVM_SAVE_TYPE(IOAPIC, 4, struct hvm_hw_vioapic);
  */
 
 struct hvm_hw_lapic {
-    uint64_t             apic_base_msr;
-    uint32_t             disabled; /* VLAPIC_xx_DISABLED */
-    uint32_t             timer_divisor;
-    uint64_t             tdt_msr;
+    uint64_t apic_base_msr;
+    uint32_t disabled; /* VLAPIC_xx_DISABLED */
+    uint32_t timer_divisor;
+    uint64_t tdt_msr;
 };
 
 DECLARE_HVM_SAVE_TYPE(LAPIC, 5, struct hvm_hw_lapic);
@@ -430,7 +429,8 @@ struct hvm_hw_pci_irqs {
      * Indexed by: device*4 + INTx#.
      */
     union {
-        unsigned long i[16 / sizeof (unsigned long)]; /* DECLARE_BITMAP(i, 32*4); */
+        unsigned long
+            i[16 / sizeof(unsigned long)]; /* DECLARE_BITMAP(i, 32*4); */
         uint64_t pad[2];
     };
 };
@@ -443,7 +443,7 @@ struct hvm_hw_isa_irqs {
      * Indexed by ISA IRQ (assumes no ISA-device IRQ sharing).
      */
     union {
-        unsigned long i[1];  /* DECLARE_BITMAP(i, 16); */
+        unsigned long i[1]; /* DECLARE_BITMAP(i, 16); */
         uint64_t pad[1];
     };
 };
@@ -481,7 +481,7 @@ struct hvm_hw_pit {
         uint8_t mode;
         uint8_t bcd; /* not supported */
         uint8_t gate; /* timer start */
-    } channels[3];  /* 3 x 16 bytes */
+    } channels[3]; /* 3 x 16 bytes */
     uint32_t speaker_data_on;
     uint32_t pad0;
 };
@@ -509,24 +509,24 @@ DECLARE_HVM_SAVE_TYPE(RTC, 11, struct hvm_hw_rtc);
  * HPET
  */
 
-#define HPET_TIMER_NUM     3    /* 3 timers supported now */
+#define HPET_TIMER_NUM 3 /* 3 timers supported now */
 struct hvm_hw_hpet {
     /* Memory-mapped, software visible registers */
-    uint64_t capability;        /* capabilities */
-    uint64_t res0;              /* reserved */
-    uint64_t config;            /* configuration */
-    uint64_t res1;              /* reserved */
-    uint64_t isr;               /* interrupt status reg */
-    uint64_t res2[25];          /* reserved */
-    uint64_t mc64;              /* main counter */
-    uint64_t res3;              /* reserved */
-    struct {                    /* timers */
-        uint64_t config;        /* configuration/cap */
-        uint64_t cmp;           /* comparator */
-        uint64_t fsb;           /* FSB route, not supported now */
-        uint64_t res4;          /* reserved */
+    uint64_t capability; /* capabilities */
+    uint64_t res0; /* reserved */
+    uint64_t config; /* configuration */
+    uint64_t res1; /* reserved */
+    uint64_t isr; /* interrupt status reg */
+    uint64_t res2[25]; /* reserved */
+    uint64_t mc64; /* main counter */
+    uint64_t res3; /* reserved */
+    struct { /* timers */
+        uint64_t config; /* configuration/cap */
+        uint64_t cmp; /* comparator */
+        uint64_t fsb; /* FSB route, not supported now */
+        uint64_t res4; /* reserved */
     } timers[HPET_TIMER_NUM];
-    uint64_t res5[4*(24-HPET_TIMER_NUM)];  /* reserved, up to 0x3ff */
+    uint64_t res5[4 * (24 - HPET_TIMER_NUM)]; /* reserved, up to 0x3ff */
 
     /* Hidden register state */
     uint64_t period[HPET_TIMER_NUM]; /* Last value written to comparator */
@@ -540,9 +540,9 @@ DECLARE_HVM_SAVE_TYPE(HPET, 12, struct hvm_hw_hpet);
  */
 
 struct hvm_hw_pmtimer {
-    uint32_t tmr_val;   /* PM_TMR_BLK.TMR_VAL: 32bit free-running counter */
-    uint16_t pm1a_sts;  /* PM1a_EVT_BLK.PM1a_STS: status register */
-    uint16_t pm1a_en;   /* PM1a_EVT_BLK.PM1a_EN: enable register */
+    uint32_t tmr_val; /* PM_TMR_BLK.TMR_VAL: 32bit free-running counter */
+    uint16_t pm1a_sts; /* PM1a_EVT_BLK.PM1a_STS: status register */
+    uint16_t pm1a_en; /* PM1a_EVT_BLK.PM1a_EN: enable register */
 };
 
 DECLARE_HVM_SAVE_TYPE(PMTIMER, 13, struct hvm_hw_pmtimer);
@@ -556,7 +556,7 @@ struct hvm_hw_mtrr {
 #define NUM_FIXED_MSR 11
     uint64_t msr_pat_cr;
     /* mtrr physbase & physmask msr pair*/
-    uint64_t msr_mtrr_var[MTRR_VCNT*2];
+    uint64_t msr_mtrr_var[MTRR_VCNT * 2];
     uint64_t msr_mtrr_fixed[NUM_FIXED_MSR];
     uint64_t msr_mtrr_cap;
     uint64_t msr_mtrr_def_type;
@@ -569,21 +569,23 @@ DECLARE_HVM_SAVE_TYPE(MTRR, 14, struct hvm_hw_mtrr);
  */
 
 struct hvm_hw_cpu_xsave {
-    uint64_t xfeature_mask;        /* Ignored */
-    uint64_t xcr0;                 /* Updated by XSETBV */
-    uint64_t xcr0_accum;           /* Updated by XSETBV */
+    uint64_t xfeature_mask; /* Ignored */
+    uint64_t xcr0; /* Updated by XSETBV */
+    uint64_t xcr0_accum; /* Updated by XSETBV */
     struct {
-        struct { char x[512]; } fpu_sse;
+        struct {
+            char x[512];
+        } fpu_sse;
 
         struct hvm_hw_cpu_xsave_hdr {
-            uint64_t xstate_bv;         /* Updated by XRSTOR */
-            uint64_t xcomp_bv;          /* Updated by XRSTOR{C,S} */
+            uint64_t xstate_bv; /* Updated by XRSTOR */
+            uint64_t xcomp_bv; /* Updated by XRSTOR{C,S} */
             uint64_t reserved[6];
-        } xsave_hdr;                    /* The 64-byte header */
+        } xsave_hdr; /* The 64-byte header */
     } save_area;
 };
 
-#define CPU_XSAVE_CODE  16
+#define CPU_XSAVE_CODE 16
 
 /*
  * Viridian hypervisor context.
@@ -600,8 +602,8 @@ DECLARE_HVM_SAVE_TYPE(VIRIDIAN_DOMAIN, 15, struct hvm_viridian_domain_context);
 
 struct hvm_viridian_vcpu_context {
     uint64_t vp_assist_msr;
-    uint8_t  apic_assist_pending;
-    uint8_t  _pad[7];
+    uint8_t apic_assist_pending;
+    uint8_t _pad[7];
     uint64_t simp_msr;
     uint64_t sint_msr[16];
     uint64_t stimer_config_msr[4];
@@ -635,7 +637,7 @@ struct hvm_msr {
     } msr[XEN_FLEX_ARRAY_DIM];
 };
 
-#define CPU_MSR_CODE  20
+#define CPU_MSR_CODE 20
 
 /*
  * Largest type-code in use

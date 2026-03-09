@@ -23,7 +23,7 @@
 static const struct mft *mft;
 
 solo5_result_t solo5_net_write(solo5_handle_t handle, const uint8_t *buf,
-        size_t size)
+                               size_t size)
 {
     volatile struct hvt_hc_net_write wr;
 
@@ -38,7 +38,7 @@ solo5_result_t solo5_net_write(solo5_handle_t handle, const uint8_t *buf,
 }
 
 solo5_result_t solo5_net_read(solo5_handle_t handle, uint8_t *buf, size_t size,
-        size_t *read_size)
+                              size_t *read_size)
 {
     volatile struct hvt_hc_net_read rd;
 
@@ -54,7 +54,7 @@ solo5_result_t solo5_net_read(solo5_handle_t handle, uint8_t *buf, size_t size,
 }
 
 solo5_result_t solo5_net_acquire(const char *name, solo5_handle_t *handle,
-        struct solo5_net_info *info)
+                                 struct solo5_net_info *info)
 {
     unsigned index;
     const struct mft_entry *e =
@@ -65,8 +65,7 @@ solo5_result_t solo5_net_acquire(const char *name, solo5_handle_t *handle,
 
     *handle = index;
     info->mtu = e->u.net_basic.mtu;
-    memcpy(info->mac_address, e->u.net_basic.mac,
-            sizeof info->mac_address);
+    memcpy(info->mac_address, e->u.net_basic.mac, sizeof info->mac_address);
     return SOLO5_R_OK;
 }
 
