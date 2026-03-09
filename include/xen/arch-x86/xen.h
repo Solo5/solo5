@@ -31,11 +31,13 @@
 
 /* Structural guest handles introduced in 0x00030201. */
 #if __XEN_INTERFACE_VERSION__ >= 0x00030201
-#define ___DEFINE_XEN_GUEST_HANDLE(name, type) \
-    typedef struct { type *p; } __guest_handle_ ## name
+#define ___DEFINE_XEN_GUEST_HANDLE(name, type)                                 \
+    typedef struct {                                                           \
+        type *p;                                                               \
+    } __guest_handle_##name
 #else
-#define ___DEFINE_XEN_GUEST_HANDLE(name, type) \
-    typedef type * __guest_handle_ ## name
+#define ___DEFINE_XEN_GUEST_HANDLE(name, type)                                 \
+    typedef type *__guest_handle_##name
 #endif
 
 /*
@@ -46,34 +48,38 @@
  * XEN_GUEST_HANDLE_PARAM and XEN_GUEST_HANDLE are the same on X86 but
  * they might not be on other architectures.
  */
-#define __DEFINE_XEN_GUEST_HANDLE(name, type) \
-    ___DEFINE_XEN_GUEST_HANDLE(name, type);   \
+#define __DEFINE_XEN_GUEST_HANDLE(name, type)                                  \
+    ___DEFINE_XEN_GUEST_HANDLE(name, type);                                    \
     ___DEFINE_XEN_GUEST_HANDLE(const_##name, const type)
-#define DEFINE_XEN_GUEST_HANDLE(name)   __DEFINE_XEN_GUEST_HANDLE(name, name)
-#define __XEN_GUEST_HANDLE(name)        __guest_handle_ ## name
-#define XEN_GUEST_HANDLE(name)          __XEN_GUEST_HANDLE(name)
-#define XEN_GUEST_HANDLE_PARAM(name)    XEN_GUEST_HANDLE(name)
-#define set_xen_guest_handle_raw(hnd, val)  do { (hnd).p = val; } while (0)
+#define DEFINE_XEN_GUEST_HANDLE(name) __DEFINE_XEN_GUEST_HANDLE(name, name)
+#define __XEN_GUEST_HANDLE(name) __guest_handle_##name
+#define XEN_GUEST_HANDLE(name) __XEN_GUEST_HANDLE(name)
+#define XEN_GUEST_HANDLE_PARAM(name) XEN_GUEST_HANDLE(name)
+#define set_xen_guest_handle_raw(hnd, val)                                     \
+    do {                                                                       \
+        (hnd).p = val;                                                         \
+    } while (0)
 #define set_xen_guest_handle(hnd, val) set_xen_guest_handle_raw(hnd, val)
 
 #if defined(__i386__)
-# ifdef __XEN__
-__DeFiNe__ __DECL_REG_LO8(which) uint32_t e ## which ## x
-__DeFiNe__ __DECL_REG_LO16(name) union { uint32_t e ## name; }
-# endif
+#ifdef __XEN__
+__DeFiNe__ __DECL_REG_LO8(which)
+uint32_t e##which##x __DeFiNe__ __DECL_REG_LO16(name) union {
+    uint32_t e##name;
+}
+#endif
 #include "xen-x86_32.h"
-# ifdef __XEN__
-__UnDeF__ __DECL_REG_LO8
-__UnDeF__ __DECL_REG_LO16
-__DeFiNe__ __DECL_REG_LO8(which) e ## which ## x
-__DeFiNe__ __DECL_REG_LO16(name) e ## name
-# endif
+#ifdef __XEN__
+__UnDeF__
+    __DECL_REG_LO8 __UnDeF__ __DECL_REG_LO16 __DeFiNe__ __DECL_REG_LO8(which) e
+    ##which##x __DeFiNe__ __DECL_REG_LO16(name) e##name
+#endif
 #elif defined(__x86_64__)
 #include "xen-x86_64.h"
 #endif
 
 #ifndef __ASSEMBLY__
-typedef unsigned long xen_pfn_t;
+    typedef unsigned long xen_pfn_t;
 #define PRI_xen_pfn "lx"
 #define PRIu_xen_pfn "lu"
 #endif
@@ -98,8 +104,8 @@ typedef unsigned long xen_pfn_t;
  *
  * NB The LDT is set using the MMUEXT_SET_LDT op of HYPERVISOR_mmuext_op
  */
-#define FIRST_RESERVED_GDT_PAGE  14
-#define FIRST_RESERVED_GDT_BYTE  (FIRST_RESERVED_GDT_PAGE * 4096)
+#define FIRST_RESERVED_GDT_PAGE 14
+#define FIRST_RESERVED_GDT_BYTE (FIRST_RESERVED_GDT_PAGE * 4096)
 #define FIRST_RESERVED_GDT_ENTRY (FIRST_RESERVED_GDT_BYTE / 8)
 
 
@@ -144,14 +150,14 @@ typedef unsigned long xen_ulong_t;
  *  Level == 2: Kernel may enter
  *  Level == 3: Everyone may enter
  */
-#define TI_GET_DPL(_ti)      ((_ti)->flags & 3)
-#define TI_GET_IF(_ti)       ((_ti)->flags & 4)
-#define TI_SET_DPL(_ti,_dpl) ((_ti)->flags |= (_dpl))
-#define TI_SET_IF(_ti,_if)   ((_ti)->flags |= ((!!(_if))<<2))
+#define TI_GET_DPL(_ti) ((_ti)->flags & 3)
+#define TI_GET_IF(_ti) ((_ti)->flags & 4)
+#define TI_SET_DPL(_ti, _dpl) ((_ti)->flags |= (_dpl))
+#define TI_SET_IF(_ti, _if) ((_ti)->flags |= ((!!(_if)) << 2))
 struct trap_info {
-    uint8_t       vector;  /* exception vector                              */
-    uint8_t       flags;   /* 0-3: privilege level; 4: clear event enable?  */
-    uint16_t      cs;      /* code selector                                 */
+    uint8_t vector; /* exception vector                              */
+    uint8_t flags; /* 0-3: privilege level; 4: clear event enable?  */
+    uint16_t cs; /* code selector                                 */
     unsigned long address; /* code offset                                   */
 };
 typedef struct trap_info trap_info_t;
@@ -172,32 +178,34 @@ typedef uint64_t tsc_timestamp_t; /* RDTSC timestamp */
  */
 struct vcpu_guest_context {
     /* FPU registers come first so they can be aligned for FXSAVE/FXRSTOR. */
-    struct { char x[512]; } fpu_ctxt;       /* User-level FPU registers     */
-#define VGCF_I387_VALID                (1<<0)
-#define VGCF_IN_KERNEL                 (1<<2)
-#define _VGCF_i387_valid               0
-#define VGCF_i387_valid                (1<<_VGCF_i387_valid)
-#define _VGCF_in_kernel                2
-#define VGCF_in_kernel                 (1<<_VGCF_in_kernel)
+    struct {
+        char x[512];
+    } fpu_ctxt; /* User-level FPU registers     */
+#define VGCF_I387_VALID (1 << 0)
+#define VGCF_IN_KERNEL (1 << 2)
+#define _VGCF_i387_valid 0
+#define VGCF_i387_valid (1 << _VGCF_i387_valid)
+#define _VGCF_in_kernel 2
+#define VGCF_in_kernel (1 << _VGCF_in_kernel)
 #define _VGCF_failsafe_disables_events 3
-#define VGCF_failsafe_disables_events  (1<<_VGCF_failsafe_disables_events)
-#define _VGCF_syscall_disables_events  4
-#define VGCF_syscall_disables_events   (1<<_VGCF_syscall_disables_events)
-#define _VGCF_online                   5
-#define VGCF_online                    (1<<_VGCF_online)
-    unsigned long flags;                    /* VGCF_* flags                 */
-    struct cpu_user_regs user_regs;         /* User-level CPU registers     */
-    struct trap_info trap_ctxt[256];        /* Virtual IDT                  */
-    unsigned long ldt_base, ldt_ents;       /* LDT (linear address, # ents) */
+#define VGCF_failsafe_disables_events (1 << _VGCF_failsafe_disables_events)
+#define _VGCF_syscall_disables_events 4
+#define VGCF_syscall_disables_events (1 << _VGCF_syscall_disables_events)
+#define _VGCF_online 5
+#define VGCF_online (1 << _VGCF_online)
+    unsigned long flags; /* VGCF_* flags                 */
+    struct cpu_user_regs user_regs; /* User-level CPU registers     */
+    struct trap_info trap_ctxt[256]; /* Virtual IDT                  */
+    unsigned long ldt_base, ldt_ents; /* LDT (linear address, # ents) */
     unsigned long gdt_frames[16], gdt_ents; /* GDT (machine frames, # ents) */
-    unsigned long kernel_ss, kernel_sp;     /* Virtual TSS (only SS1/SP1)   */
+    unsigned long kernel_ss, kernel_sp; /* Virtual TSS (only SS1/SP1)   */
     /* NB. User pagetable on x86/64 is placed in ctrlreg[1]. */
-    unsigned long ctrlreg[8];               /* CR0-CR7 (control registers)  */
-    unsigned long debugreg[8];              /* DB0-DB7 (debug registers)    */
+    unsigned long ctrlreg[8]; /* CR0-CR7 (control registers)  */
+    unsigned long debugreg[8]; /* DB0-DB7 (debug registers)    */
 #ifdef __i386__
-    unsigned long event_callback_cs;        /* CS:EIP of event callback     */
+    unsigned long event_callback_cs; /* CS:EIP of event callback     */
     unsigned long event_callback_eip;
-    unsigned long failsafe_callback_cs;     /* CS:EIP of failsafe callback  */
+    unsigned long failsafe_callback_cs; /* CS:EIP of failsafe callback  */
     unsigned long failsafe_callback_eip;
 #else
     unsigned long event_callback_eip;
@@ -206,7 +214,7 @@ struct vcpu_guest_context {
     union {
         unsigned long syscall_callback_eip;
         struct {
-            unsigned int event_callback_cs;    /* compat CS of event cb     */
+            unsigned int event_callback_cs; /* compat CS of event cb     */
             unsigned int failsafe_callback_cs; /* compat CS of failsafe cb  */
         };
     };
@@ -214,12 +222,12 @@ struct vcpu_guest_context {
     unsigned long syscall_callback_eip;
 #endif
 #endif
-    unsigned long vm_assist;                /* VMASST_TYPE_* bitmap */
+    unsigned long vm_assist; /* VMASST_TYPE_* bitmap */
 #ifdef __x86_64__
     /* Segment base addresses. */
-    uint64_t      fs_base;
-    uint64_t      gs_base_kernel;
-    uint64_t      gs_base_user;
+    uint64_t fs_base;
+    uint64_t gs_base_kernel;
+    uint64_t gs_base_user;
 #endif
 };
 typedef struct vcpu_guest_context vcpu_guest_context_t;
@@ -238,7 +246,7 @@ struct arch_shared_info {
      * p2m tree. In this case the linear mapper p2m list anchored at p2m_vaddr
      * is to be used.
      */
-    xen_pfn_t     pfn_to_mfn_frame_list_list;
+    xen_pfn_t pfn_to_mfn_frame_list_list;
     unsigned long nmi_reason;
     /*
      * Following three fields are valid if p2m_cr3 contains a value different
@@ -258,9 +266,9 @@ struct arch_shared_info {
      * Modifying a p2m element in the linear p2m list is allowed via an atomic
      * write only.
      */
-    unsigned long p2m_cr3;         /* cr3 value of the p2m address space */
-    unsigned long p2m_vaddr;       /* virtual address of the p2m list */
-    unsigned long p2m_generation;  /* generation count of p2m mapping */
+    unsigned long p2m_cr3; /* cr3 value of the p2m address space */
+    unsigned long p2m_vaddr; /* virtual address of the p2m list */
+    unsigned long p2m_generation; /* generation count of p2m mapping */
 #ifdef __i386__
     /* There's no room for this field in the generic structure. */
     uint32_t wc_sec_hi;
@@ -274,44 +282,43 @@ typedef struct arch_shared_info arch_shared_info_t;
  * XEN_DOMCTL_INTERFACE_VERSION.
  */
 struct xen_arch_domainconfig {
-#define _XEN_X86_EMU_LAPIC          0
-#define XEN_X86_EMU_LAPIC           (1U<<_XEN_X86_EMU_LAPIC)
-#define _XEN_X86_EMU_HPET           1
-#define XEN_X86_EMU_HPET            (1U<<_XEN_X86_EMU_HPET)
-#define _XEN_X86_EMU_PM             2
-#define XEN_X86_EMU_PM              (1U<<_XEN_X86_EMU_PM)
-#define _XEN_X86_EMU_RTC            3
-#define XEN_X86_EMU_RTC             (1U<<_XEN_X86_EMU_RTC)
-#define _XEN_X86_EMU_IOAPIC         4
-#define XEN_X86_EMU_IOAPIC          (1U<<_XEN_X86_EMU_IOAPIC)
-#define _XEN_X86_EMU_PIC            5
-#define XEN_X86_EMU_PIC             (1U<<_XEN_X86_EMU_PIC)
-#define _XEN_X86_EMU_VGA            6
-#define XEN_X86_EMU_VGA             (1U<<_XEN_X86_EMU_VGA)
-#define _XEN_X86_EMU_IOMMU          7
-#define XEN_X86_EMU_IOMMU           (1U<<_XEN_X86_EMU_IOMMU)
-#define _XEN_X86_EMU_PIT            8
-#define XEN_X86_EMU_PIT             (1U<<_XEN_X86_EMU_PIT)
-#define _XEN_X86_EMU_USE_PIRQ       9
-#define XEN_X86_EMU_USE_PIRQ        (1U<<_XEN_X86_EMU_USE_PIRQ)
-#define _XEN_X86_EMU_VPCI           10
-#define XEN_X86_EMU_VPCI            (1U<<_XEN_X86_EMU_VPCI)
+#define _XEN_X86_EMU_LAPIC 0
+#define XEN_X86_EMU_LAPIC (1U << _XEN_X86_EMU_LAPIC)
+#define _XEN_X86_EMU_HPET 1
+#define XEN_X86_EMU_HPET (1U << _XEN_X86_EMU_HPET)
+#define _XEN_X86_EMU_PM 2
+#define XEN_X86_EMU_PM (1U << _XEN_X86_EMU_PM)
+#define _XEN_X86_EMU_RTC 3
+#define XEN_X86_EMU_RTC (1U << _XEN_X86_EMU_RTC)
+#define _XEN_X86_EMU_IOAPIC 4
+#define XEN_X86_EMU_IOAPIC (1U << _XEN_X86_EMU_IOAPIC)
+#define _XEN_X86_EMU_PIC 5
+#define XEN_X86_EMU_PIC (1U << _XEN_X86_EMU_PIC)
+#define _XEN_X86_EMU_VGA 6
+#define XEN_X86_EMU_VGA (1U << _XEN_X86_EMU_VGA)
+#define _XEN_X86_EMU_IOMMU 7
+#define XEN_X86_EMU_IOMMU (1U << _XEN_X86_EMU_IOMMU)
+#define _XEN_X86_EMU_PIT 8
+#define XEN_X86_EMU_PIT (1U << _XEN_X86_EMU_PIT)
+#define _XEN_X86_EMU_USE_PIRQ 9
+#define XEN_X86_EMU_USE_PIRQ (1U << _XEN_X86_EMU_USE_PIRQ)
+#define _XEN_X86_EMU_VPCI 10
+#define XEN_X86_EMU_VPCI (1U << _XEN_X86_EMU_VPCI)
 
-#define XEN_X86_EMU_ALL             (XEN_X86_EMU_LAPIC | XEN_X86_EMU_HPET |  \
-                                     XEN_X86_EMU_PM | XEN_X86_EMU_RTC |      \
-                                     XEN_X86_EMU_IOAPIC | XEN_X86_EMU_PIC |  \
-                                     XEN_X86_EMU_VGA | XEN_X86_EMU_IOMMU |   \
-                                     XEN_X86_EMU_PIT | XEN_X86_EMU_USE_PIRQ |\
-                                     XEN_X86_EMU_VPCI)
+#define XEN_X86_EMU_ALL                                                        \
+    (XEN_X86_EMU_LAPIC | XEN_X86_EMU_HPET | XEN_X86_EMU_PM | XEN_X86_EMU_RTC | \
+     XEN_X86_EMU_IOAPIC | XEN_X86_EMU_PIC | XEN_X86_EMU_VGA |                  \
+     XEN_X86_EMU_IOMMU | XEN_X86_EMU_PIT | XEN_X86_EMU_USE_PIRQ |              \
+     XEN_X86_EMU_VPCI)
     uint32_t emulation_flags;
 };
 
 /* Location of online VCPU bitmap. */
-#define XEN_ACPI_CPU_MAP             0xaf00
-#define XEN_ACPI_CPU_MAP_LEN         ((HVM_MAX_VCPUS + 7) / 8)
+#define XEN_ACPI_CPU_MAP 0xaf00
+#define XEN_ACPI_CPU_MAP_LEN ((HVM_MAX_VCPUS + 7) / 8)
 
 /* GPE0 bit set during CPU hotplug */
-#define XEN_ACPI_GPE0_CPUHP_BIT      2
+#define XEN_ACPI_GPE0_CPUHP_BIT 2
 #endif
 
 /*
@@ -357,11 +364,11 @@ DEFINE_XEN_GUEST_HANDLE(xen_msr_entry_t);
  * Currently only CPUID.
  */
 #ifdef __ASSEMBLY__
-#define XEN_EMULATE_PREFIX .byte 0x0f,0x0b,0x78,0x65,0x6e ;
-#define XEN_CPUID          XEN_EMULATE_PREFIX cpuid
+#define XEN_EMULATE_PREFIX .byte 0x0f, 0x0b, 0x78, 0x65, 0x6e;
+#define XEN_CPUID XEN_EMULATE_PREFIX cpuid
 #else
 #define XEN_EMULATE_PREFIX ".byte 0x0f,0x0b,0x78,0x65,0x6e ; "
-#define XEN_CPUID          XEN_EMULATE_PREFIX "cpuid"
+#define XEN_CPUID XEN_EMULATE_PREFIX "cpuid"
 #endif
 
 /*

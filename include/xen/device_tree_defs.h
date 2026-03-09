@@ -24,18 +24,17 @@
  * DT_IRQ_TYPE_SENSE_MASK      - Mask for all the above bits
  * DT_IRQ_TYPE_INVALID         - Use to initialize the type
  */
-#define DT_IRQ_TYPE_NONE           0x00000000
-#define DT_IRQ_TYPE_EDGE_RISING    0x00000001
-#define DT_IRQ_TYPE_EDGE_FALLING   0x00000002
-#define DT_IRQ_TYPE_EDGE_BOTH                           \
+#define DT_IRQ_TYPE_NONE 0x00000000
+#define DT_IRQ_TYPE_EDGE_RISING 0x00000001
+#define DT_IRQ_TYPE_EDGE_FALLING 0x00000002
+#define DT_IRQ_TYPE_EDGE_BOTH                                                  \
     (DT_IRQ_TYPE_EDGE_FALLING | DT_IRQ_TYPE_EDGE_RISING)
-#define DT_IRQ_TYPE_LEVEL_HIGH     0x00000004
-#define DT_IRQ_TYPE_LEVEL_LOW      0x00000008
-#define DT_IRQ_TYPE_LEVEL_MASK                          \
-    (DT_IRQ_TYPE_LEVEL_LOW | DT_IRQ_TYPE_LEVEL_HIGH)
-#define DT_IRQ_TYPE_SENSE_MASK     0x0000000f
+#define DT_IRQ_TYPE_LEVEL_HIGH 0x00000004
+#define DT_IRQ_TYPE_LEVEL_LOW 0x00000008
+#define DT_IRQ_TYPE_LEVEL_MASK (DT_IRQ_TYPE_LEVEL_LOW | DT_IRQ_TYPE_LEVEL_HIGH)
+#define DT_IRQ_TYPE_SENSE_MASK 0x0000000f
 
-#define DT_IRQ_TYPE_INVALID        0x00000010
+#define DT_IRQ_TYPE_INVALID 0x00000010
 
 #endif
 

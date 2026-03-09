@@ -81,7 +81,7 @@
  */
 
 #define KEXEC_TYPE_DEFAULT 0
-#define KEXEC_TYPE_CRASH   1
+#define KEXEC_TYPE_CRASH 1
 
 
 /* The kexec implementation for Xen allows the user to load two
@@ -120,7 +120,7 @@ typedef struct xen_kexec_image {
  *   mappings.  The location of any page tables is undefined and these
  *   page table frames are not be mapped.
  */
-#define KEXEC_CMD_kexec                 0
+#define KEXEC_CMD_kexec 0
 typedef struct xen_kexec_exec {
     int type;
 } xen_kexec_exec_t;
@@ -130,26 +130,31 @@ typedef struct xen_kexec_exec {
  * type  == KEXEC_TYPE_DEFAULT or KEXEC_TYPE_CRASH [in]
  * image == relocation information for kexec (ignored for unload) [in]
  */
-#define KEXEC_CMD_kexec_load_v1         1 /* obsolete since 0x00040400 */
-#define KEXEC_CMD_kexec_unload_v1       2 /* obsolete since 0x00040400 */
+#define KEXEC_CMD_kexec_load_v1 1 /* obsolete since 0x00040400 */
+#define KEXEC_CMD_kexec_unload_v1 2 /* obsolete since 0x00040400 */
 typedef struct xen_kexec_load_v1 {
     int type;
     xen_kexec_image_t image;
 } xen_kexec_load_v1_t;
 
-#define KEXEC_RANGE_MA_CRASH      0 /* machine address and size of crash area */
-#define KEXEC_RANGE_MA_XEN        1 /* machine address and size of Xen itself */
-#define KEXEC_RANGE_MA_CPU        2 /* machine address and size of a CPU note */
-#define KEXEC_RANGE_MA_XENHEAP    3 /* machine address and size of xenheap
-                                     * Note that although this is adjacent
-                                     * to Xen it exists in a separate EFI
-                                     * region on ia64, and thus needs to be
-                                     * inserted into iomem_machine separately */
-#define KEXEC_RANGE_MA_BOOT_PARAM 4 /* Obsolete: machine address and size of
-                                     * the ia64_boot_param */
-#define KEXEC_RANGE_MA_EFI_MEMMAP 5 /* machine address and size of
-                                     * of the EFI Memory Map */
-#define KEXEC_RANGE_MA_VMCOREINFO 6 /* machine address and size of vmcoreinfo */
+#define KEXEC_RANGE_MA_CRASH 0 /* machine address and size of crash area */
+#define KEXEC_RANGE_MA_XEN 1 /* machine address and size of Xen itself */
+#define KEXEC_RANGE_MA_CPU 2 /* machine address and size of a CPU note */
+#define KEXEC_RANGE_MA_XENHEAP                                                 \
+    3 /* machine address and size of xenheap                                   \
+       * Note that although this is adjacent                                   \
+       * to Xen it exists in a separate EFI                                    \
+       * region on ia64, and thus needs to be                                  \
+       * inserted into iomem_machine separately */
+#define KEXEC_RANGE_MA_BOOT_PARAM                                              \
+    4 /* Obsolete: machine address and size of                                 \
+       * the ia64_boot_param */
+#define KEXEC_RANGE_MA_EFI_MEMMAP                                              \
+    5 /* machine address and size of                                           \
+       * of the EFI Memory Map */
+#define KEXEC_RANGE_MA_VMCOREINFO                                              \
+    6 /* machine address and size of vmcoreinfo                                \
+       */
 
 /*
  * Find the address and size of certain memory areas
@@ -158,7 +163,7 @@ typedef struct xen_kexec_load_v1 {
  * size  == number of bytes reserved in window [out]
  * start == address of the first byte in the window [out]
  */
-#define KEXEC_CMD_kexec_get_range       3
+#define KEXEC_CMD_kexec_get_range 3
 typedef struct xen_kexec_range {
     int range;
     int nr;
@@ -204,9 +209,9 @@ DEFINE_XEN_GUEST_HANDLE(xen_kexec_segment_t);
 
 #define KEXEC_CMD_kexec_load 4
 typedef struct xen_kexec_load {
-    uint8_t  type;        /* One of KEXEC_TYPE_* */
-    uint8_t  _pad;
-    uint16_t arch;        /* ELF machine type (EM_*). */
+    uint8_t type; /* One of KEXEC_TYPE_* */
+    uint8_t _pad;
+    uint16_t arch; /* ELF machine type (EM_*). */
     uint32_t nr_segments;
     union {
         XEN_GUEST_HANDLE(xen_kexec_segment_t) h;

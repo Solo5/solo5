@@ -49,8 +49,8 @@ int mft_validate(const struct mft *mft, size_t mft_size)
      * If you are debugging this and it does not match up, the most likely
      * cause is an internal structure alignment issue (see mft_abi.h).
      */
-    if (mft_size != (sizeof(struct mft) +
-                (mft->entries * sizeof(struct mft_entry))))
+    if (mft_size !=
+        (sizeof(struct mft) + (mft->entries * sizeof(struct mft_entry))))
         return -1;
     /*
      * The manifest must contain at least one entry, and the first entry must
@@ -77,14 +77,14 @@ int mft_validate(const struct mft *mft, size_t mft_size)
          * uninitialised).
          */
         if (mft->e[i].attached != false)
-           return -1;
+            return -1;
     }
 
     return 0;
 }
 
 void mft_get_builtin_mft1_unconst(const struct mft1_note *note,
-        struct mft **out_mft, size_t *out_mft_size)
+                                  struct mft **out_mft, size_t *out_mft_size)
 {
     /*
      * Get the built-in manifest out of the ELF NOTE. Note that the size must
@@ -95,11 +95,11 @@ void mft_get_builtin_mft1_unconst(const struct mft1_note *note,
     *out_mft = (struct mft *)&note->m;
 #pragma GCC diagnostic pop
     *out_mft_size = note->h.n_descsz -
-        (offsetof(struct mft1_note, m) - sizeof (struct mft1_nhdr));
+                    (offsetof(struct mft1_note, m) - sizeof(struct mft1_nhdr));
 }
 
 void mft_get_builtin_mft1(const struct mft1_note *note,
-        const struct mft **out_mft, size_t *out_mft_size)
+                          const struct mft **out_mft, size_t *out_mft_size)
 {
     /*
      * Get the built-in manifest out of the ELF NOTE. Note that the size must
@@ -107,15 +107,15 @@ void mft_get_builtin_mft1(const struct mft1_note *note,
      */
     *out_mft = &note->m;
     *out_mft_size = note->h.n_descsz -
-        (offsetof(struct mft1_note, m) - sizeof (struct mft1_nhdr));
+                    (offsetof(struct mft1_note, m) - sizeof(struct mft1_nhdr));
 }
 
 struct mft_entry *_mft_get_by_name(const struct mft *mft, const char *name,
-        mft_type_t type, unsigned *index)
+                                   mft_type_t type, unsigned *index)
 {
     for (unsigned i = 0; i != mft->entries; i++) {
-        if (mft->e[i].type == type
-                && strncmp(mft->e[i].name, name, MFT_NAME_SIZE) == 0) {
+        if (mft->e[i].type == type &&
+            strncmp(mft->e[i].name, name, MFT_NAME_SIZE) == 0) {
             if (index != NULL)
                 *index = i;
 #pragma GCC diagnostic push
@@ -128,7 +128,7 @@ struct mft_entry *_mft_get_by_name(const struct mft *mft, const char *name,
 }
 
 struct mft_entry *_mft_get_by_index(const struct mft *mft, unsigned index,
-        mft_type_t type)
+                                    mft_type_t type)
 {
     if (index >= mft->entries)
         return NULL;
@@ -143,17 +143,17 @@ struct mft_entry *_mft_get_by_index(const struct mft *mft, unsigned index,
 
 const char *mft_type_to_string(mft_type_t type)
 {
-    switch(type) {
-        case MFT_DEV_BLOCK_BASIC:
-            return "BLOCK_BASIC";
-        case MFT_DEV_NET_BASIC:
-            return "NET_BASIC";
-        case MFT_RESERVED_FIRST:
-            return "RESERVED_FIRST";
-        default:
-            /* This is used only to pretty print the content of the manifest so
-               a generic error is probably good enough, if only partially
-               informative */
-            return "<undefined type>";
+    switch (type) {
+    case MFT_DEV_BLOCK_BASIC:
+        return "BLOCK_BASIC";
+    case MFT_DEV_NET_BASIC:
+        return "NET_BASIC";
+    case MFT_RESERVED_FIRST:
+        return "RESERVED_FIRST";
+    default:
+        /* This is used only to pretty print the content of the manifest so
+           a generic error is probably good enough, if only partially
+           informative */
+        return "<undefined type>";
     }
 }

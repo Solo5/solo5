@@ -23,7 +23,7 @@
  *
  * This header file includes (supersedes) the common bindings.h for the Xen
  * implementation.
-*/
+ */
 
 #ifndef __XEN_BINDINGS_H__
 #define __XEN_BINDINGS_H__
@@ -47,7 +47,7 @@ uint64_t pvclock_epochoffset(void);
 void time_init(void);
 
 /* evtchn.c: Xen event channel interface */
-typedef void(*evtchn_handler_fn_t)(evtchn_port_t, void *);
+typedef void (*evtchn_handler_fn_t)(evtchn_port_t, void *);
 
 void evtchn_init(void);
 void evtchn_register_handler(evtchn_port_t, evtchn_handler_fn_t, void *);

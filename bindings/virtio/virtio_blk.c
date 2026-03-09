@@ -22,21 +22,21 @@
 #include "virtio_ring.h"
 #include "virtio_pci.h"
 
-#define VIRTIO_BLK_ID_BYTES       20
-#define VIRTIO_BLK_T_IN           0 /* read */
-#define VIRTIO_BLK_T_OUT          1 /* write */
-#define VIRTIO_BLK_T_SCSI_CMD     2
+#define VIRTIO_BLK_ID_BYTES 20
+#define VIRTIO_BLK_T_IN 0 /* read */
+#define VIRTIO_BLK_T_OUT 1 /* write */
+#define VIRTIO_BLK_T_SCSI_CMD 2
 #define VIRTIO_BLK_T_SCSI_CMD_OUT 3
-#define VIRTIO_BLK_T_FLUSH        4
-#define VIRTIO_BLK_T_FLUSH_OUT    5
-#define VIRTIO_BLK_T_GET_ID       8
-#define VIRTIO_BLK_T_BARRIER      0x80000000
+#define VIRTIO_BLK_T_FLUSH 4
+#define VIRTIO_BLK_T_FLUSH_OUT 5
+#define VIRTIO_BLK_T_GET_ID 8
+#define VIRTIO_BLK_T_BARRIER 0x80000000
 
-#define VIRTIO_BLK_S_OK     0
-#define VIRTIO_BLK_S_IOERR  1
+#define VIRTIO_BLK_S_OK 0
+#define VIRTIO_BLK_S_IOERR 1
 #define VIRTIO_BLK_S_UNSUPP 2
 
-#define VIRTIO_BLK_SECTOR_SIZE    512
+#define VIRTIO_BLK_SECTOR_SIZE 512
 
 struct virtio_blk_hdr {
     uint32_t type;
@@ -44,7 +44,7 @@ struct virtio_blk_hdr {
     uint64_t sector;
 };
 
-#define VIRTQ_BLK  0
+#define VIRTQ_BLK 0
 struct virtio_blk_desc {
     uint16_t pci_base; /* base in PCI config space */
     struct virtq blkq;
@@ -52,17 +52,15 @@ struct virtio_blk_desc {
     uint16_t sector_size;
 };
 
-#define VIRTIO_BLK_MAX_ENTRIES  MFT_MAX_ENTRIES
+#define VIRTIO_BLK_MAX_ENTRIES MFT_MAX_ENTRIES
 static struct virtio_blk_desc bd_table[VIRTIO_BLK_MAX_ENTRIES];
 static unsigned bd_num_entries = 0;
 
 extern struct mft *virtio_manifest;
 
 /* Returns the index to the head of the buffers chain. */
-static uint16_t virtio_blk_op(struct virtio_blk_desc *bd,
-                              uint32_t type,
-                              uint64_t sector,
-                              void *data, size_t len)
+static uint16_t virtio_blk_op(struct virtio_blk_desc *bd, uint32_t type,
+                              uint64_t sector, void *data, size_t len)
 {
     uint16_t mask = bd->blkq.num - 1;
     struct virtio_blk_hdr hdr;
@@ -112,10 +110,8 @@ static uint16_t virtio_blk_op(struct virtio_blk_desc *bd,
  * time.  That is true as long as we use only synchronous IO calls, and if
  * there is just a sync call at a time (which is true for solo5).
  */
-static int virtio_blk_op_sync(struct virtio_blk_desc *bd,
-                              uint32_t type,
-                              uint64_t sector,
-                              void *data, size_t len)
+static int virtio_blk_op_sync(struct virtio_blk_desc *bd, uint32_t type,
+                              uint64_t sector, void *data, size_t len)
 {
     uint16_t mask = bd->blkq.num - 1;
     uint16_t head;
@@ -154,7 +150,7 @@ static int virtio_blk_op_sync(struct virtio_blk_desc *bd,
 }
 
 static void virtio_blk_config(struct virtio_blk_desc *bd,
-                                struct pci_config_info *pci)
+                              struct pci_config_info *pci)
 {
     uint8_t ready_for_init = VIRTIO_PCI_STATUS_ACK | VIRTIO_PCI_STATUS_DRIVER;
     uint32_t host_features, guest_features;
@@ -172,14 +168,14 @@ static void virtio_blk_config(struct virtio_blk_desc *bd,
 
     bd->sector_size = VIRTIO_BLK_SECTOR_SIZE;
     bd->sectors = inq(pci->base + VIRTIO_PCI_CONFIG_OFF);
-    log(INFO, "Solo5: PCI:%02x:%02x: configured, capacity=%llu sectors, "
+    log(INFO,
+        "Solo5: PCI:%02x:%02x: configured, capacity=%llu sectors, "
         "features=0x%x\n",
-        pci->bus, pci->dev, (unsigned long long)bd->sectors,
-        host_features);
+        pci->bus, pci->dev, (unsigned long long)bd->sectors, host_features);
 
     virtq_init_rings(pci->base, &bd->blkq, 0);
 
-    pgs = (((bd->blkq.num * sizeof (struct io_buffer)) - 1) >> PAGE_SHIFT) + 1;
+    pgs = (((bd->blkq.num * sizeof(struct io_buffer)) - 1) >> PAGE_SHIFT) + 1;
     bd->blkq.bufs = mem_ialloc_pages(pgs);
     assert(bd->blkq.bufs);
     memset(bd->blkq.bufs, 0, pgs << PAGE_SHIFT);
@@ -202,21 +198,23 @@ static void virtio_blk_config(struct virtio_blk_desc *bd,
     outb(pci->base + VIRTIO_PCI_STATUS, VIRTIO_PCI_STATUS_DRIVER_OK);
 }
 
-int virtio_config_block(struct pci_config_info *pci,solo5_handle_t mft_index)
+int virtio_config_block(struct pci_config_info *pci, solo5_handle_t mft_index)
 {
     unsigned bd_index = bd_num_entries;
 
     if (bd_index >= VIRTIO_BLK_MAX_ENTRIES) {
-        log(WARN, "Solo5: Virtio blk: PCI:%02x:%02x not configured: "
-            "too many devices.\n", pci->bus, pci->dev);
+        log(WARN,
+            "Solo5: Virtio blk: PCI:%02x:%02x not configured: "
+            "too many devices.\n",
+            pci->bus, pci->dev);
         return -1;
     }
 
-    struct mft_entry *e = mft_get_by_index(virtio_manifest, mft_index,
-            MFT_DEV_BLOCK_BASIC);
+    struct mft_entry *e =
+        mft_get_by_index(virtio_manifest, mft_index, MFT_DEV_BLOCK_BASIC);
     if (e == NULL) {
         log(WARN, "Solo5: Virtio blk: PCI:%02x:%02x not in manifest\n",
-             pci->bus, pci->dev);
+            pci->bus, pci->dev);
         return -1;
     }
 
@@ -233,11 +231,11 @@ int virtio_config_block(struct pci_config_info *pci,solo5_handle_t mft_index)
 }
 
 solo5_result_t solo5_block_acquire(const char *name, solo5_handle_t *h,
-        struct solo5_block_info *info)
+                                   struct solo5_block_info *info)
 {
     unsigned mft_index;
-    struct mft_entry *e = mft_get_by_name(virtio_manifest, name,
-        MFT_DEV_BLOCK_BASIC, &mft_index);
+    struct mft_entry *e =
+        mft_get_by_name(virtio_manifest, name, MFT_DEV_BLOCK_BASIC, &mft_index);
     if (e == NULL)
         return SOLO5_R_EINVAL;
     assert(e->attached);
@@ -251,9 +249,10 @@ solo5_result_t solo5_block_acquire(const char *name, solo5_handle_t *h,
 }
 
 solo5_result_t solo5_block_write(solo5_handle_t h, solo5_off_t offset,
-        const uint8_t *buf, size_t size)
+                                 const uint8_t *buf, size_t size)
 {
-    struct mft_entry *e = mft_get_by_index(virtio_manifest, h, MFT_DEV_BLOCK_BASIC);
+    struct mft_entry *e =
+        mft_get_by_index(virtio_manifest, h, MFT_DEV_BLOCK_BASIC);
     if (e == NULL)
         return SOLO5_R_EINVAL;
     assert(e->attached);
@@ -279,16 +278,17 @@ solo5_result_t solo5_block_write(solo5_handle_t h, solo5_off_t offset,
      */
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wcast-qual"
-    int rv = virtio_blk_op_sync(bd, VIRTIO_BLK_T_OUT, sector,
-        (uint8_t *)buf, size);
+    int rv =
+        virtio_blk_op_sync(bd, VIRTIO_BLK_T_OUT, sector, (uint8_t *)buf, size);
 #pragma GCC diagnostic pop
     return (rv == 0) ? SOLO5_R_OK : SOLO5_R_EUNSPEC;
 }
 
 solo5_result_t solo5_block_read(solo5_handle_t h, solo5_off_t offset,
-        uint8_t *buf, size_t size)
+                                uint8_t *buf, size_t size)
 {
-    struct mft_entry *e = mft_get_by_index(virtio_manifest, h, MFT_DEV_BLOCK_BASIC);
+    struct mft_entry *e =
+        mft_get_by_index(virtio_manifest, h, MFT_DEV_BLOCK_BASIC);
     if (e == NULL)
         return SOLO5_R_EINVAL;
     assert(e->attached);

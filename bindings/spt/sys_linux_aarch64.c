@@ -46,12 +46,10 @@ long sys_read(long fd, void *buf, long size)
     register long x1 __asm__("x1") = (long)buf;
     register long x2 __asm__("x2") = size;
 
-    __asm__ __volatile__ (
-            "svc 0"
-            : "=r" (x0)
-            : "r" (x8), "r" (x0), "r" (x1), "r" (x2)
-            : "memory", "cc"
-    );
+    __asm__ __volatile__("svc 0"
+                         : "=r"(x0)
+                         : "r"(x8), "r"(x0), "r"(x1), "r"(x2)
+                         : "memory", "cc");
 
     return x0;
 }
@@ -63,12 +61,10 @@ long sys_write(long fd, const void *buf, long size)
     register long x1 __asm__("x1") = (long)buf;
     register long x2 __asm__("x2") = size;
 
-    __asm__ __volatile__ (
-            "svc 0"
-            : "=r" (x0)
-            : "r" (x8), "r" (x0), "r" (x1), "r" (x2)
-            : "memory", "cc"
-    );
+    __asm__ __volatile__("svc 0"
+                         : "=r"(x0)
+                         : "r"(x8), "r"(x0), "r"(x1), "r"(x2)
+                         : "memory", "cc");
 
     return x0;
 }
@@ -81,12 +77,10 @@ long sys_pread64(long fd, void *buf, long size, long pos)
     register long x2 __asm__("x2") = size;
     register long x3 __asm__("x3") = pos;
 
-    __asm__ __volatile__ (
-            "svc 0"
-            : "=r" (x0)
-            : "r" (x8), "r" (x0), "r" (x1), "r" (x2), "r" (x3)
-            : "memory", "cc"
-    );
+    __asm__ __volatile__("svc 0"
+                         : "=r"(x0)
+                         : "r"(x8), "r"(x0), "r"(x1), "r"(x2), "r"(x3)
+                         : "memory", "cc");
 
     return x0;
 }
@@ -99,12 +93,10 @@ long sys_pwrite64(long fd, const void *buf, long size, long pos)
     register long x2 __asm__("x2") = size;
     register long x3 __asm__("x3") = pos;
 
-    __asm__ __volatile__ (
-            "svc 0"
-            : "=r" (x0)
-            : "r" (x8), "r" (x0), "r" (x1), "r" (x2), "r" (x3)
-            : "memory", "cc"
-    );
+    __asm__ __volatile__("svc 0"
+                         : "=r"(x0)
+                         : "r"(x8), "r"(x0), "r"(x1), "r"(x2), "r"(x3)
+                         : "memory", "cc");
 
     return x0;
 }
@@ -114,14 +106,13 @@ void sys_exit_group(long status)
     register long x8 __asm__("x8") = SYS_exit_group;
     register long x0 __asm__("x0") = status;
 
-    __asm__ __volatile__ (
-            "svc 0"
-            : "=r" (x0)
-            : "r" (x8), "r" (x0)
-            : "memory", "cc"
-    );
+    __asm__ __volatile__("svc 0"
+                         : "=r"(x0)
+                         : "r"(x8), "r"(x0)
+                         : "memory", "cc");
 
-    for(;;);
+    for (;;)
+        ;
 }
 
 long sys_clock_gettime(const long which, void *ts)
@@ -130,18 +121,16 @@ long sys_clock_gettime(const long which, void *ts)
     register long x0 __asm__("x0") = which;
     register long x1 __asm__("x1") = (long)ts;
 
-    __asm__ __volatile__ (
-            "svc 0"
-            : "=r" (x0)
-            : "r" (x8), "r" (x0), "r" (x1)
-            : "memory", "cc"
-    );
+    __asm__ __volatile__("svc 0"
+                         : "=r"(x0)
+                         : "r"(x8), "r"(x0), "r"(x1)
+                         : "memory", "cc");
 
     return x0;
 }
 
 long sys_epoll_pwait(long epfd, void *events, long maxevents, long timeout,
-        void *sigmask, long sigsetsize)
+                     void *sigmask, long sigsetsize)
 {
     register long x8 __asm__("x8") = SYS_epoll_pwait;
     register long x0 __asm__("x0") = epfd;
@@ -151,13 +140,11 @@ long sys_epoll_pwait(long epfd, void *events, long maxevents, long timeout,
     register long x4 __asm__("x4") = (long)sigmask;
     register long x5 __asm__("x5") = sigsetsize;
 
-    __asm__ __volatile__ (
-            "svc 0"
-            : "=r" (x0)
-            : "r" (x8), "r" (x0), "r" (x1), "r" (x2), "r" (x3), "r" (x4),
-              "r" (x5)
-            : "memory", "cc"
-    );
+    __asm__ __volatile__("svc 0"
+                         : "=r"(x0)
+                         : "r"(x8), "r"(x0), "r"(x1), "r"(x2), "r"(x3), "r"(x4),
+                           "r"(x5)
+                         : "memory", "cc");
 
     return x0;
 }
@@ -170,12 +157,10 @@ long sys_timerfd_settime(long fd, long flags, const void *utmr, void *otmr)
     register long x2 __asm__("x2") = (long)utmr;
     register long x3 __asm__("x3") = (long)otmr;
 
-    __asm__ __volatile__ (
-            "svc 0"
-            : "=r" (x0)
-            : "r" (x8), "r" (x0), "r" (x1), "r" (x2), "r" (x3)
-            : "memory", "cc"
-    );
+    __asm__ __volatile__("svc 0"
+                         : "=r"(x0)
+                         : "r"(x8), "r"(x0), "r"(x1), "r"(x2), "r"(x3)
+                         : "memory", "cc");
 
     return x0;
 }

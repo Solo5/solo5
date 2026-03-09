@@ -45,21 +45,20 @@
 #include "hvt_freebsd.h"
 #include "hvt_cpu_x86_64.h"
 
-void hvt_mem_size(size_t *mem_size) {
+void hvt_mem_size(size_t *mem_size)
+{
     hvt_x86_mem_size(mem_size);
 }
 
 static void vmm_set_desc(int vmfd, int reg, uint64_t base, uint32_t limit,
-        uint32_t access)
+                         uint32_t access)
 {
     int ret;
-    struct vm_seg_desc vmsegdesc = {
-        .cpuid = 0,
-        .regnum = reg,
-        .desc.base = base,
-        .desc.limit = limit,
-        .desc.access = access
-    };
+    struct vm_seg_desc vmsegdesc = {.cpuid = 0,
+                                    .regnum = reg,
+                                    .desc.base = base,
+                                    .desc.limit = limit,
+                                    .desc.access = access};
 
     ret = ioctl(vmfd, VM_SET_SEGMENT_DESCRIPTOR, &vmsegdesc);
     if (ret == -1)
@@ -68,9 +67,7 @@ static void vmm_set_desc(int vmfd, int reg, uint64_t base, uint32_t limit,
 
 static void vmm_set_reg(int vmfd, int reg, uint64_t val)
 {
-    struct vm_register vmreg = {
-        .cpuid = 0, .regnum = reg, .regval = val
-    };
+    struct vm_register vmreg = {.cpuid = 0, .regnum = reg, .regval = val};
 
     if (ioctl(vmfd, VM_SET_REGISTER, &vmreg) == -1)
         err(1, "VM_SET_REGISTER (%d)", reg);
@@ -80,14 +77,10 @@ static void vmm_set_sreg(int vmfd, int reg, const struct x86_sreg *sreg)
 {
     uint64_t base = sreg->base;
     uint32_t limit = sreg->limit;
-    uint32_t access = (sreg->type
-            | (sreg->s << 4)
-            | (sreg->dpl << 5)
-            | (sreg->p << 7)
-            | (sreg->l << 13)
-            | (sreg->db << 14)
-            | (sreg->g << 15)
-            | (sreg->unusable << X86_SREG_UNUSABLE_BIT));
+    uint32_t access =
+        (sreg->type | (sreg->s << 4) | (sreg->dpl << 5) | (sreg->p << 7) |
+         (sreg->l << 13) | (sreg->db << 14) | (sreg->g << 15) |
+         (sreg->unusable << X86_SREG_UNUSABLE_BIT));
 
     vmm_set_desc(vmfd, reg, base, limit, access);
     vmm_set_reg(vmfd, reg, sreg->selector * 8);
@@ -118,14 +111,14 @@ void hvt_vcpu_init(struct hvt *hvt, hvt_gpa_t gpa_ep)
 
     uint64_t cpu_cycle_freq;
     size_t outsz = sizeof cpu_cycle_freq;
-    int ret = sysctlbyname("machdep.tsc_freq", &cpu_cycle_freq, &outsz, NULL,
-            0);
+    int ret =
+        sysctlbyname("machdep.tsc_freq", &cpu_cycle_freq, &outsz, NULL, 0);
     if (ret == -1)
         err(1, "sysctl(machdep.tsc_freq)");
     int invariant_tsc = 0;
     outsz = sizeof invariant_tsc;
     ret = sysctlbyname("kern.timecounter.invariant_tsc", &invariant_tsc, &outsz,
-            NULL, 0);
+                       NULL, 0);
     if (ret == -1)
         err(1, "sysctl(kern.timecounter.invariant_tsc");
     if (invariant_tsc != 1)
@@ -137,9 +130,7 @@ void hvt_vcpu_init(struct hvt *hvt, hvt_gpa_t gpa_ep)
     vmm_set_reg(hvb->vmfd, VM_REG_GUEST_RSP, hvt->mem_size - 8);
     vmm_set_reg(hvb->vmfd, VM_REG_GUEST_RDI, X86_BOOT_INFO_BASE);
 
-    struct vm_activate_cpu ac = {
-        .vcpuid = 0
-    };
+    struct vm_activate_cpu ac = {.vcpuid = 0};
     ret = ioctl(hvb->vmfd, VM_ACTIVATE_CPU, &ac);
     if (ret == -1)
         err(1, "VM_ACTIVATE_CPU");
@@ -192,11 +183,12 @@ int hvt_vcpu_loop(struct hvt *hvt)
         case VM_EXITCODE_INOUT: {
             if (vme->u.inout.in || vme->u.inout.bytes != 4)
                 errx(1, "Invalid guest port access: port=0x%x",
-                        vme->u.inout.port);
+                     vme->u.inout.port);
             if (vme->u.inout.port < HVT_HYPERCALL_PIO_BASE ||
-                    vme->u.inout.port >= (HVT_HYPERCALL_PIO_BASE + HVT_HYPERCALL_MAX))
+                vme->u.inout.port >=
+                    (HVT_HYPERCALL_PIO_BASE + HVT_HYPERCALL_MAX))
                 errx(1, "Invalid guest port access: port=0x%x",
-                        vme->u.inout.port);
+                     vme->u.inout.port);
 
             int nr = vme->u.inout.port - HVT_HYPERCALL_PIO_BASE;
 
@@ -220,8 +212,8 @@ int hvt_vcpu_loop(struct hvt *hvt)
              * XXX: I've no idea what this actually means, so just do what
              * bhyve does.
              */
-             assert(vme->inst_length == 0);
-             break;
+            assert(vme->inst_length == 0);
+            break;
         }
 
         case VM_EXITCODE_VMX: {
@@ -231,7 +223,7 @@ int hvt_vcpu_loop(struct hvt *hvt)
 
         default: {
             errx(1, "unhandled exit: exitcode=%d, rip=0x%" PRIx64,
-                    vme->exitcode, vme->rip);
+                 vme->exitcode, vme->rip);
         }
         } /* switch(vme->exitcode) */
     }

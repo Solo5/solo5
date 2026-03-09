@@ -88,8 +88,8 @@ struct solo5_nhdr {
 };
 
 _Static_assert((sizeof(struct solo5_nhdr)) ==
-        (sizeof(uint32_t) + sizeof(uint32_t) + sizeof(uint32_t) + 8),
-        "struct solo5_nhdr alignment issue");
+                   (sizeof(uint32_t) + sizeof(uint32_t) + sizeof(uint32_t) + 8),
+               "struct solo5_nhdr alignment issue");
 
 static ssize_t pread_in_full(int fd, void *buf, size_t count, off_t offset)
 {
@@ -130,23 +130,23 @@ static bool ehdr_is_valid(const Elf64_Ehdr *hdr)
      * checked as compilers do not provide a way to override this without
      * building the entire toolchain from scratch.
      */
-    if (!(hdr->e_ident[EI_MAG0] == ELFMAG0
-            && hdr->e_ident[EI_MAG1] == ELFMAG1
-            && hdr->e_ident[EI_MAG2] == ELFMAG2
-            && hdr->e_ident[EI_MAG3] == ELFMAG3
-            && hdr->e_ident[EI_CLASS] == ELFCLASS64
-            && hdr->e_ident[EI_DATA] == EI_DATA_TARGET
-            && hdr->e_version == EV_CURRENT))
+    if (!(hdr->e_ident[EI_MAG0] == ELFMAG0 &&
+          hdr->e_ident[EI_MAG1] == ELFMAG1 &&
+          hdr->e_ident[EI_MAG2] == ELFMAG2 &&
+          hdr->e_ident[EI_MAG3] == ELFMAG3 &&
+          hdr->e_ident[EI_CLASS] == ELFCLASS64 &&
+          hdr->e_ident[EI_DATA] == EI_DATA_TARGET &&
+          hdr->e_version == EV_CURRENT))
         return false;
     /*
      * 2. Validate ELF64 header internal sizes match what we expect, and that
      * at least one program header entry is present.
      */
-    if (hdr->e_ehsize != sizeof (Elf64_Ehdr))
+    if (hdr->e_ehsize != sizeof(Elf64_Ehdr))
         return false;
     if (hdr->e_phnum < 1)
         return false;
-    if (hdr->e_phentsize != sizeof (Elf64_Phdr))
+    if (hdr->e_phentsize != sizeof(Elf64_Phdr))
         return false;
     /*
      * 3. Validate that this is an executable for our target architecture.
@@ -164,13 +164,12 @@ static bool ehdr_is_valid(const Elf64_Ehdr *hdr)
  * non-zero power of 2.
  */
 static int align_down(Elf64_Addr addr, Elf64_Xword align,
-        Elf64_Addr *out_result)
+                      Elf64_Addr *out_result)
 {
     if (align > 0 && (align & (align - 1)) == 0) {
         *out_result = addr & -align;
         return 0;
-    }
-    else
+    } else
         return 1;
 }
 
@@ -189,22 +188,21 @@ static int align_up(Elf64_Addr addr, Elf64_Xword align, Elf64_Addr *out_result)
         result = result & -align;
         *out_result = result;
         return 0;
-    }
-    else
+    } else
         return 1;
 }
 
 #define INV_EXE "invalid executable"
 
 void elf_load(int bin_fd, const char *bin_name, uint8_t *mem, size_t mem_size,
-        uint64_t p_min_loadaddr, guest_mprotect_fn_t t_guest_mprotect,
-        void *t_guest_mprotect_arg, uint64_t *p_entry, uint64_t *p_end)
+              uint64_t p_min_loadaddr, guest_mprotect_fn_t t_guest_mprotect,
+              void *t_guest_mprotect_arg, uint64_t *p_entry, uint64_t *p_end)
 {
     ssize_t nbytes;
     Elf64_Phdr *phdr = NULL;
     Elf64_Ehdr *ehdr = NULL;
-    Elf64_Addr e_entry;                 /* Program entry point */
-    Elf64_Addr e_end;                   /* Highest memory address occupied */
+    Elf64_Addr e_entry; /* Program entry point */
+    Elf64_Addr e_end; /* Highest memory address occupied */
 
     ehdr = malloc(sizeof(Elf64_Ehdr));
     if (ehdr == NULL) {
@@ -215,17 +213,20 @@ void elf_load(int bin_fd, const char *bin_name, uint8_t *mem, size_t mem_size,
     nbytes = pread_in_full(bin_fd, ehdr, sizeof(Elf64_Ehdr), 0);
     if (nbytes < 0) {
         warnx("%s: pread_in_full for elf header while loading elf returned"
-              " %zu < 0", bin_name, nbytes);
+              " %zu < 0",
+              bin_name, nbytes);
         goto mem_cleanup;
     }
     if (nbytes != sizeof(Elf64_Ehdr)) {
         warnx("%s: %s: elf header does not match the expected size"
-              " (%zu != %lu)", bin_name, INV_EXE, nbytes, sizeof(Elf64_Ehdr));
+              " (%zu != %lu)",
+              bin_name, INV_EXE, nbytes, sizeof(Elf64_Ehdr));
         goto mem_cleanup;
     }
     if (!ehdr_is_valid(ehdr)) {
         warnx("%s: invalid or unsupported executable (elf header invalid while"
-              " loading elf)", bin_name);
+              " loading elf)",
+              bin_name);
         goto mem_cleanup;
     }
     /*
@@ -233,8 +234,8 @@ void elf_load(int bin_fd, const char *bin_name, uint8_t *mem, size_t mem_size,
      */
     if (ehdr->e_entry < p_min_loadaddr || ehdr->e_entry >= mem_size) {
         warnx("%s: %s: e_entry does not fall within the memory allocation"
-              " range (%llu < %llu || %llu >= %zu)", bin_name, INV_EXE,
-              (unsigned long long)ehdr->e_entry,
+              " range (%llu < %llu || %llu >= %zu)",
+              bin_name, INV_EXE, (unsigned long long)ehdr->e_entry,
               (unsigned long long)p_min_loadaddr,
               (unsigned long long)ehdr->e_entry, mem_size);
         goto mem_cleanup;
@@ -250,13 +251,14 @@ void elf_load(int bin_fd, const char *bin_name, uint8_t *mem, size_t mem_size,
     nbytes = pread_in_full(bin_fd, phdr, ph_size, ehdr->e_phoff);
     if (nbytes < 0) {
         warnx("%s: pread_in_full for ph_size returned %zu < 0 while loading"
-              " elf", bin_name, nbytes);
+              " elf",
+              bin_name, nbytes);
         goto mem_cleanup;
     }
     if ((size_t)nbytes != ph_size) {
         warnx("%s: %s: program header does not match the expected size"
-              " (%zu != %zu while loading elf)", bin_name, INV_EXE, nbytes,
-              ph_size);
+              " (%zu != %zu while loading elf)",
+              bin_name, INV_EXE, nbytes, ph_size);
         goto mem_cleanup;
     }
 
@@ -280,8 +282,8 @@ void elf_load(int bin_fd, const char *bin_name, uint8_t *mem, size_t mem_size,
 
         if (p_vaddr < p_min_loadaddr) {
             warnx("%s: %s: phdr[%u].p_vaddr outside of valid memory range"
-                  " (%llu < %llu)", bin_name, INV_EXE, ph_i,
-                  (unsigned long long)p_vaddr,
+                  " (%llu < %llu)",
+                  bin_name, INV_EXE, ph_i, (unsigned long long)p_vaddr,
                   (unsigned long long)p_min_loadaddr);
             goto mem_cleanup;
         }
@@ -292,12 +294,11 @@ void elf_load(int bin_fd, const char *bin_name, uint8_t *mem, size_t mem_size,
          */
         if (p_vaddr < plast_vaddr) {
             warnx("%s: %s: phdr[%u].p_vaddr is not in ascending order"
-                  " (%llu < %llu)", bin_name, INV_EXE, ph_i,
-                  (unsigned long long)p_vaddr,
+                  " (%llu < %llu)",
+                  bin_name, INV_EXE, ph_i, (unsigned long long)p_vaddr,
                   (unsigned long long)plast_vaddr);
             goto mem_cleanup;
-        }
-        else
+        } else
             plast_vaddr = p_vaddr;
         /*
          * Compute p_vaddr_start = p_vaddr, aligned down to requested alignment
@@ -312,8 +313,8 @@ void elf_load(int bin_fd, const char *bin_name, uint8_t *mem, size_t mem_size,
         }
         if (p_vaddr_start < p_min_loadaddr) {
             warnx("%s: %s: phdr[%u].p_vaddr_start is outside of memory"
-                  " range (%llu < %llu (p_min_loadaddr))", bin_name, INV_EXE,
-                  ph_i, (unsigned long long)p_vaddr_start,
+                  " range (%llu < %llu (p_min_loadaddr))",
+                  bin_name, INV_EXE, ph_i, (unsigned long long)p_vaddr_start,
                   (unsigned long long)p_min_loadaddr);
             goto mem_cleanup;
         }
@@ -323,8 +324,9 @@ void elf_load(int bin_fd, const char *bin_name, uint8_t *mem, size_t mem_size,
          */
         if (p_vaddr_start < e_end) {
             warnx("%s: %s: phdr[%u].p_vaddr_start is outside of memory"
-                  " range (%llu < %llu (e_end))", bin_name, INV_EXE, ph_i,
-                  (unsigned long long)p_vaddr_start, (unsigned long long)e_end);
+                  " range (%llu < %llu (e_end))",
+                  bin_name, INV_EXE, ph_i, (unsigned long long)p_vaddr_start,
+                  (unsigned long long)e_end);
             goto mem_cleanup;
         }
         /*
@@ -332,8 +334,9 @@ void elf_load(int bin_fd, const char *bin_name, uint8_t *mem, size_t mem_size,
          */
         if (p_vaddr >= mem_size) {
             warnx("%s: %s: phdr[%u] program file segment falls outside of"
-                  " valid range (%llu >= %zu (mem_size))", bin_name, INV_EXE,
-                  ph_i, (unsigned long long)p_vaddr, mem_size);
+                  " valid range (%llu >= %zu (mem_size))",
+                  bin_name, INV_EXE, ph_i, (unsigned long long)p_vaddr,
+                  mem_size);
             goto mem_cleanup;
         }
         if (add_overflow(p_vaddr, p_filesz, temp)) {
@@ -370,8 +373,9 @@ void elf_load(int bin_fd, const char *bin_name, uint8_t *mem, size_t mem_size,
         if (align_up(p_vaddr_end, p_align, &p_vaddr_end)) {
             warnx("%s: %s: phdr[%u] program memory segment falls outside"
                   " of valid range (align_up with %llu (p_vaddr_end) and %llu"
-                  " (p_align) failed)", bin_name, INV_EXE, ph_i,
-                  (unsigned long long)p_vaddr_end, (unsigned long long)p_align);
+                  " (p_align) failed)",
+                  bin_name, INV_EXE, ph_i, (unsigned long long)p_vaddr_end,
+                  (unsigned long long)p_align);
             goto mem_cleanup;
         }
         if (p_vaddr_end > mem_size) {
@@ -390,10 +394,10 @@ void elf_load(int bin_fd, const char *bin_name, uint8_t *mem, size_t mem_size,
              * Double check result for host (caller) address space overflow.
              */
             if ((mem + e_end) < (mem + p_min_loadaddr)) {
-              warnx("%s: %s: phdr[%u] address space overflow"
-                    " ((mem + e_end) < (mem + p_min_loaddr))",
-                    bin_name, INV_EXE, ph_i);
-              goto mem_cleanup;
+                warnx("%s: %s: phdr[%u] address space overflow"
+                      " ((mem + e_end) < (mem + p_min_loaddr))",
+                      bin_name, INV_EXE, ph_i);
+                goto mem_cleanup;
             }
         }
 
@@ -408,11 +412,12 @@ void elf_load(int bin_fd, const char *bin_name, uint8_t *mem, size_t mem_size,
          */
         if (host_vaddr < (mem + p_min_loadaddr)) {
             warnx("%s: %s: phdr[%u] address space overflow (host_vaddr <"
-                  " (mem + p_min_loaddr))", bin_name, INV_EXE, ph_i);
+                  " (mem + p_min_loaddr))",
+                  bin_name, INV_EXE, ph_i);
             goto mem_cleanup;
         }
-        nbytes = pread_in_full(bin_fd, host_vaddr, p_filesz,
-                phdr[ph_i].p_offset);
+        nbytes =
+            pread_in_full(bin_fd, host_vaddr, p_filesz, phdr[ph_i].p_offset);
         if (nbytes < 0) {
             warnx("%s: phdr[%u] pread_in_full returned %zu", bin_name, ph_i,
                   nbytes);
@@ -420,8 +425,8 @@ void elf_load(int bin_fd, const char *bin_name, uint8_t *mem, size_t mem_size,
         }
         if ((size_t)nbytes != p_filesz) {
             warnx("%s: phdr[%u] host file segment mismatched (pread_in_full"
-                  " returned %zu != %llu (p_filesz))", bin_name, ph_i, nbytes,
-                  (unsigned long long)p_filesz);
+                  " returned %zu != %llu (p_filesz))",
+                  bin_name, ph_i, nbytes, (unsigned long long)p_filesz);
             goto mem_cleanup;
         }
         memset(host_vaddr + p_filesz, 0, p_memsz - p_filesz);
@@ -434,15 +439,16 @@ void elf_load(int bin_fd, const char *bin_name, uint8_t *mem, size_t mem_size,
          */
         if (p_vaddr_start & (EM_PAGE_SIZE - 1)) {
             warnx("%s: %s: phdr[%u] p_vaddr_start not aligned with"
-                  " architectural page size (%llu & (%u - 1))", bin_name,
-                  INV_EXE, ph_i, (unsigned long long)p_vaddr_start,
+                  " architectural page size (%llu & (%u - 1))",
+                  bin_name, INV_EXE, ph_i, (unsigned long long)p_vaddr_start,
                   EM_PAGE_SIZE - 1);
             goto mem_cleanup;
         }
         if (p_vaddr_end & (EM_PAGE_SIZE - 1)) {
             warnx("%s: %s: phdr[%u] p_vaddr_end not aligned with architectural"
-                  " page size (%llu & (%u - 1))", bin_name, INV_EXE, ph_i,
-                  (unsigned long long)p_vaddr_end, EM_PAGE_SIZE - 1);
+                  " page size (%llu & (%u - 1))",
+                  bin_name, INV_EXE, ph_i, (unsigned long long)p_vaddr_end,
+                  EM_PAGE_SIZE - 1);
             goto mem_cleanup;
         }
         int prot = PROT_NONE;
@@ -459,7 +465,7 @@ void elf_load(int bin_fd, const char *bin_name, uint8_t *mem, size_t mem_size,
         }
         assert(t_guest_mprotect != NULL);
         if (t_guest_mprotect(t_guest_mprotect_arg, p_vaddr_start, p_vaddr_end,
-                    prot) == -1) {
+                             prot) == -1) {
             warnx("%s: mprotect failed", bin_name);
             goto mem_cleanup;
         }
@@ -478,8 +484,8 @@ mem_cleanup:
 }
 
 int elf_load_note(int bin_fd, const char *bin_name, uint32_t note_type,
-        size_t note_align, size_t max_note_size, void **out_note_data,
-        size_t *out_note_size)
+                  size_t note_align, size_t max_note_size, void **out_note_data,
+                  size_t *out_note_size)
 {
     ssize_t nbytes;
     Elf64_Phdr *phdr = NULL;
@@ -496,17 +502,20 @@ int elf_load_note(int bin_fd, const char *bin_name, uint32_t note_type,
     nbytes = pread_in_full(bin_fd, ehdr, sizeof(Elf64_Ehdr), 0);
     if (nbytes < 0) {
         warnx("%s: pread_in_full for elf header while loading note returned"
-              " %zu < 0", bin_name, nbytes);
+              " %zu < 0",
+              bin_name, nbytes);
         goto mem_cleanup;
     }
     if (nbytes != sizeof(Elf64_Ehdr)) {
         warnx("%s: %s: elf header does not match the expected size"
-              " (%zu != %lu)", bin_name, INV_EXE, nbytes, sizeof(Elf64_Ehdr));
+              " (%zu != %lu)",
+              bin_name, INV_EXE, nbytes, sizeof(Elf64_Ehdr));
         goto mem_cleanup;
     }
     if (!ehdr_is_valid(ehdr)) {
         warnx("%s: %s: invalid or unsupported executable (elf header invalid"
-              " while loading note)", bin_name, INV_EXE);
+              " while loading note)",
+              bin_name, INV_EXE);
         goto mem_cleanup;
     }
 
@@ -519,13 +528,14 @@ int elf_load_note(int bin_fd, const char *bin_name, uint32_t note_type,
     nbytes = pread_in_full(bin_fd, phdr, ph_size, ehdr->e_phoff);
     if (nbytes < 0) {
         warnx("%s: pread_in_full for ph_size returned %zu < 0 while loading"
-              " note", bin_name, nbytes);
+              " note",
+              bin_name, nbytes);
         goto mem_cleanup;
     }
     if ((size_t)nbytes != ph_size) {
         warnx("%s: %s: program header does not match the expected size"
-              " (%zu != %zu while loading note)", bin_name, INV_EXE, nbytes,
-              ph_size);
+              " (%zu != %zu while loading note)",
+              bin_name, INV_EXE, nbytes, ph_size);
         goto mem_cleanup;
     }
 
@@ -545,7 +555,8 @@ int elf_load_note(int bin_fd, const char *bin_name, uint32_t note_type,
              * reject the executable.
              */
             warnx("%s: %s: phdr[%u].p_filesz note does not fall within"
-                  " valid size (%llu < %lu)", bin_name, INV_EXE, ph_i,
+                  " valid size (%llu < %lu)",
+                  bin_name, INV_EXE, ph_i,
                   (unsigned long long)phdr[ph_i].p_filesz, sizeof(Elf64_Nhdr));
             goto mem_cleanup;
         }
@@ -555,8 +566,7 @@ int elf_load_note(int bin_fd, const char *bin_name, uint32_t note_type,
              * header, ignore the note.
              */
             continue;
-        nbytes = pread_in_full(bin_fd, &nhdr, sizeof nhdr,
-                phdr[ph_i].p_offset);
+        nbytes = pread_in_full(bin_fd, &nhdr, sizeof nhdr, phdr[ph_i].p_offset);
         if (nbytes < 0) {
             warnx("%s: phdr[%u] pread_in_full returned %zu", bin_name, ph_i,
                   nbytes);
@@ -588,13 +598,15 @@ int elf_load_note(int bin_fd, const char *bin_name, uint32_t note_type,
          */
         if (nhdr.h.n_descsz < 1 || nhdr.h.n_descsz > max_note_size) {
             warnx("%s: %s: phdr[%u] note does not fall within valid size"
-                  " (%u < 1 || %u > %zu)", bin_name, INV_EXE, ph_i,
-                  nhdr.h.n_descsz, nhdr.h.n_descsz, max_note_size);
+                  " (%u < 1 || %u > %zu)",
+                  bin_name, INV_EXE, ph_i, nhdr.h.n_descsz, nhdr.h.n_descsz,
+                  max_note_size);
             goto mem_cleanup;
         }
         if (phdr[ph_i].p_filesz < sizeof nhdr + nhdr.h.n_descsz) {
             warnx("%s: %s: phdr[%u] note does not fall within valid size"
-                  " (%llu < %lu)", bin_name, INV_EXE, ph_i,
+                  " (%llu < %lu)",
+                  bin_name, INV_EXE, ph_i,
                   (unsigned long long)phdr[ph_i].p_filesz,
                   sizeof nhdr + nhdr.h.n_descsz);
             goto mem_cleanup;
@@ -622,10 +634,10 @@ int elf_load_note(int bin_fd, const char *bin_name, uint32_t note_type,
     assert(note_offset >= sizeof nhdr);
     note_pad = note_offset - sizeof nhdr;
     note_size = nhdr.h.n_descsz - note_pad;
-    if(note_size <= 0 || note_size > nhdr.h.n_descsz) {
+    if (note_size <= 0 || note_size > nhdr.h.n_descsz) {
         warnx("%s: INV_EXE: phdr[%u] note does not fall within valid size"
-              " (%zu <= 0 || %zu > %u)", bin_name, ph_i, note_size, note_size,
-              nhdr.h.n_descsz);
+              " (%zu <= 0 || %zu > %u)",
+              bin_name, ph_i, note_size, note_size, nhdr.h.n_descsz);
         goto mem_cleanup;
     }
     note_data = malloc(note_size);
@@ -634,7 +646,7 @@ int elf_load_note(int bin_fd, const char *bin_name, uint32_t note_type,
         goto mem_cleanup;
     }
     nbytes = pread_in_full(bin_fd, note_data, note_size,
-            phdr[ph_i].p_offset + note_offset);
+                           phdr[ph_i].p_offset + note_offset);
     if (nbytes < 0) {
         warnx("%s: phdr[%u] pread_in_full for note_data returned %zu < 0",
               bin_name, ph_i, nbytes);

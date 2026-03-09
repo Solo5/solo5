@@ -63,7 +63,8 @@ static void mft_check_all_acquired()
     for (unsigned i = 0; i != virtio_manifest->entries; i++) {
         if (!virtio_manifest->e[i].attached) {
             log(WARN, "Solo5: Device '%s' of type %s not attached.",
-                    virtio_manifest->e[i].name, mft_type_to_string(virtio_manifest->e[i].type));
+                virtio_manifest->e[i].name,
+                mft_type_to_string(virtio_manifest->e[i].type));
             fail = true;
         }
     }
@@ -102,9 +103,11 @@ static void _start2(void *arg __attribute__((unused)))
      * Attach the first entry if its type is really MFT_RESERVED_FIRST.
      * Abort otherwise.
      */
-    struct mft_entry *e = mft_get_by_index(virtio_manifest, 0, MFT_RESERVED_FIRST);
+    struct mft_entry *e =
+        mft_get_by_index(virtio_manifest, 0, MFT_RESERVED_FIRST);
     if (e == NULL) {
-        log(ERROR, "Solo5: first entry in manifest is not of type MFT_RESERVED_FIRST\n");
+        log(ERROR, "Solo5: first entry in manifest is not of type "
+                   "MFT_RESERVED_FIRST\n");
         solo5_abort();
     }
     e->attached = true;
@@ -134,14 +137,10 @@ DECLARE_ELF_INTERP
  * Virtio does not have an ABI contract (in the Solo5 sense) or use a tender,
  * so the ABI version here is always 1.
  */
-ABI1_NOTE_DECLARE_BEGIN
-{
-    .abi_target = VIRTIO_ABI_TARGET,
-    .abi_version = 1
-}
-ABI1_NOTE_DECLARE_END
+ABI1_NOTE_DECLARE_BEGIN{.abi_target = VIRTIO_ABI_TARGET,
+                        .abi_version = 1} ABI1_NOTE_DECLARE_END
 
-/*
- * Pretend that we are an OpenBSD executable. See elf_abi.h for details.
- */
-DECLARE_OPENBSD_NOTE
+    /*
+     * Pretend that we are an OpenBSD executable. See elf_abi.h for details.
+     */
+    DECLARE_OPENBSD_NOTE

@@ -89,7 +89,8 @@ void hvt_dumpcore_hook(struct hvt *hvt, int status, void *cookie)
      * Note that O_APPEND must not be set as this modifies the behaviour of
      * pwrite() on Linux.
      */
-    int fd = openat(dir, filename, O_WRONLY | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR);
+    int fd =
+        openat(dir, filename, O_WRONLY | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR);
     close(dir);
     if (fd < 0) {
         warn("dumpcore: open(%s)", filename);
@@ -101,30 +102,27 @@ void hvt_dumpcore_hook(struct hvt *hvt, int status, void *cookie)
      * Core file structure:
      * (1) ELF header with e_type=ET_CORE
      */
-    size_t offset = sizeof (Elf64_Ehdr);
+    size_t offset = sizeof(Elf64_Ehdr);
     Elf64_Ehdr ehdr = {
-        .e_ident = {
-            ELFMAG0, ELFMAG1, ELFMAG2, ELFMAG3,
-            ELFCLASS64, ELFDATA2LSB,
-            EV_CURRENT, ELFOSABI_STANDALONE, 0
-        },
+        .e_ident = {ELFMAG0, ELFMAG1, ELFMAG2, ELFMAG3, ELFCLASS64, ELFDATA2LSB,
+                    EV_CURRENT, ELFOSABI_STANDALONE, 0},
         .e_type = ET_CORE,
         .e_version = EV_CURRENT,
         .e_machine = EM_HOST,
-        .e_ehsize = sizeof (Elf64_Ehdr),
+        .e_ehsize = sizeof(Elf64_Ehdr),
         .e_phnum = 2, /* PT_NOTE, PT_LOAD */
-        .e_phentsize = sizeof (Elf64_Phdr),
+        .e_phentsize = sizeof(Elf64_Phdr),
         .e_phoff = offset,
     };
-    offset += ehdr.e_phnum * sizeof (Elf64_Phdr);
+    offset += ehdr.e_phnum * sizeof(Elf64_Phdr);
 
     /*
      * (2) PT_NOTE pointing to NT_PRSTATUS descriptor
      * name[] must be a multiple of the ELF word size, SVR4 uses "CORE".
      */
     const char name[8] = "CORE";
-    size_t pnote_size = sizeof (Elf64_Nhdr) + sizeof name \
-                        + hvt_dumpcore_prstatus_size();
+    size_t pnote_size =
+        sizeof(Elf64_Nhdr) + sizeof name + hvt_dumpcore_prstatus_size();
     Elf64_Phdr pnote = {
         .p_type = PT_NOTE,
         .p_filesz = pnote_size,
@@ -136,14 +134,14 @@ void hvt_dumpcore_hook(struct hvt *hvt, int status, void *cookie)
     /*
      * (3) PT_LOAD pointing to guest memory dump
      */
-    Elf64_Phdr pload = {
-        .p_type = PT_LOAD,
-        .p_align = 0, .p_paddr = 0, .p_vaddr = 0,
-        .p_memsz = hvt->mem_size,
-        .p_filesz = hvt->mem_size,
-        .p_flags = 0,
-        .p_offset = offset
-    };
+    Elf64_Phdr pload = {.p_type = PT_LOAD,
+                        .p_align = 0,
+                        .p_paddr = 0,
+                        .p_vaddr = 0,
+                        .p_memsz = hvt->mem_size,
+                        .p_filesz = hvt->mem_size,
+                        .p_flags = 0,
+                        .p_offset = offset};
 
     /*
      * (4) NT_PRSTATUS descriptor
@@ -155,14 +153,13 @@ void hvt_dumpcore_hook(struct hvt *hvt, int status, void *cookie)
     };
 
     const struct iovec iov[] = {
-        { .iov_base = &ehdr, .iov_len = sizeof ehdr },
-        { .iov_base = &pnote, .iov_len = sizeof pnote },
-        { .iov_base = &pload, .iov_len = sizeof pload },
-        { .iov_base = &nhdr, .iov_len = sizeof nhdr },
-        { .iov_base = (void *)(uintptr_t)name, .iov_len = nhdr.n_namesz }
-    };
-    ssize_t iovlen = sizeof ehdr + sizeof pnote + sizeof pload + sizeof nhdr \
-                    + nhdr.n_namesz;
+        {.iov_base = &ehdr, .iov_len = sizeof ehdr},
+        {.iov_base = &pnote, .iov_len = sizeof pnote},
+        {.iov_base = &pload, .iov_len = sizeof pload},
+        {.iov_base = &nhdr, .iov_len = sizeof nhdr},
+        {.iov_base = (void *)(uintptr_t)name, .iov_len = nhdr.n_namesz}};
+    ssize_t iovlen =
+        sizeof ehdr + sizeof pnote + sizeof pload + sizeof nhdr + nhdr.n_namesz;
     if (writev(fd, iov, 5) != iovlen) {
         warn("dumpcore: Error writing ELF headers");
         goto failure;
@@ -192,11 +189,11 @@ void hvt_dumpcore_hook(struct hvt *hvt, int status, void *cookie)
         warn("dumpcore: Could not determine _SC_PAGESIZE");
         goto failure;
     }
-    assert (hvt->mem_size % page_size == 0);
+    assert(hvt->mem_size % page_size == 0);
     size_t npages = hvt->mem_size / page_size;
     size_t ndumped = 0;
     host_mvec_t mvec = malloc(npages);
-    assert (mvec);
+    assert(mvec);
     if (mincore(hvt->mem, hvt->mem_size, mvec) == -1) {
         warn("dumpcore: mincore() failed");
         goto failure;
@@ -211,10 +208,10 @@ void hvt_dumpcore_hook(struct hvt *hvt, int status, void *cookie)
                 warn("dumpcore: Error dumping guest memory page %zd", pg);
                 free(mvec);
                 goto failure;
-            }
-            else if (nbytes != page_size) {
+            } else if (nbytes != page_size) {
                 warnx("dumpcore: Short write dumping guest memory page"
-                        "%zd: %zd bytes", pg, nbytes);
+                      "%zd: %zd bytes",
+                      pg, nbytes);
                 free(mvec);
                 goto failure;
             }
@@ -234,7 +231,7 @@ failure:
 static int handle_cmdarg(char *cmdarg, struct mft *mft)
 {
     if (strncmp("--dumpcore=", cmdarg, 11))
-	return -1;
+        return -1;
     dumpcoredir = cmdarg + 11;
 
     return 0;
@@ -273,8 +270,5 @@ static int setup(struct hvt *hvt, struct mft *mft)
     return 0;
 }
 
-DECLARE_MODULE(dumpcore,
-    .setup = setup,
-    .handle_cmdarg = handle_cmdarg,
-    .usage = usage
-)
+DECLARE_MODULE(dumpcore, .setup = setup, .handle_cmdarg = handle_cmdarg,
+               .usage = usage)

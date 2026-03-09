@@ -33,7 +33,7 @@
 
 size_t hvt_dumpcore_prstatus_size(void)
 {
-    return sizeof (prstatus_t);
+    return sizeof(prstatus_t);
 }
 
 int hvt_dumpcore_write_prstatus(int fd, struct hvt *hvt, void *cookie)
@@ -108,8 +108,7 @@ int hvt_dumpcore_write_prstatus(int fd, struct hvt *hvt, void *cookie)
     if (nbytes < 0) {
         warn("dumpcore: Error writing prstatus");
         return -1;
-    }
-    else if (nbytes != sizeof prstatus) {
+    } else if (nbytes != sizeof prstatus) {
         warnx("dumpcore: Short write() writing prstatus: %zd", nbytes);
         return -1;
     }

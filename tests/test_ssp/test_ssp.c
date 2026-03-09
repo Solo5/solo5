@@ -43,7 +43,7 @@ int solo5_app_main(const struct solo5_start_info *si __attribute__((unused)))
      * an ABORT via __stack_chk_fail().
      */
     char buffer[16];
-    strcpy (buffer, "1234567890123456789012345678901234567890\n");
+    strcpy(buffer, "1234567890123456789012345678901234567890\n");
     puts(buffer);
 
     return SOLO5_EXIT_FAILURE;

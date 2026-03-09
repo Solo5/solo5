@@ -25,13 +25,13 @@
 #ifndef HVT_HV_OPENBSD_H
 #define HVT_HV_OPENBSD_H
 
-#define VMM_NODE    "/dev/vmm"
-#define VMD_USER    "_vmd"
+#define VMM_NODE "/dev/vmm"
+#define VMD_USER "_vmd"
 
 struct hvt_b {
-    int      vmd_fd;
-    int32_t  vcp_id;
-    int32_t  vcpu_id;
+    int vmd_fd;
+    int32_t vcp_id;
+    int32_t vcpu_id;
 };
 
 #endif /* HVT_HV_OPENBSD_H */

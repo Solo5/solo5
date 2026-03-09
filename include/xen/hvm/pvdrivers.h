@@ -38,12 +38,12 @@
  * indicate a driver which is yet to be released.
  */
 
-#define PVDRIVERS_PRODUCT_LIST(EACH)                               \
-        EACH("xensource-windows",       0x0001) /* Citrix */       \
-        EACH("gplpv-windows",           0x0002) /* James Harper */ \
-        EACH("linux",                   0x0003)                    \
-        EACH("xenserver-windows-v7.0+", 0x0004) /* Citrix */       \
-        EACH("xenserver-windows-v7.2+", 0x0005) /* Citrix */       \
-        EACH("experimental",            0xffff)
+#define PVDRIVERS_PRODUCT_LIST(EACH)                                           \
+    EACH("xensource-windows", 0x0001) /* Citrix */                             \
+    EACH("gplpv-windows", 0x0002) /* James Harper */                           \
+    EACH("linux", 0x0003)                                                      \
+    EACH("xenserver-windows-v7.0+", 0x0004) /* Citrix */                       \
+    EACH("xenserver-windows-v7.2+", 0x0005) /* Citrix */                       \
+    EACH("experimental", 0xffff)
 
 #endif /* _XEN_PUBLIC_PVDRIVERS_H_ */

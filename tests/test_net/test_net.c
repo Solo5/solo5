@@ -35,10 +35,10 @@ static void xputs(int ifindex, const char *s)
     puts(s);
 }
 
-#define ETHERTYPE_IP  0x0800
+#define ETHERTYPE_IP 0x0800
 #define ETHERTYPE_ARP 0x0806
-#define HLEN_ETHER  6
-#define PLEN_IPV4  4
+#define HLEN_ETHER 6
+#define PLEN_IPV4 4
 
 struct ether {
     uint8_t target[HLEN_ETHER];
@@ -98,15 +98,15 @@ static uint16_t checksum(uint16_t *addr, size_t count)
      * beginning at location "addr".*/
     register long sum = 0;
 
-    while (count > 1)  {
+    while (count > 1) {
         /*  This is the inner loop */
-        sum += * (unsigned short *) addr++;
+        sum += *(unsigned short *)addr++;
         count -= 2;
     }
 
     /* Add left-over byte, if any */
     if (count > 0)
-        sum += * (unsigned char *) addr;
+        sum += *(unsigned char *)addr;
 
     /* Fold 32-bit sum to 16 bits */
     while (sum >> 16)
@@ -141,19 +141,19 @@ struct netif {
 
 struct netif ni[] = {
     {
-        .ipaddr = { 0x0a, 0x00, 0x00, 0x02 }, /* 10.0.0.2 */
-        .ipaddr_brdnet = { 0x0a, 0x00, 0x00, 0xff } /* 10.0.0.255 */
+        .ipaddr = {0x0a, 0x00, 0x00, 0x02}, /* 10.0.0.2 */
+        .ipaddr_brdnet = {0x0a, 0x00, 0x00, 0xff} /* 10.0.0.255 */
     },
 #ifdef TWO_INTERFACES
     {
-        .ipaddr = { 0x0a, 0x01, 0x00, 0x02 }, /* 10.1.0.2 */
-        .ipaddr_brdnet = { 0x0a, 0x01, 0x00, 0xff } /* 10.1.0.255 */
+        .ipaddr = {0x0a, 0x01, 0x00, 0x02}, /* 10.1.0.2 */
+        .ipaddr_brdnet = {0x0a, 0x01, 0x00, 0xff} /* 10.1.0.255 */
     }
 #endif
 };
 
-uint8_t ipaddr_brdall[4] = { 0xff, 0xff, 0xff, 0xff }; /* 255.255.255.255 */
-uint8_t macaddr_brd[HLEN_ETHER] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
+uint8_t ipaddr_brdall[4] = {0xff, 0xff, 0xff, 0xff}; /* 255.255.255.255 */
+uint8_t macaddr_brd[HLEN_ETHER] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 
 static unsigned long n_pings_received = 0;
 static bool opt_verbose = false;
@@ -233,14 +233,14 @@ static bool handle_ip(int ifindex, uint8_t *buf)
 
     /* recalculate ip checksum for return pkt */
     p->ip.checksum = 0;
-    p->ip.checksum = checksum((uint16_t *) &p->ip, sizeof(struct ip));
+    p->ip.checksum = checksum((uint16_t *)&p->ip, sizeof(struct ip));
 
     p->ping.type = 0x0; /* change into reply */
 
     /* recalculate ICMP checksum */
     p->ping.checksum = 0;
-    p->ping.checksum = checksum((uint16_t *) &p->ping,
-            htons(p->ip.length) - sizeof(struct ip));
+    p->ping.checksum =
+        checksum((uint16_t *)&p->ping, htons(p->ip.length) - sizeof(struct ip));
 
     n_pings_received++;
     return true;
@@ -249,7 +249,7 @@ static bool handle_ip(int ifindex, uint8_t *buf)
 static void send_garp(int ifindex)
 {
     struct arppkt p;
-    uint8_t zero[HLEN_ETHER] = { 0 };
+    uint8_t zero[HLEN_ETHER] = {0};
 
     /*
      * Send a gratuitous ARP packet announcing our MAC address.
@@ -292,22 +292,22 @@ static bool handle_packet(int ifindex)
         return true; /* not ether addressed to us */
 
     switch (htons(p->type)) {
-        case ETHERTYPE_ARP:
-            if (handle_arp(ifindex, buf)) {
-                handled = true;
-                if (opt_verbose)
-                    xputs(ifindex, "Received arp request, sending reply\n");
-            }
-            break;
-        case ETHERTYPE_IP:
-            if (handle_ip(ifindex, buf)) {
-                if (opt_verbose)
-                    xputs(ifindex, "Received ping, sending reply\n");
-                handled = true;
-            }
-            break;
-        default:
-            break;
+    case ETHERTYPE_ARP:
+        if (handle_arp(ifindex, buf)) {
+            handled = true;
+            if (opt_verbose)
+                xputs(ifindex, "Received arp request, sending reply\n");
+        }
+        break;
+    case ETHERTYPE_IP:
+        if (handle_ip(ifindex, buf)) {
+            if (opt_verbose)
+                xputs(ifindex, "Received ping, sending reply\n");
+            handled = true;
+        }
+        break;
+    default:
+        break;
     }
 
     if (handled) {
@@ -315,8 +315,7 @@ static bool handle_packet(int ifindex)
             xputs(ifindex, "Write error\n");
             return false;
         }
-    }
-    else {
+    } else {
         xputs(ifindex, "Unknown or unsupported packet, dropped\n");
     }
 
@@ -396,8 +395,7 @@ int solo5_app_main(const struct solo5_start_info *si)
     if (ping_serve()) {
         puts("SUCCESS\n");
         return SOLO5_EXIT_SUCCESS;
-    }
-    else {
+    } else {
         puts("FAILURE\n");
         return SOLO5_EXIT_FAILURE;
     }

@@ -191,5 +191,6 @@ all_DEPS := $(patsubst %.o,%.d,$(all_OBJS))
 clean:
 	@echo "CLEAN bindings"
 	$(RM) $(all_TARGETS) $(all_OBJS) $(all_DEPS)
+	$(RM) noexecstack.c noexecstack.h noexecstack.s
 
 include $(wildcard $(all_DEPS))

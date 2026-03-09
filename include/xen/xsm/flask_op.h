@@ -161,31 +161,31 @@ struct xen_flask_devicetree_label {
 
 struct xen_flask_op {
     uint32_t cmd;
-#define FLASK_LOAD              1
-#define FLASK_GETENFORCE        2
-#define FLASK_SETENFORCE        3
-#define FLASK_CONTEXT_TO_SID    4
-#define FLASK_SID_TO_CONTEXT    5
-#define FLASK_ACCESS            6
-#define FLASK_CREATE            7
-#define FLASK_RELABEL           8
-#define FLASK_USER              9  /* No longer implemented */
-#define FLASK_POLICYVERS        10
-#define FLASK_GETBOOL           11
-#define FLASK_SETBOOL           12
-#define FLASK_COMMITBOOLS       13
-#define FLASK_MLS               14
-#define FLASK_DISABLE           15
-#define FLASK_GETAVC_THRESHOLD  16
-#define FLASK_SETAVC_THRESHOLD  17
-#define FLASK_AVC_HASHSTATS     18
-#define FLASK_AVC_CACHESTATS    19
-#define FLASK_MEMBER            20
-#define FLASK_ADD_OCONTEXT      21
-#define FLASK_DEL_OCONTEXT      22
-#define FLASK_GET_PEER_SID      23
-#define FLASK_RELABEL_DOMAIN    24
-#define FLASK_DEVICETREE_LABEL  25
+#define FLASK_LOAD 1
+#define FLASK_GETENFORCE 2
+#define FLASK_SETENFORCE 3
+#define FLASK_CONTEXT_TO_SID 4
+#define FLASK_SID_TO_CONTEXT 5
+#define FLASK_ACCESS 6
+#define FLASK_CREATE 7
+#define FLASK_RELABEL 8
+#define FLASK_USER 9 /* No longer implemented */
+#define FLASK_POLICYVERS 10
+#define FLASK_GETBOOL 11
+#define FLASK_SETBOOL 12
+#define FLASK_COMMITBOOLS 13
+#define FLASK_MLS 14
+#define FLASK_DISABLE 15
+#define FLASK_GETAVC_THRESHOLD 16
+#define FLASK_SETAVC_THRESHOLD 17
+#define FLASK_AVC_HASHSTATS 18
+#define FLASK_AVC_CACHESTATS 19
+#define FLASK_MEMBER 20
+#define FLASK_ADD_OCONTEXT 21
+#define FLASK_DEL_OCONTEXT 22
+#define FLASK_GET_PEER_SID 23
+#define FLASK_RELABEL_DOMAIN 24
+#define FLASK_DEVICETREE_LABEL 25
     uint32_t interface_version; /* XEN_FLASK_INTERFACE_VERSION */
     union {
         struct xen_flask_load load;

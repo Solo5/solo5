@@ -21,17 +21,17 @@
 #ifndef __MUEN_SINFO_H__
 #define __MUEN_SINFO_H__
 
-#define MUEN_SUBJECT_INFO_MAGIC        0x04006f666e69756dULL
+#define MUEN_SUBJECT_INFO_MAGIC 0x04006f666e69756dULL
 
 #define MAX_RESOURCE_COUNT 255
-#define MAX_NAME_LENGTH    63
-#define HASH_LENGTH        32
-#define NO_PATTERN         256
+#define MAX_NAME_LENGTH 63
+#define HASH_LENGTH 32
+#define NO_PATTERN 256
 
-#define MEM_WRITABLE_FLAG   (1 << 0)
+#define MEM_WRITABLE_FLAG (1 << 0)
 #define MEM_EXECUTABLE_FLAG (1 << 1)
 
-#define DEV_MSI_FLAG        (1 << 0)
+#define DEV_MSI_FLAG (1 << 0)
 
 /*
  * Muen subject information API.
@@ -167,7 +167,7 @@ bool muen_check_magic(void);
  *
  * The function returns NULL if the subject name cannot be retrieved.
  */
-const char * muen_get_subject_name(void);
+const char *muen_get_subject_name(void);
 
 /*
  * Return resource with given name and kind.
@@ -183,7 +183,7 @@ muen_get_resource(const char *const name, enum muen_resource_kind kind);
  * The function returns null if no device information for the specified device
  * exists.
  */
-const struct muen_device_type * muen_get_device(const uint16_t sid);
+const struct muen_device_type *muen_get_device(const uint16_t sid);
 
 /*
  * Resource callback.

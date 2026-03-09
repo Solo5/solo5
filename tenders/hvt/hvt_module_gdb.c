@@ -76,12 +76,12 @@ static int socket_fd = 0;
 static int portno = 1234; /* Default port number */
 static const char hexchars[] = "0123456789abcdef";
 
-#define BUFMAX                         4096
+#define BUFMAX 4096
 static char in_buffer[BUFMAX];
 static unsigned char registers[BUFMAX];
 
 /* The actual error code is ignored by GDB, so any number will do. */
-#define GDB_ERROR_MSG                  "E01"
+#define GDB_ERROR_MSG "E01"
 
 static int hex(unsigned char ch)
 {
@@ -116,8 +116,7 @@ static char *mem2hex(const unsigned char *mem, char *buf, size_t count)
  * Converts the hex string in buf into binary in mem.
  * Returns a pointer to the character AFTER the last byte written.
  */
-static unsigned char *hex2mem(const char *buf,
-                              unsigned char *mem, size_t count)
+static unsigned char *hex2mem(const char *buf, unsigned char *mem, size_t count)
 {
     size_t i;
     unsigned char ch;
@@ -162,7 +161,7 @@ static int wait_for_connect()
         return -1;
     }
 
-    if (listen(listen_socket_fd , 0) == -1) {
+    if (listen(listen_socket_fd, 0) == -1) {
         err(1, "listen failed");
         return -1;
     }
@@ -245,7 +244,7 @@ static char *recv_packet(void)
                 return NULL;
         } while (ch != '$');
 
-retry:
+    retry:
         checksum = 0;
         xmitcsum = -1;
         count = 0;
@@ -354,11 +353,20 @@ static void send_packet(char *buffer)
     }
 }
 
-#define send_error_msg()   do { send_packet(GDB_ERROR_MSG); } while (0)
+#define send_error_msg()                                                       \
+    do {                                                                       \
+        send_packet(GDB_ERROR_MSG);                                            \
+    } while (0)
 
-#define send_not_supported_msg()   do { send_packet(""); } while (0)
+#define send_not_supported_msg()                                               \
+    do {                                                                       \
+        send_packet("");                                                       \
+    } while (0)
 
-#define send_okay_msg()   do { send_packet("OK"); } while (0)
+#define send_okay_msg()                                                        \
+    do {                                                                       \
+        send_packet("OK");                                                     \
+    } while (0)
 
 /*
  * This is a response to 'c' and 's'. In other words, the VM was
@@ -413,44 +421,42 @@ static void gdb_handle_exception(struct hvt *hvt, int sigval)
         switch (command) {
         case 's': {
             /* Step */
-            if (sscanf(packet, "s%"PRIx64, &addr) == 1) {
+            if (sscanf(packet, "s%" PRIx64, &addr) == 1) {
                 /* not supported, but that's OK as GDB will retry with the
                  * slower version of this: update all registers. */
                 send_not_supported_msg();
                 break; /* Wait for another command. */
             }
             if (hvt_gdb_enable_ss(hvt) == -1) {
-                    send_error_msg();
-                    break; /* Wait for another command. */
+                send_error_msg();
+                break; /* Wait for another command. */
             }
             return; /* Continue with program */
         }
 
         case 'c': {
             /* Continue (and disable stepping for the next instruction) */
-            if (sscanf(packet, "c%"PRIx64, &addr) == 1) {
+            if (sscanf(packet, "c%" PRIx64, &addr) == 1) {
                 /* not supported, but that's OK as GDB will retry with the
                  * slower version of this: update all registers. */
                 send_not_supported_msg();
                 break; /* Wait for another command. */
             }
             if (hvt_gdb_disable_ss(hvt) == -1) {
-                    send_error_msg();
-                    break; /* Wait for another command. */
+                send_error_msg();
+                break; /* Wait for another command. */
             }
             return; /* Continue with program */
         }
 
         case 'm': {
             /* Read memory content */
-            if (sscanf(packet, "m%"PRIx64",%zx",
-                       &addr, &len) != 2) {
+            if (sscanf(packet, "m%" PRIx64 ",%zx", &addr, &len) != 2) {
                 send_error_msg();
                 break;
             }
 
-            if ((addr > hvt->mem_size) ||
-                add_overflow(addr, len, result) ||
+            if ((addr > hvt->mem_size) || add_overflow(addr, len, result) ||
                 (result > hvt->mem_size)) {
                 /* Don't panic about this, just return error so the debugger
                  * tries again. */
@@ -465,13 +471,12 @@ static void gdb_handle_exception(struct hvt *hvt, int sigval)
         case 'M': {
             /* Write memory content */
             assert(strlen(packet) <= sizeof(obuf));
-            if (sscanf(packet, "M%"PRIx64",%zx:%s", &addr, &len, obuf) != 3) {
+            if (sscanf(packet, "M%" PRIx64 ",%zx:%s", &addr, &len, obuf) != 3) {
                 send_error_msg();
                 break;
             }
 
-            if ((addr > hvt->mem_size) ||
-                add_overflow(addr, len, result) ||
+            if ((addr > hvt->mem_size) || add_overflow(addr, len, result) ||
                 (result > hvt->mem_size)) {
                 /* Don't panic about this, just return error so the debugger
                  * tries again. */
@@ -524,14 +529,13 @@ static void gdb_handle_exception(struct hvt *hvt, int sigval)
         case 'z': {
             /* Remove a breakpoint */
             packet++;
-            if (sscanf(packet, "%"PRIx32",%"PRIx64",%zx",
-                       &type, &addr, &len) != 3) {
+            if (sscanf(packet, "%" PRIx32 ",%" PRIx64 ",%zx", &type, &addr,
+                       &len) != 3) {
                 send_error_msg();
                 break;
             }
 
-            if ((addr > hvt->mem_size) ||
-                add_overflow(addr, len, result) ||
+            if ((addr > hvt->mem_size) || add_overflow(addr, len, result) ||
                 (result > hvt->mem_size)) {
                 /* Don't panic about this, just return error so the debugger
                  * tries again. */
@@ -591,7 +595,7 @@ static int handle_exit(struct hvt *hvt)
         /* Handle this exit in the vcpu loop */
         return -1;
 
-    switch(sigval) {
+    switch (sigval) {
     case GDB_SIGNAL_TRAP:
         gdb_handle_exception(hvt, sigval);
         return 0;
@@ -635,8 +639,8 @@ static int setup(struct hvt *hvt, struct mft *mft)
      * GDB clients can change memory, and software breakpoints work by
      * replacing instructions with int3's.
      */
-    if (mprotect(hvt->mem, hvt->mem_size,
-                 PROT_READ | PROT_WRITE | PROT_EXEC) == -1)
+    if (mprotect(hvt->mem, hvt->mem_size, PROT_READ | PROT_WRITE | PROT_EXEC) ==
+        -1)
         err(1, "GDB: Cannot remove guest memory protection");
 
     /* Notify the debugger that we are dying. */
@@ -665,11 +669,8 @@ static int handle_cmdarg(char *cmdarg, struct mft *mft)
 static char *usage(void)
 {
     return "--gdb (optional flag for running in a gdb debug session)\n"
-        "  [ --gdb-port=1234 ] (port to use) ";
+           "  [ --gdb-port=1234 ] (port to use) ";
 }
 
-DECLARE_MODULE(gdb,
-    .setup = setup,
-    .handle_cmdarg = handle_cmdarg,
-    .usage = usage
-)
+DECLARE_MODULE(gdb, .setup = setup, .handle_cmdarg = handle_cmdarg,
+               .usage = usage)

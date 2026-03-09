@@ -59,14 +59,10 @@ DECLARE_ELF_INTERP
  * The "ABI1" Solo5 ELF note is declared in this module.
  *
  */
-ABI1_NOTE_DECLARE_BEGIN
-{
-    .abi_target = HVT_ABI_TARGET,
-    .abi_version = HVT_ABI_VERSION
-}
-ABI1_NOTE_DECLARE_END
+ABI1_NOTE_DECLARE_BEGIN{.abi_target = HVT_ABI_TARGET,
+                        .abi_version = HVT_ABI_VERSION} ABI1_NOTE_DECLARE_END
 
-/*
- * Pretend that we are an OpenBSD executable. See elf_abi.h for details.
- */
-DECLARE_OPENBSD_NOTE
+    /*
+     * Pretend that we are an OpenBSD executable. See elf_abi.h for details.
+     */
+    DECLARE_OPENBSD_NOTE

@@ -27,37 +27,37 @@
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 
 solo5_result_t solo5_net_acquire(const char *name, solo5_handle_t *handle,
-	struct solo5_net_info *info)
+                                 struct solo5_net_info *info)
 {
     return SOLO5_R_EUNSPEC;
 }
 
 solo5_result_t solo5_net_write(solo5_handle_t handle, const uint8_t *buf,
-	size_t size)
+                               size_t size)
 {
     return SOLO5_R_EUNSPEC;
 }
 
 solo5_result_t solo5_net_read(solo5_handle_t handle, uint8_t *buf, size_t size,
-	size_t *read_size)
+                              size_t *read_size)
 {
     return SOLO5_R_EUNSPEC;
 }
 
 solo5_result_t solo5_block_acquire(const char *name, solo5_handle_t *handle,
-	struct solo5_block_info *info)
+                                   struct solo5_block_info *info)
 {
     return SOLO5_R_EUNSPEC;
 }
 
 solo5_result_t solo5_block_write(solo5_handle_t handle, solo5_off_t offset,
-	const uint8_t *buf, size_t size)
+                                 const uint8_t *buf, size_t size)
 {
     return SOLO5_R_EUNSPEC;
 }
 
-solo5_result_t solo5_block_read(solo5_handle_t handle,solo5_off_t offset,
-	uint8_t *buf, size_t size)
+solo5_result_t solo5_block_read(solo5_handle_t handle, solo5_off_t offset,
+                                uint8_t *buf, size_t size)
 {
     return SOLO5_R_EUNSPEC;
 }

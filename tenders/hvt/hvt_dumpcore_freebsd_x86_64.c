@@ -36,14 +36,12 @@
 
 size_t hvt_dumpcore_prstatus_size(void)
 {
-    return sizeof (prstatus_t);
+    return sizeof(prstatus_t);
 }
 
 static uint64_t vmm_get_reg(int vmfd, int reg)
 {
-    struct vm_register vmreg = {
-        .cpuid = 0, .regnum = reg
-    };
+    struct vm_register vmreg = {.cpuid = 0, .regnum = reg};
 
     if (ioctl(vmfd, VM_GET_REGISTER, &vmreg) == -1)
         err(1, "VM_GET_REGISTER (%d)", reg);
@@ -54,7 +52,7 @@ int hvt_dumpcore_write_prstatus(int fd, struct hvt *hvt, void *cookie)
 {
     struct hvt_b *hvb = hvt->b;
 
-    prstatus_t prstatus = { 0 };
+    prstatus_t prstatus = {0};
     /*
      * Force version to (1), in case there's every a new version with more
      * required fields. We only fill out a minimum of the prstatus_t structure.
@@ -63,8 +61,8 @@ int hvt_dumpcore_write_prstatus(int fd, struct hvt *hvt, void *cookie)
      * base system, however gdb from ports works fine.
      */
     prstatus.pr_version = 1;
-    prstatus.pr_statussz = sizeof (prstatus_t);
-    prstatus.pr_gregsetsz = sizeof (gregset_t);
+    prstatus.pr_statussz = sizeof(prstatus_t);
+    prstatus.pr_gregsetsz = sizeof(gregset_t);
 
     /*
      * prstatus_t.pr_reg is actually a (struct reg) in disguise.
@@ -116,8 +114,7 @@ int hvt_dumpcore_write_prstatus(int fd, struct hvt *hvt, void *cookie)
     if (nbytes < 0) {
         warn("dumpcore: Error writing prstatus");
         return -1;
-    }
-    else if (nbytes != sizeof prstatus) {
+    } else if (nbytes != sizeof prstatus) {
         warnx("dumpcore: Short write() writing prstatus: %zd", nbytes);
         return -1;
     }
