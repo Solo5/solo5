@@ -50,36 +50,54 @@ int mft_validate(const struct mft *mft, size_t mft_size);
  * The two versions of this function provided differ only in the const-ness of
  * the returned (*out_mft).
  */
-void mft_get_builtin_mft1_unconst(const struct mft1_note *note,
-        struct mft **out_mft, size_t *out_mft_size);
-void mft_get_builtin_mft1(const struct mft1_note *note,
-        const struct mft **out_mft, size_t *out_mft_size);
+void _mft_get_builtin_mft1(const struct mft1_note *note,
+                           const struct mft **out_mft, size_t *out_mft_size);
+void _mft_get_builtin_mft1_unconst(struct mft1_note *note, struct mft **out_mft,
+                                   size_t *out_mft_size);
+
+#define mft_get_builtin_mft1(X, out, size)                                     \
+  _Generic((X),                                                                \
+      const struct mft1_note *: _mft_get_builtin_mft1(                         \
+               (const struct mft1_note *)(X), (const struct mft **)(out),      \
+               size),                                                          \
+      struct mft1_note *: _mft_get_builtin_mft1_unconst(                       \
+               (struct mft1_note *)(uintptr_t)(X),                             \
+               (struct mft **)(uintptr_t)(out), size))
 
 /*
  * Return the manifest entry matching (name), of type (type), or NULL if none
  * found. If found, the array index of the manifest entry will be stored in
  * (*index).
  */
-struct mft_entry *_mft_get_by_name(const struct mft *mft, const char *name,
-        mft_type_t type, unsigned *index);
+const struct mft_entry *_mft_get_by_name(const struct mft *mft,
+                                         const char *name, mft_type_t type,
+                                         unsigned *index);
+struct mft_entry *_mft_get_by_name_unconst(struct mft *mft, const char *name,
+                                           mft_type_t type, unsigned *index);
 
-#define mft_get_by_name(X, name, type, index) _Generic((X), \
-  const struct mft *: (const struct mft_entry *)_mft_get_by_name(X, name, type, index), \
-  struct mft *: (struct mft_entry *)_mft_get_by_name(X, name, type, index) \
-)
+#define mft_get_by_name(X, name, type, index)                                  \
+  _Generic((X),                                                                \
+      const struct mft *: _mft_get_by_name((const struct mft *)(X), name,      \
+                                           type, index),                       \
+      struct mft *: _mft_get_by_name_unconst((struct mft *)(uintptr_t)(X),     \
+                                             name, type, index))
 
 /*
  * Return the manifest entry at (index), of type (type), or NULL if the entry
  * at (index) is not of type (type).
  */
 
-struct mft_entry *_mft_get_by_index(const struct mft *mft, unsigned index,
-        mft_type_t type);
+const struct mft_entry *_mft_get_by_index(const struct mft *mft, unsigned index,
+                                          mft_type_t type);
+struct mft_entry *_mft_get_by_index_unconst(struct mft *mft, unsigned index,
+                                            mft_type_t type);
 
-#define mft_get_by_index(X, index, type) _Generic((X), \
-  const struct mft *: (const struct mft_entry *)_mft_get_by_index(X, index, type), \
-  struct mft *: (struct mft_entry *)_mft_get_by_index(X, index, type) \
-)
+#define mft_get_by_index(X, index, type)                                       \
+  _Generic((X),                                                                \
+      const struct mft *: _mft_get_by_index((const struct mft *)(X), index,    \
+                                            type),                             \
+      struct mft *: _mft_get_by_index_unconst((struct mft *)(uintptr_t)(X),    \
+                                              index, type))
 
 /*
  * Return a string representation of (type).
