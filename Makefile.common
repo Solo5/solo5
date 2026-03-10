@@ -30,7 +30,7 @@ include $(TOPDIR)/Makeconf
 # target.
 #
 CC := __V=$(V) $(TOPDIR)/toolchain/bin/$(CONFIG_TARGET_TRIPLE)-cc
-CFLAGS := -std=c11 -Wall -Wshadow -Wpointer-arith -Wcast-qual -Wsign-compare -Wextra -Werror -O2 -g
+CFLAGS := -std=c11 -Wall -Wshadow -Wpointer-arith -Wcast-qual -Wsign-compare -Wwrite-strings -Wextra -Werror -O2 -g
 CPPFLAGS :=
 LD := __V=$(V) $(TOPDIR)/toolchain/bin/$(CONFIG_TARGET_TRIPLE)-ld
 LDFLAGS :=
