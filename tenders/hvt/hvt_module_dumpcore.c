@@ -154,14 +154,14 @@ void hvt_dumpcore_hook(struct hvt *hvt, int status, void *cookie)
         .n_descsz = hvt_dumpcore_prstatus_size(),
     };
 
-    struct iovec iov[] = {
+    const struct iovec iov[] = {
         { .iov_base = &ehdr, .iov_len = sizeof ehdr },
         { .iov_base = &pnote, .iov_len = sizeof pnote },
         { .iov_base = &pload, .iov_len = sizeof pload },
         { .iov_base = &nhdr, .iov_len = sizeof nhdr },
-        { .iov_base = (void *)name, .iov_len = nhdr.n_namesz }
+        { .iov_base = (void *)(uintptr_t)name, .iov_len = nhdr.n_namesz }
     };
-    size_t iovlen = sizeof ehdr + sizeof pnote + sizeof pload + sizeof nhdr \
+    ssize_t iovlen = sizeof ehdr + sizeof pnote + sizeof pload + sizeof nhdr \
                     + nhdr.n_namesz;
     if (writev(fd, iov, 5) != iovlen) {
         warn("dumpcore: Error writing ELF headers");

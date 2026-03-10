@@ -33,7 +33,7 @@ void platform_init(const void *arg)
      * The multiboot structures may be anywhere in memory, so take a copy of
      * the command line before we initialise memory allocation.
      */
-    const struct multiboot_info *mi = (struct multiboot_info *)arg;
+    const struct multiboot_info *mi = (const struct multiboot_info *)arg;
 
     if (mi->flags & MULTIBOOT_INFO_CMDLINE) {
         char *mi_cmdline = (char *)(uint64_t)mi->cmdline;

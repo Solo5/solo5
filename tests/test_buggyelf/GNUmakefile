@@ -20,5 +20,6 @@ test_NAME := test_buggyelf
 
 # Nothing to build here, the buggy ELF file has been crafted using fuzzing
 
-.PHONY: all
+.PHONY: all clean
 all:
+clean:
