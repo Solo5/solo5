@@ -60,7 +60,7 @@ void spt_run(struct spt *spt, uint64_t p_entry);
 struct spt_module_ops {
     int (*setup)(struct spt *spt, struct mft *mft);
     int (*handle_cmdarg)(char *cmdarg, struct mft *mft);
-    char *(*usage)(void);
+    const char *(*usage)(void);
 };
 
 struct spt_module {

@@ -44,7 +44,7 @@ extern const struct mft1_note __solo5_mft1_note;
  * Will be initialised at start-up, and used by bindings to access (and
  * modify!) the in-built manifest.
  */
-struct mft *xen_manifest = NULL;
+const struct mft *xen_manifest = NULL;
 
 static void _start2(void *arg __attribute__((unused)))
 {
@@ -62,9 +62,9 @@ static void _start2(void *arg __attribute__((unused)))
      * Get the built-in manifest out of the ELF NOTE and validate it.
      * Once validated, it is available for access globally by the bindings.
      */
-    struct mft *mft;
+    const struct mft *mft;
     size_t mft_size;
-    mft_get_builtin_mft1_unconst(&__solo5_mft1_note, &mft, &mft_size);
+    mft_get_builtin_mft1(&__solo5_mft1_note, &mft, &mft_size);
     if (mft_validate(mft, mft_size) != 0) {
         log(ERROR, "Solo5: Built-in manifest validation failed. Aborting.\n");
         solo5_abort();

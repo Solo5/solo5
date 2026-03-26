@@ -164,7 +164,7 @@ static int setup(struct spt *spt, struct mft *mft)
     return 0;
 }
 
-static char *usage(void)
+static const char *usage(void)
 {
     return "--block:NAME=PATH (attach block device/file at PATH as block storage NAME)\n"
 	"  [ --block-sector-size:NAME=SECTORSIZE ] (set sector size for block device NAME; must be a power of two greater than or equal 512)";

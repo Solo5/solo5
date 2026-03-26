@@ -30,8 +30,8 @@
 
 struct hvt_b {
     int      vmd_fd;
-    uint32_t vcp_id;
-    uint32_t vcpu_id;
+    int32_t  vcp_id;
+    int32_t  vcpu_id;
 };
 
 #endif /* HVT_HV_OPENBSD_H */

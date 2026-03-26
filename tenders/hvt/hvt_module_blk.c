@@ -48,7 +48,7 @@ static void hypercall_block_write(struct hvt *hvt, hvt_gpa_t gpa)
 {
     struct hvt_hc_block_write *wr =
         HVT_CHECKED_GPA_P(hvt, gpa, sizeof (struct hvt_hc_block_write));
-    struct mft_entry *e = mft_get_by_index(host_mft, wr->handle,
+    const struct mft_entry *e = mft_get_by_index(host_mft, wr->handle,
             MFT_DEV_BLOCK_BASIC);
     if (e == NULL) {
         wr->ret = SOLO5_R_EINVAL;
@@ -64,18 +64,18 @@ static void hypercall_block_write(struct hvt *hvt, hvt_gpa_t gpa)
     }
     pos = wr->offset;
     if (add_overflow(pos, wr->len, end)
-            || (end > e->u.block_basic.capacity)) {
+            || (end > (off_t) e->u.block_basic.capacity)) {
         wr->ret = SOLO5_R_EINVAL;
         return;
     }
 
     ret = pwrite(e->b.hostfd, HVT_CHECKED_GPA_P(hvt, wr->data, wr->len),
             wr->len, pos);
-    if (ret != wr->len) {
-        if (ret == -1)
-            fprintf(stderr, "Fatal error when writing: %s\n", strerror(errno));
-        else
-            fprintf(stderr, "Fatal error: wrote only %ld out of %ld bytes\n",
+    if (ret == -1) {
+        fprintf(stderr, "Fatal error when writing: %s\n", strerror(errno));
+        exit(1);
+    } else if ((size_t) ret != wr->len) {
+        fprintf(stderr, "Fatal error: wrote only %ld out of %ld bytes\n",
                 ret, wr->len);
         exit(1);
     }
@@ -86,7 +86,7 @@ static void hypercall_block_read(struct hvt *hvt, hvt_gpa_t gpa)
 {
     struct hvt_hc_block_read *rd =
         HVT_CHECKED_GPA_P(hvt, gpa, sizeof (struct hvt_hc_block_read));
-    struct mft_entry *e = mft_get_by_index(host_mft, rd->handle,
+    const struct mft_entry *e = mft_get_by_index(host_mft, rd->handle,
             MFT_DEV_BLOCK_BASIC);
     if (e == NULL) {
         rd->ret = SOLO5_R_EINVAL;
@@ -102,18 +102,18 @@ static void hypercall_block_read(struct hvt *hvt, hvt_gpa_t gpa)
     }
     pos = rd->offset;
     if (add_overflow(pos, rd->len, end)
-            || (end > e->u.block_basic.capacity)) {
+            || (end > (off_t) e->u.block_basic.capacity)) {
         rd->ret = SOLO5_R_EINVAL;
         return;
     }
 
     ret = pread(e->b.hostfd, HVT_CHECKED_GPA_P(hvt, rd->data, rd->len), rd->len,
             pos);
-    if (ret != rd->len) {
-        if (ret == -1)
-            fprintf(stderr, "Fatal error when reading: %s\n", strerror(errno));
-        else
-            fprintf(stderr, "Fatal error: read only %ld out of %ld bytes\n",
+    if (ret == -1) {
+        fprintf(stderr, "Fatal error when reading: %s\n", strerror(errno));
+        exit(1);
+    } else if ((size_t) ret != rd->len) {
+        fprintf(stderr, "Fatal error: read only %ld out of %ld bytes\n",
                 ret, rd->len);
         exit(1);
     }
@@ -229,7 +229,7 @@ static int setup(struct hvt *hvt, struct mft *mft)
     return 0;
 }
 
-static char *usage(void)
+static const char *usage(void)
 {
     return "--block:NAME=PATH (attach block device/file at PATH as block storage NAME)\n"
 	"  [ --block-sector-size:NAME=SECTORSIZE ] (set sector size for block device NAME; must be a power of two greater than or equal 512)";
