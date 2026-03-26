@@ -39,6 +39,14 @@
  */
 int mft_validate(const struct mft *mft, size_t mft_size);
 
+/* If PTR is a pointer to const, return CALL cast to type CTYPE,
+ * otherwise return CALL.  Pointers to types with non-const qualifiers
+ * are not valid.
+ *
+ * NOTE(dinosaure): for more details, see:
+ * - https://inbox.sourceware.org/libc-alpha/mvm5x8wpsmi.fsf@suse.de/T/
+ * - and https://www.open-std.org/jtc1/sc22/wg14/www/docs/n2973.pdf
+ */
 #define __const_generic(PTR, CTYPE, CALL) \
   _Generic (0 ? (PTR) : (void *) 1,       \
       const void *: (CTYPE) (CALL),       \
