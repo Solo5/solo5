@@ -20,8 +20,8 @@
 
 #include "bindings.h"
 
-#define PIC1 0x20        /* IO base address for master PIC */
-#define PIC2 0xA0        /* IO base address for slave PIC */
+#define PIC1             0x20 /* IO base address for master PIC */
+#define PIC2             0xA0 /* IO base address for slave PIC */
 #define PIC1_COMMAND     PIC1
 #define PIC1_DATA        (PIC1 + 1)
 #define PIC2_COMMAND     PIC2
@@ -42,7 +42,9 @@
 #define ICW4_BUF_MASTER 0x0C /* Buffered mode/master */
 #define ICW4_SFN        0x10 /* Special fully nested (not) */
 
-#define io_wait() do { } while (0)
+#define io_wait()                                                              \
+    do {                                                                       \
+    } while (0)
 
 /*
  * arguments:
@@ -59,9 +61,9 @@ static void PIC_remap(int offset1, int offset2)
     a2 = inb(PIC2_DATA);
 
     /* start init seq (cascade) */
-    outb(PIC1_COMMAND, ICW1_INIT+ICW1_ICW4);
+    outb(PIC1_COMMAND, ICW1_INIT + ICW1_ICW4);
     io_wait();
-    outb(PIC2_COMMAND, ICW1_INIT+ICW1_ICW4);
+    outb(PIC2_COMMAND, ICW1_INIT + ICW1_ICW4);
     io_wait();
     /* ICW2: Master PIC vector off */
     outb(PIC1_DATA, offset1);
@@ -81,7 +83,7 @@ static void PIC_remap(int offset1, int offset2)
     outb(PIC2_DATA, ICW4_8086);
     io_wait();
 
-    outb(PIC1_DATA, a1);   /* restore saved masks. */
+    outb(PIC1_DATA, a1); /* restore saved masks. */
     outb(PIC2_DATA, a2);
 }
 

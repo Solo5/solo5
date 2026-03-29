@@ -24,7 +24,7 @@
 struct time_info_type {
     uint64_t tsc_time_base;
     uint64_t tsc_tick_rate_hz;
-    int64_t  timezone_microsecs;
+    int64_t timezone_microsecs;
 } __attribute__((packed));
 
 #endif

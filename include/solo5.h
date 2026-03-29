@@ -110,9 +110,9 @@ int solo5_app_main(const struct solo5_start_info *info);
  *
  * Status values of 255 and above are reserved for use by Solo5.
  */
-#define SOLO5_EXIT_SUCCESS	0
-#define SOLO5_EXIT_FAILURE	1
-#define SOLO5_EXIT_ABORT	255
+#define SOLO5_EXIT_SUCCESS 0
+#define SOLO5_EXIT_FAILURE 1
+#define SOLO5_EXIT_ABORT   255
 
 void solo5_exit(int status) __attribute__((noreturn));
 
@@ -248,15 +248,15 @@ void solo5_console_write(const char *buf, size_t size);
 /*
  * Ethernet address length in bytes.
  */
-#define SOLO5_NET_ALEN          6
+#define SOLO5_NET_ALEN 6
 /*
  * Ethernet frame header (target, source, type) length in bytes.
  */
-#define SOLO5_NET_HLEN          14
+#define SOLO5_NET_HLEN 14
 
 struct solo5_net_info {
     uint8_t mac_address[SOLO5_NET_ALEN];
-    size_t mtu;                 /* Not including Ethernet header */
+    size_t mtu; /* Not including Ethernet header */
 };
 
 /*
@@ -267,7 +267,7 @@ struct solo5_net_info {
  * once for each device (name). Subsequent calls will return SOLO5_R_EINVAL.
  */
 solo5_result_t solo5_net_acquire(const char *name, solo5_handle_t *handle,
-        struct solo5_net_info *info);
+                                 struct solo5_net_info *info);
 
 /*
  * Sends a single network packet to the network device identified by (handle),
@@ -279,7 +279,7 @@ solo5_result_t solo5_net_acquire(const char *name, solo5_handle_t *handle,
  * SOLO5_NET_HLEN). The packet must include the ethernet frame header.
  */
 solo5_result_t solo5_net_write(solo5_handle_t handle, const uint8_t *buf,
-        size_t size);
+                               size_t size);
 
 /*
  * Receives a single network packet from the network device identified by
@@ -291,8 +291,8 @@ solo5_result_t solo5_net_write(solo5_handle_t handle, const uint8_t *buf,
  * SOLO5_R_OK and the size of the received packet including the ethernet frame
  * header in (*read_size).
  */
-solo5_result_t solo5_net_read(solo5_handle_t handle, uint8_t *buf,
-        size_t size, size_t *read_size);
+solo5_result_t solo5_net_read(solo5_handle_t handle, uint8_t *buf, size_t size,
+                              size_t *read_size);
 
 /*
  * Block I/O.
@@ -311,8 +311,8 @@ solo5_result_t solo5_net_read(solo5_handle_t handle, uint8_t *buf,
 typedef uint64_t solo5_off_t;
 
 struct solo5_block_info {
-    solo5_off_t capacity;       /* Capacity of block device, bytes */
-    solo5_off_t block_size;     /* Minimum I/O unit (block size), bytes */
+    solo5_off_t capacity; /* Capacity of block device, bytes */
+    solo5_off_t block_size; /* Minimum I/O unit (block size), bytes */
 };
 
 /*
@@ -323,7 +323,7 @@ struct solo5_block_info {
  * device (name). Subsequent calls will return SOLO5_R_EINVAL.
  */
 solo5_result_t solo5_block_acquire(const char *name, solo5_handle_t *handle,
-        struct solo5_block_info *info);
+                                   struct solo5_block_info *info);
 
 /*
  * Writes data of (size) bytes from the buffer (*buf) to the block device
@@ -337,7 +337,7 @@ solo5_result_t solo5_block_acquire(const char *name, solo5_handle_t *handle,
  * single block.
  */
 solo5_result_t solo5_block_write(solo5_handle_t handle, solo5_off_t offset,
-        const uint8_t *buf, size_t size);
+                                 const uint8_t *buf, size_t size);
 
 /*
  * Reads data of (size) bytes into the buffer (*buf) from the block device
@@ -351,6 +351,6 @@ solo5_result_t solo5_block_write(solo5_handle_t handle, solo5_off_t offset,
  * single block.
  */
 solo5_result_t solo5_block_read(solo5_handle_t handle, solo5_off_t offset,
-        uint8_t *buf, size_t size);
+                                uint8_t *buf, size_t size);
 
 #endif

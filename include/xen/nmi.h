@@ -33,20 +33,20 @@
  * NMI reason codes:
  * Currently these are x86-specific, stored in arch_shared_info.nmi_reason.
  */
- /* I/O-check error reported via ISA port 0x61, bit 6. */
-#define _XEN_NMIREASON_io_error     0
-#define XEN_NMIREASON_io_error      (1UL << _XEN_NMIREASON_io_error)
- /* PCI SERR reported via ISA port 0x61, bit 7. */
-#define _XEN_NMIREASON_pci_serr     1
-#define XEN_NMIREASON_pci_serr      (1UL << _XEN_NMIREASON_pci_serr)
+/* I/O-check error reported via ISA port 0x61, bit 6. */
+#define _XEN_NMIREASON_io_error 0
+#define XEN_NMIREASON_io_error  (1UL << _XEN_NMIREASON_io_error)
+/* PCI SERR reported via ISA port 0x61, bit 7. */
+#define _XEN_NMIREASON_pci_serr 1
+#define XEN_NMIREASON_pci_serr  (1UL << _XEN_NMIREASON_pci_serr)
 #if __XEN_INTERFACE_VERSION__ < 0x00040300 /* legacy alias of the above */
- /* Parity error reported via ISA port 0x61, bit 7. */
+/* Parity error reported via ISA port 0x61, bit 7. */
 #define _XEN_NMIREASON_parity_error 1
 #define XEN_NMIREASON_parity_error  (1UL << _XEN_NMIREASON_parity_error)
 #endif
- /* Unknown hardware-generated NMI. */
-#define _XEN_NMIREASON_unknown      2
-#define XEN_NMIREASON_unknown       (1UL << _XEN_NMIREASON_unknown)
+/* Unknown hardware-generated NMI. */
+#define _XEN_NMIREASON_unknown 2
+#define XEN_NMIREASON_unknown  (1UL << _XEN_NMIREASON_unknown)
 
 /*
  * long nmi_op(unsigned int cmd, void *arg)
@@ -58,7 +58,7 @@
  * sense for domain 0, vcpu 0. All other callers will be returned EINVAL.
  * arg == pointer to xennmi_callback structure.
  */
-#define XENNMI_register_callback   0
+#define XENNMI_register_callback 0
 struct xennmi_callback {
     unsigned long handler_address;
     unsigned long pad;

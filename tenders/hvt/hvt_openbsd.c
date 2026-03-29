@@ -62,7 +62,7 @@ static struct hvt *cleanup_hvt;
 static void cleanup_vmd_fd(void)
 {
     if (cleanup_hvt != NULL && cleanup_hvt->b->vmd_fd != -1) {
-        if(close(cleanup_hvt->b->vmd_fd) == -1)
+        if (close(cleanup_hvt->b->vmd_fd) == -1)
             warn("close vmd_fd failed - still exiting");
     }
 }
@@ -86,16 +86,16 @@ struct hvt *hvt_init(size_t mem_size)
     void *p;
 #endif
 
-    if(geteuid() != 0) {
+    if (geteuid() != 0) {
         errno = EPERM;
         err(1, "need root privileges");
     }
 
-    hvt = calloc(1, sizeof (struct hvt));
+    hvt = calloc(1, sizeof(struct hvt));
     if (hvt == NULL)
         err(1, "calloc hv");
 
-    hvb = calloc(1, sizeof (struct hvt_b));
+    hvb = calloc(1, sizeof(struct hvt_b));
     if (hvb == NULL)
         err(1, "calloc");
 
@@ -109,7 +109,7 @@ struct hvt *hvt_init(size_t mem_size)
     cleanup_hvt = hvt;
     atexit(cleanup_vmd_fd);
 
-    vcp = calloc(1, sizeof (struct vm_create_params));
+    vcp = calloc(1, sizeof(struct vm_create_params));
     if (vcp == NULL)
         err(1, "calloc");
 
@@ -125,7 +125,7 @@ struct hvt *hvt_init(size_t mem_size)
     vmr = &vcp->vcp_memranges[0];
 #if OpenBSD <= 202504
     p = mmap(NULL, vmr->vmr_size, PROT_READ | PROT_WRITE,
-        MAP_PRIVATE | MAP_ANON, -1, 0);
+             MAP_PRIVATE | MAP_ANON, -1, 0);
     if (p == MAP_FAILED)
         err(1, "mmap");
 
@@ -164,9 +164,8 @@ void hvt_drop_privileges()
     if (chdir("/") == -1)
         err(1, "chdir(/)");
 
-    if (setgroups(1, &gid) ||
-            setresgid(gid, gid, gid) ||
-            setresuid(uid, uid, uid))
+    if (setgroups(1, &gid) || setresgid(gid, gid, gid) ||
+        setresuid(uid, uid, uid))
         err(1, "unable to revoke privs");
 
     /*
@@ -180,7 +179,7 @@ void hvt_drop_privileges()
 #endif
 
 int hvt_guest_mprotect(void *t_arg, uint64_t addr_start, uint64_t addr_end,
-        int prot)
+                       int prot)
 {
     struct hvt *hvt = t_arg;
 
@@ -203,7 +202,7 @@ int hvt_guest_mprotect(void *t_arg, uint64_t addr_start, uint64_t addr_end,
     int host_prot = prot;
     host_prot &= ~(PROT_EXEC);
     host_prot |= PROT_READ;
-    if(mprotect(vaddr_start, size, host_prot) == -1)
+    if (mprotect(vaddr_start, size, host_prot) == -1)
         return -1;
 
     /*
@@ -212,7 +211,7 @@ int hvt_guest_mprotect(void *t_arg, uint64_t addr_start, uint64_t addr_end,
     struct hvt_b *hvb = hvt->b;
     struct vm_mprotect_ept_params *vmep;
 
-    vmep = calloc(1, sizeof (struct vm_mprotect_ept_params));
+    vmep = calloc(1, sizeof(struct vm_mprotect_ept_params));
     if (vmep == NULL) {
         warn("calloc");
         return -1;
@@ -226,7 +225,7 @@ int hvt_guest_mprotect(void *t_arg, uint64_t addr_start, uint64_t addr_end,
     vmep->vmep_prot = prot;
 
     if (ioctl(hvb->vmd_fd, VMM_IOC_MPROTECT_EPT, vmep) < 0) {
-       err(1, "mprotect ept vmm ioctl failed - exiting");
+        err(1, "mprotect ept vmm ioctl failed - exiting");
     }
 #endif
     return 0;

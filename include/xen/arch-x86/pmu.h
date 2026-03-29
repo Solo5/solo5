@@ -49,11 +49,11 @@ typedef struct xen_pmu_cntr_pair xen_pmu_cntr_pair_t;
 DEFINE_XEN_GUEST_HANDLE(xen_pmu_cntr_pair_t);
 
 struct xen_pmu_intel_ctxt {
-   /*
-    * Offsets to fixed and architectural counter MSRs (relative to
-    * xen_pmu_arch.c.intel).
-    * For PV(H) guests these fields are RO.
-    */
+    /*
+     * Offsets to fixed and architectural counter MSRs (relative to
+     * xen_pmu_arch.c.intel).
+     * For PV(H) guests these fields are RO.
+     */
     uint32_t fixed_counters;
     uint32_t arch_counters;
 
@@ -86,10 +86,10 @@ typedef struct xen_pmu_regs xen_pmu_regs_t;
 DEFINE_XEN_GUEST_HANDLE(xen_pmu_regs_t);
 
 /* PMU flags */
-#define PMU_CACHED         (1<<0) /* PMU MSRs are cached in the context */
-#define PMU_SAMPLE_USER    (1<<1) /* Sample is from user or kernel mode */
-#define PMU_SAMPLE_REAL    (1<<2) /* Sample is from realmode */
-#define PMU_SAMPLE_PV      (1<<3) /* Sample from a PV guest */
+#define PMU_CACHED      (1 << 0) /* PMU MSRs are cached in the context */
+#define PMU_SAMPLE_USER (1 << 1) /* Sample is from user or kernel mode */
+#define PMU_SAMPLE_REAL (1 << 2) /* Sample is from realmode */
+#define PMU_SAMPLE_PV   (1 << 3) /* Sample from a PV guest */
 
 /*
  * Architecture-specific information describing state of the processor at
@@ -107,7 +107,7 @@ struct xen_pmu_arch {
          */
         struct xen_pmu_regs regs;
         /* Padding for adding new registers to xen_pmu_regs in the future */
-#define XENPMU_REGS_PAD_SZ  64
+#define XENPMU_REGS_PAD_SZ 64
         uint8_t pad[XENPMU_REGS_PAD_SZ];
     } r;
 
@@ -139,7 +139,7 @@ struct xen_pmu_arch {
          * Padding for contexts (fixed parts only, does not include MSR banks
          * that are specified by offsets)
          */
-#define XENPMU_CTXT_PAD_SZ  128
+#define XENPMU_CTXT_PAD_SZ 128
         uint8_t pad[XENPMU_CTXT_PAD_SZ];
     } c;
 };
@@ -156,4 +156,3 @@ DEFINE_XEN_GUEST_HANDLE(xen_pmu_arch_t);
  * indent-tabs-mode: nil
  * End:
  */
-

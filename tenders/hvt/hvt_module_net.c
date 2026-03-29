@@ -46,9 +46,9 @@ static struct mft *host_mft;
 static void hypercall_net_write(struct hvt *hvt, hvt_gpa_t gpa)
 {
     struct hvt_hc_net_write *wr =
-        HVT_CHECKED_GPA_P(hvt, gpa, sizeof (struct hvt_hc_net_write));
-    struct mft_entry *e = mft_get_by_index(host_mft, wr->handle,
-            MFT_DEV_NET_BASIC);
+        HVT_CHECKED_GPA_P(hvt, gpa, sizeof(struct hvt_hc_net_write));
+    struct mft_entry *e =
+        mft_get_by_index(host_mft, wr->handle, MFT_DEV_NET_BASIC);
     if (e == NULL) {
         wr->ret = SOLO5_R_EINVAL;
         return;
@@ -56,14 +56,14 @@ static void hypercall_net_write(struct hvt *hvt, hvt_gpa_t gpa)
 
     ssize_t ret;
 
-    ret = write(e->b.hostfd, HVT_CHECKED_GPA_P(hvt, wr->data, wr->len),
-            wr->len);
+    ret =
+        write(e->b.hostfd, HVT_CHECKED_GPA_P(hvt, wr->data, wr->len), wr->len);
     if (ret == -1) {
         fprintf(stderr, "Fatal error when writing: %s\n", strerror(errno));
         exit(1);
-    } else if ((size_t) ret != wr->len) {
-        fprintf(stderr, "Fatal error: wrote only %ld out of %ld bytes\n",
-                ret, wr->len);
+    } else if ((size_t)ret != wr->len) {
+        fprintf(stderr, "Fatal error: wrote only %ld out of %ld bytes\n", ret,
+                wr->len);
         exit(1);
     }
     wr->ret = SOLO5_R_OK;
@@ -72,9 +72,9 @@ static void hypercall_net_write(struct hvt *hvt, hvt_gpa_t gpa)
 static void hypercall_net_read(struct hvt *hvt, hvt_gpa_t gpa)
 {
     struct hvt_hc_net_read *rd =
-        HVT_CHECKED_GPA_P(hvt, gpa, sizeof (struct hvt_hc_net_read));
-    struct mft_entry *e = mft_get_by_index(host_mft, rd->handle,
-            MFT_DEV_NET_BASIC);
+        HVT_CHECKED_GPA_P(hvt, gpa, sizeof(struct hvt_hc_net_read));
+    struct mft_entry *e =
+        mft_get_by_index(host_mft, rd->handle, MFT_DEV_NET_BASIC);
     if (e == NULL) {
         rd->ret = SOLO5_R_EINVAL;
         return;
@@ -83,8 +83,7 @@ static void hypercall_net_read(struct hvt *hvt, hvt_gpa_t gpa)
     ssize_t ret;
 
     ret = read(e->b.hostfd, HVT_CHECKED_GPA_P(hvt, rd->data, rd->len), rd->len);
-    if ((ret == 0) ||
-        (ret == -1 && errno == EAGAIN)) {
+    if ((ret == 0) || (ret == -1 && errno == EAGAIN)) {
         rd->ret = SOLO5_R_AGAIN;
         return;
     }
@@ -101,10 +100,7 @@ static void hypercall_net_read(struct hvt *hvt, hvt_gpa_t gpa)
 
 static int handle_cmdarg(char *cmdarg, struct mft *mft)
 {
-    enum {
-        opt_net,
-        opt_net_mac
-    } which;
+    enum { opt_net, opt_net_mac } which;
 
     if (strncmp("--net:", cmdarg, 6) == 0)
         which = opt_net;
@@ -118,12 +114,13 @@ static int handle_cmdarg(char *cmdarg, struct mft *mft)
     int rc;
     if (which == opt_net) {
         rc = sscanf(cmdarg,
-                "--net:%" XSTR(MFT_NAME_MAX) "[A-Za-z0-9]="
-                "%19s", name, iface);
+                    "--net:%" XSTR(MFT_NAME_MAX) "[A-Za-z0-9]="
+                                                 "%19s",
+                    name, iface);
         if (rc != 2)
             return -1;
-        struct mft_entry *e = mft_get_by_name(mft, name, MFT_DEV_NET_BASIC,
-                NULL);
+        struct mft_entry *e =
+            mft_get_by_name(mft, name, MFT_DEV_NET_BASIC, NULL);
         if (e == NULL) {
             warnx("Resource not declared in manifest: '%s'", name);
             return -1;
@@ -142,19 +139,19 @@ static int handle_cmdarg(char *cmdarg, struct mft *mft)
         e->b.hostfd = fd;
         e->attached = true;
         module_in_use = true;
-    }
-    else if (which == opt_net_mac) {
+    } else if (which == opt_net_mac) {
         uint8_t mac[6];
         rc = sscanf(cmdarg,
-                "--net-mac:%" XSTR(MFT_NAME_MAX) "[A-Za-z0-9]="
-                "%02"SCNx8":%02"SCNx8":%02"SCNx8":"
-                "%02"SCNx8":%02"SCNx8":%02"SCNx8,
-                name,
-                &mac[0], &mac[1], &mac[2], &mac[3], &mac[4], &mac[5]);
+                    "--net-mac:%" XSTR(MFT_NAME_MAX) "[A-Za-z0-9]="
+                                                     "%02" SCNx8 ":%02" SCNx8
+                                                     ":%02" SCNx8 ":"
+                                                     "%02" SCNx8 ":%02" SCNx8
+                                                     ":%02" SCNx8,
+                    name, &mac[0], &mac[1], &mac[2], &mac[3], &mac[4], &mac[5]);
         if (rc != 7)
             return -1;
-        struct mft_entry *e = mft_get_by_name(mft, name, MFT_DEV_NET_BASIC,
-                NULL);
+        struct mft_entry *e =
+            mft_get_by_name(mft, name, MFT_DEV_NET_BASIC, NULL);
         if (e == NULL) {
             warnx("Resource not declared in manifest: '%s'", name);
             return -1;
@@ -172,14 +169,14 @@ static int setup(struct hvt *hvt, struct mft *mft)
 
     host_mft = mft;
     assert(hvt_core_register_hypercall(HVT_HYPERCALL_NET_WRITE,
-                hypercall_net_write) == 0);
+                                       hypercall_net_write) == 0);
     assert(hvt_core_register_hypercall(HVT_HYPERCALL_NET_READ,
-                hypercall_net_read) == 0);
+                                       hypercall_net_read) == 0);
 
     for (unsigned i = 0; i != mft->entries; i++) {
         if (mft->e[i].type != MFT_DEV_NET_BASIC || !mft->e[i].attached)
             continue;
-        char no_mac[6] = { 0 };
+        char no_mac[6] = {0};
         if (memcmp(mft->e[i].u.net_basic.mac, no_mac, sizeof no_mac) == 0)
             tap_attach_genmac(mft->e[i].u.net_basic.mac);
         assert(hvt_core_register_pollfd(mft->e[i].b.hostfd, i) == 0);
@@ -197,12 +194,10 @@ static int setup(struct hvt *hvt, struct mft *mft)
 
 static const char *usage(void)
 {
-    return "--net:NAME=IFACE | @NN (attach tap at IFACE or at fd @NN as network NAME)\n"
-        "  [ --net-mac:NAME=HWADDR ] (set HWADDR for network NAME)";
+    return "--net:NAME=IFACE | @NN (attach tap at IFACE or at fd @NN as "
+           "network NAME)\n"
+           "  [ --net-mac:NAME=HWADDR ] (set HWADDR for network NAME)";
 }
 
-DECLARE_MODULE(net,
-    .setup = setup,
-    .handle_cmdarg = handle_cmdarg,
-    .usage = usage
-)
+DECLARE_MODULE(net, .setup = setup, .handle_cmdarg = handle_cmdarg,
+               .usage = usage)

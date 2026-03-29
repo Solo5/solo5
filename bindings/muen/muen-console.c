@@ -51,8 +51,7 @@ int platform_puts(const char *buf, int n)
     int i;
 
     for (i = 0; i < n; i++) {
-        if (buf[i] && buf[i] != 0x0d)
-        {
+        if (buf[i] && buf[i] != 0x0d) {
             msg_buffer.data[msg_index] = buf[i];
             if (msg_index == 55 || buf[i] == 0x0a)
                 flush();
@@ -71,8 +70,8 @@ void solo5_console_write(const char *buf, size_t size)
 
 void console_init(void)
 {
-    const struct muen_resource_type *const
-        channel = muen_get_resource("debuglog", MUEN_RES_MEMORY);
+    const struct muen_resource_type *const channel =
+        muen_get_resource("debuglog", MUEN_RES_MEMORY);
     uint64_t epoch;
 
     if (!channel) {
@@ -80,11 +79,13 @@ void console_init(void)
     }
 
     clear_buffer();
-    epoch        = muen_get_sched_start();
-    channel_out  = (struct muchannel *)(channel->data.mem.address);
-    muen_channel_init_writer(channel_out, DEBUGLOG_PROTO, sizeof(struct log_msg),
-                             channel->data.mem.size, epoch);
-    log(INFO, "Solo5: Console: Muen Channel @ 0x%llx, size 0x%llx, epoch 0x%llx\n",
+    epoch = muen_get_sched_start();
+    channel_out = (struct muchannel *)(channel->data.mem.address);
+    muen_channel_init_writer(channel_out, DEBUGLOG_PROTO,
+                             sizeof(struct log_msg), channel->data.mem.size,
+                             epoch);
+    log(INFO,
+        "Solo5: Console: Muen Channel @ 0x%llx, size 0x%llx, epoch 0x%llx\n",
         (unsigned long long)channel->data.mem.address,
         (unsigned long long)channel->data.mem.size, (unsigned long long)epoch);
 }

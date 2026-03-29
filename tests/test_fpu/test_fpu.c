@@ -38,46 +38,38 @@ int solo5_app_main(const struct solo5_start_info *si __attribute__((unused)))
     c[3] = 8.0;
 
 #if defined(__x86_64__)
-     __asm__ (
-         "movaps %0,%%xmm1;"
-         "mulps %%xmm1, %%xmm1;"
-         "movaps %%xmm1, %0"
-         : "=m" (c)
-         : "m" (c)
-         : "xmm1"
-    );
+    __asm__("movaps %0,%%xmm1;"
+            "mulps %%xmm1, %%xmm1;"
+            "movaps %%xmm1, %0"
+            : "=m"(c)
+            : "m"(c)
+            : "xmm1");
 #elif defined(__aarch64__)
 #if defined(__clang__)
-    __asm__(
-        "ld1.4s {v0}, %0\n"
-        "ld1.4s {v0}, %0\n"
-        "fmul v0.4s, v1.4s, v0.4s\n"
-        "st1.4s {v0}, %0\n"
-        : "=m" (c)
-        : "m" (c)
-        : "v0", "v1"
-    );
+    __asm__("ld1.4s {v0}, %0\n"
+            "ld1.4s {v0}, %0\n"
+            "fmul v0.4s, v1.4s, v0.4s\n"
+            "st1.4s {v0}, %0\n"
+            : "=m"(c)
+            : "m"(c)
+            : "v0", "v1");
 #else
-    __asm__(
-        "ldr q0, %0\n"
-        "ldr q1, %0\n"
-        "fmul v0.4s, v1.4s, v0.4s\n"
-        "str q0, %0\n"
-        : "=m" (c)
-        : "m" (c)
-        : "q0", "q1", "v0"
-    );
+    __asm__("ldr q0, %0\n"
+            "ldr q1, %0\n"
+            "fmul v0.4s, v1.4s, v0.4s\n"
+            "str q0, %0\n"
+            : "=m"(c)
+            : "m"(c)
+            : "q0", "q1", "v0");
 #endif
 #elif defined(__powerpc64__)
-#define DOMUL(VAR) 			\
-    __asm__(				\
-        "lfs %%f0, %0\n"		\
-        "fmuls %%f0, %%f0, %%f0\n"	\
-        "stfs %%f0, %0\n"		\
-        : "=m" (VAR)			\
-        : "m" (VAR)			\
-        : "memory"			\
-    )
+#define DOMUL(VAR)                                                             \
+    __asm__("lfs %%f0, %0\n"                                                   \
+            "fmuls %%f0, %%f0, %%f0\n"                                         \
+            "stfs %%f0, %0\n"                                                  \
+            : "=m"(VAR)                                                        \
+            : "m"(VAR)                                                         \
+            : "memory")
     DOMUL(c[0]);
     DOMUL(c[1]);
     DOMUL(c[2]);

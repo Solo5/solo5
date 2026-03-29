@@ -24,9 +24,9 @@
 
 /* The feature bitmap for virtio net */
 #define VIRTIO_NET_F_CSUM       0 /* Host handles pkts w/ partial csum */
-#define VIRTIO_NET_F_GUEST_CSUM        1 /* Guest handles pkts w/ partial csum */
-#define VIRTIO_NET_F_MTU (1 << 3)
-#define VIRTIO_NET_F_MAC (1 << 5) /* Host has given MAC address. */
+#define VIRTIO_NET_F_GUEST_CSUM 1 /* Guest handles pkts w/ partial csum */
+#define VIRTIO_NET_F_MTU        (1 << 3)
+#define VIRTIO_NET_F_MAC        (1 << 5) /* Host has given MAC address. */
 
 #define PKT_BUFFER_LEN 1526
 #define VIRTIO_NET_MTU 1500
@@ -42,7 +42,7 @@ struct virtio_net_desc {
     solo5_handle_t handle;
 };
 
-#define VIRTIO_NET_MAX_ENTRIES  MFT_MAX_ENTRIES
+#define VIRTIO_NET_MAX_ENTRIES MFT_MAX_ENTRIES
 static struct virtio_net_desc nd_table[VIRTIO_NET_MAX_ENTRIES];
 static unsigned nd_num_entries = 0;
 
@@ -61,19 +61,19 @@ typedef uint64_t virtio_set_t;
  * specify GSO or CSUM features, you can simply ignore the header.
  */
 struct __attribute__((__packed__)) virtio_net_hdr {
-#define VIRTIO_NET_HDR_F_NEEDS_CSUM     1   /* Use csum_start, csum_offset */
-#define VIRTIO_NET_HDR_F_DATA_VALID     2        /* Csum is valid */
+#define VIRTIO_NET_HDR_F_NEEDS_CSUM 1 /* Use csum_start, csum_offset */
+#define VIRTIO_NET_HDR_F_DATA_VALID 2 /* Csum is valid */
     uint8_t flags;
-#define VIRTIO_NET_HDR_GSO_NONE         0        /* Not a GSO frame */
-#define VIRTIO_NET_HDR_GSO_TCPV4        1        /* GSO frame, IPv4 TCP (TSO) */
-#define VIRTIO_NET_HDR_GSO_UDP          3        /* GSO frame, IPv4 UDP (UFO) */
-#define VIRTIO_NET_HDR_GSO_TCPV6        4        /* GSO frame, IPv6 TCP */
-#define VIRTIO_NET_HDR_GSO_ECN       0x80        /* TCP has ECN set */
+#define VIRTIO_NET_HDR_GSO_NONE  0 /* Not a GSO frame */
+#define VIRTIO_NET_HDR_GSO_TCPV4 1 /* GSO frame, IPv4 TCP (TSO) */
+#define VIRTIO_NET_HDR_GSO_UDP   3 /* GSO frame, IPv4 UDP (UFO) */
+#define VIRTIO_NET_HDR_GSO_TCPV6 4 /* GSO frame, IPv6 TCP */
+#define VIRTIO_NET_HDR_GSO_ECN   0x80 /* TCP has ECN set */
     uint8_t gso_type;
-    uint16_t hdr_len;                /* Ethernet + IP + tcp/udp hdrs */
-    uint16_t gso_size;                /* Bytes to append to hdr_len per frame */
-    uint16_t csum_start;        /* Position to start checksumming from */
-    uint16_t csum_offset;        /* Offset after that to place checksum */
+    uint16_t hdr_len; /* Ethernet + IP + tcp/udp hdrs */
+    uint16_t gso_size; /* Bytes to append to hdr_len per frame */
+    uint16_t csum_start; /* Position to start checksumming from */
+    uint16_t csum_offset; /* Offset after that to place checksum */
 };
 
 static char virtio_net_mac_str[18];
@@ -119,8 +119,8 @@ static void recv_setup(struct virtio_net_desc *nd)
 }
 
 /* performance note: we perform a copy into the xmit buffer */
-int virtio_net_xmit_packet(struct virtio_net_desc *nd,
-                           const void *data, size_t len)
+int virtio_net_xmit_packet(struct virtio_net_desc *nd, const void *data,
+                           size_t len)
 {
     uint16_t mask = nd->xmitq.num - 1;
     uint16_t head;
@@ -142,7 +142,7 @@ int virtio_net_xmit_packet(struct virtio_net_desc *nd,
             ;
         virtio_rmb();
         for (; nd->xmitq.last_used != nd->xmitq.used->idx;
-               nd->xmitq.last_used++)
+             nd->xmitq.last_used++)
             nd->xmitq.num_avail += 2;
     }
 
@@ -219,20 +219,15 @@ static void virtio_net_config(struct virtio_net_desc *nd,
        So we read 16 bit at offset 10.
     */
     if (host_features & VIRTIO_NET_F_MTU) {
-      nd->mtu = inw(pci->base + VIRTIO_PCI_CONFIG_OFF + 6 + 2 + 2);
+        nd->mtu = inw(pci->base + VIRTIO_PCI_CONFIG_OFF + 6 + 2 + 2);
     } else
-      nd->mtu = VIRTIO_NET_MTU;
+        nd->mtu = VIRTIO_NET_MTU;
 
-    snprintf(virtio_net_mac_str,
-             sizeof(virtio_net_mac_str),
-             "%02x:%02x:%02x:%02x:%02x:%02x",
-             nd->net_mac[0],
-             nd->net_mac[1],
-             nd->net_mac[2],
-             nd->net_mac[3],
-             nd->net_mac[4],
-             nd->net_mac[5]);
-    log(INFO, "Solo5: PCI:%02x:%02x: configured, mac=%s, mtu=%d, features=0x%x\n",
+    snprintf(virtio_net_mac_str, sizeof(virtio_net_mac_str),
+             "%02x:%02x:%02x:%02x:%02x:%02x", nd->net_mac[0], nd->net_mac[1],
+             nd->net_mac[2], nd->net_mac[3], nd->net_mac[4], nd->net_mac[5]);
+    log(INFO,
+        "Solo5: PCI:%02x:%02x: configured, mac=%s, mtu=%d, features=0x%x\n",
         pci->bus, pci->dev, virtio_net_mac_str, nd->mtu, host_features);
 
     /*
@@ -244,12 +239,12 @@ static void virtio_net_config(struct virtio_net_desc *nd,
     virtq_init_rings(pci->base, &nd->recvq, VIRTQ_RECV);
     virtq_init_rings(pci->base, &nd->xmitq, VIRTQ_XMIT);
 
-    pgs = (((nd->recvq.num * sizeof (struct io_buffer)) - 1) >> PAGE_SHIFT) + 1;
+    pgs = (((nd->recvq.num * sizeof(struct io_buffer)) - 1) >> PAGE_SHIFT) + 1;
     nd->recvq.bufs = mem_ialloc_pages(pgs);
     assert(nd->recvq.bufs);
     memset(nd->recvq.bufs, 0, pgs << PAGE_SHIFT);
 
-    pgs = (((nd->recvq.num * sizeof (struct io_buffer)) - 1) >> PAGE_SHIFT) + 1;
+    pgs = (((nd->recvq.num * sizeof(struct io_buffer)) - 1) >> PAGE_SHIFT) + 1;
     nd->xmitq.bufs = mem_ialloc_pages(pgs);
     assert(nd->xmitq.bufs);
     memset(nd->xmitq.bufs, 0, pgs << PAGE_SHIFT);
@@ -313,7 +308,7 @@ static void virtio_net_pkt_poll(virtio_set_t *ready_set)
 /* Get the data from the next_avail (top-most) receive buffer/descriptor in
  * the available ring. */
 static uint8_t *virtio_net_recv_pkt_get(struct virtio_net_desc *nd,
-        size_t *size)
+                                        size_t *size)
 {
     uint16_t mask = nd->recvq.num - 1;
     struct virtq_used_elem *e;
@@ -330,7 +325,7 @@ static uint8_t *virtio_net_recv_pkt_get(struct virtio_net_desc *nd,
     e = &(nd->recvq.used->ring[nd->recvq.last_used & mask]);
     desc_idx = e->id;
 
-    buf = (struct io_buffer *) nd->recvq.desc[desc_idx].addr;
+    buf = (struct io_buffer *)nd->recvq.desc[desc_idx].addr;
     buf->len = e->len;
 
     /* Remove the virtio_net_hdr */
@@ -344,11 +339,13 @@ static void virtio_net_recv_pkt_put(struct virtio_net_desc *nd)
 {
     uint16_t mask = nd->recvq.num - 1;
     nd->recvq.bufs[nd->recvq.next_avail & mask].len = PKT_BUFFER_LEN;
-    nd->recvq.bufs[nd->recvq.next_avail & mask].extra_flags = VIRTQ_DESC_F_WRITE;
+    nd->recvq.bufs[nd->recvq.next_avail & mask].extra_flags =
+        VIRTQ_DESC_F_WRITE;
 
     /* This sets the returned descriptor to be ready for incoming packets, and
      * advances the next_avail index. */
-    assert(virtq_add_descriptor_chain(&nd->recvq, nd->recvq.next_avail & mask, 1) == 0);
+    assert(virtq_add_descriptor_chain(&nd->recvq, nd->recvq.next_avail & mask,
+                                      1) == 0);
     virtio_mb();
     if (virtq_notify_needed(&nd->recvq))
         outw(nd->pci_base + VIRTIO_PCI_QUEUE_NOTIFY, VIRTQ_RECV);
@@ -359,16 +356,18 @@ int virtio_config_network(struct pci_config_info *pci, solo5_handle_t mft_index)
     unsigned nd_index = nd_num_entries;
 
     if (nd_index >= MFT_MAX_ENTRIES) {
-        log(WARN, "Solo5: Virtio net: PCI:%02x:%02x not configured: "
-            "too many devices\n", pci->bus, pci->dev);
+        log(WARN,
+            "Solo5: Virtio net: PCI:%02x:%02x not configured: "
+            "too many devices\n",
+            pci->bus, pci->dev);
         return -1;
     }
 
-    struct mft_entry *e = mft_get_by_index(virtio_manifest,
-            mft_index, MFT_DEV_NET_BASIC);
+    struct mft_entry *e =
+        mft_get_by_index(virtio_manifest, mft_index, MFT_DEV_NET_BASIC);
     if (e == NULL) {
         log(WARN, "Solo5: Virtio net: PCI:%02x:%02x not in manifest\n",
-             pci->bus, pci->dev);
+            pci->bus, pci->dev);
         return -1;
     }
 
@@ -390,7 +389,7 @@ int virtio_config_network(struct pci_config_info *pci, solo5_handle_t mft_index)
 }
 
 solo5_result_t solo5_net_acquire(const char *name, solo5_handle_t *h,
-        struct solo5_net_info *info)
+                                 struct solo5_net_info *info)
 {
     unsigned mft_index;
     struct mft_entry *mft_e;
@@ -398,7 +397,8 @@ solo5_result_t solo5_net_acquire(const char *name, solo5_handle_t *h,
     if (!net_configured)
         return SOLO5_R_EUNSPEC;
 
-    mft_e = mft_get_by_name(virtio_manifest, name, MFT_DEV_NET_BASIC, &mft_index);
+    mft_e =
+        mft_get_by_name(virtio_manifest, name, MFT_DEV_NET_BASIC, &mft_index);
     if (mft_e == NULL)
         return SOLO5_R_EINVAL;
 
@@ -461,9 +461,10 @@ void solo5_yield(solo5_time_t deadline, solo5_handle_set_t *ready_set)
 }
 
 solo5_result_t solo5_net_write(solo5_handle_t h, const uint8_t *buf,
-        size_t size)
+                               size_t size)
 {
-    struct mft_entry *e = mft_get_by_index(virtio_manifest, h, MFT_DEV_NET_BASIC);
+    struct mft_entry *e =
+        mft_get_by_index(virtio_manifest, h, MFT_DEV_NET_BASIC);
     if (e == NULL)
         return SOLO5_R_EINVAL;
 
@@ -476,7 +477,7 @@ solo5_result_t solo5_net_write(solo5_handle_t h, const uint8_t *buf,
 
 /* Returns 0 if a packet was read, -1 if there is there is no pending packet. */
 static int virtio_net_recv(struct virtio_net_desc *nd, uint8_t *buf,
-        size_t size, size_t *read_size)
+                           size_t size, size_t *read_size)
 {
     uint8_t *pkt;
     size_t len = size;
@@ -526,9 +527,10 @@ static int virtio_net_recv(struct virtio_net_desc *nd, uint8_t *buf,
 }
 
 solo5_result_t solo5_net_read(solo5_handle_t h, uint8_t *buf, size_t size,
-        size_t *read_size)
+                              size_t *read_size)
 {
-    struct mft_entry *e = mft_get_by_index(virtio_manifest, h, MFT_DEV_NET_BASIC);
+    struct mft_entry *e =
+        mft_get_by_index(virtio_manifest, h, MFT_DEV_NET_BASIC);
     if (e == NULL)
         return SOLO5_R_EINVAL;
 

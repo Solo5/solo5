@@ -48,27 +48,27 @@
 #include "bindings.h"
 #include "clock_subr.h"
 
-#define TIMER_CNTR	0x40
-#define TIMER_MODE	0x43
-#define TIMER_SEL0	0x00
-#define TIMER_LATCH	0x00
-#define TIMER_RATEGEN	0x04
-#define TIMER_ONESHOT	0x08
-#define TIMER_16BIT	0x30
-#define TIMER_HZ	1193182
+#define TIMER_CNTR    0x40
+#define TIMER_MODE    0x43
+#define TIMER_SEL0    0x00
+#define TIMER_LATCH   0x00
+#define TIMER_RATEGEN 0x04
+#define TIMER_ONESHOT 0x08
+#define TIMER_16BIT   0x30
+#define TIMER_HZ      1193182
 
-#define	RTC_COMMAND	0x70
-#define	RTC_DATA	0x71
-#define RTC_NMI_DISABLE	(1<<8)
-#define RTC_NMI_ENABLE	0
-#define	RTC_SEC		0x00
-#define	RTC_MIN		0x02
-#define	RTC_HOUR	0x04
-#define	RTC_DAY		0x07
-#define	RTC_MONTH	0x08
-#define	RTC_YEAR	0x09
-#define	RTC_STATUS_A	0x0a
-#define	RTC_UIP		(1<<7)
+#define RTC_COMMAND     0x70
+#define RTC_DATA        0x71
+#define RTC_NMI_DISABLE (1 << 8)
+#define RTC_NMI_ENABLE  0
+#define RTC_SEC         0x00
+#define RTC_MIN         0x02
+#define RTC_HOUR        0x04
+#define RTC_DAY         0x07
+#define RTC_MONTH       0x08
+#define RTC_YEAR        0x09
+#define RTC_STATUS_A    0x0a
+#define RTC_UIP         (1 << 7)
 
 /*
  * TSC clock specific.
@@ -89,14 +89,15 @@ static uint32_t tsc_mult;
  *     f = NSEC_PER_SEC / TIMER_HZ   (0.31) fixed point.
  *     pit_mult = 1 / f              (1.32) fixed point.
  */
-static const uint32_t pit_mult
-    = (1ULL << 63) / ((NSEC_PER_SEC << 31) / TIMER_HZ);
+static const uint32_t pit_mult =
+    (1ULL << 63) / ((NSEC_PER_SEC << 31) / TIMER_HZ);
 
 
 /*
  * Read the current i8254 channel 0 tick count.
  */
-static unsigned int i8254_gettick(void) {
+static unsigned int i8254_gettick(void)
+{
     uint16_t rdval;
 
     outb(TIMER_MODE, TIMER_SEL0 | TIMER_LATCH);
@@ -109,14 +110,15 @@ static unsigned int i8254_gettick(void) {
  * Delay for approximately n microseconds using the i8254 channel 0 counter.
  * Timer must be programmed appropriately before calling this function.
  */
-static void i8254_delay(unsigned int n) {
+static void i8254_delay(unsigned int n)
+{
     unsigned int cur_tick, initial_tick;
     int remaining;
     const unsigned long timer_rval = TIMER_HZ / 100;
 
     initial_tick = i8254_gettick();
 
-    remaining = (unsigned long long) n * TIMER_HZ / 1000000;
+    remaining = (unsigned long long)n * TIMER_HZ / 1000000;
 
     while (remaining > 1) {
         cur_tick = i8254_gettick();
@@ -131,7 +133,8 @@ static void i8254_delay(unsigned int n) {
 /*
  * Read a RTC register. Due to PC platform braindead-ness also disables NMI.
  */
-static inline uint8_t rtc_read(uint8_t reg) {
+static inline uint8_t rtc_read(uint8_t reg)
+{
 
     outb(RTC_COMMAND, reg | RTC_NMI_DISABLE);
     return inb(RTC_DATA);
@@ -141,7 +144,8 @@ static inline uint8_t rtc_read(uint8_t reg) {
  * Return current RTC time. Note that due to waiting for the update cycle to
  * complete, this call may take some time.
  */
-uint64_t rtc_gettimeofday(void) {
+uint64_t rtc_gettimeofday(void)
+{
     struct bmk_clock_ymdhms dt;
 
     cpu_intr_disable();
@@ -168,7 +172,8 @@ uint64_t rtc_gettimeofday(void) {
 /*
  * Beturn monotonic time using TSC clock.
  */
-uint64_t tscclock_monotonic(void) {
+uint64_t tscclock_monotonic(void)
+{
     uint64_t tsc_now, tsc_delta;
 
     /*
@@ -185,7 +190,8 @@ uint64_t tscclock_monotonic(void) {
 /*
  * Calibrate TSC and initialise TSC clock.
  */
-int tscclock_init(void) {
+int tscclock_init(void)
+{
     uint64_t tsc_freq;
 
     /* Initialise i8254 timer channel 0 to mode 2 at 100 Hz */
@@ -231,14 +237,15 @@ int tscclock_init(void) {
  * Minimum delta to sleep using PIT. Programming seems to have an overhead of
  * 3-4us, but play it safe here.
  */
-#define PIT_MIN_DELTA	16
+#define PIT_MIN_DELTA 16
 
 /*
  * Returns early if any interrupts are serviced, or if the requested delay is
  * too short. Must be called with interrupts disabled, will enable interrupts
  * "atomically" during idle loop.
  */
-void cpu_block(uint64_t until) {
+void cpu_block(uint64_t until)
+{
     uint64_t now, delta_ns;
     uint64_t delta_ticks;
     unsigned int ticks;
@@ -267,10 +274,9 @@ void cpu_block(uint64_t until) {
          * the hopes that we might get new work and can do something
          * else than spin.
          */
-        __asm__ __volatile__(
-            "sti;\n"
-            "nop;\n"    /* ints are enabled 1 instr after sti */
-            "cli;\n");
+        __asm__ __volatile__("sti;\n"
+                             "nop;\n" /* ints are enabled 1 instr after sti */
+                             "cli;\n");
         return;
     }
 
@@ -299,11 +305,10 @@ void cpu_block(uint64_t until) {
      * able to distinguish if the interrupt was the PIT interrupt
      * and no other, but this will do for now.
      */
-     d = cpu_intr_depth;
-     cpu_intr_depth = 0;
-     __asm__ __volatile__(
-         "sti;\n"
-         "hlt;\n"
-         "cli;\n");
-     cpu_intr_depth = d;
+    d = cpu_intr_depth;
+    cpu_intr_depth = 0;
+    __asm__ __volatile__("sti;\n"
+                         "hlt;\n"
+                         "cli;\n");
+    cpu_intr_depth = d;
 }

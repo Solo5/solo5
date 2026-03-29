@@ -29,22 +29,23 @@
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
  *
- * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer.
+ * 1. Redistributions of source code must retain the above copyright notice,
+ * this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
  *    and/or other materials provided with the distribution.
  *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
- * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
- * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
- * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
- * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
  */
 
 #include "bindings.h"
@@ -77,12 +78,11 @@ static size_t console_write_some(const char *buf, size_t len)
          * twice if we overrun the ring, too bad. */
         if (buf[s] == '\n') {
             if (!wrote_cr) {
-                console_ring->out[prod++ & (sizeof(console_ring->out) - 1)] \
-                    = '\r';
+                console_ring->out[prod++ & (sizeof(console_ring->out) - 1)] =
+                    '\r';
                 wrote_cr = true;
                 continue;
-            }
-            else {
+            } else {
                 wrote_cr = false;
             }
         }
@@ -105,8 +105,7 @@ void console_write(const char *buf, size_t len)
     size_t written = 0;
     XENCONS_RING_IDX cons = LOAD_ACQUIRE(&console_ring->out_cons);
 
-    do
-    {
+    do {
         /* Try and put some data into the ring. */
         written += console_write_some(&buf[written], len - written);
 
@@ -117,8 +116,7 @@ void console_write(const char *buf, size_t len)
          * If we have more to write, the ring must have filled up.  Wait for
          * more space.
          */
-        if (written < len)
-        {
+        if (written < len) {
             while (ACCESS_ONCE(console_ring->out_cons) == cons)
                 hypercall_yield();
         }
@@ -150,5 +148,5 @@ void console_init(void)
      * up and running early in the boot process.
      */
     log(INFO, "Solo5: Xen console: port 0x%x, ring @0x%p\n", console_evtchn,
-            console_ring);
+        console_ring);
 }

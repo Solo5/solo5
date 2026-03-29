@@ -31,16 +31,16 @@
 #ifndef _BITUL
 
 #ifdef __ASSEMBLY__
-#define _AC(X,Y)                X
-#define _AT(T,X)                X
+#define _AC(X, Y) X
+#define _AT(T, X) X
 #else
-#define __AC(X,Y)               (X##Y)
-#define _AC(X,Y)                __AC(X,Y)
-#define _AT(T,X)                ((T)(X))
+#define __AC(X, Y) (X##Y)
+#define _AC(X, Y)  __AC(X, Y)
+#define _AT(T, X)  ((T)(X))
 #endif
 
-#define _BITUL(x)               (_AC(1,UL) << (x))
-#define _BITULL(x)              (_AC(1,ULL) << (x))
+#define _BITUL(x)  (_AC(1, UL) << (x))
+#define _BITULL(x) (_AC(1, ULL) << (x))
 
 #endif
 
@@ -80,16 +80,14 @@
 #define AARCH64_MMIO_BASE        _AC(0x100000000, UL)
 #define AARCH64_MMIO_SZ          _AC(0x40000000, UL)
 #define AARCH64_GUEST_BLOCK_SIZE _AC(0x200000, UL)
-#define AARCH64_PGT_MAP_START	 AARCH64_BOOT_INFO
+#define AARCH64_PGT_MAP_START    AARCH64_BOOT_INFO
 
-#define GENMASK32(h, l) \
-    (((~0U) << (l)) & (~0U >> (31 - (h))))
-#define GENMASK64(h, l) \
-    (((~0UL) << (l)) & (~0UL >> (63 - (h))))
+#define GENMASK32(h, l) (((~0U) << (l)) & (~0U >> (31 - (h))))
+#define GENMASK64(h, l) (((~0UL) << (l)) & (~0UL >> (63 - (h))))
 
 /* Definitions of Page tables */
-#define PAGE_SHIFT  12
-#define PAGE_SIZE   (1 << (PAGE_SHIFT))
+#define PAGE_SHIFT 12
+#define PAGE_SIZE  (1 << (PAGE_SHIFT))
 
 /*
  * Hardware page table definitions.
@@ -103,42 +101,47 @@
 /*
  * Bit definition for section type descriptor
  */
-#define SECT_VALID      (_AC(1, UL) << 0)
-#define SECT_USER       (_AC(1, UL) << 6)     /* AP[1] */
-#define SECT_RDONLY     (_AC(1, UL) << 7)     /* AP[2] */
-#define SECT_S          (_AC(3, UL) << 8)
-#define SECT_AF         (_AC(1, UL) << 10)
-#define SECT_NG         (_AC(1, UL) << 11)
-#define SECT_CONT       (_AC(1, UL) << 52)
-#define SECT_PXN        (_AC(1, UL) << 53)
-#define SECT_UXN        (_AC(1, UL) << 54)
+#define SECT_VALID  (_AC(1, UL) << 0)
+#define SECT_USER   (_AC(1, UL) << 6) /* AP[1] */
+#define SECT_RDONLY (_AC(1, UL) << 7) /* AP[2] */
+#define SECT_S      (_AC(3, UL) << 8)
+#define SECT_AF     (_AC(1, UL) << 10)
+#define SECT_NG     (_AC(1, UL) << 11)
+#define SECT_CONT   (_AC(1, UL) << 52)
+#define SECT_PXN    (_AC(1, UL) << 53)
+#define SECT_UXN    (_AC(1, UL) << 54)
 
 /*
  * AttrIndx[2:0] encoding (mapping attributes defined in the MAIR* registers).
  */
-#define ATTRINDX(t)     (_AC(t, UL) << 2)
+#define ATTRINDX(t) (_AC(t, UL) << 2)
 
 /* Memory types available. */
-#define MT_DEVICE_nGnRnE    0
-#define MT_DEVICE_nGnRE     1
-#define MT_DEVICE_GRE       2
-#define MT_NORMAL_NC        3
-#define MT_NORMAL           4
-#define MT_NORMAL_WT        5
+#define MT_DEVICE_nGnRnE 0
+#define MT_DEVICE_nGnRE  1
+#define MT_DEVICE_GRE    2
+#define MT_NORMAL_NC     3
+#define MT_NORMAL        4
+#define MT_NORMAL_WT     5
 
-#define PROT_SECT_DEFAULT       	(PGT_DESC_TYPE_SECT | SECT_AF | SECT_S)
-#define PROT_SECT_NORMAL        	(PROT_SECT_DEFAULT | SECT_PXN | SECT_UXN | ATTRINDX(MT_NORMAL))
-#define PROT_SECT_NORMAL_EXEC   	(PROT_SECT_DEFAULT | SECT_UXN | ATTRINDX(MT_NORMAL))
-#define PROT_SECT_DEVICE_nGnRE  	(PROT_SECT_DEFAULT | SECT_PXN | SECT_UXN | ATTRINDX(MT_DEVICE_nGnRE))
+#define PROT_SECT_DEFAULT (PGT_DESC_TYPE_SECT | SECT_AF | SECT_S)
+#define PROT_SECT_NORMAL                                                       \
+    (PROT_SECT_DEFAULT | SECT_PXN | SECT_UXN | ATTRINDX(MT_NORMAL))
+#define PROT_SECT_NORMAL_EXEC                                                  \
+    (PROT_SECT_DEFAULT | SECT_UXN | ATTRINDX(MT_NORMAL))
+#define PROT_SECT_DEVICE_nGnRE                                                 \
+    (PROT_SECT_DEFAULT | SECT_PXN | SECT_UXN | ATTRINDX(MT_DEVICE_nGnRE))
 
-#define PROT_PAGE_DEFAULT       	(PGT_DESC_TYPE_PAGE | SECT_AF | SECT_S)
-#define PROT_PAGE_DEFAULT_NORMAL  	(PROT_PAGE_DEFAULT | ATTRINDX(MT_NORMAL))
-#define PROT_PAGE_DEFAULT_DEVICE   	(PROT_PAGE_DEFAULT | ATTRINDX(MT_DEVICE_nGnRE))
-#define PROT_PAGE_NORMAL    		(PROT_PAGE_DEFAULT_NORMAL | SECT_PXN | SECT_UXN)
-#define PROT_PAGE_NORMAL_RO    		(PROT_PAGE_DEFAULT_NORMAL | SECT_PXN | SECT_UXN | SECT_RDONLY)
-#define PROT_PAGE_NORMAL_EXEC   	(PROT_PAGE_DEFAULT_NORMAL | SECT_UXN)
-#define PROT_PAGE_NORMAL_EXEC_RO    (PROT_PAGE_DEFAULT_NORMAL | SECT_UXN | SECT_RDONLY)
-#define PROT_PAGE_DEVICE_nGnRE  	(PROT_PAGE_DEFAULT_DEVICE | SECT_PXN | SECT_UXN)
+#define PROT_PAGE_DEFAULT        (PGT_DESC_TYPE_PAGE | SECT_AF | SECT_S)
+#define PROT_PAGE_DEFAULT_NORMAL (PROT_PAGE_DEFAULT | ATTRINDX(MT_NORMAL))
+#define PROT_PAGE_DEFAULT_DEVICE (PROT_PAGE_DEFAULT | ATTRINDX(MT_DEVICE_nGnRE))
+#define PROT_PAGE_NORMAL (PROT_PAGE_DEFAULT_NORMAL | SECT_PXN | SECT_UXN)
+#define PROT_PAGE_NORMAL_RO                                                    \
+    (PROT_PAGE_DEFAULT_NORMAL | SECT_PXN | SECT_UXN | SECT_RDONLY)
+#define PROT_PAGE_NORMAL_EXEC (PROT_PAGE_DEFAULT_NORMAL | SECT_UXN)
+#define PROT_PAGE_NORMAL_EXEC_RO                                               \
+    (PROT_PAGE_DEFAULT_NORMAL | SECT_UXN | SECT_RDONLY)
+#define PROT_PAGE_DEVICE_nGnRE (PROT_PAGE_DEFAULT_DEVICE | SECT_PXN | SECT_UXN)
 
 /*
  * Define the MMU transfer block size:
@@ -147,15 +150,15 @@
  * PMD entry size: 2MB   -- Translation Level 2
  * PTE entry size: 4KB   -- Translation Level 3
  */
-#define PGD_SHIFT	39
-#define PGD_SIZE	(_AC(1, UL) << PGD_SHIFT)
-#define PGD_MASK	(~(PGD_SIZE-1))
-#define PUD_SHIFT	30
-#define PUD_SIZE	(_AC(1, UL) << PUD_SHIFT)
-#define PUD_MASK	(~(PUD_SIZE-1))
-#define PMD_SHIFT	21
-#define PMD_SIZE	(_AC(1, UL) << PMD_SHIFT)
-#define PMD_MASK	(~(PMD_SIZE-1))
+#define PGD_SHIFT 39
+#define PGD_SIZE  (_AC(1, UL) << PGD_SHIFT)
+#define PGD_MASK  (~(PGD_SIZE - 1))
+#define PUD_SHIFT 30
+#define PUD_SIZE  (_AC(1, UL) << PUD_SHIFT)
+#define PUD_MASK  (~(PUD_SIZE - 1))
+#define PMD_SHIFT 21
+#define PMD_SIZE  (_AC(1, UL) << PMD_SHIFT)
+#define PMD_MASK  (~(PMD_SIZE - 1))
 
 #define DIV_ROUND_UP(n, d) (((n) + (d) - 1) / (d))
 

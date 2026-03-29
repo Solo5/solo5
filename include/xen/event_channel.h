@@ -70,10 +70,10 @@
 #define EVTCHNOP_bind_ipi         7
 #define EVTCHNOP_bind_vcpu        8
 #define EVTCHNOP_unmask           9
-#define EVTCHNOP_reset           10
-#define EVTCHNOP_init_control    11
-#define EVTCHNOP_expand_array    12
-#define EVTCHNOP_set_priority    13
+#define EVTCHNOP_reset            10
+#define EVTCHNOP_init_control     11
+#define EVTCHNOP_expand_array     12
+#define EVTCHNOP_set_priority     13
 /* ` } */
 
 typedef uint32_t evtchn_port_t;
@@ -205,27 +205,27 @@ typedef struct evtchn_send evtchn_send_t;
  */
 struct evtchn_status {
     /* IN parameters */
-    domid_t  dom;
+    domid_t dom;
     evtchn_port_t port;
     /* OUT parameters */
-#define EVTCHNSTAT_closed       0  /* Channel is not in use.                 */
-#define EVTCHNSTAT_unbound      1  /* Channel is waiting interdom connection.*/
-#define EVTCHNSTAT_interdomain  2  /* Channel is connected to remote domain. */
-#define EVTCHNSTAT_pirq         3  /* Channel is bound to a phys IRQ line.   */
-#define EVTCHNSTAT_virq         4  /* Channel is bound to a virtual IRQ line */
-#define EVTCHNSTAT_ipi          5  /* Channel is bound to a virtual IPI line */
+#define EVTCHNSTAT_closed      0 /* Channel is not in use.                 */
+#define EVTCHNSTAT_unbound     1 /* Channel is waiting interdom connection.*/
+#define EVTCHNSTAT_interdomain 2 /* Channel is connected to remote domain. */
+#define EVTCHNSTAT_pirq        3 /* Channel is bound to a phys IRQ line.   */
+#define EVTCHNSTAT_virq        4 /* Channel is bound to a virtual IRQ line */
+#define EVTCHNSTAT_ipi         5 /* Channel is bound to a virtual IPI line */
     uint32_t status;
-    uint32_t vcpu;                 /* VCPU to which this channel is bound.   */
+    uint32_t vcpu; /* VCPU to which this channel is bound.   */
     union {
         struct {
             domid_t dom;
-        } unbound;                 /* EVTCHNSTAT_unbound */
+        } unbound; /* EVTCHNSTAT_unbound */
         struct {
             domid_t dom;
             evtchn_port_t port;
-        } interdomain;             /* EVTCHNSTAT_interdomain */
-        uint32_t pirq;             /* EVTCHNSTAT_pirq        */
-        uint32_t virq;             /* EVTCHNSTAT_virq        */
+        } interdomain; /* EVTCHNSTAT_interdomain */
+        uint32_t pirq; /* EVTCHNSTAT_pirq        */
+        uint32_t virq; /* EVTCHNSTAT_virq        */
     } u;
 };
 typedef struct evtchn_status evtchn_status_t;
@@ -321,16 +321,16 @@ typedef struct evtchn_set_priority evtchn_set_priority_t;
 struct evtchn_op {
     uint32_t cmd; /* enum event_channel_op */
     union {
-        struct evtchn_alloc_unbound    alloc_unbound;
+        struct evtchn_alloc_unbound alloc_unbound;
         struct evtchn_bind_interdomain bind_interdomain;
-        struct evtchn_bind_virq        bind_virq;
-        struct evtchn_bind_pirq        bind_pirq;
-        struct evtchn_bind_ipi         bind_ipi;
-        struct evtchn_close            close;
-        struct evtchn_send             send;
-        struct evtchn_status           status;
-        struct evtchn_bind_vcpu        bind_vcpu;
-        struct evtchn_unmask           unmask;
+        struct evtchn_bind_virq bind_virq;
+        struct evtchn_bind_pirq bind_pirq;
+        struct evtchn_bind_ipi bind_ipi;
+        struct evtchn_close close;
+        struct evtchn_send send;
+        struct evtchn_status status;
+        struct evtchn_bind_vcpu bind_vcpu;
+        struct evtchn_unmask unmask;
     } u;
 };
 typedef struct evtchn_op evtchn_op_t;

@@ -83,8 +83,7 @@ int tap_attach(const char *ifname, int *mtu)
             return -1;
 
         return fd;
-    }
-    else if (strlen(ifname) >= IFNAMSIZ) {
+    } else if (strlen(ifname) >= IFNAMSIZ) {
         errno = ENAMETOOLONG;
         return -1;
     }
@@ -167,7 +166,7 @@ int tap_attach(const char *ifname, int *mtu)
      * is only up once open() was called by the process.
      */
     if (!up)
-      ;
+        ;
 
     char devname[strlen(ifname) + 6];
 

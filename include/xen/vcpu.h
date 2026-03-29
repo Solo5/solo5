@@ -46,13 +46,13 @@
  *               HVM based guests this is a pointer to a vcpu_hvm_context
  *               structure.
  */
-#define VCPUOP_initialise            0
+#define VCPUOP_initialise 0
 
 /*
  * Bring up a VCPU. This makes the VCPU runnable. This operation will fail
  * if the VCPU has not been initialised (VCPUOP_initialise).
  */
-#define VCPUOP_up                    1
+#define VCPUOP_up 1
 
 /*
  * Bring down a VCPU (i.e., make it non-runnable).
@@ -68,19 +68,19 @@
  *     practise to move a VCPU onto an 'idle' or default page table, LDT and
  *     GDT before bringing it down.
  */
-#define VCPUOP_down                  2
+#define VCPUOP_down 2
 
 /* Returns 1 if the given VCPU is up. */
-#define VCPUOP_is_up                 3
+#define VCPUOP_is_up 3
 
 /*
  * Return information about the state and running time of a VCPU.
  * @extra_arg == pointer to vcpu_runstate_info structure.
  */
-#define VCPUOP_get_runstate_info     4
+#define VCPUOP_get_runstate_info 4
 struct vcpu_runstate_info {
     /* VCPU's current state (RUNSTATE_*). */
-    int      state;
+    int state;
     /* When was current state entered (system time, ns)? */
     uint64_t state_entry_time;
     /*
@@ -88,7 +88,7 @@ struct vcpu_runstate_info {
      * When activated via VMASST_TYPE_runstate_update_flag, set during
      * updates in guest memory mapped copy of vcpu_runstate_info.
      */
-#define XEN_RUNSTATE_UPDATE          (xen_mk_ullong(1) << 63)
+#define XEN_RUNSTATE_UPDATE (xen_mk_ullong(1) << 63)
     /*
      * Time spent in each RUNSTATE_* (ns). The sum of these times is
      * guaranteed not to drift from system time.
@@ -99,13 +99,13 @@ typedef struct vcpu_runstate_info vcpu_runstate_info_t;
 DEFINE_XEN_GUEST_HANDLE(vcpu_runstate_info_t);
 
 /* VCPU is currently running on a physical CPU. */
-#define RUNSTATE_running  0
+#define RUNSTATE_running 0
 
 /* VCPU is runnable, but not currently scheduled on any physical CPU. */
 #define RUNSTATE_runnable 1
 
 /* VCPU is blocked (a.k.a. idle). It is therefore not runnable. */
-#define RUNSTATE_blocked  2
+#define RUNSTATE_blocked 2
 
 /*
  * VCPU is not runnable, but it is not blocked.
@@ -113,7 +113,7 @@ DEFINE_XEN_GUEST_HANDLE(vcpu_runstate_info_t);
  * system administrator (or for critical sections in the hypervisor).
  * RUNSTATE_blocked dominates this state (it is the preferred state).
  */
-#define RUNSTATE_offline  3
+#define RUNSTATE_offline 3
 
 /*
  * Register a shared memory area from which the guest may obtain its own
@@ -137,7 +137,8 @@ struct vcpu_register_runstate_memory_area {
         uint64_t p;
     } addr;
 };
-typedef struct vcpu_register_runstate_memory_area vcpu_register_runstate_memory_area_t;
+typedef struct vcpu_register_runstate_memory_area
+    vcpu_register_runstate_memory_area_t;
 DEFINE_XEN_GUEST_HANDLE(vcpu_register_runstate_memory_area_t);
 
 /*
@@ -145,8 +146,8 @@ DEFINE_XEN_GUEST_HANDLE(vcpu_register_runstate_memory_area_t);
  * which can be set via these commands. Periods smaller than one millisecond
  * may not be supported.
  */
-#define VCPUOP_set_periodic_timer    6 /* arg == vcpu_set_periodic_timer_t */
-#define VCPUOP_stop_periodic_timer   7 /* arg == NULL */
+#define VCPUOP_set_periodic_timer  6 /* arg == vcpu_set_periodic_timer_t */
+#define VCPUOP_stop_periodic_timer 7 /* arg == NULL */
 struct vcpu_set_periodic_timer {
     uint64_t period_ns;
 };
@@ -160,14 +161,14 @@ DEFINE_XEN_GUEST_HANDLE(vcpu_set_periodic_timer_t);
 #define VCPUOP_set_singleshot_timer  8 /* arg == vcpu_set_singleshot_timer_t */
 #define VCPUOP_stop_singleshot_timer 9 /* arg == NULL */
 struct vcpu_set_singleshot_timer {
-    uint64_t timeout_abs_ns;   /* Absolute system time value in nanoseconds. */
-    uint32_t flags;            /* VCPU_SSHOTTMR_??? */
+    uint64_t timeout_abs_ns; /* Absolute system time value in nanoseconds. */
+    uint32_t flags; /* VCPU_SSHOTTMR_??? */
 };
 typedef struct vcpu_set_singleshot_timer vcpu_set_singleshot_timer_t;
 DEFINE_XEN_GUEST_HANDLE(vcpu_set_singleshot_timer_t);
 
 /* Flags to VCPUOP_set_singleshot_timer. */
- /* Require the timeout to be in the future (return -ETIME if it's passed). */
+/* Require the timeout to be in the future (return -ETIME if it's passed). */
 #define _VCPU_SSHOTTMR_future (0)
 #define VCPU_SSHOTTMR_future  (1U << _VCPU_SSHOTTMR_future)
 
@@ -180,17 +181,17 @@ DEFINE_XEN_GUEST_HANDLE(vcpu_set_singleshot_timer_t);
  *
  * This may be called only once per vcpu.
  */
-#define VCPUOP_register_vcpu_info   10  /* arg == vcpu_register_vcpu_info_t */
+#define VCPUOP_register_vcpu_info 10 /* arg == vcpu_register_vcpu_info_t */
 struct vcpu_register_vcpu_info {
-    uint64_t mfn;    /* mfn of page to place vcpu_info */
+    uint64_t mfn; /* mfn of page to place vcpu_info */
     uint32_t offset; /* offset within page */
-    uint32_t rsvd;   /* unused */
+    uint32_t rsvd; /* unused */
 };
 typedef struct vcpu_register_vcpu_info vcpu_register_vcpu_info_t;
 DEFINE_XEN_GUEST_HANDLE(vcpu_register_vcpu_info_t);
 
 /* Send an NMI to the specified VCPU. @extra_arg == NULL. */
-#define VCPUOP_send_nmi             11
+#define VCPUOP_send_nmi 11
 
 /*
  * Get the physical ID information for a pinned vcpu's underlying physical
@@ -198,7 +199,7 @@ DEFINE_XEN_GUEST_HANDLE(vcpu_register_vcpu_info_t);
  * On x86: id[31:0]=apic_id, id[63:32]=acpi_id.
  * This command returns -EINVAL if it is not a valid operation for this VCPU.
  */
-#define VCPUOP_get_physid           12 /* arg == vcpu_get_physid_t */
+#define VCPUOP_get_physid 12 /* arg == vcpu_get_physid_t */
 struct vcpu_get_physid {
     uint64_t phys_id;
 };
@@ -223,7 +224,7 @@ DEFINE_XEN_GUEST_HANDLE(vcpu_get_physid_t);
  *
  * @extra_arg == pointer to vcpu_register_time_info_memory_area structure.
  */
-#define VCPUOP_register_vcpu_time_memory_area   13
+#define VCPUOP_register_vcpu_time_memory_area 13
 DEFINE_XEN_GUEST_HANDLE(vcpu_time_info_t);
 struct vcpu_register_time_memory_area {
     union {

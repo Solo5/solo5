@@ -32,11 +32,10 @@ uintptr_t SSP_GUARD_SYMBOL = 0x00deadbeef0d0a00;
  * detected. There is very little we can do here safely, so just print a
  * message and abort, taking care to make minimal use of the stack.
  */
-static const char
-stack_chk_fail_message[] = "Solo5: ABORT: Stack corruption detected\n";
+static const char stack_chk_fail_message[] =
+    "Solo5: ABORT: Stack corruption detected\n";
 
-__attribute__((noreturn))
-void SSP_FAIL_SYMBOL(void)
+__attribute__((noreturn)) void SSP_FAIL_SYMBOL(void)
 {
     platform_puts(stack_chk_fail_message, sizeof stack_chk_fail_message);
     platform_exit(SOLO5_EXIT_ABORT, NULL);

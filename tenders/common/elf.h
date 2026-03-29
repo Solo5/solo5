@@ -34,7 +34,7 @@
  * Returns 0 on success, -1 and errno set on failure.
  */
 typedef int (*guest_mprotect_fn_t)(void *t_arg, uint64_t addr_start,
-        uint64_t addr_end, int prot);
+                                   uint64_t addr_end, int prot);
 
 /*
  * Load an ELF binary from (bin_fd) into (mem_size) bytes of memory at (*mem).
@@ -50,8 +50,8 @@ typedef int (*guest_mprotect_fn_t)(void *t_arg, uint64_t addr_start,
  * terminates the program.
  */
 void elf_load(int bin_fd, const char *bin_name, uint8_t *mem, size_t mem_size,
-        uint64_t p_min_loadaddr, guest_mprotect_fn_t t_guest_mprotect,
-        void *t_guest_mprotect_arg, uint64_t *p_entry, uint64_t *p_end);
+              uint64_t p_min_loadaddr, guest_mprotect_fn_t t_guest_mprotect,
+              void *t_guest_mprotect_arg, uint64_t *p_entry, uint64_t *p_end);
 
 /*
  * Load the Solo5-owned NOTE of (note_type) from the ELF binary (file).
@@ -77,7 +77,7 @@ void elf_load(int bin_fd, const char *bin_name, uint8_t *mem, size_t mem_size,
  * In all other cases, reports any errors to stderr and terminates the program.
  */
 int elf_load_note(int bin_fd, const char *bin_name, uint32_t note_type,
-        size_t note_align, size_t max_note_size, void **note_data,
-        size_t *note_size);
+                  size_t note_align, size_t max_note_size, void **note_data,
+                  size_t *note_size);
 
 #endif /* COMMON_ELF_H */

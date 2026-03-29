@@ -41,12 +41,11 @@
  */
 #define XENFB_TYPE_UPDATE 2
 
-struct xenfb_update
-{
-    uint8_t type;    /* XENFB_TYPE_UPDATE */
-    int32_t x;      /* source x */
-    int32_t y;      /* source y */
-    int32_t width;  /* rect width */
+struct xenfb_update {
+    uint8_t type; /* XENFB_TYPE_UPDATE */
+    int32_t x; /* source x */
+    int32_t y; /* source y */
+    int32_t width; /* rect width */
     int32_t height; /* rect height */
 };
 
@@ -56,20 +55,18 @@ struct xenfb_update
  */
 #define XENFB_TYPE_RESIZE 3
 
-struct xenfb_resize
-{
-    uint8_t type;    /* XENFB_TYPE_RESIZE */
-    int32_t width;   /* width in pixels */
-    int32_t height;  /* height in pixels */
-    int32_t stride;  /* stride in bytes */
-    int32_t depth;   /* depth in bits */
-    int32_t offset;  /* offset of the framebuffer in bytes */
+struct xenfb_resize {
+    uint8_t type; /* XENFB_TYPE_RESIZE */
+    int32_t width; /* width in pixels */
+    int32_t height; /* height in pixels */
+    int32_t stride; /* stride in bytes */
+    int32_t depth; /* depth in bits */
+    int32_t offset; /* offset of the framebuffer in bytes */
 };
 
 #define XENFB_OUT_EVENT_SIZE 40
 
-union xenfb_out_event
-{
+union xenfb_out_event {
     uint8_t type;
     struct xenfb_update update;
     struct xenfb_resize resize;
@@ -92,19 +89,17 @@ union xenfb_out_event
  * their periodical refreshs.
  */
 #define XENFB_TYPE_REFRESH_PERIOD 1
-#define XENFB_NO_REFRESH 0
+#define XENFB_NO_REFRESH          0
 
-struct xenfb_refresh_period
-{
-    uint8_t type;    /* XENFB_TYPE_UPDATE_PERIOD */
+struct xenfb_refresh_period {
+    uint8_t type; /* XENFB_TYPE_UPDATE_PERIOD */
     uint32_t period; /* period of refresh, in ms,
                       * XENFB_NO_REFRESH if no refresh is needed */
 };
 
 #define XENFB_IN_EVENT_SIZE 40
 
-union xenfb_in_event
-{
+union xenfb_in_event {
     uint8_t type;
     struct xenfb_refresh_period refresh_period;
     char pad[XENFB_IN_EVENT_SIZE];
@@ -113,31 +108,30 @@ union xenfb_in_event
 /* shared page */
 
 #define XENFB_IN_RING_SIZE 1024
-#define XENFB_IN_RING_LEN (XENFB_IN_RING_SIZE / XENFB_IN_EVENT_SIZE)
+#define XENFB_IN_RING_LEN  (XENFB_IN_RING_SIZE / XENFB_IN_EVENT_SIZE)
 #define XENFB_IN_RING_OFFS 1024
-#define XENFB_IN_RING(page) \
+#define XENFB_IN_RING(page)                                                    \
     ((union xenfb_in_event *)((char *)(page) + XENFB_IN_RING_OFFS))
-#define XENFB_IN_RING_REF(page, idx) \
+#define XENFB_IN_RING_REF(page, idx)                                           \
     (XENFB_IN_RING((page))[(idx) % XENFB_IN_RING_LEN])
 
 #define XENFB_OUT_RING_SIZE 2048
-#define XENFB_OUT_RING_LEN (XENFB_OUT_RING_SIZE / XENFB_OUT_EVENT_SIZE)
+#define XENFB_OUT_RING_LEN  (XENFB_OUT_RING_SIZE / XENFB_OUT_EVENT_SIZE)
 #define XENFB_OUT_RING_OFFS (XENFB_IN_RING_OFFS + XENFB_IN_RING_SIZE)
-#define XENFB_OUT_RING(page) \
+#define XENFB_OUT_RING(page)                                                   \
     ((union xenfb_out_event *)((char *)(page) + XENFB_OUT_RING_OFFS))
-#define XENFB_OUT_RING_REF(page, idx) \
+#define XENFB_OUT_RING_REF(page, idx)                                          \
     (XENFB_OUT_RING((page))[(idx) % XENFB_OUT_RING_LEN])
 
-struct xenfb_page
-{
+struct xenfb_page {
     uint32_t in_cons, in_prod;
     uint32_t out_cons, out_prod;
 
-    int32_t width;          /* the width of the framebuffer (in pixels) */
-    int32_t height;         /* the height of the framebuffer (in pixels) */
-    uint32_t line_length;   /* the length of a row of pixels (in bytes) */
-    uint32_t mem_length;    /* the length of the framebuffer (in bytes) */
-    uint8_t depth;          /* the depth of a pixel (in bits) */
+    int32_t width; /* the width of the framebuffer (in pixels) */
+    int32_t height; /* the height of the framebuffer (in pixels) */
+    uint32_t line_length; /* the length of a row of pixels (in bytes) */
+    uint32_t mem_length; /* the length of the framebuffer (in bytes) */
+    uint8_t depth; /* the depth of a pixel (in bits) */
 
     /*
      * Framebuffer page directory
@@ -158,9 +152,9 @@ struct xenfb_page
  * better solution is found, but don't leak it to the backend.
  */
 #ifdef __KERNEL__
-#define XENFB_WIDTH 800
+#define XENFB_WIDTH  800
 #define XENFB_HEIGHT 600
-#define XENFB_DEPTH 32
+#define XENFB_DEPTH  32
 #endif
 
 #endif

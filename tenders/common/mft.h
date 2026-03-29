@@ -47,10 +47,8 @@ int mft_validate(const struct mft *mft, size_t mft_size);
  * - https://inbox.sourceware.org/libc-alpha/mvm5x8wpsmi.fsf@suse.de/T/
  * - and https://www.open-std.org/jtc1/sc22/wg14/www/docs/n2973.pdf
  */
-#define __const_generic(PTR, CTYPE, CALL) \
-  _Generic (0 ? (PTR) : (void *) 1,       \
-      const void *: (CTYPE) (CALL),       \
-      void *: (CALL))
+#define __const_generic(PTR, CTYPE, CALL)                                      \
+    _Generic(0 ? (PTR) : (void *)1, const void *: (CTYPE)(CALL), void *: (CALL))
 
 /*
  * Given the address of a MFT1 ELF note at (note), returns the address of the
@@ -64,7 +62,7 @@ int mft_validate(const struct mft *mft, size_t mft_size);
  * the returned (*out_mft).
  */
 void mft_get_builtin_mft1(const struct mft1_note *note,
-        const struct mft **out_mft, size_t *out_mft_size);
+                          const struct mft **out_mft, size_t *out_mft_size);
 
 /*
  * Return the manifest entry matching (name), of type (type), or NULL if none
@@ -72,10 +70,10 @@ void mft_get_builtin_mft1(const struct mft1_note *note,
  * (*index).
  */
 struct mft_entry *_mft_get_by_name(const struct mft *mft, const char *name,
-        mft_type_t type, unsigned *index);
+                                   mft_type_t type, unsigned *index);
 
-#define mft_get_by_name(X, N, T, I) \
-  __const_generic(X, const struct mft_entry *, _mft_get_by_name(X, N, T, I))
+#define mft_get_by_name(X, N, T, I)                                            \
+    __const_generic(X, const struct mft_entry *, _mft_get_by_name(X, N, T, I))
 
 /*
  * Return the manifest entry at (index), of type (type), or NULL if the entry
@@ -83,10 +81,10 @@ struct mft_entry *_mft_get_by_name(const struct mft *mft, const char *name,
  */
 
 struct mft_entry *_mft_get_by_index(const struct mft *mft, unsigned index,
-        mft_type_t type);
+                                    mft_type_t type);
 
-#define mft_get_by_index(X, I, T) \
-  __const_generic(X, const struct mft_entry *, _mft_get_by_index(X, I, T))
+#define mft_get_by_index(X, I, T)                                              \
+    __const_generic(X, const struct mft_entry *, _mft_get_by_index(X, I, T))
 
 /*
  * Return a string representation of (type).

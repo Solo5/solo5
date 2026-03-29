@@ -54,12 +54,12 @@
  */
 #define HVT_HYPERCALL_PIO_BASE 0x500
 
-#    ifdef HVT_HOST
+#ifdef HVT_HOST
 /*
  * Non-dereferencable tender-side type representing a guest physical address.
  */
 typedef uint64_t hvt_gpa_t;
-#    else
+#else
 /*
  * On x86, 32-bit PIO is used as the hypercall mechanism. This only supports
  * sending 32-bit pointers; raise an assertion if a bigger pointer is used.
@@ -69,16 +69,16 @@ typedef uint64_t hvt_gpa_t;
  */
 static inline void hvt_do_hypercall(int n, volatile void *arg)
 {
-#    ifdef assert
+#ifdef assert
     assert(((uint64_t)arg <= UINT32_MAX));
-#    endif
+#endif
     __asm__ __volatile__("outl %0, %1"
-            :
-            : "a" ((uint32_t)((uint64_t)arg)),
-              "d" ((uint16_t)(HVT_HYPERCALL_PIO_BASE + n))
-            : "memory");
+                         :
+                         : "a"((uint32_t)((uint64_t)arg)),
+                           "d"((uint16_t)(HVT_HYPERCALL_PIO_BASE + n))
+                         : "memory");
 }
-#    endif
+#endif
 
 #elif defined(__aarch64__)
 /*
@@ -88,7 +88,7 @@ static inline void hvt_do_hypercall(int n, volatile void *arg)
  *
  * MMIO start from 4GB, this value can be changed by AARCH64_MMIO_BASE.
  */
-#define HVT_HYPERCALL_MMIO_BASE    (0x100000000UL)
+#define HVT_HYPERCALL_MMIO_BASE  (0x100000000UL)
 
 /*
  * On aarch64, the MMIO address must be 64-bit aligned, because we configured
@@ -98,15 +98,15 @@ static inline void hvt_do_hypercall(int n, volatile void *arg)
  * So the real hypercall ID will be calculated as:
  *          HVT_HYPERCALL_MMIO_BASE + (ID << 3).
  */
-#define HVT_HYPERCALL_ADDRESS(x)   (HVT_HYPERCALL_MMIO_BASE + ((x) << 3))
-#define HVT_HYPERCALL_NR(x)        (((x) - HVT_HYPERCALL_MMIO_BASE) >> 3)
+#define HVT_HYPERCALL_ADDRESS(x) (HVT_HYPERCALL_MMIO_BASE + ((x) << 3))
+#define HVT_HYPERCALL_NR(x)      (((x) - HVT_HYPERCALL_MMIO_BASE) >> 3)
 
-#    ifdef HVT_HOST
+#ifdef HVT_HOST
 /*
  * Non-dereferencable tender-side type representing a guest physical address.
  */
 typedef uint64_t hvt_gpa_t;
-#    else
+#else
 /*
  * In order to keep consistency with x86_64, we limit this hypercall only
  * to support sending 32-bit pointers; raise an assertion if a bigger
@@ -117,18 +117,18 @@ typedef uint64_t hvt_gpa_t;
  */
 static inline void hvt_do_hypercall(int n, volatile void *arg)
 {
-#    ifdef assert
+#ifdef assert
     assert(((uint64_t)arg <= UINT32_MAX));
-#    endif
-        __asm__ __volatile__("str %w0, [%1]"
-                :
-                : "rZ" ((uint32_t)((uint64_t)arg)),
-                  "r" ((uint64_t)HVT_HYPERCALL_ADDRESS(n))
-                : "memory");
+#endif
+    __asm__ __volatile__("str %w0, [%1]"
+                         :
+                         : "rZ"((uint32_t)((uint64_t)arg)),
+                           "r"((uint64_t)HVT_HYPERCALL_ADDRESS(n))
+                         : "memory");
 }
-#    endif
+#endif
 #else
-#    error Unsupported architecture
+#error Unsupported architecture
 #endif
 
 /*
@@ -141,9 +141,9 @@ static inline void hvt_do_hypercall(int n, volatile void *arg)
  * tender side.
  */
 #ifdef HVT_HOST
-#    define HVT_GUEST_PTR(T) hvt_gpa_t
+#define HVT_GUEST_PTR(T) hvt_gpa_t
 #else
-#    define HVT_GUEST_PTR(T) T
+#define HVT_GUEST_PTR(T) T
 #endif
 
 /*
@@ -151,11 +151,12 @@ static inline void hvt_do_hypercall(int n, volatile void *arg)
  * the guest entrypoint.
  */
 struct hvt_boot_info {
-    uint64_t mem_size;                  /* Memory size in bytes */
-    uint64_t kernel_end;                /* Address of end of kernel */
-    uint64_t cpu_cycle_freq;            /* CPU cycle counter frequency, Hz */
-    HVT_GUEST_PTR(const char *) cmdline;/* Address of command line (C string) */
-    HVT_GUEST_PTR(const void *) mft;    /* Address of application manifest */
+    uint64_t mem_size; /* Memory size in bytes */
+    uint64_t kernel_end; /* Address of end of kernel */
+    uint64_t cpu_cycle_freq; /* CPU cycle counter frequency, Hz */
+    HVT_GUEST_PTR(const char *)
+    cmdline; /* Address of command line (C string) */
+    HVT_GUEST_PTR(const void *) mft; /* Address of application manifest */
 };
 
 /*
@@ -169,7 +170,7 @@ struct hvt_boot_info {
  */
 enum hvt_hypercall {
     /* HVT_HYPERCALL_RESERVED=0 */
-    HVT_HYPERCALL_WALLTIME=1,
+    HVT_HYPERCALL_WALLTIME = 1,
     HVT_HYPERCALL_PUTS,
     HVT_HYPERCALL_POLL,
     HVT_HYPERCALL_BLOCK_WRITE,
@@ -250,7 +251,7 @@ struct hvt_hc_net_read {
 /* HVT_HYPERCALL_POLL */
 struct hvt_hc_poll {
     /* IN */
-    uint64_t timeout_nsecs;             /* Relative to time of call */
+    uint64_t timeout_nsecs; /* Relative to time of call */
 
     /* OUT */
     uint64_t ready_set;

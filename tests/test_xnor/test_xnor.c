@@ -37,7 +37,7 @@ int solo5_app_main(const struct solo5_start_info *si __attribute__((unused)))
 
     /* Verify that executable code (in section .text) is not readable. */
     uint64_t *addr_invalid = (uint64_t *)nothing;
-    if((void *)*addr_invalid != NULL)
+    if ((void *)*addr_invalid != NULL)
         puts("executable address read\n");
 
     puts("FAILURE\n");

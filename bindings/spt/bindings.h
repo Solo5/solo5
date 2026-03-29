@@ -50,12 +50,12 @@ struct sys_itimerspec {
     struct sys_timespec it_value;
 };
 
-#define SYS_CLOCK_REALTIME 0
+#define SYS_CLOCK_REALTIME  0
 #define SYS_CLOCK_MONOTONIC 1
 
 long sys_clock_gettime(const long which, void *ts);
 
-#define SYS_EINTR -4
+#define SYS_EINTR  -4
 #define SYS_EAGAIN -11
 
 /*
@@ -73,13 +73,13 @@ struct sys_epoll_event {
 } EPOLL_PACKED;
 
 long sys_epoll_pwait(long epfd, void *events, long maxevents, long timeout,
-        void *sigmask, long sigsetsize);
+                     void *sigmask, long sigsetsize);
 
 #define SYS_TFD_TIMER_ABSTIME (1 << 0)
 
 long sys_timerfd_settime(long fd, long flags, const void *utmr, void *otmr);
 
-#define SYS_ARCH_SET_FS		0x1002
+#define SYS_ARCH_SET_FS 0x1002
 
 long sys_arch_prctl(long code, long addr);
 

@@ -29,8 +29,7 @@ static void puts(const char *s)
 bool check_one_block(solo5_handle_t h, solo5_off_t offset, size_t block_size)
 {
     size_t i;
-    uint8_t wbuf[block_size],
-            rbuf[block_size];
+    uint8_t wbuf[block_size], rbuf[block_size];
 
     for (i = 0; i < block_size; i++) {
         wbuf[i] = '0' + i % 10;
@@ -66,7 +65,7 @@ int solo5_app_main(const struct solo5_start_info *si __attribute__((unused)))
      * Write and read/check one tenth of the disk.
      */
     for (solo5_off_t offset = 0; offset < bi.capacity;
-            offset += (10 * bi.block_size)) {
+         offset += (10 * bi.block_size)) {
         if (!check_one_block(h, offset, bi.block_size))
             /* Check failed */
             return 1;
@@ -86,7 +85,7 @@ int solo5_app_main(const struct solo5_start_info *si __attribute__((unused)))
     /*
      * Check edge cases: should not be able to read or write beyond end
      * of device.
-     * 
+     *
      * XXX: Current implementations may return either SOLO5_R_EINVAL or
      * SOLO5_R_EUNSPEC here, that is fine for now.
      */
@@ -118,11 +117,11 @@ int solo5_app_main(const struct solo5_start_info *si __attribute__((unused)))
      * XXX: Current implementations may return either SOLO5_R_EINVAL or
      * SOLO5_R_EUNSPEC here, that is fine for now.
      */
-    if (solo5_block_write(h, bi.block_size - 1, buf, bi.block_size)
-            == SOLO5_R_OK)
+    if (solo5_block_write(h, bi.block_size - 1, buf, bi.block_size) ==
+        SOLO5_R_OK)
         return 10;
-    if (solo5_block_read(h, bi.block_size - 1, buf, bi.block_size)
-            == SOLO5_R_OK)
+    if (solo5_block_read(h, bi.block_size - 1, buf, bi.block_size) ==
+        SOLO5_R_OK)
         return 11;
 
     puts("SUCCESS\n");

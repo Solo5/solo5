@@ -39,21 +39,19 @@ static void gdt_init(void)
     volatile struct gdtptr gdtptr;
     gdtptr.limit = sizeof(cpu_gdt64) - 1;
     gdtptr.base = (uint64_t)&cpu_gdt64;
-    __asm__ __volatile__(
-            "lgdt (%0);\n"
-            "pushq %1;\n"
-            "pushq $1f;\n"
-            "lretq;\n"
-            "1:\n"
-            "movq %2, %%rax;\n"
-            "movl %%eax, %%ss;\n"
-            "movl %%eax, %%ds;\n"
-            "movl %%eax, %%es;\n"
-            :
-            : "r" (&gdtptr),
-              "n" (GDT_DESC_OFFSET(GDT_DESC_CODE)),
-              "n" (GDT_DESC_OFFSET(GDT_DESC_DATA))
-            : "%rax");
+    __asm__ __volatile__("lgdt (%0);\n"
+                         "pushq %1;\n"
+                         "pushq $1f;\n"
+                         "lretq;\n"
+                         "1:\n"
+                         "movq %2, %%rax;\n"
+                         "movl %%eax, %%ss;\n"
+                         "movl %%eax, %%ds;\n"
+                         "movl %%eax, %%es;\n"
+                         :
+                         : "r"(&gdtptr), "n"(GDT_DESC_OFFSET(GDT_DESC_CODE)),
+                           "n"(GDT_DESC_OFFSET(GDT_DESC_DATA))
+                         : "%rax");
 }
 
 static struct idt_gate_desc cpu_idt[IDT_NUM_ENTRIES] ALIGN_64_BIT;
@@ -80,7 +78,8 @@ static void idt_init(void)
      * Load trap vectors. All traps run on IST2 (cpu_trap_stack), except for
      * the exceptions.
      */
-#define FILL_TRAP_GATE(num, ist) extern void cpu_trap_##num(void); \
+#define FILL_TRAP_GATE(num, ist)                                               \
+    extern void cpu_trap_##num(void);                                          \
     idt_fillgate(num, cpu_trap_##num, ist)
     FILL_TRAP_GATE(0, 2);
     FILL_TRAP_GATE(1, 2);
@@ -105,7 +104,8 @@ static void idt_init(void)
     /*
      * Load irq vectors. All irqs run on IST1 (cpu_intr_stack).
      */
-#define FILL_IRQ_GATE(num, ist) extern void cpu_irq_##num(void); \
+#define FILL_IRQ_GATE(num, ist)                                                \
+    extern void cpu_irq_##num(void);                                           \
     idt_fillgate(32 + num, cpu_irq_##num, ist)
     FILL_IRQ_GATE(0, 1);
     FILL_IRQ_GATE(1, 1);
@@ -126,15 +126,15 @@ static void idt_init(void)
 
     volatile struct idtptr idtptr;
     idtptr.limit = sizeof(cpu_idt) - 1;
-    idtptr.base = (uint64_t) &cpu_idt;
-    __asm__ __volatile__("lidt (%0)" :: "r" (&idtptr));
+    idtptr.base = (uint64_t)&cpu_idt;
+    __asm__ __volatile__("lidt (%0)" ::"r"(&idtptr));
 }
 
 static struct tss cpu_tss;
 
 static char cpu_intr_stack[4096]; /* IST1 */
 static char cpu_trap_stack[4096]; /* IST2 */
-static char cpu_nmi_stack[4096];  /* IST3 */
+static char cpu_nmi_stack[4096]; /* IST3 */
 
 static void tss_init(void)
 {
@@ -155,7 +155,7 @@ static void tss_init(void)
     td->zero = 0;
 
     cc_barrier();
-    __asm__ __volatile__("ltr %0" :: "r" ((unsigned short)(GDT_DESC_TSS_LO * 8)));
+    __asm__ __volatile__("ltr %0" ::"r"((unsigned short)(GDT_DESC_TSS_LO * 8)));
 }
 
 void cpu_init(void)
@@ -166,14 +166,15 @@ void cpu_init(void)
 }
 
 static const char *traps[32] = {
-    "#DE", "#DB", "#NMI", "#BP", "#OF", "#BR", "#UD", "#NM", "#DF", "#9", "#TS",
-    "#NP", "#SS", "#GP", "#PF", "#15", "#MF", "#AC", "#MC", "#XM", "#VE", "#21",
-    "#22", "#23", "#24", "#25", "#26", "#27", "#28", "#29", "#30", "#31"
-};
+    "#DE", "#DB", "#NMI", "#BP", "#OF", "#BR", "#UD", "#NM",
+    "#DF", "#9",  "#TS",  "#NP", "#SS", "#GP", "#PF", "#15",
+    "#MF", "#AC", "#MC",  "#XM", "#VE", "#21", "#22", "#23",
+    "#24", "#25", "#26",  "#27", "#28", "#29", "#30", "#31"};
 
 void cpu_trap_handler(uint64_t num, struct trap_regs *regs)
 {
-    log(INFO, "Solo5: trap: type=%s ec=0x%llx rip=0x%llx rsp=0x%llx rflags=0x%llx\n",
+    log(INFO,
+        "Solo5: trap: type=%s ec=0x%llx rip=0x%llx rsp=0x%llx rflags=0x%llx\n",
         traps[num], (unsigned long long)regs->ec, (unsigned long long)regs->rip,
         (unsigned long long)regs->rsp, (unsigned long long)regs->rflags);
     if (num == 14)
@@ -201,5 +202,6 @@ void cpu_intr_enable(void)
 void cpu_halt(void)
 {
     __asm__ __volatile__("cli; hlt");
-    for(;;);
+    for (;;)
+        ;
 }

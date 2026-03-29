@@ -12,9 +12,9 @@
  * The following license applies to this file:
  *
  * == License ==
- * 
+ *
  * Copyright ⓒ 2014, 2015 Robert S. Krzaczek.
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
  * “Software”), to deal in the Software without restriction, including
@@ -22,10 +22,10 @@
  * distribute, sublicense, and/or sell copies of the Software, and to
  * permit persons to whom the Software is furnished to do so, subject to
  * the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be
  * included in all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND,
  * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
  * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
@@ -33,14 +33,14 @@
  * CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- * 
+ *
  * == Other Copyrights ==
- * 
+ *
  * While the code presented in *sanity.h* and *sanity.c* is original, it
  * is certainly inspired by the excellent book, “The Practice of
  * Programming” by Brian W. Kernighan and Rob Pike. Quoting from that
  * source:
- * 
+ *
  * [quote,'http://cm.bell-labs.com/cm/cs/tpop/[The Practice Of Programming]']
  * _____________________________________________________________________
  * You may use this code for any purpose, as long as you leave the
@@ -72,15 +72,15 @@
 /** The different types of values in our JSON parser. Unlike the
  *  standard, we discriminate between integer and real values. */
 enum jtypes {
-    jnull,      /**< The JSON "null" value. */
-    jtrue,      /**< Just a simple "true" value. */
-    jfalse,     /**< Just a simple "false" value. */
-    jstring,    /**< Just your run of the mill string. */
-    jnumber,    /**< A JSON number (still just a string). */
-    jarray,     /**< A vector of values. */
-    jobject,    /**< An assoc. array of names and arbitrary values. */
-    jint,       /**< A JSON number parsed into a native integer. */
-    jreal,      /**< A JSON number parsed into a long double. */
+    jnull, /**< The JSON "null" value. */
+    jtrue, /**< Just a simple "true" value. */
+    jfalse, /**< Just a simple "false" value. */
+    jstring, /**< Just your run of the mill string. */
+    jnumber, /**< A JSON number (still just a string). */
+    jarray, /**< A vector of values. */
+    jobject, /**< An assoc. array of names and arbitrary values. */
+    jint, /**< A JSON number parsed into a native integer. */
+    jreal, /**< A JSON number parsed into a long double. */
 };
 
 /** A jvalue represents the different values found in a parse of a
@@ -144,10 +144,10 @@ typedef struct jvalue {
 } jvalue;
 
 extern jvalue *jnew(void);
-extern jvalue *jclear( jvalue * );
-extern void jdel( jvalue * );
-extern jvalue *jparse( FILE *fp );
-extern jvalue *jupdate(  jvalue * );
+extern jvalue *jclear(jvalue *);
+extern void jdel(jvalue *);
+extern jvalue *jparse(FILE *fp);
+extern jvalue *jupdate(jvalue *);
 #if 0 /* UNUSED */
 extern int jdump( FILE *fp, const jvalue *j );
 #endif
@@ -197,15 +197,15 @@ typedef struct ptrvec {
 #if 0 /* UNUSED */
 extern ptrvec *pvnew(void);
 #endif
-extern ptrvec *pvclear( ptrvec * );
-extern void **pvfinal( ptrvec * );
+extern ptrvec *pvclear(ptrvec *);
+extern void **pvfinal(ptrvec *);
 #if 0 /* UNUSED */
 extern void pvdel( ptrvec * );
 #endif
-extern void **pvdup( const ptrvec * );
-extern ptrvec *pvsize( ptrvec *, size_t );
-extern ptrvec *pvensure( ptrvec *, size_t );
-extern ptrvec *pvadd( ptrvec *, void * );
+extern void **pvdup(const ptrvec *);
+extern ptrvec *pvsize(ptrvec *, size_t);
+extern ptrvec *pvensure(ptrvec *, size_t);
+extern ptrvec *pvadd(ptrvec *, void *);
 
 #endif
 
@@ -246,23 +246,23 @@ extern ptrvec *pvadd( ptrvec *, void * );
  *  call twclear(). twfinal() combines both twdup() and twclear().
  */
 typedef struct twine {
-    char *p;               /**< null terminated C string data */
-    size_t len;            /**< size of the string, not counting null */
-    size_t sz;             /**< size of the underlying buffer */
+    char *p; /**< null terminated C string data */
+    size_t len; /**< size of the string, not counting null */
+    size_t sz; /**< size of the underlying buffer */
 } twine;
 
 #if 0 /* UNUSED */
 extern twine *twnew(void);
 #endif
-extern twine *twclear( twine * );
-extern char *twfinal( twine * );
+extern twine *twclear(twine *);
+extern char *twfinal(twine *);
 #if 0 /* UNUSED */
 extern void twdel( twine * );
 #endif
 
-extern char *twdup( const twine * );
+extern char *twdup(const twine *);
 
-extern twine *twsize( twine *, size_t );
+extern twine *twsize(twine *, size_t);
 
 #if 0 /* UNUSED */
 extern twine *twset( twine *, const char *, size_t );
@@ -272,8 +272,8 @@ extern twine *twsetz( twine *, const char * );
 #if 0 /* UNUSED */
 extern twine *twadd( twine *, const twine * );
 #endif
-extern twine *twaddc( twine *, char );
-extern twine *twaddu( twine *, uint32_t );
+extern twine *twaddc(twine *, char);
+extern twine *twaddu(twine *, uint32_t);
 #if 0 /* UNUSED */
 extern twine *twaddz( twine *, const char * );
 #endif
@@ -287,14 +287,14 @@ extern twine *twaddz( twine *, const char * );
 /* While this code is original, it is certainly inspired by the
  * excellent book, "The Practice of Programming" by Brian W. Kernighan
  * and Rob Pike.
- * 
+ *
  * Quoting from the book: "You may use this code for any purpose, as
  * long as you leave the copyright notice and book citation attached.
  * Copyright © 1999 Lucent Technologies. All rights reserved. Mon Mar
  * 19 13:59:27 EST 2001" */
 
-extern void *emalloc( size_t );
-extern void *erealloc( void *, size_t );
+extern void *emalloc(size_t);
+extern void *erealloc(void *, size_t);
 #if 0 /* UNUSED */
 extern char *estrdup( const char * );
 #endif
@@ -305,24 +305,22 @@ extern char *estrdup( const char * );
 
 /** Allocate some number of bytes from the system and return a pointer
  *  to them, or exit. */
-void *
-emalloc( size_t nb )
+void *emalloc(size_t nb)
 {
-    void *p = malloc( nb );
-    if( !p )
-        err( 1, "unable to allocate %zu bytes", nb );
+    void *p = malloc(nb);
+    if (!p)
+        err(1, "unable to allocate %zu bytes", nb);
     return p;
 }
 
 /** Change an allocated buffer to another size, returning a pointer to
  *  the new buffer. If the buffer could not be grown, an error is
  *  displayed and the process exits (this function does not return). */
-void *
-erealloc( void *ptr, size_t nb )
+void *erealloc(void *ptr, size_t nb)
 {
-    void *p = realloc( ptr, nb );
-    if( !p )
-        err( 1, "unable to reallocate %zu bytes", nb );
+    void *p = realloc(ptr, nb);
+    if (!p)
+        err(1, "unable to reallocate %zu bytes", nb);
     return p;
 }
 
@@ -363,14 +361,13 @@ pvnew(void)
  *  entirely heap-based objects (typically obtained from pvnew()),
  *  pvclear() is useful at tne end of functions that use a stack-based
  *  ptrvec object. */
-ptrvec *
-pvclear( ptrvec *pv )
+ptrvec *pvclear(ptrvec *pv)
 {
-    if( !pv )
-	return 0;
-    if( pv->p )
-	free( pv->p );
-    *pv = (ptrvec){ 0 };
+    if (!pv)
+        return 0;
+    if (pv->p)
+        free(pv->p);
+    *pv = (ptrvec){0};
     return pv;
 }
 
@@ -378,21 +375,20 @@ pvclear( ptrvec *pv )
  *  in our ptrvec. Unlike our member p, this one will be allocated from
  *  the heap and contains just enough space to hold the current
  *  contents of p including its terminating null. */
-void **
-pvdup( const ptrvec *pv )
+void **pvdup(const ptrvec *pv)
 {
     void **v;
 
-    if( !pv ) {
-	v = emalloc( sizeof( *v ));
-	*v = 0;
+    if (!pv) {
+        v = emalloc(sizeof(*v));
+        *v = 0;
     } else {
-	size_t nb = sizeof( void* ) * ( pv->len + 1 );
-	v = emalloc( nb );
-	if( pv->p )
-	    memcpy( v, pv->p, nb );
-	else
-	    memset( v, 0, nb );
+        size_t nb = sizeof(void *) * (pv->len + 1);
+        v = emalloc(nb);
+        if (pv->p)
+            memcpy(v, pv->p, nb);
+        else
+            memset(v, 0, nb);
     }
 
     return v;
@@ -402,11 +398,10 @@ pvdup( const ptrvec *pv )
  *  Return a null terminated void** ready for storage somewhere, and
  *  kill our own storage so that the next thing to come along can use
  *  our memory. */
-void **
-pvfinal( ptrvec *pv )
+void **pvfinal(ptrvec *pv)
 {
-    void **v = pvdup( pv );
-    pvclear( pv );
+    void **v = pvdup(pv);
+    pvclear(pv);
     return v;
 }
 
@@ -424,16 +419,15 @@ pvdel( ptrvec *pv )
 
 /** Force the supplied ptrvec to contain exactly some number of
  *  pointers. */
-ptrvec *
-pvsize( ptrvec *pv, size_t sz )
+ptrvec *pvsize(ptrvec *pv, size_t sz)
 {
-    if( !sz )
-	return pvclear( pv );
+    if (!sz)
+        return pvclear(pv);
 
-    pv->p = erealloc( pv->p, ( pv->sz = sz ) * sizeof( *pv->p ));
-    if( pv->len >= pv->sz ) {
-	pv->len = pv->sz - 1;
-	pv->p[ pv->len ] = 0;
+    pv->p = erealloc(pv->p, (pv->sz = sz) * sizeof(*pv->p));
+    if (pv->len >= pv->sz) {
+        pv->len = pv->sz - 1;
+        pv->p[pv->len] = 0;
     }
     return pv;
 }
@@ -442,43 +436,41 @@ pvsize( ptrvec *pv, size_t sz )
  *  pointers. If it doesn't, the region of pointers in the ptrvec are
  *  reallocated. Unlike pvsize(), pvensure() grows the ptrvec in a way
  *  that hopefully avoids constant reallocations. */
-ptrvec *
-pvensure( ptrvec *pv, size_t sz )
+ptrvec *pvensure(ptrvec *pv, size_t sz)
 {
     size_t newsz;
-    
-    if( !pv )
-	return 0;
-    else if( !sz || sz <= pv->sz )
-	return pv;
-    else if( !pv->sz && sz <= pv_initial_size )
-	return pvsize( pv, pv_initial_size );
+
+    if (!pv)
+        return 0;
+    else if (!sz || sz <= pv->sz)
+        return pv;
+    else if (!pv->sz && sz <= pv_initial_size)
+        return pvsize(pv, pv_initial_size);
 
     /* Choose the next size up for this ptrvec as either 150% of its
        current size, or if that's not big enough, 150% of the
        requested size. Either is meant to add enough padding so that
        we hopefully don't come back here too soon. */
     newsz = pv->sz * 3 / 2;
-    if( newsz < sz )
-	newsz = sz * 3 / 2;
+    if (newsz < sz)
+        newsz = sz * 3 / 2;
 
     /* Imperfect, but should catch most overflows, when newsz has
        rolled past SIZE_MAX. */
-    if( newsz < pv->sz )
-	errx( 1, "ptrvec overflow" );
+    if (newsz < pv->sz)
+        errx(1, "ptrvec overflow");
 
-    return pvsize( pv, newsz );
+    return pvsize(pv, newsz);
 }
 
 /** Add a pointer to the end of the set of pointers managed in this
  *  ptrvec. The size of the region is managed. The sz might grow a lot,
  *  but len will only ever grow by one. */
-ptrvec *
-pvadd( ptrvec *pv, void *v )
+ptrvec *pvadd(ptrvec *pv, void *v)
 {
-    pvensure( pv, pv->len + 2 );
-    pv->p[ pv->len++ ] = v;
-    pv->p[ pv->len ] = 0;
+    pvensure(pv, pv->len + 2);
+    pv->p[pv->len++] = v;
+    pv->p[pv->len] = 0;
     return pv;
 }
 
@@ -520,33 +512,30 @@ twdel( twine *t )
  *  for twine structure defined on the stack, for example. Also, it's
  *  a severe way to clear a twine of current data, but useful if
  *  you've got to return memory. */
-twine *
-twclear( twine *t )
+twine *twclear(twine *t)
 {
-    if( t->p )
-        free( t->p );
-    *t = (twine){ 0 };
+    if (t->p)
+        free(t->p);
+    *t = (twine){0};
     return t;
 }
 
 /** Return a pure C string that is a copy of the string we've been
  *  building in our twine. Unlike our string, this one will be
  *  allocated from the heap and contains just enough space to hold it. */
-char *
-twdup( const twine *t )
+char *twdup(const twine *t)
 {
-    char *p = emalloc( t->len + 1 );
-    return strcpy( p, t->p ? t->p : "" );
+    char *p = emalloc(t->len + 1);
+    return strcpy(p, t->p ? t->p : "");
 }
 
 /** A wrapper for the common case at the end of working with twine.
  *  Return a C string ready for storage somewhere, and kill our own
  *  storage so that the next thing to come along can use our memory. */
-char *
-twfinal( twine *t )
+char *twfinal(twine *t)
 {
-    char *p = twdup( t );
-    twclear( t );
+    char *p = twdup(t);
+    twclear(t);
     return p;
 }
 
@@ -557,16 +546,15 @@ twfinal( twine *t )
  *  because if you've added once, you're likely to add again, but if
  *  you have a size in mind in advance, you probably don't need to
  *  grow it soon. */
-twine *
-twsize( twine *t, size_t nb )
+twine *twsize(twine *t, size_t nb)
 {
-    if( !nb )
-        return twclear( t );
+    if (!nb)
+        return twclear(t);
 
-    t->p = erealloc( t->p, t->sz = nb );
-    if( t->len >= t->sz ) {
+    t->p = erealloc(t->p, t->sz = nb);
+    if (t->len >= t->sz) {
         t->len = t->sz - 1;
-        t->p[ t->len ] = 0;
+        t->p[t->len] = 0;
     }
     return t;
 }
@@ -636,23 +624,22 @@ twset( twine *t, const char *z, size_t nb )
  *  sure to add the null in yourself to \a sz. The 1.5X growth factor
  *  is meant to balance between calling realloc too often, but not
  *  wasting memory like mad like some libraries do. */
-static twine *
-twensure( twine *t, size_t sz )
+static twine *twensure(twine *t, size_t sz)
 {
     size_t newsz;
 
-    if( !sz || sz <= t->sz )
+    if (!sz || sz <= t->sz)
         return t;
-    if( sz <= tw_initial_size )
-        return twsize( t, tw_initial_size );
+    if (sz <= tw_initial_size)
+        return twsize(t, tw_initial_size);
 
     newsz = t->sz * 3 / 2;
-    if( newsz < sz )
+    if (newsz < sz)
         newsz = sz * 3 / 2;
-    if( newsz < t->sz )
-        errx( 1, "twine overflow" );
+    if (newsz < t->sz)
+        errx(1, "twine overflow");
 
-    return twsize( t, newsz );
+    return twsize(t, newsz);
 }
 
 /** Add a single plain character to our twine. This will grow the
@@ -660,10 +647,9 @@ twensure( twine *t, size_t sz )
  *  functions, if we can't get the memory we need, we just error and
  *  die. In this application, there's no point in trying to recover
  *  from an out of memory error. */
-twine *
-twaddc( twine *t, char c )
+twine *twaddc(twine *t, char c)
 {
-    twensure( t, t->len + 2 );
+    twensure(t, t->len + 2);
     char *p = t->p + t->len;
     *p++ = c;
     *p++ = 0;
@@ -699,38 +685,37 @@ twadd( twine *dst, const twine *src )
  *  simplistic, and I think it's not quite comforming (apparently
  *  there's UTF-8 and there'S CESU and one has intentional omissions
  *  the other doesn't? */
-twine *
-twaddu( twine *t, uint32_t c )
+twine *twaddu(twine *t, uint32_t c)
 {
-    if( c <= 0x007f )
-        twaddc( t, c );
-    else if( c <= 0x07ff ) {
-        twaddc( t, 0xc0 | ( c >> 6 ));
-        twaddc( t, 0x80 | ( c & 0x3f ));
-    } else if( c <= 0xffff ) {
-        twaddc( t, 0xe0 | ( c >> 12 ));
-        twaddc( t, 0x80 | ( c >> 6 & 0x3f ));
-        twaddc( t, 0x80 | ( c & 0x3f ));
-    } else if( c <= 0x1fffff ) {
-        twaddc( t, 0xf0 | ( c >> 18 ));
-        twaddc( t, 0x80 | ( c >> 12 & 0x3f ));
-        twaddc( t, 0x80 | ( c >> 6 & 0x3f ));
-        twaddc( t, 0x80 | ( c & 0x3f ));
-    } else if( c <= 0x3ffffff ) {
-        twaddc( t, 0xf8 | ( c >> 24 ));
-        twaddc( t, 0x80 | ( c >> 18 & 0x3f ));
-        twaddc( t, 0x80 | ( c >> 12 & 0x3f ));
-        twaddc( t, 0x80 | ( c >> 6 & 0x3f ));
-        twaddc( t, 0x80 | ( c & 0x3f ));
-    } else if( c <= 0x7ffffff ) {
-        twaddc( t, 0xfc | ( c >> 30 ));
-        twaddc( t, 0x80 | ( c >> 24 & 0x3f ));
-        twaddc( t, 0x80 | ( c >> 18 & 0x3f ));
-        twaddc( t, 0x80 | ( c >> 12 & 0x3f ));
-        twaddc( t, 0x80 | ( c >> 6 & 0x3f ));
-        twaddc( t, 0x80 | ( c & 0x3f ));
+    if (c <= 0x007f)
+        twaddc(t, c);
+    else if (c <= 0x07ff) {
+        twaddc(t, 0xc0 | (c >> 6));
+        twaddc(t, 0x80 | (c & 0x3f));
+    } else if (c <= 0xffff) {
+        twaddc(t, 0xe0 | (c >> 12));
+        twaddc(t, 0x80 | (c >> 6 & 0x3f));
+        twaddc(t, 0x80 | (c & 0x3f));
+    } else if (c <= 0x1fffff) {
+        twaddc(t, 0xf0 | (c >> 18));
+        twaddc(t, 0x80 | (c >> 12 & 0x3f));
+        twaddc(t, 0x80 | (c >> 6 & 0x3f));
+        twaddc(t, 0x80 | (c & 0x3f));
+    } else if (c <= 0x3ffffff) {
+        twaddc(t, 0xf8 | (c >> 24));
+        twaddc(t, 0x80 | (c >> 18 & 0x3f));
+        twaddc(t, 0x80 | (c >> 12 & 0x3f));
+        twaddc(t, 0x80 | (c >> 6 & 0x3f));
+        twaddc(t, 0x80 | (c & 0x3f));
+    } else if (c <= 0x7ffffff) {
+        twaddc(t, 0xfc | (c >> 30));
+        twaddc(t, 0x80 | (c >> 24 & 0x3f));
+        twaddc(t, 0x80 | (c >> 18 & 0x3f));
+        twaddc(t, 0x80 | (c >> 12 & 0x3f));
+        twaddc(t, 0x80 | (c >> 6 & 0x3f));
+        twaddc(t, 0x80 | (c & 0x3f));
     } else
-        errx(1, "unicode code point cannot be >0x7ffffff" );
+        errx(1, "unicode code point cannot be >0x7ffffff");
     return t;
 }
 
@@ -742,11 +727,11 @@ twaddu( twine *t, uint32_t c )
  *  #line when a newline appears on the file stream. Initialize this
  *  with a file stream opened for reading, and set #line to 1. */
 typedef struct ifile {
-    FILE *fp;                   /**< Input file stream */
-    size_t line;                /**< Line number */
+    FILE *fp; /**< Input file stream */
+    size_t line; /**< Line number */
 } ifile;
 
-static jvalue *readvalue( ifile * );
+static jvalue *readvalue(ifile *);
 
 /* When we're running single threaded, use the faster getc_unlocked(3)
  * that doesn't enforce thread safety; otherwise, use the regular
@@ -754,24 +739,22 @@ static jvalue *readvalue( ifile * );
  * once a file stream is passed to the JSON parser, _even if_ we were
  * multithreaded, this is the only code that should be reading from
  * the stream. But, still, let's try to play by the rules. */
-inline static int
-jgetc( FILE *f )
+inline static int jgetc(FILE *f)
 {
 #ifdef _REENTRANT
-    return getc( f );
+    return getc(f);
 #else
-    return getc_unlocked( f );
+    return getc_unlocked(f);
 #endif
 }
 
 /** Returns the next character in the open input stream under \a f,
  *  and bump the line counter in \a f when appropriate. Errors can
  *  always be reported using line. */
-static int
-getch( ifile *f )
+static int getch(ifile *f)
 {
-    int c = jgetc( f->fp );
-    if( c == '\n' )
+    int c = jgetc(f->fp);
+    if (c == '\n')
         ++f->line;
     return c;
 }
@@ -781,25 +764,23 @@ getch( ifile *f )
  *  stdio's can handle it, there is actually no guarantee that more
  *  than a single character can ever be pushed back onto the file
  *  stream. */
-static int
-ungetch( ifile *f, char c )
+static int ungetch(ifile *f, char c)
 {
-    if( c == '\n' )
+    if (c == '\n')
         --f->line;
-    return ungetc( c, f->fp );
+    return ungetc(c, f->fp);
 }
 
 /** A wrapper around getch() that skips any leading whitespace before
  *  the character eventually returned, or EOF. Rather than a
  *  traditional parsing of whitespace, we limit ourselves to only the
  *  ws characters defined in JSON. */
-static int
-getchskip( ifile *f )
+static int getchskip(ifile *f)
 {
     int c;
     do {
-        c = getch( f );
-    } while( c == ' ' || c == '\t' || c == '\n' || c == '\r' );
+        c = getch(f);
+    } while (c == ' ' || c == '\t' || c == '\n' || c == '\r');
     return c;
 }
 
@@ -807,22 +788,20 @@ getchskip( ifile *f )
  *  non-whitespace character in the stream ready for reading. The
  *  character returned is effectively a "peek" ahead at the next
  *  character that will be obtained from getch(). */
-static int
-skipws( ifile *f )
+static int skipws(ifile *f)
 {
-    int c = getchskip( f );
-    if( c != EOF )
-        ungetch( f, c );
+    int c = getchskip(f);
+    if (c != EOF)
+        ungetch(f, c);
     return c;
 }
 
 /** Create and return a new jvalue, initialized to be a jnull. Does
  *  not return if a new jvalue could not be allocated. */
-jvalue *
-jnew(void)
+jvalue *jnew(void)
 {
-    jvalue *j = emalloc( sizeof( *j ));
-    *j = (jvalue){ 0 };
+    jvalue *j = emalloc(sizeof(*j));
+    *j = (jvalue){0};
     j->d = jnull;
     return j;
 }
@@ -831,31 +810,30 @@ jnew(void)
  *  everything it contains, leaving \j intact but set to jnull.
  *  Normally, we'd set the various freed pointers to null explicitly,
  *  but at the end of the function, we zero the entire structure. */
-jvalue *
-jclear( jvalue *j )
+jvalue *jclear(jvalue *j)
 {
-    if( j ) {
-        free( j->n );
+    if (j) {
+        free(j->n);
 
-        switch( j->d ) {
+        switch (j->d) {
         case jarray:
         case jobject:
-            if( j->u.v )
-                for( jvalue **jv = j->u.v; *jv; ++jv )
-                    jdel( *jv );
-            free( j->u.v );
+            if (j->u.v)
+                for (jvalue **jv = j->u.v; *jv; ++jv)
+                    jdel(*jv);
+            free(j->u.v);
             break;
 
         case jstring:
         case jnumber:
-            free( j->u.s );
+            free(j->u.s);
             break;
 
         default:
             break;
         }
 
-        *j = (jvalue){ 0 };
+        *j = (jvalue){0};
         j->d = jnull;
     }
 
@@ -865,10 +843,9 @@ jclear( jvalue *j )
 /** Walk a tree of jvalue, or even just a single value, and free
  *  everything it contains. Everything, even \a j itself, is freed.
  *  When this is complete, \a j is <em>no longer valid.</em> */
-void
-jdel( jvalue *j )
+void jdel(jvalue *j)
 {
-    free( jclear( j ));
+    free(jclear(j));
 }
 
 /** Report an early EOF; that is, that the input stream ended before a
@@ -876,10 +853,9 @@ jdel( jvalue *j )
  *  the usual errors like that will trigger this. There's no point in
  *  reporting the line number, since this is an EOF. This is a
  *  function of its own, since it happens so often. */
-static void
-earlyeof(void)
+static void earlyeof(void)
 {
-    errx(1, "premature EOF in JSON data" );
+    errx(1, "premature EOF in JSON data");
 }
 
 /** Almost all of our errors end with a line number and a message that
@@ -894,29 +870,27 @@ earlyeof(void)
  *  and reallocs under the hood. This approach sucks up a page on the
  *  stack, but lets go of the space immediately and doesn't fragment
  *  our heap further. */
-static void
-ierr( const ifile *f, const char *msg, ... )
+static void ierr(const ifile *f, const char *msg, ...)
 {
     va_list ap;
-    char buf[ 512 ];
+    char buf[512];
 
-    va_start( ap, msg );
-    vsnprintf( buf, sizeof( buf ), msg, ap );
-    va_end( ap );
-    errx(1, "%s on line %zu in JSON data", buf, f->line );
+    va_start(ap, msg);
+    vsnprintf(buf, sizeof(buf), msg, ap);
+    va_end(ap);
+    errx(1, "%s on line %zu in JSON data", buf, f->line);
 }
 
 /** The next character read from \a f must be a double quote. */
-static bool
-expectdq( ifile *f )
+static bool expectdq(ifile *f)
 {
-    int c = getch( f );
+    int c = getch(f);
 
-    if( c == EOF ) {
+    if (c == EOF) {
         earlyeof();
         return false;
-    } else if( c != '"' ) {
-        ierr( f, "missing quote from string" );
+    } else if (c != '"') {
+        ierr(f, "missing quote from string");
         return false;
     } else
         return true;
@@ -927,82 +901,97 @@ expectdq( ifile *f )
  *  quotes) freshly allocated from the heap, or a null on error. When
  *  null is returned, a diagnostic will have been sent to the standard
  *  error stream. */
-static char *
-readstring( ifile *f )
+static char *readstring(ifile *f)
 {
-    if( !expectdq( f ))
+    if (!expectdq(f))
         return 0;
 
-    bool esc = false;           /* the next character is escaped */
-    bool oops = false;          /* a bad string was seen? */
-    unsigned int hex = 0;       /* read this many chars as a hex
-                                 * Unicode code point */
+    bool esc = false; /* the next character is escaped */
+    bool oops = false; /* a bad string was seen? */
+    unsigned int hex = 0; /* read this many chars as a hex
+                           * Unicode code point */
     unsigned int x = 0;
-    twine tw = (twine){ 0 };
+    twine tw = (twine){0};
 
-    while( !oops ) {
-        int c = getch( f );
+    while (!oops) {
+        int c = getch(f);
 
-        if( c == EOF ) {
+        if (c == EOF) {
             earlyeof();
             oops = true;
 
-        } else if( hex ) {
-            if( isxdigit( c )) {
-	        if( isdigit( c ))
-		    x = 16 * x + c - '0';
-		else if( isupper( c ))
-		    x = 16 * x + c - 'A' + 10;
-		else
-		    x = 16 * x + c - 'a' + 10;
-                if( !--hex )
-                    twaddu( &tw, x );
+        } else if (hex) {
+            if (isxdigit(c)) {
+                if (isdigit(c))
+                    x = 16 * x + c - '0';
+                else if (isupper(c))
+                    x = 16 * x + c - 'A' + 10;
+                else
+                    x = 16 * x + c - 'a' + 10;
+                if (!--hex)
+                    twaddu(&tw, x);
             } else {
-                ierr( f, "expected hex digit" );
+                ierr(f, "expected hex digit");
                 oops = true;
             }
 
-        } else if( esc ) {
-            switch( c ) {
-            case '"':  twaddc( &tw, '"' ); break;
-            case '/':  twaddc( &tw, '/' ); break;
-            case '\\': twaddc( &tw, '\\' ); break;
-            case 'b':  twaddc( &tw, '\b' ); break;
-            case 'f':  twaddc( &tw, '\f' ); break;
-            case 'n':  twaddc( &tw, '\n' ); break;
-            case 'r':  twaddc( &tw, '\r' ); break;
-            case 't':  twaddc( &tw, '\t' ); break;
+        } else if (esc) {
+            switch (c) {
+            case '"':
+                twaddc(&tw, '"');
+                break;
+            case '/':
+                twaddc(&tw, '/');
+                break;
+            case '\\':
+                twaddc(&tw, '\\');
+                break;
+            case 'b':
+                twaddc(&tw, '\b');
+                break;
+            case 'f':
+                twaddc(&tw, '\f');
+                break;
+            case 'n':
+                twaddc(&tw, '\n');
+                break;
+            case 'r':
+                twaddc(&tw, '\r');
+                break;
+            case 't':
+                twaddc(&tw, '\t');
+                break;
             case 'u':
                 x = 0;
                 hex = 4;
                 break;
             default:
-                ierr( f, "unknown escape code '\\%c'", (char)c );
+                ierr(f, "unknown escape code '\\%c'", (char)c);
                 oops = true;
             }
             esc = 0;
-        
-        } else if( c == '"' )    /* done parsing the string! bye! */
-            return twfinal( &tw );
 
-        else if( c == '\\' )
+        } else if (c == '"') /* done parsing the string! bye! */
+            return twfinal(&tw);
+
+        else if (c == '\\')
             esc = 1;
 
-        else if( c >= ' ' )
-            twaddc( &tw, c );
+        else if (c >= ' ')
+            twaddc(&tw, c);
 
-        else if( isspace( c )) {
-            ierr( f, "unescaped whitespace" );
+        else if (isspace(c)) {
+            ierr(f, "unescaped whitespace");
             oops = true;
 
         } else {
-            ierr( f, "unknown byte (0x%02x)", c );
+            ierr(f, "unknown byte (0x%02x)", c);
             oops = true;
         }
     }
 
-    twclear( &tw );             /* oops. bad string. give up and go
-                                 * home. */
+    twclear(&tw); /* oops. bad string. give up and go
+                   * home. */
     return 0;
 }
 
@@ -1012,10 +1001,9 @@ readstring( ifile *f )
  *  returned to the system, and returns 0, which readnumber() should
  *  chain return back to its caller, indicating a failure. Because
  *  this is only used by readnumber(), we'll mark it static. */
-static char *
-readnumberfail( twine *tw )
+static char *readnumberfail(twine *tw)
 {
-    twclear( tw );
+    twclear(tw);
     return 0;
 }
 
@@ -1026,78 +1014,76 @@ readnumberfail( twine *tw )
  *  that would suffice, but instead, we'll do this the long way so
  *  that we can catch errors in bogus numeric fields (e.g.,
  *  "123.456.789"). */
-static char *
-readnumber( ifile *f )
+static char *readnumber(ifile *f)
 {
     int c;
-    twine tw = (twine){ 0 };
+    twine tw = (twine){0};
 
-    if(( c = getch( f )) == '-' )		/* sign bit */
-        twaddc( &tw, c );
+    if ((c = getch(f)) == '-') /* sign bit */
+        twaddc(&tw, c);
     else
-        ungetch( f, c );
+        ungetch(f, c);
 
-    if(( c = getch( f )) == '0' ) {		/* integer */
-        twaddc( &tw, c );
-	c = getch( f );
-    } else if( isdigit( c ) && c != '0' ) {
+    if ((c = getch(f)) == '0') { /* integer */
+        twaddc(&tw, c);
+        c = getch(f);
+    } else if (isdigit(c) && c != '0') {
         do {
-	    twaddc( &tw, c );
-	    c = getch( f );
-	} while( isdigit( c ));
+            twaddc(&tw, c);
+            c = getch(f);
+        } while (isdigit(c));
     } else {
-        ierr( f, "unexpected '%c'", c );
-	return readnumberfail( &tw );
+        ierr(f, "unexpected '%c'", c);
+        return readnumberfail(&tw);
     }
 
-    if( c == '.' )				/* fraction */
-	do {
-	    twaddc( &tw, c );
-	    c = getch( f );
-	} while( isdigit( c ));
+    if (c == '.') /* fraction */
+        do {
+            twaddc(&tw, c);
+            c = getch(f);
+        } while (isdigit(c));
 
-    if( c == 'e' || c == 'E' ) {		/* exponent */
-	twaddc( &tw, c );
-	c = getch( f );
-	if( c == '+' || c == '-' ) {
-	    twaddc( &tw, c );
-	    c = getch( f );
-	}
-	while( isdigit( c )) {
-	    twaddc( &tw, c );
-	    c = getch( f );
-	}
+    if (c == 'e' || c == 'E') { /* exponent */
+        twaddc(&tw, c);
+        c = getch(f);
+        if (c == '+' || c == '-') {
+            twaddc(&tw, c);
+            c = getch(f);
+        }
+        while (isdigit(c)) {
+            twaddc(&tw, c);
+            c = getch(f);
+        }
     }
 
-    if( c == ',' || c == ']' || c == '}' )	/* acceptable term */
-	ungetch( f, c );
-    else if( c != EOF && !isspace( c )) {	/* unacceptable */
-        ierr( f, "unexpected '%c'", c );
-	return readnumberfail( &tw );
+    if (c == ',' || c == ']' || c == '}') /* acceptable term */
+        ungetch(f, c);
+    else if (c != EOF && !isspace(c)) { /* unacceptable */
+        ierr(f, "unexpected '%c'", c);
+        return readnumberfail(&tw);
     }
 
-    return twfinal( &tw );
+    return twfinal(&tw);
 }
 
 /** The next characters in the file stream \a f must match the ones
  *  we've been given in the string \a s. */
-static bool
-must( ifile *f, const char *s )
+static bool must(ifile *f, const char *s)
 {
     int c;
     const char *p = s;
 
-    while( *p && (( c = getch( f )) != EOF ))
-        if( *p++ != c )
+    while (*p && ((c = getch(f)) != EOF))
+        if (*p++ != c)
             break;
 
-    if( !*p )
+    if (!*p)
         return true;
 
-    if( c == EOF )
+    if (c == EOF)
         earlyeof();
     else
-        ierr( f, "expected %s", s );
+        ierr(f, "expected %s", s);
 
     return false;
 }
@@ -1105,23 +1091,22 @@ must( ifile *f, const char *s )
 /** With the stream pointing to a JSON string, read the object element
  *  at this point. Returns a new jvalue, or null when there is an
  *  error. */
-static jvalue *
-readobjel( ifile *f )
+static jvalue *readobjel(ifile *f)
 {
     char *n;
 
-    if( !( n = readstring( f )))
+    if (!(n = readstring(f)))
         return 0;
 
-    if( getchskip( f ) != ':' ) {
-        ierr( f, "expected colon in object element" );
-        free( n );
+    if (getchskip(f) != ':') {
+        ierr(f, "expected colon in object element");
+        free(n);
         return 0;
     }
 
-    jvalue *j = readvalue( f );
-    if( !j )
-        free( n );
+    jvalue *j = readvalue(f);
+    if (!j)
+        free(n);
     else
         j->n = n;
     return j;
@@ -1134,13 +1119,12 @@ readobjel( ifile *f )
  *  it. Processing of the actual elements is pretty simple, actually.
  *  Returns false when a parsing error is detected (which is
  *  reported). */
-static bool
-readseries( jvalue *j, ifile *f, enum jtypes t )
+static bool readseries(jvalue *j, ifile *f, enum jtypes t)
 {
     char term;
-    jvalue *(*reader)( ifile* ) = 0; /* reads an element */
+    jvalue *(*reader)(ifile *) = 0; /* reads an element */
 
-    switch( t ) {
+    switch (t) {
     case jarray:
         term = ']';
         reader = readvalue;
@@ -1150,43 +1134,43 @@ readseries( jvalue *j, ifile *f, enum jtypes t )
         reader = readobjel;
         break;
     default:
-        ierr( f, "internal error jtype %d in readseries", (int)t );
+        ierr(f, "internal error jtype %d in readseries", (int)t);
         return false;
     }
 
     /* Peeking ahead in the stream saw [ or { which is how we got
        called. So go ahead and throw it away. */
-    getch( f );
+    getch(f);
 
-    ptrvec pv = (ptrvec){ 0 };
-    for( bool oops = false; !oops; ) {
+    ptrvec pv = (ptrvec){0};
+    for (bool oops = false; !oops;) {
         jvalue *x = 0;
-        int c = skipws( f );
-        
-        if( c == EOF ) {
+        int c = skipws(f);
+
+        if (c == EOF) {
             earlyeof();
             oops = true;
 
-        } else if( c == ',' ) {
-            if( pv.len == 0 ) {
-                ierr( f, "missing value before comma" );
+        } else if (c == ',') {
+            if (pv.len == 0) {
+                ierr(f, "missing value before comma");
                 oops = true;
             }
-            getch( f );             /* consume the , */
+            getch(f); /* consume the , */
 
-        } else if( c == term ) {     /* we're done! */
-            getch( f );             /* consume the } */
-            j->u.v = (jvalue**)pvfinal( &pv );
+        } else if (c == term) { /* we're done! */
+            getch(f); /* consume the } */
+            j->u.v = (jvalue **)pvfinal(&pv);
             return true;
 
-        } else if( !( x = reader( f )))
+        } else if (!(x = reader(f)))
             oops = true;
 
         else
-            pvadd( &pv, x );
+            pvadd(&pv, x);
     }
 
-    pvclear( &pv );
+    pvclear(&pv);
     return false;
 }
 
@@ -1196,61 +1180,69 @@ readseries( jvalue *j, ifile *f, enum jtypes t )
  *  This function is recursive; if the value in \a f is an array or an
  *  object, a properly nested jvalue tree is returned. Any leading
  *  whitespace is skipped. */
-static jvalue *
-readvalue( ifile *f )
+static jvalue *readvalue(ifile *f)
 {
     int c;
     jvalue *j = jnew();
     j->line = f->line;
 
-    switch(( c = skipws( f ))) {
+    switch ((c = skipws(f))) {
     case EOF:
         earlyeof();
         break;
     case 'f':
-        if( must( f, "false" )) {
+        if (must(f, "false")) {
             j->d = jfalse;
             return j;
         }
         break;
     case 'n':
-        if( must( f, "null" )) {
+        if (must(f, "null")) {
             j->d = jnull;
             return j;
         }
         break;
     case 't':
-        if( must( f, "true" )) {
+        if (must(f, "true")) {
             j->d = jtrue;
             return j;
         }
         break;
     case '{':
-        if( readseries( j, f, j->d = jobject ))
+        if (readseries(j, f, j->d = jobject))
             return j;
         break;
     case '[':
-        if( readseries( j, f, j->d = jarray ))
+        if (readseries(j, f, j->d = jarray))
             return j;
         break;
     case '"':
-        if(( j->u.s = readstring( f ))) {
+        if ((j->u.s = readstring(f))) {
             j->d = jstring;
             return j;
         }
         break;
-    case '-': case '0': case '1': case '2': case '3': case '4':
-    case '5': case '6': case '7': case '8': case '9':
-        if(( j->u.s = readnumber( f ))) {
+    case '-':
+    case '0':
+    case '1':
+    case '2':
+    case '3':
+    case '4':
+    case '5':
+    case '6':
+    case '7':
+    case '8':
+    case '9':
+        if ((j->u.s = readnumber(f))) {
             j->d = jnumber;
             return j;
         }
         break;
     default:
-        ierr( f, "unexpected '%c'", (char)c );
+        ierr(f, "unexpected '%c'", (char)c);
     }
 
-    jdel( j );
+    jdel(j);
     return 0;
 }
 
@@ -1262,14 +1254,13 @@ readvalue( ifile *f )
  *  standard, in that the outermost value of the stream at \a fp
  *  isn't limited to being just an array or object, but can also be
  *  any other JSON value. */
-jvalue *
-jparse( FILE *fp )
+jvalue *jparse(FILE *fp)
 {
-    if( !fp )
+    if (!fp)
         return 0;
 
-    ifile f = (ifile){ .fp = fp, .line = 1 };
-    return readvalue( &f );
+    ifile f = (ifile){.fp = fp, .line = 1};
+    return readvalue(&f);
 }
 
 /** This is only used by jupdate, so we hide it static to this file.
@@ -1285,16 +1276,15 @@ jparse( FILE *fp )
  *  readnumber() via jparse(), we don't bother testing on isdigit()
  #  like a well behaved function would; otherwise, failing isdigit()
  #  in the while loop would also be an immediate return false. */
-static bool
-integerp( const char *str )
+static bool integerp(const char *str)
 {
-    if( *str == '-' || *str == '+' )
+    if (*str == '-' || *str == '+')
         ++str;
-    while( *str )
-        if( *str == '.' || *str == 'e' || *str == 'E' )
+    while (*str)
+        if (*str == '.' || *str == 'e' || *str == 'E')
             return false;
-	else
-	    ++str;
+        else
+            ++str;
     return true;
 }
 
@@ -1305,24 +1295,23 @@ integerp( const char *str )
  *  caller doesn't need lossy conversions introduced by atof().
  *  Calling jupdate() effectively "finishes" the parse, converting
  *  everything into native formats. */
-jvalue *
-jupdate( jvalue *j )
+jvalue *jupdate(jvalue *j)
 {
-    if( j )
-        switch( j->d ) {
+    if (j)
+        switch (j->d) {
         case jnumber:
-	    if( integerp( j->u.s )) {
-                j->u.i = strtoll( j->u.s, 0, 10 );
+            if (integerp(j->u.s)) {
+                j->u.i = strtoll(j->u.s, 0, 10);
                 j->d = jint;
             } else {
-                j->u.r = strtold( j->u.s, 0 );
+                j->u.r = strtold(j->u.s, 0);
                 j->d = jreal;
             }
             break;
         case jarray:
-	case jobject:
-            for( jvalue **jv = j->u.v; *jv; ++jv )
-                jupdate( *jv );
+        case jobject:
+            for (jvalue **jv = j->u.v; *jv; ++jv)
+                jupdate(*jv);
             break;
         default:
             break;
