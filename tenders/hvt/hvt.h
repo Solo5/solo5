@@ -173,7 +173,7 @@ extern hvt_vmexit_fn_t hvt_core_vmexits[];
 struct hvt_module_ops {
     int (*setup)(struct hvt *hvt, struct mft *mft);
     int (*handle_cmdarg)(char *cmdarg, struct mft *mft);
-    char *(*usage)(void);
+    const char *(*usage)(void);
 };
 
 struct hvt_module {

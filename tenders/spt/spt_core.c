@@ -355,7 +355,7 @@ static int setup(struct spt *spt, struct mft *mft)
     return 0;
 }
 
-static char *usage(void)
+static const char *usage(void)
 {
     return "--x-exec-heap (make the heap executable)."
            " WARNING: This option is dangerous and not recommended as it"
