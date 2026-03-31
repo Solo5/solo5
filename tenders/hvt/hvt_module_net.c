@@ -40,8 +40,46 @@
 #include "hvt.h"
 #include "solo5.h"
 
+#include <pthread.h>
+#include "hvt_ring.h"
+
+#if defined(__linux__)
+#include <sys/eventfd.h>
+#include <sys/ioctl.h>
+#include <linux/kvm.h>
+#include "hvt_kvm.h"
+#elif defined(__FreeBSD__)
+#include "hvt_freebsd.h"
+#elif defined(__OpenBSD__)
+#include "hvt_openbsd.h"
+#endif
+
 static bool module_in_use;
 static struct mft *host_mft;
+static volatile int io_thread_stop;
+static hvt_gpa_t reserved_ring_gpa;
+
+void hvt_net_reserve_ring(struct hvt *hvt, struct mft *mft)
+{
+    /* A ring is allocated only if there is at least one network interface
+     * listed in the manifest. The ring is then used by all interfaces. */
+    for (unsigned i = 0; i != mft->entries; i++) {
+        if (mft->e[i].type == MFT_DEV_NET_BASIC && mft->e[i].attached) {
+            size_t ring_size = sizeof(struct hvt_ring);
+            hvt_gpa_t gpa_ring = (hvt->guest_mem_size - ring_size) & ~0xFFFULL;
+
+            if (gpa_ring < 0x200000) {
+                warnx("Not enough guest memory for ring allocation");
+                return;
+            }
+
+            memset(hvt->mem + gpa_ring, 0, ring_size);
+            reserved_ring_gpa = gpa_ring;
+            hvt->guest_mem_size = gpa_ring;
+            return;
+        }
+    }
+}
 
 static void hypercall_net_write(struct hvt *hvt, hvt_gpa_t gpa)
 {

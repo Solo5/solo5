@@ -90,6 +90,13 @@ inline void *hvt_checked_gpa_p(struct hvt *hvt, hvt_gpa_t gpa, size_t sz,
 struct hvt *hvt_init(size_t mem_size);
 
 /*
+ * Reserve guest memory for the network ring buffer, if a NET_BASIC device is
+ * present in the manifest. Must be called before hvt_vcpu_init() so that the
+ * initial stack pointer is placed below the ring area.
+ */
+void hvt_net_reserve_ring(struct hvt *hvt, struct mft *mft);
+
+/*
  * Computes the memory size to use for this tender, based on the user-provided
  * value (rounding down if necessary).
  */
