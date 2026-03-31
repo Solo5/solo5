@@ -136,6 +136,224 @@ static void hypercall_net_read(struct hvt *hvt, hvt_gpa_t gpa)
     rd->ret = SOLO5_R_OK;
 }
 
+struct io_thread_arg {
+    struct hvt *hvt;
+    struct hvt_ring *ring;
+    int notify_fd;
+    volatile int ready; /* set by the I/O thread once fully initialized */
+};
+
+/* Process a NET_READ submission entry. Reads directly from the TAP fd into
+ * guest memory and posts a commit.
+ */
+static inline void process_read_entry(struct hvt *hvt, struct hvt_ring *ring,
+                                      struct hvt_ring_entry *ent)
+{
+    uint32_t commit_idx = ring->com_tail & HVT_RING_MASK;
+    struct hvt_ring_commit *commit = &ring->commits[commit_idx];
+
+    commit->id = ent->id;
+
+    struct mft_entry *e =
+        mft_get_by_index(host_mft, ent->handle, MFT_DEV_NET_BASIC);
+
+    if (e == NULL) {
+        commit->ret = SOLO5_R_EINVAL;
+        commit->len = 0;
+    } else {
+        void *data = HVT_CHECKED_GPA_P(hvt, ent->data, ent->len);
+        ssize_t nr = read(e->b.hostfd, data, ent->len);
+
+        if (nr == 0 || (nr == -1 && errno == EAGAIN)) {
+            commit->ret = SOLO5_R_AGAIN;
+            commit->len = 0;
+        } else if (nr > 0) {
+            commit->ret = SOLO5_R_OK;
+            commit->len = nr;
+        } else {
+            commit->ret = SOLO5_R_EINVAL;
+            commit->len = 0;
+        }
+    }
+
+    hvt_wmb();
+    ring->com_tail++;
+    ring->ent_head++;
+}
+
+/*
+ * Process all pending ring commits with batched ent_head updates for
+ * consecutive writes. For N consecutive NET_WRITE entries, only a single
+ * hvt_wmb() + ent_head update is issued instead of N.
+ */
+static inline void process_ring_commits(struct hvt *hvt, struct hvt_ring *ring)
+{
+    /*
+     * Snapshot ent_tail after the caller's hvt_rmb(). On aarch64 (weakly
+     * ordered), re-reading the volatile ent_tail inside the loop would let
+     * the CPU observe a new tail value without a barrier, potentially
+     * loading stale entry data for entries the guest just submitted.
+     * Snapshotting avoids this: every entry up to tail_snap is guaranteed
+     * visible by the preceding hvt_rmb().
+     *
+     * On x86 (TSO) this is harmless, loads are never reordered with loads.
+     */
+    uint32_t tail_snap = ring->ent_tail;
+
+    while (ring->ent_head != tail_snap) {
+        uint32_t batch_start = ring->ent_head;
+        uint32_t processed = 0;
+
+        /* Batch consecutive NET_WRITE entries */
+        while (ring->ent_head + processed != tail_snap) {
+            uint32_t idx = (batch_start + processed) & HVT_RING_MASK;
+            struct hvt_ring_entry *ent = &ring->entries[idx];
+
+            if (ent->operation == HVT_RING_NET_WRITE) {
+                struct mft_entry *e =
+                    mft_get_by_index(host_mft, ent->handle, MFT_DEV_NET_BASIC);
+
+                if (e != NULL) {
+                    void *data = HVT_CHECKED_GPA_P(hvt, ent->data, ent->len);
+                    ssize_t ret = write(e->b.hostfd, data, ent->len);
+                    if (ret == -1)
+                        err(1, "Fatal write error on net device");
+                    if ((size_t)ret != ent->len)
+                        errx(1,
+                             "Fatal write error: wrote only %zd"
+                             " out of %u bytes",
+                             ret, ent->len);
+                }
+                processed++;
+            } else if (ent->operation == HVT_RING_NET_READ) {
+                /*
+                 * Flush the batch of writes before processing the read, which
+                 * requires an immediate completion.
+                 */
+                if (processed > 0) {
+                    hvt_wmb();
+                    ring->ent_head += processed;
+                    processed = 0;
+                }
+                process_read_entry(hvt, ring, ent);
+                break; /* re-evaluate the outer loop */
+            } else {
+                /* Unknown operation: include in the batch to skip */
+                processed++;
+            }
+        }
+
+        if (processed > 0) {
+            hvt_wmb();
+            ring->ent_head += processed;
+        }
+    }
+}
+
+static void *io_thread_net_fn(void *arg)
+{
+    struct io_thread_arg *ta = arg;
+    struct hvt *hvt = ta->hvt;
+    struct hvt_ring *ring = ta->ring;
+    int nfd = ta->notify_fd;
+
+    /*
+     * Signal the main thread that this thread is fully initialized.
+     * On OpenBSD, hvt_drop_privileges() calls pledge("stdio vmm") after
+     * setup_modules() returns. We must ensure that all pthread runtime
+     * initialization (TLS, stack setup, etc.) has completed before pledge
+     * restricts the available syscalls.
+     */
+    ta->ready = 1;
+
+    while (!io_thread_stop) {
+        /* Adaptive polling: spin-poll the ring for new submissions before
+         * falling back to blocking on the notification fd. This eliminates the
+         * read() syscall overhead during sustained traffic bursts.
+         */
+        int found = 0;
+
+        for (int i = 0; i < HVT_RING_POLL_ITERS; i++) {
+            hvt_rmb();
+            if (ring->ent_head != ring->ent_tail) {
+                found = 1;
+                break;
+            }
+#if defined(__x86_64__)
+            __asm__ __volatile__("pause");
+#elif defined(__aarch64__)
+            __asm__ __volatile__("yield");
+#endif
+        }
+
+        if (!found) {
+            /*
+             * No work found after spinning. Set needs_kick so the guest knows
+             * to signal us, then check once more to avoid a race where the
+             * guest submitted between our last poll and setting the flag.
+             */
+            ring->needs_kick = 1;
+            hvt_mb();
+
+            if (ring->ent_head == ring->ent_tail) {
+                /* Truly idle: block on notification fd.
+                 * eventfd returns 8 bytes (KVM), pipe returns 1 byte
+                 * (FreeBSD/OpenBSD).
+                 */
+                uint64_t val;
+                ssize_t r = read(nfd, &val, sizeof(val));
+
+                if (r <= 0) {
+                    if (errno == EINTR)
+                        continue;
+                    break;
+                }
+            }
+
+            ring->needs_kick = 0;
+            hvt_wmb();
+        }
+
+        /*
+         * Process all pending submissions with batched ent_head updates.
+         */
+        hvt_rmb();
+        process_ring_commits(hvt, ring);
+    }
+
+    free(ta);
+    return NULL;
+}
+
+static void kill_net_pthread(struct hvt *hvt, int status, void *cookie)
+{
+    (void)status;
+    (void)cookie;
+    struct hvt_b *hvb = hvt->b;
+
+    io_thread_stop = 1;
+
+#if defined(__linux__)
+    if (hvb->kick_net_efd != -1) {
+        uint64_t val = 1;
+        (void)!write(hvb->kick_net_efd, &val, sizeof(val));
+        pthread_join(hvb->io_thread_net, NULL);
+        close(hvb->kick_net_efd);
+        hvb->kick_net_efd = -1;
+    }
+#elif defined(__FreeBSD__) || defined(__OpenBSD__)
+    if (hvb->kick_net_pipe[1] != -1) {
+        uint8_t byte = 1;
+        (void)!write(hvb->kick_net_pipe[1], &byte, 1);
+        pthread_join(hvb->io_thread_net, NULL);
+        close(hvb->kick_net_pipe[0]);
+        close(hvb->kick_net_pipe[1]);
+        hvb->kick_net_pipe[0] = -1;
+        hvb->kick_net_pipe[1] = -1;
+    }
+#endif
+}
+
 static int handle_cmdarg(char *cmdarg, struct mft *mft)
 {
     enum { opt_net, opt_net_mac } which;
