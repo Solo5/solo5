@@ -438,6 +438,93 @@ static int setup(struct hvt *hvt, struct mft *mft)
         assert(hvt_core_register_pollfd(mft->e[i].b.hostfd, i) == 0);
     }
 
+    if (reserved_ring_gpa != 0) {
+        struct hvt_b *hvb = hvt->b;
+        struct hvt_ring *ring =
+            (struct hvt_ring *)(hvt->mem + reserved_ring_gpa);
+        hvb->net_ring_gpa = reserved_ring_gpa;
+        int notify_fd = -1;
+
+#if defined(__linux__)
+        if (!hvb->has_ioeventfd)
+            goto skip_ring;
+
+        int efd = eventfd(0, EFD_CLOEXEC);
+        if (efd == -1) {
+            warn("eventfd() failed, falling back to hypercalls");
+            goto skip_ring;
+        }
+        hvb->kick_net_efd = efd;
+
+        struct kvm_ioeventfd ioev = {
+            .datamatch = 0,
+#if defined(__x86_64__)
+            .addr = HVT_RING_KICK_PIO_BASE,
+            .len = 4,
+            .fd = efd,
+            .flags = KVM_IOEVENTFD_FLAG_PIO,
+#elif defined(__aarch64__)
+            .addr = HVT_RING_KICK_MMIO_BASE,
+            .len = 4,
+            .fd = efd,
+            .flags = 0,
+#endif
+        };
+
+        if (ioctl(hvb->vmfd, KVM_IOEVENTFD, &ioev) == -1) {
+            warn("KVM_IOEVENTFD failed, falling back to hypercalls");
+            close(efd);
+            hvb->kick_net_efd = -1;
+            goto skip_ring;
+        }
+        notify_fd = efd;
+#elif defined(__FreeBSD__) || defined(__OpenBSD__)
+        if (pipe(hvb->kick_net_pipe) == -1) {
+            warn("pipe() failed, falling back to hypercalls");
+            goto skip_ring;
+        }
+        notify_fd = hvb->kick_net_pipe[0];
+#endif
+
+        struct io_thread_arg *ta = malloc(sizeof(*ta));
+        if (ta == NULL)
+            err(1, "malloc");
+
+        ta->hvt = hvt;
+        ta->ring = ring;
+        ta->notify_fd = notify_fd;
+        ta->ready = 0;
+        io_thread_stop = 0;
+
+        if (pthread_create(&hvb->io_thread_net, NULL, io_thread_net_fn, ta) !=
+            0) {
+            warn("pthread_create() failed, falling back to hypercalls");
+            free(ta);
+#if defined(__linux__)
+            close(hvb->kick_net_efd);
+            hvb->kick_net_efd = -1;
+#elif defined(__FreeBSD__) || defined(__OpenBSD__)
+            close(hvb->kick_net_pipe[0]);
+            close(hvb->kick_net_pipe[1]);
+            hvb->kick_net_pipe[0] = -1;
+            hvb->kick_net_pipe[1] = -1;
+#endif
+            goto skip_ring;
+        }
+
+        /*
+         * Wait for the I/O thread to signal that it is fully initialized.
+         * This ensures all pthread runtime setup (TLS, stack, libc internals)
+         * completes before hvt_drop_privileges() restricts syscalls via
+         * pledge() on OpenBSD.
+         */
+        while (!ta->ready)
+            ;
+
+        assert(hvt_core_register_halt_hook(kill_net_pthread) == 0);
+    skip_ring:;
+    }
+
 #if HVT_FREEBSD_ENABLE_CAPSICUM
     cap_rights_t rights;
     cap_rights_init(&rights, CAP_EVENT, CAP_WRITE, CAP_READ);
