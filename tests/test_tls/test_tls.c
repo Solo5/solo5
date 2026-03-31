@@ -36,30 +36,29 @@ static void puts(const char *s)
 static uint8_t heap[heap_size];
 static uintptr_t heap_top = (uintptr_t)&heap;
 
-static void* malloc_stub(size_t size)
+static void *malloc_stub(size_t size)
 {
-    if (heap_top + size <= (uintptr_t)&heap + heap_size)
-    {
+    if (heap_top + size <= (uintptr_t)&heap + heap_size) {
         heap_top += size;
-        return (void*)(heap_top - size);
+        return (void *)(heap_top - size);
     }
 
     return NULL;
 }
 
 __thread volatile uint64_t _data;
-uint64_t __attribute__ ((noinline)) get_data()
+uint64_t __attribute__((noinline)) get_data()
 {
     return _data;
 }
 
-void __attribute__ ((noinline)) set_data(uint64_t data)
+void __attribute__((noinline)) set_data(uint64_t data)
 {
     _data = data;
 }
 
 __thread volatile uint64_t _data_not_bss = 0x0000000000C0FFEE;
-uint64_t __attribute__ ((noinline)) get_data_not_bss()
+uint64_t __attribute__((noinline)) get_data_not_bss()
 {
     return _data_not_bss;
 }
@@ -71,11 +70,11 @@ int solo5_app_main(const struct solo5_start_info *si __attribute__((unused)))
     tcb1 = (uintptr_t)malloc_stub(solo5_tls_size());
     if (solo5_tls_init(tcb1) != SOLO5_R_OK)
         return 10;
- 
+
     tcb2 = (uintptr_t)malloc_stub(solo5_tls_size());
     if (solo5_tls_init(tcb2) != SOLO5_R_OK)
         return 11;
- 
+
     if (solo5_set_tls_base(solo5_tls_tp_offset(tcb1)) != SOLO5_R_OK)
         return 1;
     set_data(1);

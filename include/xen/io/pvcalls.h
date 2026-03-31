@@ -48,17 +48,17 @@ struct pvcalls_data_intf {
 };
 DEFINE_XEN_FLEX_RING(pvcalls);
 
-#define PVCALLS_SOCKET         0
-#define PVCALLS_CONNECT        1
-#define PVCALLS_RELEASE        2
-#define PVCALLS_BIND           3
-#define PVCALLS_LISTEN         4
-#define PVCALLS_ACCEPT         5
-#define PVCALLS_POLL           6
+#define PVCALLS_SOCKET  0
+#define PVCALLS_CONNECT 1
+#define PVCALLS_RELEASE 2
+#define PVCALLS_BIND    3
+#define PVCALLS_LISTEN  4
+#define PVCALLS_ACCEPT  5
+#define PVCALLS_POLL    6
 
 struct xen_pvcalls_request {
     uint32_t req_id; /* private to guest, echoed in response */
-    uint32_t cmd;    /* command to execute */
+    uint32_t cmd; /* command to execute */
     union {
         struct xen_pvcalls_socket {
             uint64_t id;

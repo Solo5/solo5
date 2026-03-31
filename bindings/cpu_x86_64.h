@@ -21,89 +21,89 @@
 #ifndef _BITUL
 
 #ifdef ASM_FILE
-#define _AC(X,Y)                X
-#define _AT(T,X)                X
+#define _AC(X, Y) X
+#define _AT(T, X) X
 #else
-#define __AC(X,Y)               (X##Y)
-#define _AC(X,Y)                __AC(X,Y)
-#define _AT(T,X)                ((T)(X))
+#define __AC(X, Y) (X##Y)
+#define _AC(X, Y)  __AC(X, Y)
+#define _AT(T, X)  ((T)(X))
 #endif
 
-#define _BITUL(x)               (_AC(1,UL) << (x))
-#define _BITULL(x)              (_AC(1,ULL) << (x))
+#define _BITUL(x)  (_AC(1, UL) << (x))
+#define _BITULL(x) (_AC(1, ULL) << (x))
 
 #endif
 
 /*
  * Basic CPU control in CR0
  */
-#define X86_CR0_PE_BIT          0 /* Protection Enable */
-#define X86_CR0_PE              _BITUL(X86_CR0_PE_BIT)
-#define X86_CR0_MP_BIT          1 /* Monitor Coprocessor */
-#define X86_CR0_MP              _BITUL(X86_CR0_MP_BIT)
-#define X86_CR0_EM_BIT          2 /* Emulation */
-#define X86_CR0_EM              _BITUL(X86_CR0_EM_BIT)
-#define X86_CR0_NE_BIT          5 /* Numeric Exception */
-#define X86_CR0_NE              _BITUL(X86_CR0_NE_BIT)
-#define X86_CR0_WP_BIT          16 /* Write Protect */
-#define X86_CR0_WP              _BITUL(X86_CR0_WP_BIT)
-#define X86_CR0_PG_BIT          31 /* Paging */
-#define X86_CR0_PG              _BITUL(X86_CR0_PG_BIT)
+#define X86_CR0_PE_BIT 0 /* Protection Enable */
+#define X86_CR0_PE     _BITUL(X86_CR0_PE_BIT)
+#define X86_CR0_MP_BIT 1 /* Monitor Coprocessor */
+#define X86_CR0_MP     _BITUL(X86_CR0_MP_BIT)
+#define X86_CR0_EM_BIT 2 /* Emulation */
+#define X86_CR0_EM     _BITUL(X86_CR0_EM_BIT)
+#define X86_CR0_NE_BIT 5 /* Numeric Exception */
+#define X86_CR0_NE     _BITUL(X86_CR0_NE_BIT)
+#define X86_CR0_WP_BIT 16 /* Write Protect */
+#define X86_CR0_WP     _BITUL(X86_CR0_WP_BIT)
+#define X86_CR0_PG_BIT 31 /* Paging */
+#define X86_CR0_PG     _BITUL(X86_CR0_PG_BIT)
 
 /*
  * Intel CPU features in CR4
  */
-#define X86_CR4_PAE_BIT         5 /* enable physical address extensions */
-#define X86_CR4_PAE             _BITUL(X86_CR4_PAE_BIT)
-#define X86_CR4_OSFXSR_BIT      9 /* OS support for FXSAVE/FXRSTOR */
-#define X86_CR4_OSFXSR          _BITUL(X86_CR4_OSFXSR_BIT)
-#define X86_CR4_OSXMMEXCPT_BIT  10 /* OS support for FP exceptions */
-#define X86_CR4_OSXMMEXCPT      _BITUL(X86_CR4_OSXMMEXCPT_BIT)
-#define X86_CR4_VMXE_BIT        13 /* VMX enabled */
-#define X86_CR4_VMXE            _BITUL(X86_CR4_VMXE_BIT)
+#define X86_CR4_PAE_BIT        5 /* enable physical address extensions */
+#define X86_CR4_PAE            _BITUL(X86_CR4_PAE_BIT)
+#define X86_CR4_OSFXSR_BIT     9 /* OS support for FXSAVE/FXRSTOR */
+#define X86_CR4_OSFXSR         _BITUL(X86_CR4_OSFXSR_BIT)
+#define X86_CR4_OSXMMEXCPT_BIT 10 /* OS support for FP exceptions */
+#define X86_CR4_OSXMMEXCPT     _BITUL(X86_CR4_OSXMMEXCPT_BIT)
+#define X86_CR4_VMXE_BIT       13 /* VMX enabled */
+#define X86_CR4_VMXE           _BITUL(X86_CR4_VMXE_BIT)
 
 /*
  * Intel CPU features in EFER
  */
-#define X86_EFER_LME_BIT        8 /* Long mode enable (R/W) */
-#define X86_EFER_LME            _BITUL(X86_EFER_LME_BIT)
-#define X86_EFER_LMA_BIT        10 /* Long mode active (R/O) */
-#define X86_EFER_LMA            _BITUL(X86_EFER_LMA_BIT)
-#define X86_EFER_NXE_BIT        11 /* No-execute enable */
-#define X86_EFER_NXE            _BITUL(X86_EFER_NXE_BIT)
+#define X86_EFER_LME_BIT 8 /* Long mode enable (R/W) */
+#define X86_EFER_LME     _BITUL(X86_EFER_LME_BIT)
+#define X86_EFER_LMA_BIT 10 /* Long mode active (R/O) */
+#define X86_EFER_LMA     _BITUL(X86_EFER_LMA_BIT)
+#define X86_EFER_NXE_BIT 11 /* No-execute enable */
+#define X86_EFER_NXE     _BITUL(X86_EFER_NXE_BIT)
 
-#define PAGE_SIZE               4096
-#define PAGE_SHIFT              12
-#define PAGE_MASK               ~(0xfff)
+#define PAGE_SIZE  4096
+#define PAGE_SHIFT 12
+#define PAGE_MASK  ~(0xfff)
 
 /*
  * Long-mode page table entries.
  */
-#define X86_PTE_P_BIT           0 /* Present */
-#define X86_PTE_P               _BITUL(X86_PTE_P_BIT)
-#define X86_PTE_W_BIT           1 /* Read/Write */
-#define X86_PTE_W               _BITUL(X86_PTE_W_BIT)
-#define X86_PTE_PS_BIT          7 /* Page Size */
-#define X86_PTE_PS              _BITUL(X86_PTE_PS_BIT)
-#define X86_PTE_XD_BIT          63 /* Execute disable */
-#define X86_PTE_XD              _BITUL(X86_PTE_XD_BIT)
+#define X86_PTE_P_BIT  0 /* Present */
+#define X86_PTE_P      _BITUL(X86_PTE_P_BIT)
+#define X86_PTE_W_BIT  1 /* Read/Write */
+#define X86_PTE_W      _BITUL(X86_PTE_W_BIT)
+#define X86_PTE_PS_BIT 7 /* Page Size */
+#define X86_PTE_PS     _BITUL(X86_PTE_PS_BIT)
+#define X86_PTE_XD_BIT 63 /* Execute disable */
+#define X86_PTE_XD     _BITUL(X86_PTE_XD_BIT)
 
 /*
  * GDT layout
  *
  */
-#define GDT_DESC_NULL           0
-#define GDT_DESC_CODE           1
-#define GDT_DESC_DATA           2
-#define GDT_DESC_TSS_LO         3
-#define GDT_DESC_TSS_HI         4
-#define GDT_DESC_TSS            GDT_DESC_TSS_LO
+#define GDT_DESC_NULL   0
+#define GDT_DESC_CODE   1
+#define GDT_DESC_DATA   2
+#define GDT_DESC_TSS_LO 3
+#define GDT_DESC_TSS_HI 4
+#define GDT_DESC_TSS    GDT_DESC_TSS_LO
 
-#define GDT_DESC_OFFSET(n)      ((n) * 0x8)
-#define GDT_NUM_ENTRIES         5
+#define GDT_DESC_OFFSET(n) ((n) * 0x8)
+#define GDT_NUM_ENTRIES    5
 
-#define GDT_DESC_CODE_VAL       0x00af99000000ffff
-#define GDT_DESC_DATA_VAL       0x00cf93000000ffff
+#define GDT_DESC_CODE_VAL 0x00af99000000ffff
+#define GDT_DESC_DATA_VAL 0x00cf93000000ffff
 
 #ifndef ASM_FILE
 /*
@@ -118,15 +118,15 @@ struct gdtptr {
 #define IDT_NUM_ENTRIES 48
 
 struct idt_gate_desc {
-    uint64_t offset_lo:16;
-    uint64_t selector:16;
-    uint64_t ist:3;
-    uint64_t reserved:5;
-    uint64_t type:5;
-    uint64_t dpl:2;
-    uint64_t p:1;
-    uint64_t offset_hi:48;
-    uint64_t reserved1:32;
+    uint64_t offset_lo : 16;
+    uint64_t selector : 16;
+    uint64_t ist : 3;
+    uint64_t reserved : 5;
+    uint64_t type : 5;
+    uint64_t dpl : 2;
+    uint64_t p : 1;
+    uint64_t offset_hi : 48;
+    uint64_t reserved1 : 32;
 } __attribute__((packed));
 
 struct idtptr {
@@ -145,18 +145,18 @@ struct tss {
 } __attribute__((packed));
 
 struct tss_desc {
-    uint64_t limit_lo:16;
-    uint64_t base_lo:24;
-    uint64_t type:5;
-    uint64_t dpl:2;
-    uint64_t p:1;
-    uint64_t limit_hi:4;
-    uint64_t unused:3;
-    uint64_t gran:1;
-    uint64_t base_hi:40;
-    uint64_t reserved:8;
-    uint64_t zero:5;
-    uint64_t reserved1:19;
+    uint64_t limit_lo : 16;
+    uint64_t base_lo : 24;
+    uint64_t type : 5;
+    uint64_t dpl : 2;
+    uint64_t p : 1;
+    uint64_t limit_hi : 4;
+    uint64_t unused : 3;
+    uint64_t gran : 1;
+    uint64_t base_hi : 40;
+    uint64_t reserved : 8;
+    uint64_t zero : 5;
+    uint64_t reserved1 : 19;
 } __attribute__((packed));
 
 struct trap_regs {
@@ -181,12 +181,10 @@ static inline uint64_t mul64_32(uint64_t a, uint32_t b, uint8_t s)
 {
     uint64_t prod;
 
-    __asm__ (
-        "mul %%rdx ; "
-        "shrd %%cl, %%rdx, %%rax"
-        : "=a" (prod)
-        : "0" (a), "d" ((uint64_t)b), "Ic" (s)
-    );
+    __asm__("mul %%rdx ; "
+            "shrd %%cl, %%rdx, %%rax"
+            : "=a"(prod)
+            : "0"(a), "d"((uint64_t)b), "Ic"(s));
 
     return prod;
 }
@@ -195,35 +193,35 @@ static inline uint64_t mul64_32(uint64_t a, uint32_t b, uint8_t s)
 
 static inline void outb(uint16_t port, uint8_t v)
 {
-    __asm__ __volatile__("outb %0,%1" : : "a" (v), "dN" (port));
+    __asm__ __volatile__("outb %0,%1" : : "a"(v), "dN"(port));
 }
 static inline void outw(uint16_t port, uint16_t v)
 {
-    __asm__ __volatile__("outw %0,%1" : : "a" (v), "dN" (port));
+    __asm__ __volatile__("outw %0,%1" : : "a"(v), "dN"(port));
 }
 static inline void outl(uint16_t port, uint32_t v)
 {
-    __asm__ __volatile__("outl %0,%1" : : "a" (v), "dN" (port));
+    __asm__ __volatile__("outl %0,%1" : : "a"(v), "dN"(port));
 }
 static inline uint8_t inb(uint16_t port)
 {
     uint8_t v;
 
-    __asm__ __volatile__("inb %1,%0" : "=a" (v) : "dN" (port));
+    __asm__ __volatile__("inb %1,%0" : "=a"(v) : "dN"(port));
     return v;
 }
 static inline uint16_t inw(uint16_t port)
 {
     uint16_t v;
 
-    __asm__ __volatile__("inw %1,%0" : "=a" (v) : "dN" (port));
+    __asm__ __volatile__("inw %1,%0" : "=a"(v) : "dN"(port));
     return v;
 }
 static inline uint32_t inl(uint16_t port)
 {
     uint32_t v;
 
-    __asm__ __volatile__("inl %1,%0" : "=a" (v) : "dN" (port));
+    __asm__ __volatile__("inl %1,%0" : "=a"(v) : "dN"(port));
     return v;
 }
 
@@ -232,32 +230,27 @@ static inline uint64_t inq(uint16_t port_lo)
     uint16_t port_hi = port_lo + 4;
     uint32_t lo, hi;
 
-    __asm__ __volatile__("inl %1,%0" : "=a" (lo) : "dN" (port_lo));
-    __asm__ __volatile__("inl %1,%0" : "=a" (hi) : "dN" (port_hi));
+    __asm__ __volatile__("inl %1,%0" : "=a"(lo) : "dN"(port_lo));
+    __asm__ __volatile__("inl %1,%0" : "=a"(hi) : "dN"(port_hi));
 
     return ((uint64_t)lo) | ((uint64_t)hi << 32);
 }
 
 static inline void cpu_set_tls_base(uint64_t base)
 {
-     __asm__ __volatile("wrmsr" ::
-         "c" (0xc0000100), /* IA32_FS_BASE */
-         "a" ((uint32_t)(base)),
-         "d" ((uint32_t)(base >> 32))
-     );
+    __asm__ __volatile("wrmsr" ::"c"(0xc0000100), /* IA32_FS_BASE */
+                       "a"((uint32_t)(base)), "d"((uint32_t)(base >> 32)));
 }
 
-static inline void
-x86_cpuid(uint32_t level, uint32_t *eax_out, uint32_t *ebx_out,
-        uint32_t *ecx_out, uint32_t *edx_out)
+static inline void x86_cpuid(uint32_t level, uint32_t *eax_out,
+                             uint32_t *ebx_out, uint32_t *ecx_out,
+                             uint32_t *edx_out)
 {
     uint32_t eax_, ebx_, ecx_, edx_;
 
-    __asm__(
-        "cpuid"
-        : "=a" (eax_), "=b" (ebx_), "=c" (ecx_), "=d" (edx_)
-        : "0" (level)
-    );
+    __asm__("cpuid"
+            : "=a"(eax_), "=b"(ebx_), "=c"(ecx_), "=d"(edx_)
+            : "0"(level));
     *eax_out = eax_;
     *ebx_out = ebx_;
     *ecx_out = ecx_;

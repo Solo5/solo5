@@ -40,14 +40,14 @@ struct hvt *hvt_init(size_t mem_size)
 {
     int ret;
 
-    struct hvt *hvt = malloc(sizeof (struct hvt));
+    struct hvt *hvt = malloc(sizeof(struct hvt));
     if (hvt == NULL)
         err(1, "malloc");
-    memset(hvt, 0, sizeof (struct hvt));
-    struct hvt_b *hvb = malloc(sizeof (struct hvt_b));
+    memset(hvt, 0, sizeof(struct hvt));
+    struct hvt_b *hvb = malloc(sizeof(struct hvt_b));
     if (hvb == NULL)
         err(1, "malloc");
-    memset(hvb, 0, sizeof (struct hvt_b));
+    memset(hvb, 0, sizeof(struct hvt_b));
 
     hvb->kvmfd = open("/dev/kvm", O_RDWR | O_CLOEXEC);
     if (hvb->kvmfd == -1)
@@ -70,8 +70,7 @@ struct hvt *hvt_init(size_t mem_size)
     if (runsize < sizeof(*hvb->vcpurun))
         errx(1, "KVM: invalid VCPU_MMAP_SIZE: %zd", runsize);
     hvb->vcpurun =
-        mmap(NULL, runsize, PROT_READ | PROT_WRITE, MAP_SHARED, hvb->vcpufd,
-             0);
+        mmap(NULL, runsize, PROT_READ | PROT_WRITE, MAP_SHARED, hvb->vcpufd, 0);
     if (hvb->vcpurun == MAP_FAILED)
         err(1, "KVM: VCPU mmap failed");
 
@@ -82,7 +81,7 @@ struct hvt *hvt_init(size_t mem_size)
     if (ret != 1)
         errx(1, "KVM: host does not support KVM_CAP_USER_MEMORY");
     hvt->mem = mmap(NULL, mem_size, PROT_READ | PROT_WRITE,
-               MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+                    MAP_SHARED | MAP_ANONYMOUS, -1, 0);
     if (hvt->mem == MAP_FAILED)
         err(1, "Error allocating guest memory");
     hvt->mem_size = mem_size;
@@ -125,7 +124,7 @@ void hvt_drop_privileges()
 #endif
 
 int hvt_guest_mprotect(void *t_arg, uint64_t addr_start, uint64_t addr_end,
-        int prot)
+                       int prot)
 {
     struct hvt *hvt = t_arg;
 
@@ -149,7 +148,7 @@ int hvt_guest_mprotect(void *t_arg, uint64_t addr_start, uint64_t addr_end,
      * KVM will propagate guest-side R/W protections to its EPT mappings,
      * guest-side X/NX protection is currently not supported by the hypervisor.
      */
-    if(prot & PROT_EXEC) {
+    if (prot & PROT_EXEC) {
         prot &= ~(PROT_EXEC);
         prot |= PROT_READ;
     }

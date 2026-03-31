@@ -31,8 +31,8 @@
  * IPC protocol (shmstream) as specified by 'SHMStream Version 2 IPC Interface'.
  */
 
-#define SHMSTREAM20     0x487312b6b79a9b6dULL
-#define MUCHANNEL_NULL_EPOCH    0
+#define SHMSTREAM20          0x487312b6b79a9b6dULL
+#define MUCHANNEL_NULL_EPOCH 0
 
 struct muchannel_header {
     uint64_t transport;
@@ -53,6 +53,6 @@ struct muchannel {
 /*
  * Returns True if the channe is currently active.
  */
-bool muen_channel_is_active(const struct muchannel * const channel);
+bool muen_channel_is_active(const struct muchannel *const channel);
 
 #endif

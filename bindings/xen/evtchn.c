@@ -41,15 +41,13 @@ struct evtchn_handler {
 static struct evtchn_handler evtchn_handlers[EVTCHN_PORT_MAX + 1];
 
 void evtchn_register_handler(evtchn_port_t port, evtchn_handler_fn_t handler,
-        void *arg)
+                             void *arg)
 {
     assert(port <= EVTCHN_PORT_MAX);
     assert(evtchn_handlers[port].handler == NULL);
     cpu_intr_disable();
-    evtchn_handlers[port] = (struct evtchn_handler){
-        .handler = handler,
-        .arg = arg
-    };
+    evtchn_handlers[port] =
+        (struct evtchn_handler){.handler = handler, .arg = arg};
     cpu_intr_enable();
 }
 
@@ -58,7 +56,7 @@ evtchn_port_t evtchn_bind_virq(uint32_t virq)
     evtchn_port_t port;
 
     int rc = hypercall_evtchn_bind_virq(virq, 0, &port);
-    assert (rc == 0);
+    assert(rc == 0);
     return port;
 }
 
@@ -92,7 +90,7 @@ void evtchn_unmask(evtchn_port_t port)
 }
 
 static int evtchn_vector_handler(void *arg __attribute__((unused)))
-__attribute__((used));
+    __attribute__((used));
 
 /*
  * Called in interrupt context.
@@ -132,8 +130,8 @@ static int evtchn_vector_handler(void *arg __attribute__((unused)))
          * that we continue processing events if new ones are triggered while
          * we're in the loop.
          */
-        while ((pending_l2 =
-                    (s->evtchn_pending[l1i] & ~s->evtchn_mask[l1i])) != 0) {
+        while ((pending_l2 = (s->evtchn_pending[l1i] & ~s->evtchn_mask[l1i])) !=
+               0) {
             xen_ulong_t l2i = ffs(pending_l2);
 
             evtchn_port_t port = (l1i * (sizeof(xen_ulong_t) * 8)) + l2i;
@@ -159,7 +157,7 @@ static int evtchn_vector_handler(void *arg __attribute__((unused)))
  * work.
  */
 int solo5__xen_evtchn_vector_handler(void *)
-__attribute__((alias("evtchn_vector_handler"), weak));
+    __attribute__((alias("evtchn_vector_handler"), weak));
 
 void evtchn_init(void)
 {
@@ -168,12 +166,12 @@ void evtchn_init(void)
     /*
      * Start with all event channels masked.
      */
-    for(unsigned e = 0; e < EVTCHN_2L_NR_CHANNELS; e++)
+    for (unsigned e = 0; e < EVTCHN_2L_NR_CHANNELS; e++)
         atomic_sync_bts(e, &s->evtchn_mask[0]);
 
     /*
-     * Register to receive event channel upcalls from Xen via IPI vector #32 which
-     * corresponds to IRQ 0 as understood by intr.c.
+     * Register to receive event channel upcalls from Xen via IPI vector #32
+     * which corresponds to IRQ 0 as understood by intr.c.
      */
     intr_register_irq(0, solo5__xen_evtchn_vector_handler, NULL);
     int rc = hypercall_set_evtchn_upcall_vector(0, 32);

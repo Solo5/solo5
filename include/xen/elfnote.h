@@ -46,14 +46,14 @@
 /*
  * NAME=VALUE pair (string).
  */
-#define XEN_ELFNOTE_INFO           0
+#define XEN_ELFNOTE_INFO 0
 
 /*
  * The virtual address of the entry point (numeric).
  *
  * LEGACY: VIRT_ENTRY
  */
-#define XEN_ELFNOTE_ENTRY          1
+#define XEN_ELFNOTE_ENTRY 1
 
 /* The virtual address of the hypercall transfer page (numeric).
  *
@@ -68,7 +68,7 @@
  *
  * LEGACY: VIRT_BASE
  */
-#define XEN_ELFNOTE_VIRT_BASE      3
+#define XEN_ELFNOTE_VIRT_BASE 3
 
 /*
  * The offset of the ELF paddr field from the actual required
@@ -80,35 +80,35 @@
  *
  * LEGACY: ELF_PADDR_OFFSET. (n.b. legacy default is VIRT_BASE)
  */
-#define XEN_ELFNOTE_PADDR_OFFSET   4
+#define XEN_ELFNOTE_PADDR_OFFSET 4
 
 /*
  * The version of Xen that we work with (string).
  *
  * LEGACY: XEN_VER
  */
-#define XEN_ELFNOTE_XEN_VERSION    5
+#define XEN_ELFNOTE_XEN_VERSION 5
 
 /*
  * The name of the guest operating system (string).
  *
  * LEGACY: GUEST_OS
  */
-#define XEN_ELFNOTE_GUEST_OS       6
+#define XEN_ELFNOTE_GUEST_OS 6
 
 /*
  * The version of the guest operating system (string).
  *
  * LEGACY: GUEST_VER
  */
-#define XEN_ELFNOTE_GUEST_VERSION  7
+#define XEN_ELFNOTE_GUEST_VERSION 7
 
 /*
  * The loader type (string).
  *
  * LEGACY: LOADER
  */
-#define XEN_ELFNOTE_LOADER         8
+#define XEN_ELFNOTE_LOADER 8
 
 /*
  * The kernel supports PAE (x86/32 only, string = "yes", "no" or
@@ -124,7 +124,7 @@
  * these ELF notes will include this and therefore "yes" here is
  * equivalent to "yes[entended-cr3]" in the __xen_guest interface.
  */
-#define XEN_ELFNOTE_PAE_MODE       9
+#define XEN_ELFNOTE_PAE_MODE 9
 
 /*
  * The features supported/required by this kernel (string).
@@ -136,7 +136,7 @@
  *
  * LEGACY: FEATURES
  */
-#define XEN_ELFNOTE_FEATURES      10
+#define XEN_ELFNOTE_FEATURES 10
 
 /*
  * The kernel requires the symbol table to be loaded (string = "yes" or "no")
@@ -144,7 +144,7 @@
  * of this string as a boolean flag rather than requiring "yes" or
  * "no".
  */
-#define XEN_ELFNOTE_BSD_SYMTAB    11
+#define XEN_ELFNOTE_BSD_SYMTAB 11
 
 /*
  * The lowest address the hypervisor hole can begin at (numeric).
@@ -153,13 +153,13 @@
  * also indicates to the hypervisor that the kernel can deal with the
  * hole starting at a higher address.
  */
-#define XEN_ELFNOTE_HV_START_LOW  12
+#define XEN_ELFNOTE_HV_START_LOW 12
 
 /*
  * List of maddr_t-sized mask/value pairs describing how to recognize
  * (non-present) L1 page table entries carrying valid MFNs (numeric).
  */
-#define XEN_ELFNOTE_L1_MFN_VALID  13
+#define XEN_ELFNOTE_L1_MFN_VALID 13
 
 /*
  * Whether or not the guest supports cooperative suspend cancellation.
@@ -180,7 +180,7 @@
  * this mapping not being accessible through the initial mapping.
  * (Only x86-64 supports this at present.)
  */
-#define XEN_ELFNOTE_INIT_P2M      15
+#define XEN_ELFNOTE_INIT_P2M 15
 
 /*
  * Whether or not the guest can deal with being passed an initrd not
@@ -243,7 +243,7 @@
  * file. This note doesn't have any other information.
  * See tools/libxc/xc_core.h for more information.
  */
-#define XEN_ELFNOTE_DUMPCORE_NONE               0x2000000
+#define XEN_ELFNOTE_DUMPCORE_NONE 0x2000000
 
 /*
  * xen dump-core header note.
@@ -251,7 +251,7 @@
  * in its dump file.
  * See tools/libxc/xc_core.h for more information.
  */
-#define XEN_ELFNOTE_DUMPCORE_HEADER             0x2000001
+#define XEN_ELFNOTE_DUMPCORE_HEADER 0x2000001
 
 /*
  * xen dump-core xen version note.
@@ -260,7 +260,7 @@
  * XENVER hypercall.
  * See tools/libxc/xc_core.h for more information.
  */
-#define XEN_ELFNOTE_DUMPCORE_XEN_VERSION        0x2000002
+#define XEN_ELFNOTE_DUMPCORE_XEN_VERSION 0x2000002
 
 /*
  * xen dump-core format version note.
@@ -268,7 +268,7 @@
  * in its dump file. It contains a format version identifier.
  * See tools/libxc/xc_core.h for more information.
  */
-#define XEN_ELFNOTE_DUMPCORE_FORMAT_VERSION     0x2000003
+#define XEN_ELFNOTE_DUMPCORE_FORMAT_VERSION 0x2000003
 
 #endif /* __XEN_PUBLIC_ELFNOTE_H__ */
 

@@ -28,12 +28,12 @@
 #include "../event_channel.h"
 
 /* Get/set subcommands: extra argument == pointer to xen_hvm_param struct. */
-#define HVMOP_set_param           0
-#define HVMOP_get_param           1
+#define HVMOP_set_param 0
+#define HVMOP_get_param 1
 struct xen_hvm_param {
-    domid_t  domid;    /* IN */
-    uint32_t index;    /* IN */
-    uint64_t value;    /* IN/OUT */
+    domid_t domid; /* IN */
+    uint32_t index; /* IN */
+    uint64_t value; /* IN/OUT */
 };
 typedef struct xen_hvm_param xen_hvm_param_t;
 DEFINE_XEN_GUEST_HANDLE(xen_hvm_param_t);
@@ -49,39 +49,39 @@ struct xen_hvm_altp2m_suppress_ve {
 #if __XEN_INTERFACE_VERSION__ < 0x00040900
 
 /* Set the logical level of one of a domain's PCI INTx wires. */
-#define HVMOP_set_pci_intx_level  2
+#define HVMOP_set_pci_intx_level 2
 struct xen_hvm_set_pci_intx_level {
     /* Domain to be updated. */
-    domid_t  domid;
+    domid_t domid;
     /* PCI INTx identification in PCI topology (domain:bus:device:intx). */
-    uint8_t  domain, bus, device, intx;
+    uint8_t domain, bus, device, intx;
     /* Assertion level (0 = unasserted, 1 = asserted). */
-    uint8_t  level;
+    uint8_t level;
 };
 typedef struct xen_hvm_set_pci_intx_level xen_hvm_set_pci_intx_level_t;
 DEFINE_XEN_GUEST_HANDLE(xen_hvm_set_pci_intx_level_t);
 
 /* Set the logical level of one of a domain's ISA IRQ wires. */
-#define HVMOP_set_isa_irq_level   3
+#define HVMOP_set_isa_irq_level 3
 struct xen_hvm_set_isa_irq_level {
     /* Domain to be updated. */
-    domid_t  domid;
+    domid_t domid;
     /* ISA device identification, by ISA IRQ (0-15). */
-    uint8_t  isa_irq;
+    uint8_t isa_irq;
     /* Assertion level (0 = unasserted, 1 = asserted). */
-    uint8_t  level;
+    uint8_t level;
 };
 typedef struct xen_hvm_set_isa_irq_level xen_hvm_set_isa_irq_level_t;
 DEFINE_XEN_GUEST_HANDLE(xen_hvm_set_isa_irq_level_t);
 
-#define HVMOP_set_pci_link_route  4
+#define HVMOP_set_pci_link_route 4
 struct xen_hvm_set_pci_link_route {
     /* Domain to be updated. */
-    domid_t  domid;
+    domid_t domid;
     /* PCI link identifier (0-3). */
-    uint8_t  link;
+    uint8_t link;
     /* ISA IRQ (1-15), or 0 (disable link). */
-    uint8_t  isa_irq;
+    uint8_t isa_irq;
 };
 typedef struct xen_hvm_set_pci_link_route xen_hvm_set_pci_link_route_t;
 DEFINE_XEN_GUEST_HANDLE(xen_hvm_set_pci_link_route_t);
@@ -89,7 +89,7 @@ DEFINE_XEN_GUEST_HANDLE(xen_hvm_set_pci_link_route_t);
 #endif /* __XEN_INTERFACE_VERSION__ < 0x00040900 */
 
 /* Flushes all VCPU TLBs: @arg must be NULL. */
-#define HVMOP_flush_tlbs          5
+#define HVMOP_flush_tlbs 5
 
 /*
  * hvmmem_type_t should not be defined when generating the corresponding
@@ -99,31 +99,31 @@ DEFINE_XEN_GUEST_HANDLE(xen_hvm_set_pci_link_route_t);
 #ifndef XEN_GENERATING_COMPAT_HEADERS
 
 typedef enum {
-    HVMMEM_ram_rw,             /* Normal read/write guest RAM */
-    HVMMEM_ram_ro,             /* Read-only; writes are discarded */
-    HVMMEM_mmio_dm,            /* Reads and write go to the device model */
+    HVMMEM_ram_rw, /* Normal read/write guest RAM */
+    HVMMEM_ram_ro, /* Read-only; writes are discarded */
+    HVMMEM_mmio_dm, /* Reads and write go to the device model */
 #if __XEN_INTERFACE_VERSION__ < 0x00040700
-    HVMMEM_mmio_write_dm,      /* Read-only; writes go to the device model */
+    HVMMEM_mmio_write_dm, /* Read-only; writes go to the device model */
 #else
-    HVMMEM_unused,             /* Placeholder; setting memory to this type
-                                  will fail for code after 4.7.0 */
+    HVMMEM_unused, /* Placeholder; setting memory to this type
+                      will fail for code after 4.7.0 */
 #endif
-    HVMMEM_ioreq_server        /* Memory type claimed by an ioreq server; type
-                                  changes to this value are only allowed after
-                                  an ioreq server has claimed its ownership.
-                                  Only pages with HVMMEM_ram_rw are allowed to
-                                  change to this type; conversely, pages with
-                                  this type are only allowed to be changed back
-                                  to HVMMEM_ram_rw. */
+    HVMMEM_ioreq_server /* Memory type claimed by an ioreq server; type
+                           changes to this value are only allowed after
+                           an ioreq server has claimed its ownership.
+                           Only pages with HVMMEM_ram_rw are allowed to
+                           change to this type; conversely, pages with
+                           this type are only allowed to be changed back
+                           to HVMMEM_ram_rw. */
 } hvmmem_type_t;
 
 #endif /* XEN_GENERATING_COMPAT_HEADERS */
 
 /* Hint from PV drivers for pagetable destruction. */
-#define HVMOP_pagetable_dying        9
+#define HVMOP_pagetable_dying 9
 struct xen_hvm_pagetable_dying {
     /* Domain with a pagetable about to be destroyed. */
-    domid_t  domid;
+    domid_t domid;
     uint16_t pad[3]; /* align next field on 8-byte boundary */
     /* guest physical address of the toplevel pagetable dying */
     uint64_t gpa;
@@ -132,14 +132,14 @@ typedef struct xen_hvm_pagetable_dying xen_hvm_pagetable_dying_t;
 DEFINE_XEN_GUEST_HANDLE(xen_hvm_pagetable_dying_t);
 
 /* Get the current Xen time, in nanoseconds since system boot. */
-#define HVMOP_get_time              10
+#define HVMOP_get_time 10
 struct xen_hvm_get_time {
-    uint64_t now;      /* OUT */
+    uint64_t now; /* OUT */
 };
 typedef struct xen_hvm_get_time xen_hvm_get_time_t;
 DEFINE_XEN_GUEST_HANDLE(xen_hvm_get_time_t);
 
-#define HVMOP_xentrace              11
+#define HVMOP_xentrace 11
 struct xen_hvm_xentrace {
     uint16_t event, extra_bytes;
     uint8_t extra[TRACE_EXTRA_MAX * sizeof(uint32_t)];
@@ -151,14 +151,14 @@ DEFINE_XEN_GUEST_HANDLE(xen_hvm_xentrace_t);
 #if defined(__XEN__) || defined(__XEN_TOOLS__)
 
 /* Deprecated by XENMEM_access_op_set_access */
-#define HVMOP_set_mem_access        12
+#define HVMOP_set_mem_access 12
 
 /* Deprecated by XENMEM_access_op_get_access */
-#define HVMOP_get_mem_access        13
+#define HVMOP_get_mem_access 13
 
 #endif /* defined(__XEN__) || defined(__XEN_TOOLS__) */
 
-#define HVMOP_get_mem_type    15
+#define HVMOP_get_mem_type 15
 /* Return hvmmem_type_t for the specified pfn. */
 struct xen_hvm_get_mem_type {
     /* Domain to be queried. */
@@ -194,10 +194,9 @@ DEFINE_XEN_GUEST_HANDLE(xen_hvm_get_mem_type_t);
 
 /*
  * HVMOP_set_evtchn_upcall_vector: Set a <vector> that should be used for event
- *                                 channel upcalls on the specified <vcpu>. If set,
- *                                 this vector will be used in preference to the
- *                                 domain global callback via (see
- *                                 HVM_PARAM_CALLBACK_IRQ).
+ *                                 channel upcalls on the specified <vcpu>. If
+ * set, this vector will be used in preference to the domain global callback via
+ * (see HVM_PARAM_CALLBACK_IRQ).
  */
 #define HVMOP_set_evtchn_upcall_vector 23
 struct xen_hvm_evtchn_upcall_vector {
@@ -229,13 +228,15 @@ struct xen_hvm_altp2m_vcpu_enable_notify {
     /* #VE info area gfn */
     uint64_t gfn;
 };
-typedef struct xen_hvm_altp2m_vcpu_enable_notify xen_hvm_altp2m_vcpu_enable_notify_t;
+typedef struct xen_hvm_altp2m_vcpu_enable_notify
+    xen_hvm_altp2m_vcpu_enable_notify_t;
 DEFINE_XEN_GUEST_HANDLE(xen_hvm_altp2m_vcpu_enable_notify_t);
 
 struct xen_hvm_altp2m_vcpu_disable_notify {
     uint32_t vcpu_id;
 };
-typedef struct xen_hvm_altp2m_vcpu_disable_notify xen_hvm_altp2m_vcpu_disable_notify_t;
+typedef struct xen_hvm_altp2m_vcpu_disable_notify
+    xen_hvm_altp2m_vcpu_disable_notify_t;
 DEFINE_XEN_GUEST_HANDLE(xen_hvm_altp2m_vcpu_disable_notify_t);
 
 struct xen_hvm_altp2m_view {
@@ -310,51 +311,51 @@ struct xen_hvm_altp2m_get_vcpu_p2m_idx {
 };
 
 struct xen_hvm_altp2m_op {
-    uint32_t version;   /* HVMOP_ALTP2M_INTERFACE_VERSION */
+    uint32_t version; /* HVMOP_ALTP2M_INTERFACE_VERSION */
     uint32_t cmd;
 /* Get/set the altp2m state for a domain */
-#define HVMOP_altp2m_get_domain_state     1
-#define HVMOP_altp2m_set_domain_state     2
+#define HVMOP_altp2m_get_domain_state 1
+#define HVMOP_altp2m_set_domain_state 2
 /* Set a given VCPU to receive altp2m event notifications */
-#define HVMOP_altp2m_vcpu_enable_notify   3
+#define HVMOP_altp2m_vcpu_enable_notify 3
 /* Create a new view */
-#define HVMOP_altp2m_create_p2m           4
+#define HVMOP_altp2m_create_p2m 4
 /* Destroy a view */
-#define HVMOP_altp2m_destroy_p2m          5
+#define HVMOP_altp2m_destroy_p2m 5
 /* Switch view for an entire domain */
-#define HVMOP_altp2m_switch_p2m           6
+#define HVMOP_altp2m_switch_p2m 6
 /* Notify that a page of memory is to have specific access types */
-#define HVMOP_altp2m_set_mem_access       7
+#define HVMOP_altp2m_set_mem_access 7
 /* Change a p2m entry to have a different gfn->mfn mapping */
-#define HVMOP_altp2m_change_gfn           8
+#define HVMOP_altp2m_change_gfn 8
 /* Set access for an array of pages */
 #define HVMOP_altp2m_set_mem_access_multi 9
 /* Set the "Suppress #VE" bit on a page */
-#define HVMOP_altp2m_set_suppress_ve      10
+#define HVMOP_altp2m_set_suppress_ve 10
 /* Get the "Suppress #VE" bit of a page */
-#define HVMOP_altp2m_get_suppress_ve      11
+#define HVMOP_altp2m_get_suppress_ve 11
 /* Get the access of a page of memory from a certain view */
-#define HVMOP_altp2m_get_mem_access       12
+#define HVMOP_altp2m_get_mem_access 12
 /* Disable altp2m event notifications for a given VCPU */
-#define HVMOP_altp2m_vcpu_disable_notify  13
+#define HVMOP_altp2m_vcpu_disable_notify 13
 /* Get the active vcpu p2m index */
-#define HVMOP_altp2m_get_p2m_idx          14
+#define HVMOP_altp2m_get_p2m_idx 14
     domid_t domain;
     uint16_t pad1;
     uint32_t pad2;
     union {
-        struct xen_hvm_altp2m_domain_state         domain_state;
-        struct xen_hvm_altp2m_vcpu_enable_notify   enable_notify;
-        struct xen_hvm_altp2m_view                 view;
+        struct xen_hvm_altp2m_domain_state domain_state;
+        struct xen_hvm_altp2m_vcpu_enable_notify enable_notify;
+        struct xen_hvm_altp2m_view view;
 #if __XEN_INTERFACE_VERSION__ < 0x00040a00
-        struct xen_hvm_altp2m_set_mem_access       set_mem_access;
+        struct xen_hvm_altp2m_set_mem_access set_mem_access;
 #endif /* __XEN_INTERFACE_VERSION__ < 0x00040a00 */
-        struct xen_hvm_altp2m_mem_access           mem_access;
-        struct xen_hvm_altp2m_change_gfn           change_gfn;
+        struct xen_hvm_altp2m_mem_access mem_access;
+        struct xen_hvm_altp2m_change_gfn change_gfn;
         struct xen_hvm_altp2m_set_mem_access_multi set_mem_access_multi;
-        struct xen_hvm_altp2m_suppress_ve          suppress_ve;
-        struct xen_hvm_altp2m_vcpu_disable_notify  disable_notify;
-        struct xen_hvm_altp2m_get_vcpu_p2m_idx     get_vcpu_p2m_idx;
+        struct xen_hvm_altp2m_suppress_ve suppress_ve;
+        struct xen_hvm_altp2m_vcpu_disable_notify disable_notify;
+        struct xen_hvm_altp2m_get_vcpu_p2m_idx get_vcpu_p2m_idx;
         uint8_t pad[64];
     } u;
 };

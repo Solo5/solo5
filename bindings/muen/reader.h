@@ -43,26 +43,26 @@ struct muchannel_reader {
 /*
  * Initialize reader with given protocol.
  */
-void muen_channel_init_reader(struct muchannel_reader *reader, uint64_t protocol);
+void muen_channel_init_reader(struct muchannel_reader *reader,
+                              uint64_t protocol);
 
 /*
  * Read next element from given channel.
  */
-enum muchannel_reader_result muen_channel_read(
-        const struct muchannel * const channel,
-        struct muchannel_reader *reader,
-        void *element);
+enum muchannel_reader_result
+muen_channel_read(const struct muchannel *const channel,
+                  struct muchannel_reader *reader, void *element);
 
 /*
  * Drain all current channel elements.
  */
-void muen_channel_drain(const struct muchannel * const channel,
-            struct muchannel_reader *reader);
+void muen_channel_drain(const struct muchannel *const channel,
+                        struct muchannel_reader *reader);
 
 /*
  * Returns True if there is pending data in the channel.
  */
-bool muen_channel_has_pending_data(const struct muchannel * const channel,
-        struct muchannel_reader *reader);
+bool muen_channel_has_pending_data(const struct muchannel *const channel,
+                                   struct muchannel_reader *reader);
 
 #endif

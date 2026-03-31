@@ -116,8 +116,8 @@ struct vcpu_hvm_x86_64 {
 };
 
 struct vcpu_hvm_context {
-#define VCPU_HVM_MODE_32B 0  /* 32bit fields of the structure will be used. */
-#define VCPU_HVM_MODE_64B 1  /* 64bit fields of the structure will be used. */
+#define VCPU_HVM_MODE_32B 0 /* 32bit fields of the structure will be used. */
+#define VCPU_HVM_MODE_64B 1 /* 64bit fields of the structure will be used. */
     uint32_t mode;
 
     uint32_t pad;

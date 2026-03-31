@@ -26,8 +26,7 @@
 #ifndef _XS_WIRE_H
 #define _XS_WIRE_H
 
-enum xsd_sockmsg_type
-{
+enum xsd_sockmsg_type {
     XS_CONTROL,
 #define XS_DEBUG XS_CONTROL
     XS_DIRECTORY,
@@ -53,62 +52,44 @@ enum xsd_sockmsg_type
     XS_RESET_WATCHES = XS_SET_TARGET + 2,
     XS_DIRECTORY_PART,
 
-    XS_TYPE_COUNT,      /* Number of valid types. */
+    XS_TYPE_COUNT, /* Number of valid types. */
 
     XS_INVALID = 0xffff /* Guaranteed to remain an invalid type */
 };
 
-#define XS_WRITE_NONE "NONE"
-#define XS_WRITE_CREATE "CREATE"
+#define XS_WRITE_NONE        "NONE"
+#define XS_WRITE_CREATE      "CREATE"
 #define XS_WRITE_CREATE_EXCL "CREATE|EXCL"
 
 /* We hand errors as strings, for portability. */
-struct xsd_errors
-{
+struct xsd_errors {
     int errnum;
     const char *errstring;
 };
 #ifdef EINVAL
-#define XSD_ERROR(x) { x, #x }
+#define XSD_ERROR(x) {x, #x}
 /* LINTED: static unused */
 static struct xsd_errors xsd_errors[]
 #if defined(__GNUC__)
-__attribute__((unused))
+    __attribute__((unused))
 #endif
-    = {
-    XSD_ERROR(EINVAL),
-    XSD_ERROR(EACCES),
-    XSD_ERROR(EEXIST),
-    XSD_ERROR(EISDIR),
-    XSD_ERROR(ENOENT),
-    XSD_ERROR(ENOMEM),
-    XSD_ERROR(ENOSPC),
-    XSD_ERROR(EIO),
-    XSD_ERROR(ENOTEMPTY),
-    XSD_ERROR(ENOSYS),
-    XSD_ERROR(EROFS),
-    XSD_ERROR(EBUSY),
-    XSD_ERROR(EAGAIN),
-    XSD_ERROR(EISCONN),
-    XSD_ERROR(E2BIG)
-};
+    = {XSD_ERROR(EINVAL), XSD_ERROR(EACCES),  XSD_ERROR(EEXIST),
+       XSD_ERROR(EISDIR), XSD_ERROR(ENOENT),  XSD_ERROR(ENOMEM),
+       XSD_ERROR(ENOSPC), XSD_ERROR(EIO),     XSD_ERROR(ENOTEMPTY),
+       XSD_ERROR(ENOSYS), XSD_ERROR(EROFS),   XSD_ERROR(EBUSY),
+       XSD_ERROR(EAGAIN), XSD_ERROR(EISCONN), XSD_ERROR(E2BIG)};
 #endif
 
-struct xsd_sockmsg
-{
-    uint32_t type;  /* XS_??? */
-    uint32_t req_id;/* Request identifier, echoed in daemon's response.  */
+struct xsd_sockmsg {
+    uint32_t type; /* XS_??? */
+    uint32_t req_id; /* Request identifier, echoed in daemon's response.  */
     uint32_t tx_id; /* Transaction id (0 if not related to a transaction). */
-    uint32_t len;   /* Length of data following this. */
+    uint32_t len; /* Length of data following this. */
 
     /* Generally followed by nul-terminated string(s). */
 };
 
-enum xs_watch_type
-{
-    XS_WATCH_PATH = 0,
-    XS_WATCH_TOKEN
-};
+enum xs_watch_type { XS_WATCH_PATH = 0, XS_WATCH_TOKEN };
 
 /*
  * `incontents 150 xenstore_struct XenStore wire protocol.
@@ -116,7 +97,7 @@ enum xs_watch_type
  * Inter-domain shared memory communications. */
 #define XENSTORE_RING_SIZE 1024
 typedef uint32_t XENSTORE_RING_IDX;
-#define MASK_XENSTORE_IDX(idx) ((idx) & (XENSTORE_RING_SIZE-1))
+#define MASK_XENSTORE_IDX(idx) ((idx) & (XENSTORE_RING_SIZE - 1))
 struct xenstore_domain_interface {
     char req[XENSTORE_RING_SIZE]; /* Requests to xenstore daemon. */
     char rsp[XENSTORE_RING_SIZE]; /* Replies and async watch events. */

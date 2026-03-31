@@ -50,7 +50,7 @@ static void setup_modules(struct hvt *hvt, struct mft *mft)
             warnx("Module `%s' setup failed", m->name);
             if (m->ops.usage) {
                 warnx("Please check you have correctly specified:\n    %s",
-                       m->ops.usage());
+                      m->ops.usage());
             }
             exit(1);
         }
@@ -62,7 +62,7 @@ static void setup_modules(struct hvt *hvt, struct mft *mft)
             continue;
         if (!mft->e[i].attached) {
             warnx("Device '%s' of type %s declared but not attached.",
-                    mft->e[i].name, mft_type_to_string(mft->e[i].type));
+                  mft->e[i].name, mft_type_to_string(mft->e[i].type));
             fail = true;
         }
     }
@@ -101,8 +101,10 @@ static void handle_mem(char *cmdarg, size_t *mem_size)
 
 static void usage(const char *prog)
 {
-    fprintf(stderr, "usage: %s [ CORE OPTIONS ] [ MODULE OPTIONS ] [ -- ] "
-            "KERNEL [ ARGS ]\n", prog);
+    fprintf(stderr,
+            "usage: %s [ CORE OPTIONS ] [ MODULE OPTIONS ] [ -- ] "
+            "KERNEL [ ARGS ]\n",
+            prog);
     fprintf(stderr, "KERNEL is the filename of the unikernel to run.\n");
     fprintf(stderr, "ARGS are optional arguments passed to the unikernel.\n");
     fprintf(stderr, "Core options:\n");
@@ -154,8 +156,7 @@ int main(int argc, char **argv)
      */
     char **argv1 = argv;
     while (*argv1 && *argv1[0] == '-') {
-        if (strcmp("--", *argv1) == 0)
-        {
+        if (strcmp("--", *argv1) == 0) {
             /* Consume and stop option processing */
             argv1++;
             break;
@@ -163,7 +164,7 @@ int main(int argc, char **argv)
 
         if (strcmp("--help", *argv1) == 0)
             usage(prog);
-        else if(strcmp("--version", *argv1) == 0)
+        else if (strcmp("--version", *argv1) == 0)
             version(prog);
 
         argv1++;
@@ -187,20 +188,20 @@ int main(int argc, char **argv)
     struct abi1_info *abi1;
     size_t abi1_size;
     if (elf_load_note(elf_fd, elf_filename, ABI1_NOTE_TYPE, ABI1_NOTE_ALIGN,
-                ABI1_NOTE_MAX_SIZE, (void **)&abi1, &abi1_size) == -1)
+                      ABI1_NOTE_MAX_SIZE, (void **)&abi1, &abi1_size) == -1)
         errx(1, "%s: No Solo5 ABI information found in executable",
-                elf_filename);
+             elf_filename);
     if (abi1->abi_target != HVT_ABI_TARGET)
         errx(1, "%s: Executable is not for the solo5-hvt target", elf_filename);
     if (abi1->abi_version != HVT_ABI_VERSION)
         errx(1, "%s: Executable requests unsupported ABI version %u",
-                elf_filename, abi1->abi_version);
+             elf_filename, abi1->abi_version);
     free(abi1);
 
     struct mft *mft;
     size_t mft_size;
     if (elf_load_note(elf_fd, elf_filename, MFT1_NOTE_TYPE, MFT1_NOTE_ALIGN,
-                MFT1_NOTE_MAX_SIZE, (void **)&mft, &mft_size) == -1)
+                      MFT1_NOTE_MAX_SIZE, (void **)&mft, &mft_size) == -1)
         errx(1, "%s: No Solo5 manifest found in executable", elf_filename);
     if (mft_validate(mft, mft_size) == -1) {
         free(mft);
@@ -242,7 +243,7 @@ int main(int argc, char **argv)
     argv++;
 
     struct sigaction sa;
-    memset (&sa, 0, sizeof (struct sigaction));
+    memset(&sa, 0, sizeof(struct sigaction));
     sa.sa_handler = sig_handler;
     sigfillset(&sa.sa_mask);
     if (sigaction(SIGINT, &sa, NULL) == -1)
@@ -254,8 +255,8 @@ int main(int argc, char **argv)
     struct hvt *hvt = hvt_init(mem_size);
 
     elf_load(elf_fd, elf_filename, hvt->mem, hvt->mem_size, HVT_GUEST_MIN_BASE,
-            hvt_guest_mprotect, hvt, &gpa_ep, &gpa_kend);
-    close(elf_fd);                      /* Done with ELF binary */
+             hvt_guest_mprotect, hvt, &gpa_ep, &gpa_kend);
+    close(elf_fd); /* Done with ELF binary */
 
     hvt_vcpu_init(hvt, gpa_ep);
 

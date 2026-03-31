@@ -24,16 +24,16 @@
 #define PCI_CONFIG_DATA 0xCFC
 
 /* 8 bits for bus number, 5 bits for devices */
-#define PCI_MAX_BUSES (1 << 8)
+#define PCI_MAX_BUSES   (1 << 8)
 #define PCI_MAX_DEVICES (1 << 5)
 
 #define PCI_BUS_SHIFT    (16)
 #define PCI_DEVICE_SHIFT (11)
 #define PCI_ENABLE_BIT   (1 << 31)
 
-#define PCI_CONF_SUBSYS_ID       0x2c
-#define PCI_CONF_SUBSYS_ID_SHFT  16
-#define PCI_CONF_SUBSYS_ID_MASK  0xffff
+#define PCI_CONF_SUBSYS_ID      0x2c
+#define PCI_CONF_SUBSYS_ID_SHFT 16
+#define PCI_CONF_SUBSYS_ID_MASK 0xffff
 
 #define PCI_CONF_IRQ      0x3c
 #define PCI_CONF_IRQ_SHFT 0x0
@@ -44,13 +44,14 @@
 #define PCI_CONF_IOBAR_MASK ~0x3
 
 
-#define PCI_CONF_READ(type, ret, a, s) do {                          \
-    uint32_t _conf_data;                                             \
-    outl(PCI_CONFIG_ADDR, (a) | PCI_CONF_##s);                       \
-    _conf_data = ((inl(PCI_CONFIG_DATA) >> PCI_CONF_##s##_SHFT)      \
-                  & PCI_CONF_##s##_MASK);                            \
-    *(ret) = (type) _conf_data;                                      \
-} while (0)
+#define PCI_CONF_READ(type, ret, a, s)                                         \
+    do {                                                                       \
+        uint32_t _conf_data;                                                   \
+        outl(PCI_CONFIG_ADDR, (a) | PCI_CONF_##s);                             \
+        _conf_data = ((inl(PCI_CONFIG_DATA) >> PCI_CONF_##s##_SHFT) &          \
+                      PCI_CONF_##s##_MASK);                                    \
+        *(ret) = (type)_conf_data;                                             \
+    } while (0)
 
 
 /* in tenders/common/mft.c:
@@ -70,14 +71,16 @@ static int virtio_config(struct pci_config_info *pci)
 {
     switch (pci->subsys_id) {
     case PCI_CONF_SUBSYS_NET:
-        log(INFO, "Solo5: PCI:%02x:%02x: virtio-net device, base=0x%x, irq=%u\n",
+        log(INFO,
+            "Solo5: PCI:%02x:%02x: virtio-net device, base=0x%x, irq=%u\n",
             pci->bus, pci->dev, pci->base, pci->irq);
         if (virtio_config_network(pci, mft_index) != 0)
             return -1;
         mft_index++;
         break;
     case PCI_CONF_SUBSYS_BLK:
-        log(INFO, "Solo5: PCI:%02x:%02x: virtio-block device, base=0x%x, irq=%u\n",
+        log(INFO,
+            "Solo5: PCI:%02x:%02x: virtio-block device, base=0x%x, irq=%u\n",
             pci->bus, pci->dev, pci->base, pci->irq);
         if (virtio_config_block(pci, mft_index) != 0)
             return -1;
@@ -97,14 +100,14 @@ static int virtio_config(struct pci_config_info *pci)
 
 /*
  * Every PCI device found in pci_enumerate is attempted to be assigned to a
- * device from the application manifest in the order in which they are found. This
- * order is given by the PCI slot number which is controlled in
+ * device from the application manifest in the order in which they are found.
+ * This order is given by the PCI slot number which is controlled in
  * solo5-virtio-run.sh.
- * 
+ *
  * This funtion can fail if the type of a device just found does not match the
  * type of the next expected device in the manifest. Devices whose type (e.g.,
  * virtio_scsi) is unknown is just skipped.
- * 
+ *
  * Returns 0 on success, -1 otherwise.
  */
 int pci_enumerate(void)
@@ -117,9 +120,8 @@ int pci_enumerate(void)
             uint32_t config_addr, config_data;
             struct pci_config_info pci;
 
-            config_addr = (PCI_ENABLE_BIT)
-                | (bus << PCI_BUS_SHIFT)
-                | (dev << PCI_DEVICE_SHIFT);
+            config_addr = (PCI_ENABLE_BIT) | (bus << PCI_BUS_SHIFT) |
+                          (dev << PCI_DEVICE_SHIFT);
 
             outl(PCI_CONFIG_ADDR, config_addr);
             config_data = inl(PCI_CONFIG_DATA);

@@ -34,9 +34,7 @@
  * starting at index head.
  * Make sure the vq-bufs are cleaned before using them again.
  */
-int virtq_add_descriptor_chain(struct virtq *vq,
-                               uint16_t head,
-                               uint16_t num)
+int virtq_add_descriptor_chain(struct virtq *vq, uint16_t head, uint16_t num)
 {
     uint16_t mask = vq->num - 1;
     struct virtq_desc *desc;
@@ -61,8 +59,8 @@ int virtq_add_descriptor_chain(struct virtq *vq,
          * the interrupt handler we can just cast this pointer back into a
          * 'struct io_buffer'.
          */
-        assert(vq->bufs[i].data == (uint8_t *) &vq->bufs[i]);
-        desc->addr = (uint64_t) vq->bufs[i].data;
+        assert(vq->bufs[i].data == (uint8_t *)&vq->bufs[i]);
+        desc->addr = (uint64_t)vq->bufs[i].data;
         desc->len = vq->bufs[i].len;
         desc->flags = VIRTQ_DESC_F_NEXT | vq->bufs[i].extra_flags;
 
@@ -92,7 +90,7 @@ void virtq_init_rings(uint16_t pci_base, struct virtq *vq, int selector)
 {
     uint8_t *data;
     size_t pgs;
-    
+
     outw(pci_base + VIRTIO_PCI_QUEUE_SEL, selector);
     vq->last_used = vq->next_avail = 0;
     vq->uses_event_idx = 0;
@@ -111,6 +109,6 @@ void virtq_init_rings(uint16_t pci_base, struct virtq *vq, int selector)
     vq->used = (struct virtq_used *)(data + VIRTQ_OFF_USED(vq->num));
 
     outw(pci_base + VIRTIO_PCI_QUEUE_SEL, selector);
-    outl(pci_base + VIRTIO_PCI_QUEUE_PFN, (uint64_t) data
-         >> VIRTIO_PCI_QUEUE_ADDR_SHIFT);
+    outl(pci_base + VIRTIO_PCI_QUEUE_PFN,
+         (uint64_t)data >> VIRTIO_PCI_QUEUE_ADDR_SHIFT);
 }

@@ -64,20 +64,19 @@ struct hvt {
  * Check that (gpa) and (gpa + sz) are within guest memory. Returns a host-side
  * pointer to (gpa) if successful, aborts if not.
  */
-#define HVT_CHECKED_GPA_P(hvt, gpa, sz) \
+#define HVT_CHECKED_GPA_P(hvt, gpa, sz)                                        \
     hvt_checked_gpa_p((hvt), (gpa), (sz), __FILE__, __LINE__)
 
 inline void *hvt_checked_gpa_p(struct hvt *hvt, hvt_gpa_t gpa, size_t sz,
-        const char *file, int line)
+                               const char *file, int line)
 {
     hvt_gpa_t r;
 
     if ((gpa >= hvt->mem_size) || add_overflow(gpa, sz, r) ||
-            (r >= hvt->mem_size)) {
-        errx(1, "%s:%d: Invalid guest access: gpa=0x%" PRIx64 ", sz=%zu",
-                file, line, gpa, sz);
-    }
-    else {
+        (r >= hvt->mem_size)) {
+        errx(1, "%s:%d: Invalid guest access: gpa=0x%" PRIx64 ", sz=%zu", file,
+             line, gpa, sz);
+    } else {
         return (void *)(hvt->mem + gpa);
     }
 }
@@ -105,14 +104,14 @@ void hvt_vcpu_init(struct hvt *hvt, hvt_gpa_t gpa_ep);
  * The manifest provided will be *copied* into guest memory.
  */
 void hvt_boot_info_init(struct hvt *hvt, hvt_gpa_t gpa_kend, int cmdline_argc,
-        char **cmdline_argv, struct mft *mft, size_t mft_size);
+                        char **cmdline_argv, struct mft *mft, size_t mft_size);
 
 /*
  * Apply page protections to guest memory. See guest_mprotect_fn_t in elf.h for
  * a full description.
  */
 int hvt_guest_mprotect(void *t_arg, uint64_t addr_start, uint64_t addr_end,
-        int prot);
+                       int prot);
 
 #if HVT_DROP_PRIVILEGES
 /*
@@ -191,13 +190,10 @@ struct hvt_module {
  * Note that alignment of the struct is explicitly set, otherwise the linker
  * will pick a default that does not match the compiler's alignment.
  */
-#define DECLARE_MODULE(module_name, ...) \
-    static struct hvt_module __module_ ##module_name \
-    __attribute((section("modules"), aligned(8))) \
-    __attribute((used)) = { \
-	.name = #module_name, \
-	.ops = { __VA_ARGS__ } \
-    };
+#define DECLARE_MODULE(module_name, ...)                                       \
+    static struct hvt_module __module_##module_name                            \
+        __attribute((section("modules"), aligned(8)))                          \
+        __attribute((used)) = {.name = #module_name, .ops = {__VA_ARGS__}};
 
 /*
  * GDB specific functions to be implemented on all backends for all
@@ -248,7 +244,7 @@ int hvt_gdb_read_last_signal(struct hvt *hvt, int *signal);
  * Returns 0 if success, -1 otherwise.
  */
 int hvt_gdb_add_breakpoint(struct hvt *hvt, gdb_breakpoint_type type,
-                            hvt_gpa_t addr, size_t len);
+                           hvt_gpa_t addr, size_t len);
 
 /*
  * Remove a breakpoint of type software or hardware, at address addr.  len is
@@ -256,6 +252,6 @@ int hvt_gdb_add_breakpoint(struct hvt *hvt, gdb_breakpoint_type type,
  * Returns 0 if success, -1 otherwise.
  */
 int hvt_gdb_remove_breakpoint(struct hvt *hvt, gdb_breakpoint_type type,
-                               hvt_gpa_t addr, size_t len);
+                              hvt_gpa_t addr, size_t len);
 
 #endif /* HVT_H */

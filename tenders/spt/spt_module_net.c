@@ -39,10 +39,7 @@ static bool module_in_use;
 
 static int handle_cmdarg(char *cmdarg, struct mft *mft)
 {
-    enum {
-        opt_net,
-        opt_net_mac
-    } which;
+    enum { opt_net, opt_net_mac } which;
 
     if (strncmp("--net:", cmdarg, 6) == 0)
         which = opt_net;
@@ -56,12 +53,13 @@ static int handle_cmdarg(char *cmdarg, struct mft *mft)
     int rc;
     if (which == opt_net) {
         rc = sscanf(cmdarg,
-                "--net:%" XSTR(MFT_NAME_MAX) "[A-Za-z0-9]="
-                "%19s", name, iface);
+                    "--net:%" XSTR(MFT_NAME_MAX) "[A-Za-z0-9]="
+                                                 "%19s",
+                    name, iface);
         if (rc != 2)
             return -1;
-        struct mft_entry *e = mft_get_by_name(mft, name, MFT_DEV_NET_BASIC,
-                NULL);
+        struct mft_entry *e =
+            mft_get_by_name(mft, name, MFT_DEV_NET_BASIC, NULL);
         if (e == NULL) {
             warnx("Resource not declared in manifest: '%s'", name);
             return -1;
@@ -80,19 +78,19 @@ static int handle_cmdarg(char *cmdarg, struct mft *mft)
         e->b.hostfd = fd;
         e->attached = true;
         module_in_use = true;
-    }
-    else if (which == opt_net_mac) {
+    } else if (which == opt_net_mac) {
         uint8_t mac[6];
         rc = sscanf(cmdarg,
-                "--net-mac:%" XSTR(MFT_NAME_MAX) "[A-Za-z0-9]="
-                "%02"SCNx8":%02"SCNx8":%02"SCNx8":"
-                "%02"SCNx8":%02"SCNx8":%02"SCNx8,
-                name,
-                &mac[0], &mac[1], &mac[2], &mac[3], &mac[4], &mac[5]);
+                    "--net-mac:%" XSTR(MFT_NAME_MAX) "[A-Za-z0-9]="
+                                                     "%02" SCNx8 ":%02" SCNx8
+                                                     ":%02" SCNx8 ":"
+                                                     "%02" SCNx8 ":%02" SCNx8
+                                                     ":%02" SCNx8,
+                    name, &mac[0], &mac[1], &mac[2], &mac[3], &mac[4], &mac[5]);
         if (rc != 7)
             return -1;
-        struct mft_entry *e = mft_get_by_name(mft, name, MFT_DEV_NET_BASIC,
-                NULL);
+        struct mft_entry *e =
+            mft_get_by_name(mft, name, MFT_DEV_NET_BASIC, NULL);
         if (e == NULL) {
             warnx("Resource not declared in manifest: '%s'", name);
             return -1;
@@ -111,7 +109,7 @@ static int setup(struct spt *spt, struct mft *mft)
     for (unsigned i = 0; i != mft->entries; i++) {
         if (mft->e[i].type != MFT_DEV_NET_BASIC || !mft->e[i].attached)
             continue;
-        char no_mac[6] = { 0 };
+        char no_mac[6] = {0};
         if (memcmp(mft->e[i].u.net_basic.mac, no_mac, sizeof no_mac) == 0)
             tap_attach_genmac(mft->e[i].u.net_basic.mac);
 
@@ -126,18 +124,18 @@ static int setup(struct spt *spt, struct mft *mft)
         rc = epoll_ctl(spt->epollfd, EPOLL_CTL_ADD, mft->e[i].b.hostfd, &ev);
         if (rc == -1)
             err(1, "epoll_ctl(EPOLL_CTL_ADD, hostfd=%d) failed",
-                    mft->e[i].b.hostfd);
+                mft->e[i].b.hostfd);
 
         rc = seccomp_rule_add(spt->sc_ctx, SCMP_ACT_ALLOW, SCMP_SYS(read), 1,
-                SCMP_A0(SCMP_CMP_EQ, mft->e[i].b.hostfd));
+                              SCMP_A0(SCMP_CMP_EQ, mft->e[i].b.hostfd));
         if (rc != 0)
             errx(1, "seccomp_rule_add(read, fd=%d) failed: %s",
-                    mft->e[i].b.hostfd, strerror(-rc));
+                 mft->e[i].b.hostfd, strerror(-rc));
         rc = seccomp_rule_add(spt->sc_ctx, SCMP_ACT_ALLOW, SCMP_SYS(write), 1,
-                SCMP_A0(SCMP_CMP_EQ, mft->e[i].b.hostfd));
+                              SCMP_A0(SCMP_CMP_EQ, mft->e[i].b.hostfd));
         if (rc != 0)
             errx(1, "seccomp_rule_add(write, fd=%d) failed: %s",
-                    mft->e[i].b.hostfd, strerror(-rc));
+                 mft->e[i].b.hostfd, strerror(-rc));
     }
 
     return 0;
@@ -145,12 +143,10 @@ static int setup(struct spt *spt, struct mft *mft)
 
 static const char *usage(void)
 {
-    return "--net:NAME=IFACE | @NN (attach tap at IFACE or at fd @NN as network NAME)\n"
-        "  [ --net-mac:NAME=HWADDR ] (set HWADDR for network NAME)";
+    return "--net:NAME=IFACE | @NN (attach tap at IFACE or at fd @NN as "
+           "network NAME)\n"
+           "  [ --net-mac:NAME=HWADDR ] (set HWADDR for network NAME)";
 }
 
-DECLARE_MODULE(net,
-    .setup = setup,
-    .handle_cmdarg = handle_cmdarg,
-    .usage = usage
-)
+DECLARE_MODULE(net, .setup = setup, .handle_cmdarg = handle_cmdarg,
+               .usage = usage)

@@ -29,7 +29,7 @@
  * to and from the virtually contiguous area.
  */
 
-#define XENCOMM_MAGIC 0x58434F4D /* 'XCOM' */
+#define XENCOMM_MAGIC   0x58434F4D /* 'XCOM' */
 #define XENCOMM_INVALID (~0UL)
 
 struct xencomm_desc {

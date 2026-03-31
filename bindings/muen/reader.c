@@ -21,17 +21,17 @@
 #include "reader.h"
 #include "util.h"
 
-static bool has_epoch_changed(const struct muchannel * const channel,
-                  const struct muchannel_reader * const reader)
+static bool has_epoch_changed(const struct muchannel *const channel,
+                              const struct muchannel_reader *const reader)
 {
     uint64_t epoch;
     serialized_copy(&channel->hdr.epoch, &epoch);
     return reader->epoch != epoch;
 }
 
-static enum muchannel_reader_result synchronize(
-        const struct muchannel * const channel,
-        struct muchannel_reader *reader)
+static enum muchannel_reader_result
+synchronize(const struct muchannel *const channel,
+            struct muchannel_reader *reader)
 {
     enum muchannel_reader_result result;
     uint64_t proto, transport;
@@ -39,8 +39,7 @@ static enum muchannel_reader_result synchronize(
     serialized_copy(&channel->hdr.protocol, &proto);
     serialized_copy(&channel->hdr.transport, &transport);
 
-    if (reader->protocol == proto && SHMSTREAM20 == transport)
-    {
+    if (reader->protocol == proto && SHMSTREAM20 == transport) {
         serialized_copy(&channel->hdr.epoch, &reader->epoch);
         serialized_copy(&channel->hdr.size, &reader->size);
         serialized_copy(&channel->hdr.elements, &reader->elements);
@@ -53,7 +52,8 @@ static enum muchannel_reader_result synchronize(
     return result;
 }
 
-void muen_channel_init_reader(struct muchannel_reader *reader, uint64_t protocol)
+void muen_channel_init_reader(struct muchannel_reader *reader,
+                              uint64_t protocol)
 {
     reader->epoch = MUCHANNEL_NULL_EPOCH;
     reader->protocol = protocol;
@@ -62,10 +62,9 @@ void muen_channel_init_reader(struct muchannel_reader *reader, uint64_t protocol
     reader->rc = 0;
 }
 
-enum muchannel_reader_result muen_channel_read(
-        const struct muchannel * const channel,
-        struct muchannel_reader *reader,
-        void *element)
+enum muchannel_reader_result
+muen_channel_read(const struct muchannel *const channel,
+                  struct muchannel_reader *reader, void *element)
 {
     uint64_t epoch, pos, wc, wsc;
     enum muchannel_reader_result result;
@@ -73,18 +72,15 @@ enum muchannel_reader_result muen_channel_read(
     if (muen_channel_is_active(channel)) {
 
         if (reader->epoch == MUCHANNEL_NULL_EPOCH ||
-                has_epoch_changed(channel, reader))
+            has_epoch_changed(channel, reader))
             return synchronize(channel, reader);
 
         serialized_copy(&channel->hdr.wc, &wc);
         if (reader->rc == wc)
             result = MUCHANNEL_NO_DATA;
-        else if (wc - reader->rc > reader->elements)
-        {
+        else if (wc - reader->rc > reader->elements) {
             result = MUCHANNEL_OVERRUN_DETECTED;
-        }
-        else
-        {
+        } else {
             pos = reader->rc % reader->elements * reader->size;
             memcpy(element, channel->data + pos, reader->size);
             cc_barrier();
@@ -110,14 +106,14 @@ enum muchannel_reader_result muen_channel_read(
     return result;
 }
 
-void muen_channel_drain(const struct muchannel * const channel,
-            struct muchannel_reader *reader)
+void muen_channel_drain(const struct muchannel *const channel,
+                        struct muchannel_reader *reader)
 {
     serialized_copy(&channel->hdr.wc, &reader->rc);
 }
 
-bool muen_channel_has_pending_data(const struct muchannel * const channel,
-        struct muchannel_reader * reader)
+bool muen_channel_has_pending_data(const struct muchannel *const channel,
+                                   struct muchannel_reader *reader)
 {
     enum muchannel_reader_result res;
     uint64_t wc;
@@ -126,8 +122,7 @@ bool muen_channel_has_pending_data(const struct muchannel * const channel,
         return false;
     }
     if (MUCHANNEL_NULL_EPOCH == reader->epoch ||
-            has_epoch_changed(channel, reader))
-    {
+        has_epoch_changed(channel, reader)) {
         res = synchronize(channel, reader);
         if (MUCHANNEL_INCOMPATIBLE_INTERFACE == res) {
             return false;

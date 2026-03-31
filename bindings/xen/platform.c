@@ -34,14 +34,14 @@
  * below.
  */
 uint8_t HYPERVISOR_SHARED_INFO[PAGE_SIZE]
-__attribute__((aligned(PAGE_SIZE))) = { 0 };
+    __attribute__((aligned(PAGE_SIZE))) = {0};
 
 /*
  * Private ABI to allow direct access to the shared_info structures
  * by Mirage/Xen. May change or go away without warning.
  */
 extern uint8_t *solo5__xen_HYPERVISOR_SHARED_INFO
-__attribute__((alias("HYPERVISOR_SHARED_INFO")));
+    __attribute__((alias("HYPERVISOR_SHARED_INFO")));
 
 /*
  * Declared in hypercall_page.S, needed for hypercall_init().
@@ -53,7 +53,7 @@ static char cmdline[8192];
 /*
  * Low 1MB is unused as on other targets, we place page tables in this space.
  */
-#define PLATFORM_MEM_START 0x100000UL
+#define PLATFORM_MEM_START       0x100000UL
 #define PLATFORM_PAGETABLE_START 0x10000UL
 
 /*
@@ -152,8 +152,7 @@ static void pagetable_init(void)
              */
             *e = l1e_addr | X86_PTE_P | X86_PTE_W;
             l1e_addr += PAGE_SIZE;
-        }
-        else {
+        } else {
             *e = paddr | X86_PTE_P | X86_PTE_W | X86_PTE_PS | X86_PTE_XD;
         }
 
@@ -188,11 +187,7 @@ static void pagetable_init(void)
     /*
      * Switch to new page tables.
      */
-    __asm__ __volatile__(
-            "mov %0, %%cr3"
-            : : "a" (l4e_addr)
-            : "memory"
-    );
+    __asm__ __volatile__("mov %0, %%cr3" : : "a"(l4e_addr) : "memory");
 }
 
 static void hypercall_init(void)
@@ -201,12 +196,11 @@ static void hypercall_init(void)
     bool found = false;
 
     for (base = XEN_CPUID_FIRST_LEAF; base < XEN_CPUID_FIRST_LEAF + 0x100000;
-            base += 0x100) {
+         base += 0x100) {
         x86_cpuid(base, &eax, &ebx, &ecx, &edx);
         if ((ebx == XEN_CPUID_SIGNATURE_EBX) &&
-                (ecx == XEN_CPUID_SIGNATURE_ECX) &&
-                (edx == XEN_CPUID_SIGNATURE_EDX) &&
-                ((eax - base) >= 2)) {
+            (ecx == XEN_CPUID_SIGNATURE_ECX) &&
+            (edx == XEN_CPUID_SIGNATURE_EDX) && ((eax - base) >= 2)) {
             found = true;
             break;
         }
@@ -214,11 +208,9 @@ static void hypercall_init(void)
     assert(found);
 
     x86_cpuid(base + 2, &eax, &ebx, &ecx, &edx);
-    __asm__ __volatile("wrmsr" ::
-        "c" (base),
-        "a" ((uint32_t)((uintptr_t)&HYPERCALL_PAGE)),
-        "d" ((uint32_t)((uintptr_t)&HYPERCALL_PAGE >> 32))
-    );
+    __asm__ __volatile("wrmsr" ::"c"(base),
+                       "a"((uint32_t)((uintptr_t)&HYPERCALL_PAGE)),
+                       "d"((uint32_t)((uintptr_t)&HYPERCALL_PAGE >> 32)));
     cc_barrier();
 
     /*
@@ -266,8 +258,7 @@ static void parse_hvm_start_info(const void *arg)
             log(WARN, "Solo5: warning: command line too long, truncated\n");
         }
         memcpy(cmdline, hvm_cmdline, cmdline_len);
-    }
-    else {
+    } else {
         cmdline[0] = 0;
     }
 }
@@ -276,7 +267,7 @@ void platform_init(const void *arg)
 {
     bool is_direct_pvh_boot;
 
-    if (*((const uint32_t*)arg) == XEN_HVM_START_MAGIC_VALUE)
+    if (*((const uint32_t *)arg) == XEN_HVM_START_MAGIC_VALUE)
         is_direct_pvh_boot = true;
     else
         is_direct_pvh_boot = false;
@@ -332,8 +323,8 @@ void platform_init(const void *arg)
     /*
      * Map the hypervisor shared_info page.
      */
-    int rc = hypercall_physmap_add_shared_info(0,
-            (uintptr_t)&HYPERVISOR_SHARED_INFO >> PAGE_SHIFT);
+    int rc = hypercall_physmap_add_shared_info(
+        0, (uintptr_t)&HYPERVISOR_SHARED_INFO >> PAGE_SHIFT);
     assert(rc == 0);
 
     /*

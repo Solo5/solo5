@@ -38,9 +38,8 @@ solo5_time_t solo5_clock_wall(void)
 /*
  * Called in interrupt context.
  */
-static void
-time_event_handler(evtchn_port_t port __attribute__((unused)),
-        void *arg __attribute__((unused)))
+static void time_event_handler(evtchn_port_t port __attribute__((unused)),
+                               void *arg __attribute__((unused)))
 {
     timer_fired = true;
 }
@@ -64,14 +63,13 @@ void solo5_yield(solo5_time_t deadline, solo5_handle_set_t *ready_set)
          * Further, order is important here; we must check that the timer
          * event has not fired immediately before going into halt state.
          */
-        while(true) {
-            __asm__ __volatile__ ("cli" : : : "memory");
+        while (true) {
+            __asm__ __volatile__("cli" : : : "memory");
             if (timer_fired) {
-                __asm__ __volatile__ ("sti");
+                __asm__ __volatile__("sti");
                 break;
-            }
-            else {
-                __asm__ __volatile__ ("sti; hlt");
+            } else {
+                __asm__ __volatile__("sti; hlt");
             }
         }
     }

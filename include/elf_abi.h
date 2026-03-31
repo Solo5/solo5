@@ -66,16 +66,16 @@ struct abi1_nhdr {
 };
 
 _Static_assert((sizeof(struct abi1_nhdr)) ==
-        (sizeof(uint32_t) + sizeof(uint32_t) + sizeof(uint32_t) + 8),
-        "struct abi1_nhdr alignment issue");
+                   (sizeof(uint32_t) + sizeof(uint32_t) + sizeof(uint32_t) + 8),
+               "struct abi1_nhdr alignment issue");
 
 /*
  * Defines the entire note (header, descriptor content).
  */
 struct abi1_info {
-    uint32_t abi_target;                /* Target ABI (enum abi_target) */
-    uint32_t abi_version;               /* Target ABI version */
-    uint32_t reserved0;                 /* Reserved for future expansion */
+    uint32_t abi_target; /* Target ABI (enum abi_target) */
+    uint32_t abi_version; /* Target ABI version */
+    uint32_t reserved0; /* Reserved for future expansion */
     uint32_t reserved1;
 };
 
@@ -88,17 +88,25 @@ struct abi1_note {
  * Internal alignment of (i) within struct abi1_note. Must be passed to
  * elf_load_note() as note_align when loading.
  */
-#define ABI1_NOTE_ALIGN offsetof(struct { char c; struct abi1_info i; }, i)
+#define ABI1_NOTE_ALIGN                                                        \
+    offsetof(                                                                  \
+        struct {                                                               \
+            char c;                                                            \
+            struct abi1_info i;                                                \
+        },                                                                     \
+        i)
 
-_Static_assert((offsetof(struct abi1_note, i) & (ABI1_NOTE_ALIGN - 1)) == 0,
-        "struct abi1_note.i is not aligned to a ABI1_NOTE_ALIGN boundary");
+_Static_assert(
+    (offsetof(struct abi1_note, i) & (ABI1_NOTE_ALIGN - 1)) == 0,
+    "struct abi1_note.i is not aligned to a ABI1_NOTE_ALIGN boundary");
 
 /*
  * Maximum descsz of ABI1 ELF note descriptor (content), including
  * internal alignment.
  */
-#define ABI1_NOTE_MAX_SIZE ((sizeof (struct abi1_note) - \
-         sizeof (struct abi1_nhdr) + sizeof (struct abi1_info)))
+#define ABI1_NOTE_MAX_SIZE                                                     \
+    ((sizeof(struct abi1_note) - sizeof(struct abi1_nhdr) +                    \
+      sizeof(struct abi1_info)))
 
 /*
  * Declare a Solo5 "ABI1" format NOTE.
@@ -107,20 +115,19 @@ _Static_assert((offsetof(struct abi1_note, i) & (ABI1_NOTE_ALIGN - 1)) == 0,
  * boundary, but ELF64 toolchains seem happy with the current arrangement...
  * the specifications are mess).
  */
-#define ABI1_NOTE_DECLARE_BEGIN \
-const struct abi1_note __solo5_abi1_note \
-__attribute__ ((section (".note.solo5.abi"), aligned(4))) \
-= { \
-    .h = { \
-        .n_namesz = sizeof(ABI1_NOTE_NAME), \
-        .n_descsz = (sizeof(struct abi1_note) - \
-                    sizeof(struct abi1_nhdr)), \
-        .n_type = ABI1_NOTE_TYPE, \
-        .n_name = ABI1_NOTE_NAME \
-    }, \
-    .i =
+#define ABI1_NOTE_DECLARE_BEGIN                                                \
+    const struct abi1_note __solo5_abi1_note                                   \
+        __attribute__((section(".note.solo5.abi"), aligned(4))) = {            \
+            .h = {.n_namesz = sizeof(ABI1_NOTE_NAME),                          \
+                  .n_descsz =                                                  \
+                      (sizeof(struct abi1_note) - sizeof(struct abi1_nhdr)),   \
+                  .n_type = ABI1_NOTE_TYPE,                                    \
+                  .n_name = ABI1_NOTE_NAME},                                   \
+            .i =
 
-#define ABI1_NOTE_DECLARE_END };
+#define ABI1_NOTE_DECLARE_END                                                  \
+    }                                                                          \
+    ;
 
 /*
  * Declare the contents of the .interp section / PT_INTERP.
@@ -133,10 +140,10 @@ __attribute__ ((section (".note.solo5.abi"), aligned(4))) \
  * presence of a valid ELF executable at "/nonexistent/solo5".
  *
  */
-#define DECLARE_ELF_INTERP \
-const char __fake_interp[24] \
-__attribute__ ((section (".interp"), aligned(8))) \
-= "/nonexistent/solo5/";
+#define DECLARE_ELF_INTERP                                                     \
+    const char __fake_interp[24]                                               \
+        __attribute__((section(".interp"), aligned(8))) =                      \
+            "/nonexistent/solo5/";
 
 /*
  * This is the format of an OpenBSD "identification" NOTE (see elf(5) and
@@ -147,9 +154,9 @@ __attribute__ ((section (".interp"), aligned(8))) \
 struct openbsd_note {
     uint32_t n_namesz; /* Always 8 */
     uint32_t n_descsz; /* Always 4 (sizeof data) */
-    uint32_t n_type;   /* Always 1 (NT_VERSION) */
-    char n_name[8];    /* Always "OpenBSD\0" */
-    uint32_t data;     /* Always 0 / unused */
+    uint32_t n_type; /* Always 1 (NT_VERSION) */
+    char n_name[8]; /* Always "OpenBSD\0" */
+    uint32_t data; /* Always 0 / unused */
 };
 
 /*
@@ -166,15 +173,13 @@ struct openbsd_note {
  * the "pretend to be an OpenBSD executable" NOTE must go in the *first*
  * PT_NOTE.  See the linker scripts for that.
  */
-#define DECLARE_OPENBSD_NOTE \
-const struct openbsd_note __solo5_openbsd_note \
-__attribute__ ((section (".note.solo5.not_openbsd"), aligned(4))) \
-= { \
-    .n_namesz = 8, \
-    .n_descsz = 4, \
-    .n_type = 1, \
-    .n_name = "OpenBSD", \
-    .data = 0 \
-};
+#define DECLARE_OPENBSD_NOTE                                                   \
+    const struct openbsd_note __solo5_openbsd_note                             \
+        __attribute__((section(".note.solo5.not_openbsd"), aligned(4))) = {    \
+            .n_namesz = 8,                                                     \
+            .n_descsz = 4,                                                     \
+            .n_type = 1,                                                       \
+            .n_name = "OpenBSD",                                               \
+            .data = 0};
 
 #endif /* ELF_ABI_H */

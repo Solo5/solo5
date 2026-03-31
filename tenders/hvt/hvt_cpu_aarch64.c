@@ -52,7 +52,7 @@ void aarch64_setup_memory_mapping(uint8_t *mem, uint64_t mem_size)
      * Address above 4GB is using for MMIO space now. This would be changed
      * easily if the design of hvt_hypercall would be changed in the future.
      */
-    assert((mem_size & (AARCH64_GUEST_BLOCK_SIZE -1)) == 0);
+    assert((mem_size & (AARCH64_GUEST_BLOCK_SIZE - 1)) == 0);
     assert(mem_size <= AARCH64_MMIO_BASE);
     assert(mem_size >= AARCH64_GUEST_BLOCK_SIZE);
 
@@ -99,11 +99,10 @@ void aarch64_setup_memory_mapping(uint8_t *mem, uint64_t mem_size)
 
     /* RAM address should not exceed MMIO_BASE */
     assert(paddr <= AARCH64_MMIO_BASE);
-    
+
     /* Mapping MMIO */
     pud += ((AARCH64_MMIO_BASE - paddr) >> PUD_SHIFT);
-    for (paddr = AARCH64_MMIO_BASE;
-         paddr < AARCH64_MMIO_BASE + AARCH64_MMIO_SZ;
+    for (paddr = AARCH64_MMIO_BASE; paddr < AARCH64_MMIO_BASE + AARCH64_MMIO_SZ;
          paddr += PUD_SIZE, pud++)
         *pud = paddr | PROT_SECT_DEVICE_nGnRE;
 
@@ -111,16 +110,17 @@ void aarch64_setup_memory_mapping(uint8_t *mem, uint64_t mem_size)
     *pgd = AARCH64_PUD_PGT_BASE | PGT_DESC_TYPE_TABLE;
 }
 
-void aarch64_mem_size(size_t *mem_size) {
+void aarch64_mem_size(size_t *mem_size)
+{
     size_t mem;
     mem = (*mem_size / AARCH64_GUEST_BLOCK_SIZE) * AARCH64_GUEST_BLOCK_SIZE;
-    assert (mem <= *mem_size);
+    assert(mem <= *mem_size);
     if (mem == 0)
         mem = AARCH64_GUEST_BLOCK_SIZE;
     if (mem != *mem_size)
         warnx("adjusting memory to %zu bytes", mem);
     if (mem > AARCH64_MMIO_BASE)
         errx(1, "guest memory size %zu bytes exceeds the max size %lu bytes",
-            mem, AARCH64_MMIO_BASE);
+             mem, AARCH64_MMIO_BASE);
     *mem_size = mem;
 }

@@ -41,37 +41,35 @@
  * are also present in the initial GDT, many OSes will be able to avoid
  * installing their own GDT.
  */
-#define FLAT_RING1_CS 0xe019    /* GDT index 259 */
-#define FLAT_RING1_DS 0xe021    /* GDT index 260 */
-#define FLAT_RING1_SS 0xe021    /* GDT index 260 */
-#define FLAT_RING3_CS 0xe02b    /* GDT index 261 */
-#define FLAT_RING3_DS 0xe033    /* GDT index 262 */
-#define FLAT_RING3_SS 0xe033    /* GDT index 262 */
+#define FLAT_RING1_CS 0xe019 /* GDT index 259 */
+#define FLAT_RING1_DS 0xe021 /* GDT index 260 */
+#define FLAT_RING1_SS 0xe021 /* GDT index 260 */
+#define FLAT_RING3_CS 0xe02b /* GDT index 261 */
+#define FLAT_RING3_DS 0xe033 /* GDT index 262 */
+#define FLAT_RING3_SS 0xe033 /* GDT index 262 */
 
 #define FLAT_KERNEL_CS FLAT_RING1_CS
 #define FLAT_KERNEL_DS FLAT_RING1_DS
 #define FLAT_KERNEL_SS FLAT_RING1_SS
-#define FLAT_USER_CS    FLAT_RING3_CS
-#define FLAT_USER_DS    FLAT_RING3_DS
-#define FLAT_USER_SS    FLAT_RING3_SS
+#define FLAT_USER_CS   FLAT_RING3_CS
+#define FLAT_USER_DS   FLAT_RING3_DS
+#define FLAT_USER_SS   FLAT_RING3_SS
 
-#define __HYPERVISOR_VIRT_START_PAE    0xF5800000
-#define __MACH2PHYS_VIRT_START_PAE     0xF5800000
-#define __MACH2PHYS_VIRT_END_PAE       0xF6800000
-#define HYPERVISOR_VIRT_START_PAE      xen_mk_ulong(__HYPERVISOR_VIRT_START_PAE)
-#define MACH2PHYS_VIRT_START_PAE       xen_mk_ulong(__MACH2PHYS_VIRT_START_PAE)
-#define MACH2PHYS_VIRT_END_PAE         xen_mk_ulong(__MACH2PHYS_VIRT_END_PAE)
+#define __HYPERVISOR_VIRT_START_PAE 0xF5800000
+#define __MACH2PHYS_VIRT_START_PAE  0xF5800000
+#define __MACH2PHYS_VIRT_END_PAE    0xF6800000
+#define HYPERVISOR_VIRT_START_PAE   xen_mk_ulong(__HYPERVISOR_VIRT_START_PAE)
+#define MACH2PHYS_VIRT_START_PAE    xen_mk_ulong(__MACH2PHYS_VIRT_START_PAE)
+#define MACH2PHYS_VIRT_END_PAE      xen_mk_ulong(__MACH2PHYS_VIRT_END_PAE)
 
 /* Non-PAE bounds are obsolete. */
 #define __HYPERVISOR_VIRT_START_NONPAE 0xFC000000
 #define __MACH2PHYS_VIRT_START_NONPAE  0xFC000000
 #define __MACH2PHYS_VIRT_END_NONPAE    0xFC400000
-#define HYPERVISOR_VIRT_START_NONPAE   \
+#define HYPERVISOR_VIRT_START_NONPAE                                           \
     xen_mk_ulong(__HYPERVISOR_VIRT_START_NONPAE)
-#define MACH2PHYS_VIRT_START_NONPAE    \
-    xen_mk_ulong(__MACH2PHYS_VIRT_START_NONPAE)
-#define MACH2PHYS_VIRT_END_NONPAE      \
-    xen_mk_ulong(__MACH2PHYS_VIRT_END_NONPAE)
+#define MACH2PHYS_VIRT_START_NONPAE xen_mk_ulong(__MACH2PHYS_VIRT_START_NONPAE)
+#define MACH2PHYS_VIRT_END_NONPAE   xen_mk_ulong(__MACH2PHYS_VIRT_END_NONPAE)
 
 #define __HYPERVISOR_VIRT_START __HYPERVISOR_VIRT_START_PAE
 #define __MACH2PHYS_VIRT_START  __MACH2PHYS_VIRT_START_PAE
@@ -81,9 +79,9 @@
 #define HYPERVISOR_VIRT_START xen_mk_ulong(__HYPERVISOR_VIRT_START)
 #endif
 
-#define MACH2PHYS_VIRT_START  xen_mk_ulong(__MACH2PHYS_VIRT_START)
-#define MACH2PHYS_VIRT_END    xen_mk_ulong(__MACH2PHYS_VIRT_END)
-#define MACH2PHYS_NR_ENTRIES  ((MACH2PHYS_VIRT_END-MACH2PHYS_VIRT_START)>>2)
+#define MACH2PHYS_VIRT_START xen_mk_ulong(__MACH2PHYS_VIRT_START)
+#define MACH2PHYS_VIRT_END   xen_mk_ulong(__MACH2PHYS_VIRT_END)
+#define MACH2PHYS_NR_ENTRIES ((MACH2PHYS_VIRT_END - MACH2PHYS_VIRT_START) >> 2)
 #ifndef machine_to_phys_mapping
 #define machine_to_phys_mapping ((unsigned long *)MACH2PHYS_VIRT_START)
 #endif
@@ -91,20 +89,27 @@
 /* 32-/64-bit invariability for control interfaces (domctl/sysctl). */
 #if defined(__XEN__) || defined(__XEN_TOOLS__)
 #undef ___DEFINE_XEN_GUEST_HANDLE
-#define ___DEFINE_XEN_GUEST_HANDLE(name, type)                  \
-    typedef struct { type *p; }                                 \
-        __guest_handle_ ## name;                                \
-    typedef struct { union { type *p; uint64_aligned_t q; }; }  \
-        __guest_handle_64_ ## name
+#define ___DEFINE_XEN_GUEST_HANDLE(name, type)                                 \
+    typedef struct {                                                           \
+        type *p;                                                               \
+    } __guest_handle_##name;                                                   \
+    typedef struct {                                                           \
+        union {                                                                \
+            type *p;                                                           \
+            uint64_aligned_t q;                                                \
+        };                                                                     \
+    } __guest_handle_64_##name
 #undef set_xen_guest_handle_raw
-#define set_xen_guest_handle_raw(hnd, val)                  \
-    do { if ( sizeof(hnd) == 8 ) *(uint64_t *)&(hnd) = 0;   \
-         (hnd).p = val;                                     \
-    } while ( 0 )
-#define  int64_aligned_t  int64_t __attribute__((aligned(8)))
-#define uint64_aligned_t uint64_t __attribute__((aligned(8)))
-#define __XEN_GUEST_HANDLE_64(name) __guest_handle_64_ ## name
-#define XEN_GUEST_HANDLE_64(name) __XEN_GUEST_HANDLE_64(name)
+#define set_xen_guest_handle_raw(hnd, val)                                     \
+    do {                                                                       \
+        if (sizeof(hnd) == 8)                                                  \
+            *(uint64_t *)&(hnd) = 0;                                           \
+        (hnd).p = val;                                                         \
+    } while (0)
+#define int64_aligned_t             int64_t __attribute__((aligned(8)))
+#define uint64_aligned_t            uint64_t __attribute__((aligned(8)))
+#define __XEN_GUEST_HANDLE_64(name) __guest_handle_64_##name
+#define XEN_GUEST_HANDLE_64(name)   __XEN_GUEST_HANDLE_64(name)
 #endif
 
 #ifndef __ASSEMBLY__
@@ -113,22 +118,24 @@
 /* nothing */
 #elif defined(__XEN__) || defined(__XEN_TOOLS__)
 /* Anonymous unions include all permissible names (e.g., al/ah/ax/eax). */
-#define __DECL_REG_LO8(which) union { \
-    uint32_t e ## which ## x; \
-    uint16_t which ## x; \
-    struct { \
-        uint8_t which ## l; \
-        uint8_t which ## h; \
-    }; \
-}
-#define __DECL_REG_LO16(name) union { \
-    uint32_t e ## name, _e ## name; \
-    uint16_t name; \
-}
+#define __DECL_REG_LO8(which)                                                  \
+    union {                                                                    \
+        uint32_t e##which##x;                                                  \
+        uint16_t which##x;                                                     \
+        struct {                                                               \
+            uint8_t which##l;                                                  \
+            uint8_t which##h;                                                  \
+        };                                                                     \
+    }
+#define __DECL_REG_LO16(name)                                                  \
+    union {                                                                    \
+        uint32_t e##name, _e##name;                                            \
+        uint16_t name;                                                         \
+    }
 #else
 /* Other sources must always use the proper 32-bit name (e.g., eax). */
-#define __DECL_REG_LO8(which) uint32_t e ## which ## x
-#define __DECL_REG_LO16(name) uint32_t e ## name
+#define __DECL_REG_LO8(which) uint32_t e##which##x
+#define __DECL_REG_LO16(name) uint32_t e##name
 #endif
 
 struct cpu_user_regs {
@@ -139,12 +146,12 @@ struct cpu_user_regs {
     __DECL_REG_LO16(di);
     __DECL_REG_LO16(bp);
     __DECL_REG_LO8(a);
-    uint16_t error_code;    /* private */
-    uint16_t entry_vector;  /* private */
+    uint16_t error_code; /* private */
+    uint16_t entry_vector; /* private */
     __DECL_REG_LO16(ip);
     uint16_t cs;
-    uint8_t  saved_upcall_mask;
-    uint8_t  _pad0;
+    uint8_t saved_upcall_mask;
+    uint8_t _pad0;
     __DECL_REG_LO16(flags); /* eflags.IF == !saved_upcall_mask */
     __DECL_REG_LO16(sp);
     uint16_t ss, _pad1;

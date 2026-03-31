@@ -92,14 +92,10 @@ DECLARE_ELF_INTERP
  * Xen does not have an ABI contract (in the Solo5 sense) or use a tender,
  * so the ABI version here is always 1.
  */
-ABI1_NOTE_DECLARE_BEGIN
-{
-    .abi_target = XEN_ABI_TARGET,
-    .abi_version = 1
-}
-ABI1_NOTE_DECLARE_END
+ABI1_NOTE_DECLARE_BEGIN{.abi_target = XEN_ABI_TARGET,
+                        .abi_version = 1} ABI1_NOTE_DECLARE_END
 
-/*
- * Pretend that we are an OpenBSD executable. See elf_abi.h for details.
- */
-DECLARE_OPENBSD_NOTE
+    /*
+     * Pretend that we are an OpenBSD executable. See elf_abi.h for details.
+     */
+    DECLARE_OPENBSD_NOTE

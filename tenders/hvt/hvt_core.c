@@ -56,7 +56,7 @@
 
 #include "hvt.h"
 
-hvt_hypercall_fn_t hvt_core_hypercalls[HVT_HYPERCALL_MAX] = { 0 };
+hvt_hypercall_fn_t hvt_core_hypercalls[HVT_HYPERCALL_MAX] = {0};
 
 int hvt_core_register_hypercall(int nr, hvt_hypercall_fn_t fn)
 {
@@ -88,7 +88,7 @@ int hvt_core_hypercall_halt(struct hvt *hvt, hvt_gpa_t gpa)
     void *cookie;
     int idx;
     struct hvt_hc_halt *t =
-            HVT_CHECKED_GPA_P(hvt, gpa, sizeof (struct hvt_hc_halt));
+        HVT_CHECKED_GPA_P(hvt, gpa, sizeof(struct hvt_hc_halt));
 
     /*
      * If the guest set a non-NULL cookie (non-zero before conversion), verify
@@ -110,7 +110,7 @@ int hvt_core_hypercall_halt(struct hvt *hvt, hvt_gpa_t gpa)
 }
 
 #define NUM_MODULES 8
-hvt_vmexit_fn_t hvt_core_vmexits[NUM_MODULES + 1] = { 0 };
+hvt_vmexit_fn_t hvt_core_vmexits[NUM_MODULES + 1] = {0};
 static int nvmexits = 0;
 
 int hvt_core_register_vmexit(hvt_vmexit_fn_t fn)
@@ -126,7 +126,7 @@ int hvt_core_register_vmexit(hvt_vmexit_fn_t fn)
 static void hypercall_walltime(struct hvt *hvt, hvt_gpa_t gpa)
 {
     struct hvt_hc_walltime *t =
-        HVT_CHECKED_GPA_P(hvt, gpa, sizeof (struct hvt_hc_walltime));
+        HVT_CHECKED_GPA_P(hvt, gpa, sizeof(struct hvt_hc_walltime));
     struct timespec ts;
 
     int rc = clock_gettime(CLOCK_REALTIME, &ts);
@@ -137,7 +137,7 @@ static void hypercall_walltime(struct hvt *hvt, hvt_gpa_t gpa)
 static void hypercall_puts(struct hvt *hvt, hvt_gpa_t gpa)
 {
     struct hvt_hc_puts *p =
-        HVT_CHECKED_GPA_P(hvt, gpa, sizeof (struct hvt_hc_puts));
+        HVT_CHECKED_GPA_P(hvt, gpa, sizeof(struct hvt_hc_puts));
     int rc = write(1, HVT_CHECKED_GPA_P(hvt, p->data, p->len), p->len);
     assert(rc >= 0);
 }
@@ -204,7 +204,7 @@ int hvt_core_register_pollfd(int fd, uintptr_t waitset_data)
 static void hypercall_poll(struct hvt *hvt, hvt_gpa_t gpa)
 {
     struct hvt_hc_poll *t =
-        HVT_CHECKED_GPA_P(hvt, gpa, sizeof (struct hvt_hc_poll));
+        HVT_CHECKED_GPA_P(hvt, gpa, sizeof(struct hvt_hc_poll));
 
 #if defined(__linux__)
     /*
@@ -218,12 +218,9 @@ static void hypercall_poll(struct hvt *hvt, hvt_gpa_t gpa)
 
     struct epoll_event revents[nevents];
     struct itimerspec it = {
-        .it_interval = { 0 },
-        .it_value = {
-            .tv_sec = t->timeout_nsecs / 1000000000ULL,
-            .tv_nsec = t->timeout_nsecs % 1000000000ULL
-        }
-    };
+        .it_interval = {0},
+        .it_value = {.tv_sec = t->timeout_nsecs / 1000000000ULL,
+                     .tv_nsec = t->timeout_nsecs % 1000000000ULL}};
     /*
      * Ensure that it.it_value is always non-zero, otherwise the following
      * epoll_wait() will hang if there are no other descriptors in the waitset
@@ -243,7 +240,7 @@ static void hypercall_poll(struct hvt *hvt, hvt_gpa_t gpa)
         int orig_nrevents = nrevents;
         for (int i = 0; i < orig_nrevents; i++)
             if (revents[i].data.u64 == INTERNAL_TIMERFD)
-                nrevents -= 1;          /* Disregard in total reported events */
+                nrevents -= 1; /* Disregard in total reported events */
             else
                 ready_set |= (1ULL << revents[i].data.u64);
     }
@@ -296,15 +293,13 @@ static int setup(struct hvt *hvt, struct mft *mft)
         setup_waitset();
 
     assert(hvt_core_register_hypercall(HVT_HYPERCALL_WALLTIME,
-                hypercall_walltime) == 0);
-    assert(hvt_core_register_hypercall(HVT_HYPERCALL_PUTS,
-                hypercall_puts) == 0);
-    assert(hvt_core_register_hypercall(HVT_HYPERCALL_POLL,
-                hypercall_poll) == 0);
+                                       hypercall_walltime) == 0);
+    assert(hvt_core_register_hypercall(HVT_HYPERCALL_PUTS, hypercall_puts) ==
+           0);
+    assert(hvt_core_register_hypercall(HVT_HYPERCALL_POLL, hypercall_poll) ==
+           0);
 
     return 0;
 }
 
-DECLARE_MODULE(core,
-    .setup = setup
-)
+DECLARE_MODULE(core, .setup = setup)

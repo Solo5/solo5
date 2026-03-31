@@ -21,7 +21,7 @@
 #include "solo5.h"
 #include "../../bindings/lib.c"
 
-/* 
+/*
  * Silence GCC's array bounds warning when accessing memory at address "8".
  * See https://gcc.gnu.org/bugzilla/show_bug.cgi?id=99578
  */

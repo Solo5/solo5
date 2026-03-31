@@ -56,8 +56,8 @@ solo5_time_t solo5_clock_monotonic(void)
 void time_init(void)
 {
     uint64_t tsc_freq, tsc_time_base;
-    const struct muen_resource_type *const
-        region = muen_get_resource("time_info", MUEN_RES_MEMORY);
+    const struct muen_resource_type *const region =
+        muen_get_resource("time_info", MUEN_RES_MEMORY);
 
     if (!region) {
         log(ERROR, "Unable to retrieve Muen time info region\n");
@@ -70,8 +70,7 @@ void time_init(void)
     cc_barrier();
 
     /* Wait until time information has been published */
-    do
-    {
+    do {
         tsc_time_base = time_info->tsc_time_base;
         cc_barrier();
     } while (tsc_time_base == 0);

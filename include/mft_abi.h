@@ -64,8 +64,8 @@ struct mft_net_basic {
     uint16_t mtu;
 };
 
-#define MFT_NAME_SIZE 68        /* Bytes, including string terminator */
-#define MFT_NAME_MAX  67        /* Characters */
+#define MFT_NAME_SIZE 68 /* Bytes, including string terminator */
+#define MFT_NAME_MAX  67 /* Characters */
 
 /*
  * Manifest entry (struct mft.e[]).
@@ -78,10 +78,10 @@ struct mft_entry {
         struct mft_net_basic net_basic;
     } u;
     union {
-        int hostfd;             /* Backing host descriptor OR */
-        void *data;             /* backing object / structure */
+        int hostfd; /* Backing host descriptor OR */
+        void *data; /* backing object / structure */
     } b;
-    bool attached;              /* Device attached? */
+    bool attached; /* Device attached? */
 };
 
 /*
@@ -95,7 +95,7 @@ struct mft_entry {
  * depend on solo5.h here).
  */
 _Static_assert(MFT_MAX_ENTRIES <= (sizeof(uint64_t) * 8),
-        "MFT_MAX_ENTRIES too large for solo5_handle_set_t");
+               "MFT_MAX_ENTRIES too large for solo5_handle_set_t");
 
 /*
  * MFT_ENTRIES is defined by elftool when a manifest is being *defined*.
@@ -139,8 +139,8 @@ struct mft1_nhdr {
 };
 
 _Static_assert((sizeof(struct mft1_nhdr)) ==
-        (sizeof(uint32_t) + sizeof(uint32_t) + sizeof(uint32_t) + 8),
-        "struct mft1_nhdr alignment issue");
+                   (sizeof(uint32_t) + sizeof(uint32_t) + sizeof(uint32_t) + 8),
+               "struct mft1_nhdr alignment issue");
 
 /*
  * Defines the entire note (header, descriptor content).
@@ -154,18 +154,25 @@ struct mft1_note {
  * Internal alignment of (m) within struct mft1_note. Must be passed to
  * elf_load_note() as note_align when loading.
  */
-#define MFT1_NOTE_ALIGN offsetof(struct { char c; struct mft m; }, m)
+#define MFT1_NOTE_ALIGN                                                        \
+    offsetof(                                                                  \
+        struct {                                                               \
+            char c;                                                            \
+            struct mft m;                                                      \
+        },                                                                     \
+        m)
 
-_Static_assert((offsetof(struct mft1_note, m) & (MFT1_NOTE_ALIGN - 1)) == 0,
-        "struct mft1_note.m is not aligned to a MFT1_NOTE_ALIGN boundary");
+_Static_assert(
+    (offsetof(struct mft1_note, m) & (MFT1_NOTE_ALIGN - 1)) == 0,
+    "struct mft1_note.m is not aligned to a MFT1_NOTE_ALIGN boundary");
 
 /*
  * Maximum descsz of manifest ELF note descriptor (content), including
  * internal alignment.
  */
-#define MFT1_NOTE_MAX_SIZE ((sizeof (struct mft1_note) - \
-         sizeof (struct mft1_nhdr)) + \
-        (MFT_MAX_ENTRIES * sizeof (struct mft_entry)))
+#define MFT1_NOTE_MAX_SIZE                                                     \
+    ((sizeof(struct mft1_note) - sizeof(struct mft1_nhdr)) +                   \
+     (MFT_MAX_ENTRIES * sizeof(struct mft_entry)))
 
 /*
  * Declare a Solo5 "MFT1" format NOTE.
@@ -174,19 +181,18 @@ _Static_assert((offsetof(struct mft1_note, m) & (MFT1_NOTE_ALIGN - 1)) == 0,
  * boundary, but ELF64 toolchains seem happy with the current arrangement...
  * the specifications are mess).
  */
-#define MFT1_NOTE_DECLARE_BEGIN \
-const struct mft1_note __solo5_mft1_note \
-__attribute__ ((section (".note.solo5.manifest"), aligned(4))) \
-= { \
-    .h = { \
-        .n_namesz = sizeof(MFT1_NOTE_NAME), \
-        .n_descsz = (sizeof(struct mft1_note) - \
-                    sizeof(struct mft1_nhdr)), \
-        .n_type = MFT1_NOTE_TYPE, \
-        .n_name = MFT1_NOTE_NAME \
-    }, \
-    .m =
+#define MFT1_NOTE_DECLARE_BEGIN                                                \
+    const struct mft1_note __solo5_mft1_note                                   \
+        __attribute__((section(".note.solo5.manifest"), aligned(4))) = {       \
+            .h = {.n_namesz = sizeof(MFT1_NOTE_NAME),                          \
+                  .n_descsz =                                                  \
+                      (sizeof(struct mft1_note) - sizeof(struct mft1_nhdr)),   \
+                  .n_type = MFT1_NOTE_TYPE,                                    \
+                  .n_name = MFT1_NOTE_NAME},                                   \
+            .m =
 
-#define MFT1_NOTE_DECLARE_END };
+#define MFT1_NOTE_DECLARE_END                                                  \
+    }                                                                          \
+    ;
 
 #endif /* MFT_ABI_H */

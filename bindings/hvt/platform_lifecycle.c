@@ -33,5 +33,6 @@ void platform_exit(int status, void *cookie)
     h.cookie = cookie;
 
     hvt_do_hypercall(HVT_HYPERCALL_HALT, &h);
-    for(;;);
+    for (;;)
+        ;
 }

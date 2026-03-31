@@ -21,12 +21,13 @@
 #define __CPU_PPC64_H__
 
 /* memory defines */
-#define PAGE_SIZE   (64 * 1024)
-#define PAGE_SHIFT  16
-#define PAGE_MASK   ~(0xffff)
+#define PAGE_SIZE  (64 * 1024)
+#define PAGE_SHIFT 16
+#define PAGE_MASK  ~(0xffff)
 
-#define CR0_SO      (0x80000000 >> 3) /* summary overflow;
-                                         indicates syscall error */
+#define CR0_SO                                                                 \
+    (0x80000000 >> 3) /* summary overflow;                                     \
+                         indicates syscall error */
 
 #ifndef ASM_FILE
 
@@ -37,22 +38,14 @@ static inline uint64_t cpu_cntvct(void)
 {
     uint64_t val;
 
-    __asm__ __volatile__(
-        "mfspr %0, 268\n"
-        : "=r" (val)
-        :
-        :);
+    __asm__ __volatile__("mfspr %0, 268\n" : "=r"(val) : :);
 
     return val;
 }
 
 static inline void cpu_set_tls_base(uint64_t base)
 {
-    __asm__ __volatile(
-        "mr 13, %0\n"
-        :
-        : "a" (base)
-        : "r13");
+    __asm__ __volatile("mr 13, %0\n" : : "a"(base) : "r13");
 }
 
 #endif /* !ASM_FILE */

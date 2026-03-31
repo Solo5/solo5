@@ -27,10 +27,10 @@
 #ifndef __XEN_PUBLIC_HVM_HVM_XS_STRINGS_H__
 #define __XEN_PUBLIC_HVM_HVM_XS_STRINGS_H__
 
-#define HVM_XS_HVMLOADER               "hvmloader"
-#define HVM_XS_BIOS                    "hvmloader/bios"
-#define HVM_XS_GENERATION_ID_ADDRESS   "hvmloader/generation-id-address"
-#define HVM_XS_ALLOW_MEMORY_RELOCATE   "hvmloader/allow-memory-relocate"
+#define HVM_XS_HVMLOADER             "hvmloader"
+#define HVM_XS_BIOS                  "hvmloader/bios"
+#define HVM_XS_GENERATION_ID_ADDRESS "hvmloader/generation-id-address"
+#define HVM_XS_ALLOW_MEMORY_RELOCATE "hvmloader/allow-memory-relocate"
 
 /* The following values allow additional ACPI tables to be added to the
  * virtual ACPI BIOS that hvmloader constructs. The values specify the guest
@@ -38,8 +38,8 @@
  * the block is simply concatenated raw tables (which specify their own length
  * in the ACPI header).
  */
-#define HVM_XS_ACPI_PT_ADDRESS         "hvmloader/acpi/address"
-#define HVM_XS_ACPI_PT_LENGTH          "hvmloader/acpi/length"
+#define HVM_XS_ACPI_PT_ADDRESS "hvmloader/acpi/address"
+#define HVM_XS_ACPI_PT_LENGTH  "hvmloader/acpi/length"
 
 /* Any number of SMBIOS types can be passed through to an HVM guest using
  * the following xenstore values. The values specify the guest physical
@@ -53,11 +53,11 @@
  * will replace the default structure in hvmloader. In addition, any
  * OEM/vendortypes (128 - 255) will all be added.
  */
-#define HVM_XS_SMBIOS_PT_ADDRESS       "hvmloader/smbios/address"
-#define HVM_XS_SMBIOS_PT_LENGTH        "hvmloader/smbios/length"
+#define HVM_XS_SMBIOS_PT_ADDRESS "hvmloader/smbios/address"
+#define HVM_XS_SMBIOS_PT_LENGTH  "hvmloader/smbios/length"
 
 /* Set to 1 to enable SMBIOS default portable battery (type 22) values. */
-#define HVM_XS_SMBIOS_DEFAULT_BATTERY  "hvmloader/smbios/default_battery"
+#define HVM_XS_SMBIOS_DEFAULT_BATTERY "hvmloader/smbios/default_battery"
 
 /* The following xenstore values are used to override some of the default
  * string values in the SMBIOS table constructed in hvmloader.
@@ -74,7 +74,8 @@
 #define HVM_XS_BASEBOARD_VERSION       "bios-strings/baseboard-version"
 #define HVM_XS_BASEBOARD_SERIAL_NUMBER "bios-strings/baseboard-serial-number"
 #define HVM_XS_BASEBOARD_ASSET_TAG     "bios-strings/baseboard-asset-tag"
-#define HVM_XS_BASEBOARD_LOCATION_IN_CHASSIS "bios-strings/baseboard-location-in-chassis"
+#define HVM_XS_BASEBOARD_LOCATION_IN_CHASSIS                                   \
+    "bios-strings/baseboard-location-in-chassis"
 #define HVM_XS_ENCLOSURE_MANUFACTURER  "bios-strings/enclosure-manufacturer"
 #define HVM_XS_ENCLOSURE_SERIAL_NUMBER "bios-strings/enclosure-serial-number"
 #define HVM_XS_ENCLOSURE_ASSET_TAG     "bios-strings/enclosure-asset-tag"
@@ -84,6 +85,6 @@
 /* 1 to 99 OEM strings can be set in xenstore using values of the form
  * below. These strings will be loaded into the SMBIOS type 11 structure.
  */
-#define HVM_XS_OEM_STRINGS             "bios-strings/oem-%d"
+#define HVM_XS_OEM_STRINGS "bios-strings/oem-%d"
 
 #endif /* __XEN_PUBLIC_HVM_HVM_XS_STRINGS_H__ */

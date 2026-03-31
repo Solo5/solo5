@@ -1,0 +1,26 @@
+BasedOnStyle: LLVM
+IndentWidth: 4
+ColumnLimit: 80
+UseTab: Never
+BreakBeforeBraces: Linux
+
+AlignTrailingComments: false
+AlignConsecutiveMacros: true
+AlignConsecutiveAssignments: false
+AlignConsecutiveDeclarations: false
+
+AllowAllArgumentsOnNextLine: false
+AllowShortBlocksOnASingleLine: false
+AllowShortFunctionsOnASingleLine: false
+AllowShortIfStatementsOnASingleLine: false
+AllowAllParametersOfDeclarationOnNextLine: false
+
+SortIncludes: false
+
+IndentCaseLabels: false
+PointerAlignment: Right
+ContinuationIndentWidth: 4
+MaxEmptyLinesToKeep: 2
+BraceWrapping:
+  AfterFunction: true
+SpaceAfterCStyleCast: false

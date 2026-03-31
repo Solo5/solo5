@@ -38,10 +38,10 @@ static void setup_cmdline(uint8_t *cmdline, int argc, char **argv)
 
     for (; *argv; argc--, argv++) {
         size_t alen = snprintf((char *)cmdline, cmdline_free, "%s%s", *argv,
-                (argc > 1) ? " " : "");
+                               (argc > 1) ? " " : "");
         if (alen >= cmdline_free) {
             errx(1, "Guest command line too long (max=%d characters)",
-                    HVT_CMDLINE_SIZE - 1);
+                 HVT_CMDLINE_SIZE - 1);
             break;
         }
         cmdline_free -= alen;
@@ -50,7 +50,7 @@ static void setup_cmdline(uint8_t *cmdline, int argc, char **argv)
 }
 
 void hvt_boot_info_init(struct hvt *hvt, hvt_gpa_t gpa_kend, int cmdline_argc,
-        char **cmdline_argv, struct mft *mft, size_t mft_size)
+                        char **cmdline_argv, struct mft *mft, size_t mft_size)
 {
     assert(hvt->cpu_boot_info_base);
     assert(hvt->cpu_cycle_freq);
@@ -59,9 +59,8 @@ void hvt_boot_info_init(struct hvt *hvt, hvt_gpa_t gpa_kend, int cmdline_argc,
     /*
      * Start with (struct hvt_boot_info) itself.
      */
-    struct hvt_boot_info *bi =
-        (struct hvt_boot_info *)(hvt->mem + lowmem_pos);
-    lowmem_pos += sizeof (struct hvt_boot_info);
+    struct hvt_boot_info *bi = (struct hvt_boot_info *)(hvt->mem + lowmem_pos);
+    lowmem_pos += sizeof(struct hvt_boot_info);
     bi->mem_size = hvt->mem_size;
     bi->kernel_end = gpa_kend;
     bi->cpu_cycle_freq = hvt->cpu_cycle_freq;

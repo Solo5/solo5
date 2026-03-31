@@ -42,16 +42,12 @@ int hvt_gdb_supported(void)
     return -1;
 }
 
-int hvt_gdb_read_registers(struct hvt *hvt,
-                            uint8_t *registers,
-                            size_t *len)
+int hvt_gdb_read_registers(struct hvt *hvt, uint8_t *registers, size_t *len)
 {
     return -1;
 }
 
-int hvt_gdb_write_registers(struct hvt *hvt,
-                             uint8_t *registers,
-                             size_t len)
+int hvt_gdb_write_registers(struct hvt *hvt, uint8_t *registers, size_t len)
 {
     return -1;
 }
@@ -71,14 +67,14 @@ int hvt_gdb_read_last_signal(struct hvt *hvt, int *signal)
     return -1;
 }
 
-int hvt_gdb_add_breakpoint(struct hvt *hvt, uint32_t type,
-                            hvt_gpa_t addr, size_t len)
+int hvt_gdb_add_breakpoint(struct hvt *hvt, uint32_t type, hvt_gpa_t addr,
+                           size_t len)
 {
     return -1;
 }
 
-int hvt_gdb_remove_breakpoint(struct hvt *hvt, uint32_t type,
-                               hvt_gpa_t addr, size_t len)
+int hvt_gdb_remove_breakpoint(struct hvt *hvt, uint32_t type, hvt_gpa_t addr,
+                              size_t len)
 {
     return -1;
 }

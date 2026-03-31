@@ -23,7 +23,7 @@
  *
  * This header file includes (supersedes) the common bindings.h for the virtio
  * implementation.
-*/
+ */
 
 #ifndef __VIRTIO_BINDINGS_H__
 #define __VIRTIO_BINDINGS_H__

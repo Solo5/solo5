@@ -30,13 +30,13 @@
 #define MSR_IA32_APIC_BASE_MASK   (0xffffffUL << 12)
 #define APIC_BASE                 0xfee00000UL
 
-#define DECLARE_MMIO32_REG(name, addr) \
-    static uint32_t * const name = (uint32_t *)(addr)
+#define DECLARE_MMIO32_REG(name, addr)                                         \
+    static uint32_t *const name = (uint32_t *)(addr)
 
 DECLARE_MMIO32_REG(APIC_VERSION, APIC_BASE + 0x30);
-DECLARE_MMIO32_REG(APIC_SVR,     APIC_BASE + 0xf0);
-#define APIC_SVR_ENABLE          (1U << 8)
-DECLARE_MMIO32_REG(APIC_EOI,     APIC_BASE + 0xb0);
+DECLARE_MMIO32_REG(APIC_SVR, APIC_BASE + 0xf0);
+#define APIC_SVR_ENABLE (1U << 8)
+DECLARE_MMIO32_REG(APIC_EOI, APIC_BASE + 0xb0);
 
 static inline uint32_t mmio_readl(const uint32_t *addr)
 {
@@ -52,23 +52,14 @@ static inline uint64_t rdmsrq(uint32_t base)
 {
     uint32_t low, high;
 
-    __asm__ __volatile__(
-            "rdmsr" :
-            "=a" (low),
-            "=d" (high) :
-            "c" (base)
-    );
+    __asm__ __volatile__("rdmsr" : "=a"(low), "=d"(high) : "c"(base));
     return ((uint64_t)high << 32) | low;
 }
 
 static inline void wrmsrq(uint32_t base, uint64_t val)
 {
-    __asm__ __volatile__(
-            "wrmsr" ::
-            "c" (base),
-            "a" ((uint32_t)val),
-            "d" ((uint32_t)(val >> 32))
-    );
+    __asm__ __volatile__("wrmsr" ::"c"(base), "a"((uint32_t)val),
+                         "d"((uint32_t)(val >> 32)));
 }
 
 static int spurious_vector_handler(void *arg __attribute__((unused)))
@@ -91,7 +82,7 @@ void platform_intr_init(void)
     wrmsrq(MSR_IA32_APIC_BASE, apic_base | MSR_IA32_APIC_BASE_ENABLE);
     apic_base = rdmsrq(MSR_IA32_APIC_BASE);
     if (!(apic_base & MSR_IA32_APIC_BASE_ENABLE) ||
-            ((apic_base & MSR_IA32_APIC_BASE_MASK) != APIC_BASE)) {
+        ((apic_base & MSR_IA32_APIC_BASE_MASK) != APIC_BASE)) {
         log(ERROR, "Solo5: Could not enable APIC or not present\n");
         assert(false);
     }

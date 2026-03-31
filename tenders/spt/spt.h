@@ -46,10 +46,10 @@ struct spt {
 struct spt *spt_init(size_t mem_size);
 
 int spt_guest_mprotect(void *t_arg, uint64_t addr_start, uint64_t addr_end,
-        int prot);
+                       int prot);
 
 void spt_boot_info_init(struct spt *spt, uint64_t p_end, int cmdline_argc,
-	char **cmdline_argv, struct mft *mft, size_t mft_size);
+                        char **cmdline_argv, struct mft *mft, size_t mft_size);
 
 void spt_run(struct spt *spt, uint64_t p_entry);
 
@@ -78,12 +78,9 @@ struct spt_module {
  * Note that alignment of the struct is explicitly set, otherwise the linker
  * will pick a default that does not match the compiler's alignment.
  */
-#define DECLARE_MODULE(module_name, ...) \
-    static struct spt_module __module_ ##module_name \
-    __attribute((section("modules"), aligned(8))) \
-    __attribute((used)) = { \
-	.name = #module_name, \
-	.ops = { __VA_ARGS__ } \
-    };
+#define DECLARE_MODULE(module_name, ...)                                       \
+    static struct spt_module __module_##module_name                            \
+        __attribute((section("modules"), aligned(8)))                          \
+        __attribute((used)) = {.name = #module_name, .ops = {__VA_ARGS__}};
 
 #endif /* SPT_H */

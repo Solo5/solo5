@@ -54,17 +54,17 @@ void mem_init(void)
         PANIC("Not enough memory", NULL);
 
     log(INFO, "Solo5: Memory map: %llu MB addressable:\n",
-            (unsigned long long)mem_size >> 20);
+        (unsigned long long)mem_size >> 20);
     log(INFO, "Solo5:   reserved @ (0x0 - 0x%llx)\n",
-            (unsigned long long)_stext-1);
+        (unsigned long long)_stext - 1);
     log(INFO, "Solo5:       text @ (0x%llx - 0x%llx)\n",
-            (unsigned long long)_stext, (unsigned long long)_etext-1);
+        (unsigned long long)_stext, (unsigned long long)_etext - 1);
     log(INFO, "Solo5:     rodata @ (0x%llx - 0x%llx)\n",
-            (unsigned long long)_etext, (unsigned long long)_erodata-1);
+        (unsigned long long)_etext, (unsigned long long)_erodata - 1);
     log(INFO, "Solo5:       data @ (0x%llx - 0x%llx)\n",
-            (unsigned long long)_erodata, (unsigned long long)_end-1);
+        (unsigned long long)_erodata, (unsigned long long)_end - 1);
     log(INFO, "Solo5:       heap >= 0x%llx < stack < 0x%llx\n",
-            (unsigned long long)heap_start, (unsigned long long)mem_size);
+        (unsigned long long)heap_start, (unsigned long long)mem_size);
 }
 
 /*

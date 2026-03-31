@@ -43,16 +43,18 @@
 #define XEN_SMCCC_MINOR_REVISION 1
 
 /* Hypervisor Service UID. Randomly generated with uuidgen. */
-#define XEN_SMCCC_UID XEN_DEFINE_UUID(0xa71812dc, 0xc698, 0x4369, 0x9acf, \
-                                      0x79, 0xd1, 0x8d, 0xde, 0xe6, 0x67)
+#define XEN_SMCCC_UID                                                          \
+    XEN_DEFINE_UUID(0xa71812dc, 0xc698, 0x4369, 0x9acf, 0x79, 0xd1, 0x8d,      \
+                    0xde, 0xe6, 0x67)
 
 /* Standard Service Service Call version. */
 #define SSSC_SMCCC_MAJOR_REVISION 0
 #define SSSC_SMCCC_MINOR_REVISION 1
 
 /* Standard Service Call UID. Randomly generated with uuidgen. */
-#define SSSC_SMCCC_UID XEN_DEFINE_UUID(0xf863386f, 0x4b39, 0x4cbd, 0x9220,\
-                                       0xce, 0x16, 0x41, 0xe5, 0x9f, 0x6f)
+#define SSSC_SMCCC_UID                                                         \
+    XEN_DEFINE_UUID(0xf863386f, 0x4b39, 0x4cbd, 0x9220, 0xce, 0x16, 0x41,      \
+                    0xe5, 0x9f, 0x6f)
 
 #endif /* __XEN_PUBLIC_ARCH_ARM_SMCCC_H__ */
 

@@ -67,7 +67,7 @@ static struct breakpoints_head sw_breakpoints;
 static struct breakpoints_head hw_breakpoints;
 
 /* The Intel SDM specifies that the DR7 has space for 4 breakpoints. */
-#define MAX_HW_BREAKPOINTS             4
+#define MAX_HW_BREAKPOINTS 4
 static uint32_t nr_hw_breakpoints = 0;
 
 /* Stepping is disabled by default. */
@@ -75,9 +75,11 @@ static bool stepping = false;
 /* This is the trap instruction used for software breakpoints. */
 static const uint8_t int3 = 0xcc;
 
-static uint16_t to_fsave_tag(uint16_t fsw, uint8_t tag, const struct fpu_reg regs[FPU_REGS]);
+static uint16_t to_fsave_tag(uint16_t fsw, uint8_t tag,
+                             const struct fpu_reg regs[FPU_REGS]);
 
-static int kvm_arch_insert_sw_breakpoint(struct hvt *hvt, struct breakpoint_t *bp)
+static int kvm_arch_insert_sw_breakpoint(struct hvt *hvt,
+                                         struct breakpoint_t *bp)
 {
     /* The address check at the GDB server just returned an error if addr was
      * bad. HVT_CHECKED_GPA_P will panic if that's the case. */
@@ -93,7 +95,8 @@ static int kvm_arch_insert_sw_breakpoint(struct hvt *hvt, struct breakpoint_t *b
     return 0;
 }
 
-static int kvm_arch_remove_sw_breakpoint(struct hvt *hvt, struct breakpoint_t *bp)
+static int kvm_arch_remove_sw_breakpoint(struct hvt *hvt,
+                                         struct breakpoint_t *bp)
 {
     uint8_t *insn = HVT_CHECKED_GPA_P(hvt, bp->addr, bp->len);
     assert(*insn == int3);
@@ -113,17 +116,17 @@ static int hvt_gdb_update_guest_debug(struct hvt *hvt)
         /* Break on data reads only. */
         [GDB_WATCHPOINT_READ] = 0x2,
         /* Break on data reads or writes but not instruction fetches. */
-        [GDB_WATCHPOINT_ACCESS] = 0x3
-    };
-    const uint8_t len_code[] = {
-        /*
-         * 00 — 1-byte length.
-         * 01 — 2-byte length.
-         * 10 — 8-byte length.
-         * 11 — 4-byte length.
-         */
-        [1] = 0x0, [2] = 0x1, [4] = 0x3, [8] = 0x2
-    };
+        [GDB_WATCHPOINT_ACCESS] = 0x3};
+    const uint8_t len_code[] = {/*
+                                 * 00 — 1-byte length.
+                                 * 01 — 2-byte length.
+                                 * 10 — 8-byte length.
+                                 * 11 — 4-byte length.
+                                 */
+                                [1] = 0x0,
+                                [2] = 0x1,
+                                [4] = 0x3,
+                                [8] = 0x2};
     int n = 0;
 
     if (stepping)
@@ -139,15 +142,17 @@ static int hvt_gdb_update_guest_debug(struct hvt *hvt)
          * debug register. */
         dbg.arch.debugreg[7] = 1 << 9;
         dbg.arch.debugreg[7] |= 1 << 10;
-        SLIST_FOREACH(bp, &hw_breakpoints, entries) {
+        SLIST_FOREACH(bp, &hw_breakpoints, entries)
+        {
             assert(bp->type != GDB_BREAKPOINT_SW);
             dbg.arch.debugreg[n] = bp->addr;
             /* global breakpointing */
             dbg.arch.debugreg[7] |= (2 << (n * 2));
             /* read/write fields */
-            dbg.arch.debugreg[7] |= (type_code[bp->type] << (16 + n*4));
+            dbg.arch.debugreg[7] |= (type_code[bp->type] << (16 + n * 4));
             /* Length fields */
-            dbg.arch.debugreg[7] |= ((uint32_t)len_code[bp->len] << (18 + n*4));
+            dbg.arch.debugreg[7] |=
+                ((uint32_t)len_code[bp->len] << (18 + n * 4));
             n++;
         }
     }
@@ -161,13 +166,15 @@ static int hvt_gdb_update_guest_debug(struct hvt *hvt)
     return 0;
 }
 
-static struct breakpoint_t *bp_list_find(gdb_breakpoint_type type, hvt_gpa_t addr, size_t len)
+static struct breakpoint_t *bp_list_find(gdb_breakpoint_type type,
+                                         hvt_gpa_t addr, size_t len)
 {
     struct breakpoint_t *bp;
 
     switch (type) {
     case GDB_BREAKPOINT_SW:
-        SLIST_FOREACH(bp, &sw_breakpoints, entries) {
+        SLIST_FOREACH(bp, &sw_breakpoints, entries)
+        {
             if (bp->addr == addr && bp->len == len)
                 return bp;
         }
@@ -178,7 +185,8 @@ static struct breakpoint_t *bp_list_find(gdb_breakpoint_type type, hvt_gpa_t add
     case GDB_WATCHPOINT_READ:
     case GDB_WATCHPOINT_ACCESS:
         /* We only support hardware watchpoints. */
-        SLIST_FOREACH(bp, &hw_breakpoints, entries) {
+        SLIST_FOREACH(bp, &hw_breakpoints, entries)
+        {
             if (bp->addr == addr && bp->len == len)
                 return bp;
         }
@@ -197,8 +205,7 @@ static struct breakpoint_t *bp_list_find(gdb_breakpoint_type type, hvt_gpa_t add
  * number of allowed hardware breakpoints (4).
  */
 static struct breakpoint_t *bp_list_insert(gdb_breakpoint_type type,
-                                           hvt_gpa_t addr,
-                                           size_t len)
+                                           hvt_gpa_t addr, size_t len)
 {
     struct breakpoint_t *bp;
 
@@ -208,7 +215,7 @@ static struct breakpoint_t *bp_list_insert(gdb_breakpoint_type type,
         return bp;
     }
 
-    bp = malloc(sizeof (struct breakpoint_t));
+    bp = malloc(sizeof(struct breakpoint_t));
     if (bp == NULL)
         return NULL;
 
@@ -244,8 +251,7 @@ static struct breakpoint_t *bp_list_insert(gdb_breakpoint_type type,
  * Removes a breakpoint from the list of breakpoints.
  * Returns -1 if the breakpoint is not in the list.
  */
-static int bp_list_remove(gdb_breakpoint_type type,
-                          hvt_gpa_t addr, size_t len)
+static int bp_list_remove(gdb_breakpoint_type type, hvt_gpa_t addr, size_t len)
 {
     struct breakpoint_t *bp = NULL;
 
@@ -285,14 +291,12 @@ int hvt_gdb_supported(void)
     return 0;
 }
 
-int hvt_gdb_read_registers(struct hvt *hvt,
-                            uint8_t *registers,
-                            size_t *len)
+int hvt_gdb_read_registers(struct hvt *hvt, uint8_t *registers, size_t *len)
 {
     struct kvm_regs kregs;
     struct kvm_sregs sregs;
     struct kvm_fpu fregs;
-    struct hvt_gdb_regs *gregs = (struct hvt_gdb_regs *) registers;
+    struct hvt_gdb_regs *gregs = (struct hvt_gdb_regs *)registers;
     int ret;
 
     if (*len < sizeof(struct hvt_gdb_regs))
@@ -350,13 +354,13 @@ int hvt_gdb_read_registers(struct hvt *hvt,
     // The following code is tricky. KVM provides FPU state as dumped by FXSAVE
     // x86 instruction, which has been available since Pentium 2/AMD K6.
     // GDB on the other hand has wire format hardcoded as given by FSAVE
-    // instruction, probably for some very stupid reason. Therefore, a conversion
-    // is required.
-    // This doesn't result in an exact FPU state that could be i.e. loaded back
-    // with KVM_SET_FPU, yet this still can be handful for debugging.
+    // instruction, probably for some very stupid reason. Therefore, a
+    // conversion is required. This doesn't result in an exact FPU state that
+    // could be i.e. loaded back with KVM_SET_FPU, yet this still can be handful
+    // for debugging.
 
     // Copy STx/MMx registers.
-    for(int i = 0; i < FPU_REGS; i++) {
+    for (int i = 0; i < FPU_REGS; i++) {
         memcpy(&gregs->st[i].data, fregs.fpr[i], sizeof(gregs->st[i].data));
     }
     // Bottom 16 bits of these fields are reserved?
@@ -366,9 +370,9 @@ int hvt_gdb_read_registers(struct hvt *hvt,
     gregs->ftag = to_fsave_tag(fregs.fsw, fregs.ftwx, gregs->st);
     gregs->fop = fregs.last_opcode;
 
-    // These fields are 8 and 24 bits for segment and offset respectively in x86,
-    // but in GDB wire protocol they all are 32 bits. Hence, sending as much info
-    // as we can here.
+    // These fields are 8 and 24 bits for segment and offset respectively in
+    // x86, but in GDB wire protocol they all are 32 bits. Hence, sending as
+    // much info as we can here.
     gregs->fiseg = (fregs.last_ip >> 32) & 0xffffffff;
     gregs->fioff = fregs.last_ip & 0xffffffff;
     gregs->foseg = (fregs.last_dp >> 32) & 0xffffffff;
@@ -377,13 +381,11 @@ int hvt_gdb_read_registers(struct hvt *hvt,
     return 0;
 }
 
-int hvt_gdb_write_registers(struct hvt *hvt,
-                             uint8_t *registers,
-                             size_t len)
+int hvt_gdb_write_registers(struct hvt *hvt, uint8_t *registers, size_t len)
 {
     struct kvm_regs kregs;
     struct kvm_sregs sregs;
-    struct hvt_gdb_regs *gregs = (struct hvt_gdb_regs *) registers;
+    struct hvt_gdb_regs *gregs = (struct hvt_gdb_regs *)registers;
     int ret;
 
     /* Let's read all registers just in case we miss filling one of them. */
@@ -443,9 +445,8 @@ int hvt_gdb_write_registers(struct hvt *hvt,
     return 0;
 }
 
-int hvt_gdb_add_breakpoint(struct hvt *hvt,
-                            gdb_breakpoint_type type,
-                            hvt_gpa_t addr, size_t len)
+int hvt_gdb_add_breakpoint(struct hvt *hvt, gdb_breakpoint_type type,
+                           hvt_gpa_t addr, size_t len)
 {
     struct breakpoint_t *bp;
 
@@ -467,9 +468,8 @@ int hvt_gdb_add_breakpoint(struct hvt *hvt,
     return 0;
 }
 
-int hvt_gdb_remove_breakpoint(struct hvt *hvt,
-                               gdb_breakpoint_type type,
-                               hvt_gpa_t addr, size_t len)
+int hvt_gdb_remove_breakpoint(struct hvt *hvt, gdb_breakpoint_type type,
+                              hvt_gpa_t addr, size_t len)
 {
     struct breakpoint_t *bp;
 
@@ -544,46 +544,44 @@ int hvt_gdb_read_last_signal(struct hvt *hvt, int *signal)
 
 // Convert FXSAVE tag to full tag format from FSAVE.
 // This is what GDB expects in its wire protocol for some dumb reason.
-static uint16_t to_fsave_tag(uint16_t fsw, uint8_t tag, const struct fpu_reg regs[FPU_REGS])
+static uint16_t to_fsave_tag(uint16_t fsw, uint8_t tag,
+                             const struct fpu_reg regs[FPU_REGS])
 {
-  int stack_top = (fsw >> 11) & 0x7;
+    int stack_top = (fsw >> 11) & 0x7;
 
-  uint16_t fsave_tag = 0;
-  for (int phys_idx = 0; phys_idx < FPU_REGS; phys_idx++) {
-    bool fxsave_bit = (tag & (1 << phys_idx)) != 0;
-    uint8_t fsave_bits = 0;
+    uint16_t fsave_tag = 0;
+    for (int phys_idx = 0; phys_idx < FPU_REGS; phys_idx++) {
+        bool fxsave_bit = (tag & (1 << phys_idx)) != 0;
+        uint8_t fsave_bits = 0;
 
-    if (fxsave_bit) {
-      int st_idx = (phys_idx + FPU_REGS - stack_top) % FPU_REGS;
-      const unsigned char *st = regs[st_idx].data;
-      bool integer_bit = (st[7] & 0x80) != 0;
-      uint16_t exponent = ((st[9] & 0x7f) << 8) | st[8];
-      uint64_t fraction = (((uint64_t)st[7] & 0x7f) << 56)
-                        | ((uint64_t)st[6] << 48)
-                        | ((uint64_t)st[5] << 40)
-                        | ((uint64_t)st[4] << 32)
-                        | ((uint64_t)st[3] << 24)
-                        | ((uint64_t)st[2] << 16)
-                        | ((uint64_t)st[1] << 8)
-                        |  (uint64_t)st[0];
+        if (fxsave_bit) {
+            int st_idx = (phys_idx + FPU_REGS - stack_top) % FPU_REGS;
+            const unsigned char *st = regs[st_idx].data;
+            bool integer_bit = (st[7] & 0x80) != 0;
+            uint16_t exponent = ((st[9] & 0x7f) << 8) | st[8];
+            uint64_t fraction =
+                (((uint64_t)st[7] & 0x7f) << 56) | ((uint64_t)st[6] << 48) |
+                ((uint64_t)st[5] << 40) | ((uint64_t)st[4] << 32) |
+                ((uint64_t)st[3] << 24) | ((uint64_t)st[2] << 16) |
+                ((uint64_t)st[1] << 8) | (uint64_t)st[0];
 
-      if (exponent == 0x7fff) {
-        // Infinity, NaN, pseudo-infinity, or pseudo-NaN.
-        // Mostly the case for MMX values.
-        fsave_bits = 2;
-      } else if (exponent == 0) {
-        // J bit.
-        fsave_bits = !integer_bit && !fraction ? 1 : 2;
-      } else if (integer_bit) {
-        fsave_bits = 0;
-      } else {
-        fsave_bits = 1;
-      }
-    } else {
-      fsave_bits = 3;
+            if (exponent == 0x7fff) {
+                // Infinity, NaN, pseudo-infinity, or pseudo-NaN.
+                // Mostly the case for MMX values.
+                fsave_bits = 2;
+            } else if (exponent == 0) {
+                // J bit.
+                fsave_bits = !integer_bit && !fraction ? 1 : 2;
+            } else if (integer_bit) {
+                fsave_bits = 0;
+            } else {
+                fsave_bits = 1;
+            }
+        } else {
+            fsave_bits = 3;
+        }
+        fsave_tag |= (fsave_bits << (phys_idx * 2));
     }
-    fsave_tag |= (fsave_bits << (phys_idx * 2));
-  }
 
-  return fsave_tag;
+    return fsave_tag;
 }

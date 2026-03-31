@@ -32,7 +32,9 @@
 
 // GDB expects FPU registers as 80 bit numbers,
 // but C doesn't have a type for this.
-struct fpu_reg { unsigned char data[10]; } __attribute__((packed));
+struct fpu_reg {
+    unsigned char data[10];
+} __attribute__((packed));
 
 #define FPU_REGS 8
 
