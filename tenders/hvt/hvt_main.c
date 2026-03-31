@@ -258,6 +258,7 @@ int main(int argc, char **argv)
              HVT_GUEST_MIN_BASE, hvt_guest_mprotect, hvt, &gpa_ep, &gpa_kend);
     close(elf_fd); /* Done with ELF binary */
 
+    hvt_net_reserve_ring(hvt, mft);
     hvt_vcpu_init(hvt, gpa_ep);
 
     setup_modules(hvt, mft);
