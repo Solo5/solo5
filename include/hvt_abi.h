@@ -149,6 +149,10 @@ static inline void hvt_do_hypercall(int n, volatile void *arg)
 /*
  * A pointer to this structure is passed by the tender as the sole argument to
  * the guest entrypoint.
+ *
+ * New fields are appended at the end for forward compatibility. Old guests
+ * compiled against ABI v2 will not access the new fields; the tender detects
+ * this and falls back to hypercall-based I/O.
  */
 struct hvt_boot_info {
     uint64_t mem_size; /* Memory size in bytes */
@@ -157,6 +161,10 @@ struct hvt_boot_info {
     HVT_GUEST_PTR(const char *)
     cmdline; /* Address of command line (C string) */
     HVT_GUEST_PTR(const void *) mft; /* Address of application manifest */
+
+    /* Extended fields (ring I/O negotiation) */
+    uint32_t host_features; /* Features offered by the tender */
+    uint32_t guest_features; /* Features accepted by the guest */
 };
 
 /*
