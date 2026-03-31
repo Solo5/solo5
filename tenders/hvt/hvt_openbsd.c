@@ -131,7 +131,8 @@ struct hvt *hvt_init(size_t mem_size)
 
     vmr->vmr_va = (vaddr_t)p;
     hvt->mem = p;
-    hvt->mem_size = mem_size;
+    hvt->guest_mem_size = mem_size;
+    hvt->mem_alloc_size = mem_size;
 #endif
 
     if (ioctl(hvb->vmd_fd, VMM_IOC_CREATE, vcp) < 0)
@@ -139,7 +140,8 @@ struct hvt *hvt_init(size_t mem_size)
 
 #if OpenBSD > 202504
     hvt->mem = (uint8_t *)vmr->vmr_va;
-    hvt->mem_size = mem_size;
+    hvt->guest_mem_size = mem_size;
+    hvt->mem_alloc_size = mem_size;
 #endif
     hvb->vcp_id = vcp->vcp_id;
     hvb->vcpu_id = 0; // the first and only cpu is at 0
@@ -183,14 +185,14 @@ int hvt_guest_mprotect(void *t_arg, uint64_t addr_start, uint64_t addr_end,
 {
     struct hvt *hvt = t_arg;
 
-    assert(addr_start <= hvt->mem_size);
-    assert(addr_end <= hvt->mem_size);
+    assert(addr_start <= hvt->guest_mem_size);
+    assert(addr_end <= hvt->guest_mem_size);
     assert(addr_start < addr_end);
 
     uint8_t *vaddr_start = hvt->mem + addr_start;
     assert(vaddr_start >= hvt->mem);
     size_t size = addr_end - addr_start;
-    assert(size > 0 && size <= hvt->mem_size);
+    assert(size > 0 && size <= hvt->guest_mem_size);
 
 #if defined(VMM_IOC_MPROTECT_EPT)
     /*

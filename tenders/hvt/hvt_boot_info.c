@@ -61,7 +61,7 @@ void hvt_boot_info_init(struct hvt *hvt, hvt_gpa_t gpa_kend, int cmdline_argc,
      */
     struct hvt_boot_info *bi = (struct hvt_boot_info *)(hvt->mem + lowmem_pos);
     lowmem_pos += sizeof(struct hvt_boot_info);
-    bi->mem_size = hvt->mem_size;
+    bi->mem_size = hvt->guest_mem_size;
     bi->kernel_end = gpa_kend;
     bi->cpu_cycle_freq = hvt->cpu_cycle_freq;
     /*

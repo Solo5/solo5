@@ -91,7 +91,7 @@ void hvt_vcpu_init(struct hvt *hvt, hvt_gpa_t gpa_ep)
     struct hvt_b *hvb = hvt->b;
 
     hvt_x86_setup_gdt(hvt->mem);
-    hvt_x86_setup_pagetables(hvt->mem, hvt->mem_size);
+    hvt_x86_setup_pagetables(hvt->mem, hvt->mem_alloc_size);
 
     vmm_set_reg(hvb->vmfd, VM_REG_GUEST_CR0, X86_CR0_INIT);
     vmm_set_reg(hvb->vmfd, VM_REG_GUEST_CR3, X86_CR3_INIT);
@@ -127,7 +127,7 @@ void hvt_vcpu_init(struct hvt *hvt, hvt_gpa_t gpa_ep)
 
     vmm_set_reg(hvb->vmfd, VM_REG_GUEST_RIP, gpa_ep);
     vmm_set_reg(hvb->vmfd, VM_REG_GUEST_RFLAGS, X86_RFLAGS_INIT);
-    vmm_set_reg(hvb->vmfd, VM_REG_GUEST_RSP, hvt->mem_size - 8);
+    vmm_set_reg(hvb->vmfd, VM_REG_GUEST_RSP, hvt->guest_mem_size - 8);
     vmm_set_reg(hvb->vmfd, VM_REG_GUEST_RDI, X86_BOOT_INFO_BASE);
 
     struct vm_activate_cpu ac = {.vcpuid = 0};

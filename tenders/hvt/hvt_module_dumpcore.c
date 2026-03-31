@@ -138,8 +138,8 @@ void hvt_dumpcore_hook(struct hvt *hvt, int status, void *cookie)
                         .p_align = 0,
                         .p_paddr = 0,
                         .p_vaddr = 0,
-                        .p_memsz = hvt->mem_size,
-                        .p_filesz = hvt->mem_size,
+                        .p_memsz = hvt->guest_mem_size,
+                        .p_filesz = hvt->guest_mem_size,
                         .p_flags = 0,
                         .p_offset = offset};
 
@@ -189,12 +189,12 @@ void hvt_dumpcore_hook(struct hvt *hvt, int status, void *cookie)
         warn("dumpcore: Could not determine _SC_PAGESIZE");
         goto failure;
     }
-    assert(hvt->mem_size % page_size == 0);
-    size_t npages = hvt->mem_size / page_size;
+    assert(hvt->guest_mem_size % page_size == 0);
+    size_t npages = hvt->guest_mem_size / page_size;
     size_t ndumped = 0;
     host_mvec_t mvec = malloc(npages);
     assert(mvec);
-    if (mincore(hvt->mem, hvt->mem_size, mvec) == -1) {
+    if (mincore(hvt->mem, hvt->guest_mem_size, mvec) == -1) {
         warn("dumpcore: mincore() failed");
         goto failure;
     }

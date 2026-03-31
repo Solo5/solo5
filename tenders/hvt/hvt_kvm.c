@@ -84,12 +84,13 @@ struct hvt *hvt_init(size_t mem_size)
                     MAP_SHARED | MAP_ANONYMOUS, -1, 0);
     if (hvt->mem == MAP_FAILED)
         err(1, "Error allocating guest memory");
-    hvt->mem_size = mem_size;
+    hvt->guest_mem_size = mem_size;
+    hvt->mem_alloc_size = mem_size;
 
     struct kvm_userspace_memory_region region = {
         .slot = 0,
         .guest_phys_addr = 0,
-        .memory_size = hvt->mem_size,
+        .memory_size = hvt->guest_mem_size,
         .userspace_addr = (uint64_t)hvt->mem,
     };
     ret = ioctl(hvb->vmfd, KVM_SET_USER_MEMORY_REGION, &region);
@@ -128,14 +129,14 @@ int hvt_guest_mprotect(void *t_arg, uint64_t addr_start, uint64_t addr_end,
 {
     struct hvt *hvt = t_arg;
 
-    assert(addr_start <= hvt->mem_size);
-    assert(addr_end <= hvt->mem_size);
+    assert(addr_start <= hvt->guest_mem_size);
+    assert(addr_end <= hvt->guest_mem_size);
     assert(addr_start < addr_end);
 
     uint8_t *vaddr_start = hvt->mem + addr_start;
     assert(vaddr_start >= hvt->mem);
     size_t size = addr_end - addr_start;
-    assert(size > 0 && size <= hvt->mem_size);
+    assert(size > 0 && size <= hvt->guest_mem_size);
 
     /*
      * Host-side page protections:

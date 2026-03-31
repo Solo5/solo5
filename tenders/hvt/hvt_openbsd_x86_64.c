@@ -108,7 +108,7 @@ void hvt_vcpu_init(struct hvt *hvt, hvt_gpa_t gpa_ep)
         .vrp_init_state = {
             .vrs_gprs[VCPU_REGS_RFLAGS] = X86_RFLAGS_INIT,
             .vrs_gprs[VCPU_REGS_RIP] = gpa_ep,
-            .vrs_gprs[VCPU_REGS_RSP] = hvt->mem_size - 8,
+            .vrs_gprs[VCPU_REGS_RSP] = hvt->guest_mem_size - 8,
             .vrs_gprs[VCPU_REGS_RDI] = X86_BOOT_INFO_BASE,
             .vrs_crs[VCPU_REGS_CR0] = X86_CR0_INIT,
             .vrs_crs[VCPU_REGS_CR3] = X86_CR3_INIT,
@@ -132,7 +132,7 @@ void hvt_vcpu_init(struct hvt *hvt, hvt_gpa_t gpa_ep)
             .vrs_crs[VCPU_REGS_XCR0] = XFEATURE_X87}};
 
     hvt_x86_setup_gdt(hvt->mem);
-    hvt_x86_setup_pagetables(hvt->mem, hvt->mem_size);
+    hvt_x86_setup_pagetables(hvt->mem, hvt->mem_alloc_size);
 
     hvt->cpu_cycle_freq = get_tsc_freq();
 

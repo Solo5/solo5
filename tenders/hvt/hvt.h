@@ -54,7 +54,8 @@
  */
 struct hvt {
     uint8_t *mem;
-    size_t mem_size;
+    size_t guest_mem_size;
+    size_t mem_alloc_size;
     uint64_t cpu_cycle_freq;
     hvt_gpa_t cpu_boot_info_base;
     struct hvt_b *b;
@@ -72,8 +73,8 @@ inline void *hvt_checked_gpa_p(struct hvt *hvt, hvt_gpa_t gpa, size_t sz,
 {
     hvt_gpa_t r;
 
-    if ((gpa >= hvt->mem_size) || add_overflow(gpa, sz, r) ||
-        (r >= hvt->mem_size)) {
+    if ((gpa >= hvt->guest_mem_size) || add_overflow(gpa, sz, r) ||
+        (r >= hvt->guest_mem_size)) {
         errx(1, "%s:%d: Invalid guest access: gpa=0x%" PRIx64 ", sz=%zu", file,
              line, gpa, sz);
     } else {
@@ -82,8 +83,9 @@ inline void *hvt_checked_gpa_p(struct hvt *hvt, hvt_gpa_t gpa, size_t sz,
 }
 
 /*
- * Initialise hypervisor, with (mem_size) bytes of guest memory.
- * (hvt->mem) and (hvt->mem_size) are valid after this function has been called.
+ * Initialise hypervisor, with (guest_mem_size) bytes of guest memory.
+ * (hvt->mem) and (hvt->guest_mem_size) are valid after this function has been
+ * called.
  */
 struct hvt *hvt_init(size_t mem_size);
 

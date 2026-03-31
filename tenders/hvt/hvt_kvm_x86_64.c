@@ -89,7 +89,7 @@ void hvt_vcpu_init(struct hvt *hvt, hvt_gpa_t gpa_ep)
     int ret;
 
     hvt_x86_setup_gdt(hvt->mem);
-    hvt_x86_setup_pagetables(hvt->mem, hvt->mem_size);
+    hvt_x86_setup_pagetables(hvt->mem, hvt->mem_alloc_size);
 
     setup_cpuid(hvb);
 
@@ -142,7 +142,7 @@ void hvt_vcpu_init(struct hvt *hvt, hvt_gpa_t gpa_ep)
     struct kvm_regs regs = {
         .rip = gpa_ep,
         .rflags = X86_RFLAGS_INIT,
-        .rsp = hvt->mem_size - 8,
+        .rsp = hvt->guest_mem_size - 8,
         .rdi = X86_BOOT_INFO_BASE,
     };
     ret = ioctl(hvb->vcpufd, KVM_SET_REGS, &regs);
