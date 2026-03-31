@@ -168,6 +168,15 @@ int hvt_vcpu_loop(struct hvt *hvt)
             switch (vrp->vrp_exit_reason) {
             case VMX_EXIT_IO:
             case SVM_VMEXIT_IOIO:
+                if (vei->vei.vei_port == HVT_RING_KICK_PIO_BASE &&
+                    vei->vei.vei_dir == VEI_DIR_OUT && vei->vei.vei_size == 4) {
+                    if (hvb->kick_net_pipe[1] != -1) {
+                        uint8_t byte = 1;
+                        write(hvb->kick_net_pipe[1], &byte, 1);
+                    }
+                    vei->vrs.vrs_gprs[VCPU_REGS_RIP] += vei->vei.vei_insn_len;
+                    break;
+                }
                 if (vei->vei.vei_dir != VEI_DIR_OUT || vei->vei.vei_size != 4)
                     errx(1, "Invalid guest port access: port=0x%x",
                          vei->vei.vei_port);

@@ -101,6 +101,8 @@ struct hvt *hvt_init(size_t mem_size)
 
     hvt->b = hvb;
     hvb->vmd_fd = -1;
+    hvb->kick_net_pipe[0] = -1;
+    hvb->kick_net_pipe[1] = -1;
 
     hvb->vmd_fd = open(VMM_NODE, O_RDWR);
     if (hvb->vmd_fd == -1)
