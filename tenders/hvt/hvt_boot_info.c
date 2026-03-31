@@ -30,6 +30,14 @@
 
 #include "hvt.h"
 
+#if defined(__linux__)
+#include "hvt_kvm.h"
+#elif defined(__FreeBSD__)
+#include "hvt_freebsd.h"
+#elif defined(__OpenBSD__)
+#include "hvt_openbsd.h"
+#endif
+
 static void setup_cmdline(uint8_t *cmdline, int argc, char **argv)
 {
     size_t cmdline_free = HVT_CMDLINE_SIZE;
@@ -78,4 +86,30 @@ void hvt_boot_info_init(struct hvt *hvt, hvt_gpa_t gpa_kend, int cmdline_argc,
     bi->cmdline = lowmem_pos;
     setup_cmdline(hvt->mem + lowmem_pos, cmdline_argc, cmdline_argv);
     lowmem_pos += HVT_CMDLINE_SIZE;
+
+    /*
+     * Extended fields for ring I/O negotiation.
+     */
+    bi->host_features = 0;
+    bi->guest_features = 0;
+    bi->net_ring = 0;
+
+    {
+        struct hvt_b *hvb = hvt->b;
+        int ring_active = 0;
+#if defined(__linux__)
+        ring_active = hvb->has_ioeventfd && hvb->kick_net_efd != -1;
+#elif defined(__FreeBSD__) || defined(__OpenBSD__)
+        ring_active = hvb->kick_net_pipe[0] != -1;
+#endif
+        if (ring_active) {
+            bi->host_features |= HVT_FEATURE_RING_IO;
+            bi->net_ring = hvb->net_ring_gpa;
+            /*
+             * Exclude the ring area from usable guest memory so the
+             * guest's heap allocator does not grow on it.
+             */
+            bi->mem_size = hvb->net_ring_gpa;
+        }
+    }
 }
