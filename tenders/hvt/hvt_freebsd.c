@@ -101,6 +101,8 @@ struct hvt *hvt_init(size_t mem_size)
     memset(hvb, 0, sizeof(struct hvt_b));
     hvt->b = hvb;
     hvb->vmfd = -1;
+    hvb->kick_net_pipe[0] = -1;
+    hvb->kick_net_pipe[1] = -1;
 
     int namelen = asprintf(&hvb->vmname, "solo5-%d", getpid());
     if (namelen == -1)

@@ -31,6 +31,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #include <sys/ioctl.h>
 #include <sys/mman.h>
@@ -181,6 +182,14 @@ int hvt_vcpu_loop(struct hvt *hvt)
 
         switch (vme->exitcode) {
         case VM_EXITCODE_INOUT: {
+            if (vme->u.inout.port == HVT_RING_KICK_PIO_BASE &&
+                !vme->u.inout.in && vme->u.inout.bytes == 4) {
+                if (hvb->kick_net_pipe[1] != -1) {
+                    uint8_t byte = 1;
+                    write(hvb->kick_net_pipe[1], &byte, 1);
+                }
+                break;
+            }
             if (vme->u.inout.in || vme->u.inout.bytes != 4)
                 errx(1, "Invalid guest port access: port=0x%x",
                      vme->u.inout.port);
