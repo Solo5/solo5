@@ -97,6 +97,13 @@ struct hvt *hvt_init(size_t mem_size)
     if (ret == -1)
         err(1, "KVM: ioctl (SET_USER_MEMORY_REGION) failed");
 
+    /*
+     * Check for ioventfd support; used for ring-based I/O if available.
+     */
+    ret = ioctl(hvb->kvmfd, KVM_CHECK_EXTENSION, KVM_CAP_IOEVENTFD);
+    hvb->has_ioeventfd = (ret > 0);
+    hvb->kick_net_efd = -1;
+
     hvt->b = hvb;
     return hvt;
 }
