@@ -70,7 +70,7 @@ else ifeq ($(CONFIG_HOST), FreeBSD)
     all_TARGETS += hvt/solo5-hvt hvt/solo5-hvt-debug
 ifeq ($(CONFIG_HVT_TENDER_ENABLE_CAPSICUM), 1)
     HOSTLDLIBS += -lnv
-    CFLAGS += -DDHVT_FREEBSD_ENABLE_CAPSICUM=1
+    CFLAGS += -DHVT_FREEBSD_ENABLE_CAPSICUM=1
 endif
 else ifeq ($(CONFIG_HOST), OpenBSD)
     hvt_SRCS += hvt/hvt_openbsd.c hvt/hvt_openbsd_$(CONFIG_HOST_ARCH).c
