@@ -31,6 +31,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #include <sys/ioctl.h>
 #include <sys/mman.h>
@@ -48,6 +49,15 @@
 void hvt_mem_size(size_t *mem_size)
 {
     hvt_x86_mem_size(mem_size);
+}
+
+void hvt_mem_size_roundup(size_t *mem_size)
+{
+    size_t mem = ((*mem_size + X86_GUEST_PAGE_SIZE - 1) / X86_GUEST_PAGE_SIZE) *
+                 X86_GUEST_PAGE_SIZE;
+    if (mem > X86_GUEST_MAX_MEM_SIZE)
+        mem = X86_GUEST_MAX_MEM_SIZE;
+    *mem_size = mem;
 }
 
 static void vmm_set_desc(int vmfd, int reg, uint64_t base, uint32_t limit,
@@ -91,7 +101,7 @@ void hvt_vcpu_init(struct hvt *hvt, hvt_gpa_t gpa_ep)
     struct hvt_b *hvb = hvt->b;
 
     hvt_x86_setup_gdt(hvt->mem);
-    hvt_x86_setup_pagetables(hvt->mem, hvt->mem_size);
+    hvt_x86_setup_pagetables(hvt->mem, hvt->mem_alloc_size);
 
     vmm_set_reg(hvb->vmfd, VM_REG_GUEST_CR0, X86_CR0_INIT);
     vmm_set_reg(hvb->vmfd, VM_REG_GUEST_CR3, X86_CR3_INIT);
@@ -127,7 +137,7 @@ void hvt_vcpu_init(struct hvt *hvt, hvt_gpa_t gpa_ep)
 
     vmm_set_reg(hvb->vmfd, VM_REG_GUEST_RIP, gpa_ep);
     vmm_set_reg(hvb->vmfd, VM_REG_GUEST_RFLAGS, X86_RFLAGS_INIT);
-    vmm_set_reg(hvb->vmfd, VM_REG_GUEST_RSP, hvt->mem_size - 8);
+    vmm_set_reg(hvb->vmfd, VM_REG_GUEST_RSP, hvt->guest_mem_size - 8);
     vmm_set_reg(hvb->vmfd, VM_REG_GUEST_RDI, X86_BOOT_INFO_BASE);
 
     struct vm_activate_cpu ac = {.vcpuid = 0};
@@ -181,6 +191,14 @@ int hvt_vcpu_loop(struct hvt *hvt)
 
         switch (vme->exitcode) {
         case VM_EXITCODE_INOUT: {
+            if (vme->u.inout.port == HVT_RING_KICK_PIO_BASE &&
+                !vme->u.inout.in && vme->u.inout.bytes == 4) {
+                if (hvb->kick_net_pipe[1] != -1) {
+                    uint8_t byte = 1;
+                    write(hvb->kick_net_pipe[1], &byte, 1);
+                }
+                break;
+            }
             if (vme->u.inout.in || vme->u.inout.bytes != 4)
                 errx(1, "Invalid guest port access: port=0x%x",
                      vme->u.inout.port);

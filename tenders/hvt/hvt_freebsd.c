@@ -101,6 +101,8 @@ struct hvt *hvt_init(size_t mem_size)
     memset(hvb, 0, sizeof(struct hvt_b));
     hvt->b = hvb;
     hvb->vmfd = -1;
+    hvb->kick_net_pipe[0] = -1;
+    hvb->kick_net_pipe[1] = -1;
 
     int namelen = asprintf(&hvb->vmname, "solo5-%d", getpid());
     if (namelen == -1)
@@ -146,7 +148,8 @@ struct hvt *hvt_init(size_t mem_size)
         mmap(NULL, mem_size, PROT_READ | PROT_WRITE, MAP_SHARED, hvb->vmfd, 0);
     if (hvt->mem == MAP_FAILED)
         err(1, "mmap");
-    hvt->mem_size = mem_size;
+    hvt->guest_mem_size = mem_size;
+    hvt->mem_alloc_size = mem_size;
 
 #if HVT_FREEBSD_ENABLE_CAPSICUM
     cap_rights_t rights;
@@ -204,14 +207,14 @@ int hvt_guest_mprotect(void *t_arg, uint64_t addr_start, uint64_t addr_end,
 {
     struct hvt *hvt = t_arg;
 
-    assert(addr_start <= hvt->mem_size);
-    assert(addr_end <= hvt->mem_size);
+    assert(addr_start <= hvt->guest_mem_size);
+    assert(addr_end <= hvt->guest_mem_size);
     assert(addr_start < addr_end);
 
     uint8_t *vaddr_start = hvt->mem + addr_start;
     assert(vaddr_start >= hvt->mem);
     size_t size = addr_end - addr_start;
-    assert(size > 0 && size <= hvt->mem_size);
+    assert(size > 0 && size <= hvt->guest_mem_size);
 
     /*
      * Host-side page protections:

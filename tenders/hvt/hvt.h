@@ -54,7 +54,8 @@
  */
 struct hvt {
     uint8_t *mem;
-    size_t mem_size;
+    size_t guest_mem_size;
+    size_t mem_alloc_size;
     uint64_t cpu_cycle_freq;
     hvt_gpa_t cpu_boot_info_base;
     struct hvt_b *b;
@@ -72,8 +73,8 @@ inline void *hvt_checked_gpa_p(struct hvt *hvt, hvt_gpa_t gpa, size_t sz,
 {
     hvt_gpa_t r;
 
-    if ((gpa >= hvt->mem_size) || add_overflow(gpa, sz, r) ||
-        (r >= hvt->mem_size)) {
+    if ((gpa >= hvt->guest_mem_size) || add_overflow(gpa, sz, r) ||
+        (r >= hvt->guest_mem_size)) {
         errx(1, "%s:%d: Invalid guest access: gpa=0x%" PRIx64 ", sz=%zu", file,
              line, gpa, sz);
     } else {
@@ -82,10 +83,32 @@ inline void *hvt_checked_gpa_p(struct hvt *hvt, hvt_gpa_t gpa, size_t sz,
 }
 
 /*
- * Initialise hypervisor, with (mem_size) bytes of guest memory.
- * (hvt->mem) and (hvt->mem_size) are valid after this function has been called.
+ * Initialise hypervisor, with (guest_mem_size) bytes of guest memory.
+ * (hvt->mem) and (hvt->guest_mem_size) are valid after this function has been
+ * called.
  */
 struct hvt *hvt_init(size_t mem_size);
+
+/*
+ * Reserve guest memory for the network ring buffer, if a NET_BASIC device is
+ * present in the manifest. Must be called before hvt_vcpu_init() so that the
+ * initial stack pointer is placed below the ring area.
+ */
+void hvt_net_reserve_ring(struct hvt *hvt, struct mft *mft);
+
+/*
+ * Rounds up (mem_size) to the next architecture page boundary.
+ * Unlike hvt_mem_size() which rounds down, this is used when adding overhead
+ * (e.g. ring buffer) to an already-aligned base size.
+ */
+void hvt_mem_size_roundup(size_t *mem_size);
+
+/*
+ * Returns the extra guest memory needed for the network ring buffer, or 0 if
+ * no NET_BASIC device is attached in the manifest. Must be called after
+ * command-line parsing has set the attached flags.
+ */
+size_t hvt_net_mem_overhead(struct mft *mft);
 
 /*
  * Computes the memory size to use for this tender, based on the user-provided
