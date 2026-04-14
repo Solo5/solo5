@@ -94,7 +94,7 @@ solo5_result_t solo5_net_write(solo5_handle_t handle, const uint8_t *buf,
         memcpy(write_bufs[idx], buf, size);
         ent->operation = HVT_RING_NET_WRITE;
         ent->handle = handle;
-        ent->data = (uint64_t)(uintptr_t)write_bufs[idx];
+        ent->data = write_bufs[idx];
         ent->len = size;
         ent->id = ring_req_id++;
         ring_submit(net_ring);
@@ -142,7 +142,7 @@ solo5_result_t solo5_net_read(solo5_handle_t handle, uint8_t *buf, size_t size,
 
         ent->operation = HVT_RING_NET_READ;
         ent->handle = handle;
-        ent->data = (uint64_t)(uintptr_t)buf;
+        ent->data = buf;
         ent->len = size;
         ent->id = ring_req_id++;
 

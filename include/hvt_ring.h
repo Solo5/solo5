@@ -52,7 +52,7 @@
 struct hvt_ring_entry {
     uint32_t operation;
     uint32_t handle;
-    uint64_t data; /* GPA of the data buffer */
+    HVT_GUEST_PTR(const void *) data; /* GPA of the data buffer */
     uint32_t len;
     uint32_t id;
     uint64_t _reserved;
