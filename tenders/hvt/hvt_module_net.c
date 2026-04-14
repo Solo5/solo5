@@ -59,6 +59,15 @@ static struct mft *host_mft;
 static volatile int io_thread_stop;
 static hvt_gpa_t reserved_ring_gpa;
 
+size_t hvt_net_mem_overhead(struct mft *mft)
+{
+    for (unsigned i = 0; i != mft->entries; i++) {
+        if (mft->e[i].type == MFT_DEV_NET_BASIC && mft->e[i].attached)
+            return sizeof(struct hvt_ring);
+    }
+    return 0;
+}
+
 void hvt_net_reserve_ring(struct hvt *hvt, struct mft *mft)
 {
     /* A ring is allocated only if there is at least one network interface

@@ -97,6 +97,20 @@ struct hvt *hvt_init(size_t mem_size);
 void hvt_net_reserve_ring(struct hvt *hvt, struct mft *mft);
 
 /*
+ * Rounds up (mem_size) to the next architecture page boundary.
+ * Unlike hvt_mem_size() which rounds down, this is used when adding overhead
+ * (e.g. ring buffer) to an already-aligned base size.
+ */
+void hvt_mem_size_roundup(size_t *mem_size);
+
+/*
+ * Returns the extra guest memory needed for the network ring buffer, or 0 if
+ * no NET_BASIC device is attached in the manifest. Must be called after
+ * command-line parsing has set the attached flags.
+ */
+size_t hvt_net_mem_overhead(struct mft *mft);
+
+/*
  * Computes the memory size to use for this tender, based on the user-provided
  * value (rounding down if necessary).
  */

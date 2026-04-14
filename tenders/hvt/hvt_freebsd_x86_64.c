@@ -51,6 +51,15 @@ void hvt_mem_size(size_t *mem_size)
     hvt_x86_mem_size(mem_size);
 }
 
+void hvt_mem_size_roundup(size_t *mem_size)
+{
+    size_t mem = ((*mem_size + X86_GUEST_PAGE_SIZE - 1) / X86_GUEST_PAGE_SIZE) *
+                 X86_GUEST_PAGE_SIZE;
+    if (mem > X86_GUEST_MAX_MEM_SIZE)
+        mem = X86_GUEST_MAX_MEM_SIZE;
+    *mem_size = mem;
+}
+
 static void vmm_set_desc(int vmfd, int reg, uint64_t base, uint32_t limit,
                          uint32_t access)
 {

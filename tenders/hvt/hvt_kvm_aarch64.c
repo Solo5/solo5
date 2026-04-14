@@ -399,3 +399,13 @@ void hvt_mem_size(size_t *mem_size)
 {
     aarch64_mem_size(mem_size);
 }
+
+void hvt_mem_size_roundup(size_t *mem_size)
+{
+    size_t mem = ((*mem_size + AARCH64_GUEST_BLOCK_SIZE - 1) /
+                  AARCH64_GUEST_BLOCK_SIZE) *
+                 AARCH64_GUEST_BLOCK_SIZE;
+    if (mem > AARCH64_MMIO_BASE)
+        mem = AARCH64_MMIO_BASE;
+    *mem_size = mem;
+}
