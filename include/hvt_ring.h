@@ -27,6 +27,7 @@
 #ifndef HVT_RING_H
 #define HVT_RING_H
 
+#include <stddef.h>
 #include <stdint.h>
 
 #define HVT_RING_SIZE 1024
@@ -93,6 +94,16 @@ struct hvt_ring {
     struct hvt_ring_entry entries[HVT_RING_SIZE];
     struct hvt_ring_commit commits[HVT_RING_SIZE];
 };
+
+/*
+ * Verify that guest-written and host-written fields live on distinct cache
+ * lines (64 bytes each), and that the data arrays start after exactly 2
+ * cache lines of index/control fields.
+ */
+_Static_assert(offsetof(struct hvt_ring, ent_head) == 64,
+               "ent_head must start at cache line 1 (offset 64)");
+_Static_assert(offsetof(struct hvt_ring, entries) == 128,
+               "entries[] must start after 2 cache lines (offset 128)");
 
 /*
  * Memory barriers.
