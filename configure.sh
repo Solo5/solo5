@@ -314,7 +314,10 @@ if [ -n "${CONFIG_SPT_TENDER}" ]; then
         warn "Consider upgrading to a Linux distribution with PIE support"
         CONFIG_SPT_TENDER_NO_PIE=1
     fi
-
+fi
+# hvt on Linux also needs libseccomp now, not just spt. Checkout #282.
+if [ -n "${CONFIG_SPT_TENDER}" ] || \
+   { [ "${CONFIG_HOST}" = "Linux" ] && [ -n "${CONFIG_HVT_TENDER}" ]; }; then
     if ! command -v $HOST_PKG_CONFIG >/dev/null; then
         die "pkg-config is required: $HOST_PKG_CONFIG not in PATH"
     fi

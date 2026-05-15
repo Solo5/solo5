@@ -104,10 +104,6 @@ struct hvt *hvt_init(size_t mem_size)
 void hvt_drop_privileges()
 {
     /*
-     * This function intentionally left mostly blank for now (see #282).
-     */
-
-    /*
      * Sooo... it turns out that at least on some distributions, the Linux
      * "personality" flag READ_IMPLIES_EXEC is the default unless linked with
      * -z noexecstack. This is bad, as it results in mmap() with PROT_READ
@@ -120,6 +116,8 @@ void hvt_drop_privileges()
         errx(1, "Cowardly refusing to run with a sys_personality of "
                 "READ_IMPLIES_EXEC. Please report a bug, with details of your "
                 "Linux distribution and GCC version");
+
+    hvt_seccomp_apply();
 }
 #endif
 

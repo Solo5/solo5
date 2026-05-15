@@ -123,6 +123,15 @@ int hvt_guest_mprotect(void *t_arg, uint64_t addr_start, uint64_t addr_end,
 void hvt_drop_privileges();
 #endif
 
+#if defined(__linux__)
+/*
+ * Drop the seccomp filter on the tender. Linux-only, called from
+ * hvt_drop_privileges() once host setup is finished. Implementation
+ * is in hvt_seccomp_linux.c.
+ */
+void hvt_seccomp_apply(void);
+#endif
+
 /*
  * Run the VCPU. Returns on normal guest exit. Returns the exit status passed
  * from the unikernel on the final exit.
