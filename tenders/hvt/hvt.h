@@ -146,6 +146,15 @@ int hvt_guest_mprotect(void *t_arg, uint64_t addr_start, uint64_t addr_end,
 void hvt_drop_privileges();
 #endif
 
+#if defined(__linux__)
+/*
+ * Drop the seccomp filter on the tender. Linux-only, called from
+ * hvt_drop_privileges() once host setup is finished. Implementation
+ * is in hvt_seccomp_linux.c.
+ */
+void hvt_seccomp_apply(void);
+#endif
+
 /*
  * Run the VCPU. Returns on normal guest exit. Returns the exit status passed
  * from the unikernel on the final exit.
@@ -196,6 +205,16 @@ struct hvt_module_ops {
     int (*setup)(struct hvt *hvt, struct mft *mft);
     int (*handle_cmdarg)(char *cmdarg, struct mft *mft);
     const char *(*usage)(void);
+#if defined(__linux__)
+    /*
+     * Add module-specific syscalls to the seccomp allowlist. Called from
+     * hvt_seccomp_apply() before the BPF filter is exported, so that
+     * debug-only modules (only linked into solo5-hvt-debug) don't widen
+     * the production filter. (ctx) is a scmp_filter_ctx; typed as void *
+     * here so hvt.h doesn't pull in <seccomp.h>.
+     */
+    void (*install_seccomp_rules)(void *ctx);
+#endif
 };
 
 struct hvt_module {

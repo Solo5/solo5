@@ -40,6 +40,10 @@
 #include <stdio.h>
 #include <sys/uio.h>
 
+#if defined(__linux__)
+#include <seccomp.h>
+#endif
+
 #include "hvt.h"
 
 #if defined(__linux__) && defined(__x86_64__)
@@ -270,5 +274,35 @@ static int setup(struct hvt *hvt, struct mft *mft)
     return 0;
 }
 
+#if defined(__linux__)
+/*
+ * Syscalls only dumpcore needs (on abort, when writing the core file).
+ * Stays out of the production solo5-hvt filter because the module is only
+ * linked into solo5-hvt-debug.
+ */
+static void install_seccomp_rules(void *ctx)
+{
+    static const int allow[] = {
+        SCMP_SYS(getpid), /* core filename */
+        SCMP_SYS(openat), /* create core file */
+        SCMP_SYS(close), /* close fds */
+        SCMP_SYS(writev), /* ELF header */
+        SCMP_SYS(lseek), /* section offset */
+        SCMP_SYS(brk), /* asprintf heap */
+        SCMP_SYS(mmap), /* malloc(mvec) */
+        SCMP_SYS(munmap), /* free(mvec) */
+        SCMP_SYS(mincore), /* find mapped pages */
+    };
+    for (size_t i = 0; i < sizeof(allow) / sizeof(allow[0]); i++) {
+        int rc = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, allow[i], 0);
+        if (rc != 0)
+            errx(1, "dumpcore: seccomp_rule_add() failed: %s", strerror(-rc));
+    }
+}
+
+DECLARE_MODULE(dumpcore, .setup = setup, .handle_cmdarg = handle_cmdarg,
+               .usage = usage, .install_seccomp_rules = install_seccomp_rules)
+#else
 DECLARE_MODULE(dumpcore, .setup = setup, .handle_cmdarg = handle_cmdarg,
                .usage = usage)
+#endif
