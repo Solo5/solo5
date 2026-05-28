@@ -203,7 +203,7 @@ void net_init(const struct hvt_boot_info *bi)
     net_ring = NULL;
     ring_req_id = 0;
 
-    if (bi->host_features & HVT_FEATURE_RING_IO) {
+    if ((bi->host_features & HVT_FEATURE_RING_IO) && bi->net_ring != 0) {
         net_ring = (struct hvt_ring *)(uintptr_t)bi->net_ring;
     }
 }
