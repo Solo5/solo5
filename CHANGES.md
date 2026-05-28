@@ -24,7 +24,7 @@
   per second), whilst no regression was observed for the latter (though no
   improvement either).
 
-  This change **does not involve** an ABI change, meaning that the tender can
+  This change **does not involve** a breaking ABI change, meaning that the tender can
   still run unikernels that have not been compiled with this version and vice
   versa (a unikernel compiled with this version can be run by an older tender).
 - `solo5-hvt` set-up `seccomp` filters
