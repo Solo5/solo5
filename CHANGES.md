@@ -1,3 +1,37 @@
+## v0.11.0 (2026-05-28)
+
+- Lint our codebase with few warnings (@dinosaure, @hannesm, @MisterDA, #632)
+
+  Our codebase compiles with:
+  - `-Wshadow`
+  - `-Wpointer-arith`
+  - `-Wcast-qual`
+  - `-Wsign-compare`
+  - `-Wwrite-strings`
+
+  It ensures a better codebase and less undefined behaviors.
+- Apply `clang-format` on our codebase (@dinosaure, @hannesm, #633)
+- Fix the CAPSICUM support on FreeBSD
+  (@hannesm, @sg2342, spotted by @dinosaure, #636)
+- Improve performance on our net interfaces on Linux via `eventfd(2)`
+  (@dinosaure, @hannesm, @reynir, #637)
+
+  This PR changes deeply how we read and write on our TAP interface. This
+  change mainly concerns Linux and the use of `eventfd(2)` to avoid a full VM
+  exit whenever one wishes to write to a network interface. A few benchmarks
+  (using `iperf3`) have been carried out on Linux and FreeBSD. For the former,
+  an improvement was observed (around three times more data can be transferred
+  per second), whilst no regression was observed for the latter (though no
+  improvement either).
+
+  This change **does not involve** an ABI change, meaning that the tender can
+  still run unikernels that have not been compiled with this version and vice
+  versa (a unikernel compiled with this version can be run by an older tender).
+- `solo5-hvt` set-up `seccomp` filters
+  (@pocopepe, @dinosaure, @hannesm, #638, #282)
+
+  `solo5-hvt` requires `libseccomp` and add some filters.
+
 ## v0.10.1 (2026-03-03)
 
 - VirtIO: negotiate EVENT_IDX, improves network performance roughly by a factor
