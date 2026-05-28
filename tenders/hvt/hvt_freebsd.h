@@ -25,6 +25,12 @@
 #ifndef HVT_HV_FREEBSD_H
 #define HVT_HV_FREEBSD_H
 
+#include <sys/types.h>
+#include <sys/ioctl.h>
+#include <machine/vmm.h>
+#include <machine/vmm_dev.h>
+#include <pthread.h>
+
 #define VMM_USER   "nobody"
 #define VMM_CHROOT "/var/empty"
 
@@ -32,6 +38,11 @@ struct hvt_b {
     char *vmname;
     int vmfd;
     struct vm_run vmrun;
+
+    /* Ring I/O (pipe-based notification) */
+    int kick_net_pipe[2];
+    pthread_t io_thread_net;
+    hvt_gpa_t net_ring_gpa;
 };
 
 #endif /* HVT_HV_FREEBSD_H */

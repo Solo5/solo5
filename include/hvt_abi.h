@@ -54,6 +54,12 @@
  */
 #define HVT_HYPERCALL_PIO_BASE 0x500
 
+/*
+ * PIO port used by the guest to kick the host I/O thread via ioeventfd.
+ * This does NOT cause a VM exit when KVM_IOEVENTFD is registered.
+ */
+#define HVT_RING_KICK_PIO_BASE 0x600
+
 #ifdef HVT_HOST
 /*
  * Non-dereferencable tender-side type representing a guest physical address.
@@ -78,6 +84,19 @@ static inline void hvt_do_hypercall(int n, volatile void *arg)
                            "d"((uint16_t)(HVT_HYPERCALL_PIO_BASE + n))
                          : "memory");
 }
+
+/*
+ * Kick the host I/O thread via ioeventfd. The PIO write is trapped by KVM
+ * and signals the eventfd WITHOUT causing a VM exit.
+ */
+static inline void hvt_ring_kick(int ring_id)
+{
+    __asm__ __volatile__("outl %0, %1"
+                         :
+                         : "a"((uint32_t)ring_id),
+                           "d"((uint16_t)(HVT_RING_KICK_PIO_BASE))
+                         : "memory");
+}
 #endif
 
 #elif defined(__aarch64__)
@@ -89,6 +108,13 @@ static inline void hvt_do_hypercall(int n, volatile void *arg)
  * MMIO start from 4GB, this value can be changed by AARCH64_MMIO_BASE.
  */
 #define HVT_HYPERCALL_MMIO_BASE  (0x100000000UL)
+
+/*
+ * MMIO address used by the guest to kick the host I/O thread via ioeventfd.
+ * Placed well after the hypercall range (max 16 hypercalls * 8 = 128 bytes),
+ * 64-bit aligned.
+ */
+#define HVT_RING_KICK_MMIO_BASE  (HVT_HYPERCALL_MMIO_BASE + 0x100)
 
 /*
  * On aarch64, the MMIO address must be 64-bit aligned, because we configured
@@ -126,6 +152,19 @@ static inline void hvt_do_hypercall(int n, volatile void *arg)
                            "r"((uint64_t)HVT_HYPERCALL_ADDRESS(n))
                          : "memory");
 }
+
+/*
+ * Kick the host I/O thread via ioeventfd. The MMIO write is trapped by KVM
+ * and signals the eventfd WITHOUT causing a VM exit.
+ */
+static inline void hvt_ring_kick(int ring_id)
+{
+    __asm__ __volatile__("str %w0, [%1]"
+                         :
+                         : "rZ"((uint32_t)ring_id),
+                           "r"((uint64_t)HVT_RING_KICK_MMIO_BASE)
+                         : "memory");
+}
 #endif
 #else
 #error Unsupported architecture
@@ -147,8 +186,17 @@ static inline void hvt_do_hypercall(int n, volatile void *arg)
 #endif
 
 /*
+ * Feature flags for host/guest negotiation.
+ */
+#define HVT_FEATURE_RING_IO (1U << 0)
+
+/*
  * A pointer to this structure is passed by the tender as the sole argument to
  * the guest entrypoint.
+ *
+ * New fields are appended at the end for forward compatibility. Old guests
+ * compiled against ABI v2 will not access the new fields; the tender detects
+ * this and falls back to hypercall-based I/O.
  */
 struct hvt_boot_info {
     uint64_t mem_size; /* Memory size in bytes */
@@ -157,6 +205,11 @@ struct hvt_boot_info {
     HVT_GUEST_PTR(const char *)
     cmdline; /* Address of command line (C string) */
     HVT_GUEST_PTR(const void *) mft; /* Address of application manifest */
+
+    /* Extended fields (ring I/O negotiation) */
+    uint32_t host_features; /* Features offered by the tender */
+    uint32_t guest_features; /* Features accepted by the guest */
+    HVT_GUEST_PTR(void *) net_ring; /* GPA of network ring, 0 if absent */
 };
 
 /*

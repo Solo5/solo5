@@ -43,6 +43,8 @@
 #include <sys/socket.h>
 #include <linux/if.h>
 #include <linux/if_tun.h>
+#include <linux/ethtool.h>
+#include <linux/sockios.h>
 
 #elif defined(__FreeBSD__)
 
@@ -210,8 +212,36 @@ int tap_attach(const char *ifname, int *mtu)
         errno = err;
         return -1;
     }
-    close(sock);
     *mtu = ifr.ifr_mtu;
+
+#if defined(__linux__)
+    /*
+     * Disable GRO/GSO offloads on the TAP interface.
+     *
+     * Without IFF_VNET_HDR, the kernel can still deliver GRO-aggregated frames
+     * (up to 64KB) via read() on the TAP fd. The guest reads with buffer of at
+     * most HVT_RING_BUF_SIZE (2048) bytes, so large frames are silently
+     * truncated - the delivered packet has an IP total_length that exceeds the
+     * actual data, corrupting the guest TCP stack.
+     *
+     * Equivalent to: ethtool -K <iface> gro off gso off
+     */
+    {
+        static const uint32_t cmds[] = {ETHTOOL_SGRO, ETHTOOL_SGSO};
+        for (unsigned i = 0; i < sizeof(cmds) / sizeof(cmds[0]); i++) {
+            struct ethtool_value eval;
+            memset(&eval, 0, sizeof(eval));
+            eval.cmd = cmds[i];
+            eval.data = 0;
+            memset(&ifr, 0, sizeof(ifr));
+            strncpy(ifr.ifr_name, ifname, IFNAMSIZ - 1);
+            ifr.ifr_data = (void *)&eval;
+            ioctl(sock, SIOCETHTOOL, &ifr);
+        }
+    }
+#endif
+
+    close(sock);
 
     return fd;
 }

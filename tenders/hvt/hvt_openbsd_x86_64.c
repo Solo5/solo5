@@ -98,6 +98,15 @@ void hvt_mem_size(size_t *mem_size)
     hvt_x86_mem_size(mem_size);
 }
 
+void hvt_mem_size_roundup(size_t *mem_size)
+{
+    size_t mem = ((*mem_size + X86_GUEST_PAGE_SIZE - 1) / X86_GUEST_PAGE_SIZE) *
+                 X86_GUEST_PAGE_SIZE;
+    if (mem > X86_GUEST_MAX_MEM_SIZE)
+        mem = X86_GUEST_MAX_MEM_SIZE;
+    *mem_size = mem;
+}
+
 void hvt_vcpu_init(struct hvt *hvt, hvt_gpa_t gpa_ep)
 {
     struct hvt_b *hvb = hvt->b;
@@ -108,7 +117,7 @@ void hvt_vcpu_init(struct hvt *hvt, hvt_gpa_t gpa_ep)
         .vrp_init_state = {
             .vrs_gprs[VCPU_REGS_RFLAGS] = X86_RFLAGS_INIT,
             .vrs_gprs[VCPU_REGS_RIP] = gpa_ep,
-            .vrs_gprs[VCPU_REGS_RSP] = hvt->mem_size - 8,
+            .vrs_gprs[VCPU_REGS_RSP] = hvt->guest_mem_size - 8,
             .vrs_gprs[VCPU_REGS_RDI] = X86_BOOT_INFO_BASE,
             .vrs_crs[VCPU_REGS_CR0] = X86_CR0_INIT,
             .vrs_crs[VCPU_REGS_CR3] = X86_CR3_INIT,
@@ -132,7 +141,7 @@ void hvt_vcpu_init(struct hvt *hvt, hvt_gpa_t gpa_ep)
             .vrs_crs[VCPU_REGS_XCR0] = XFEATURE_X87}};
 
     hvt_x86_setup_gdt(hvt->mem);
-    hvt_x86_setup_pagetables(hvt->mem, hvt->mem_size);
+    hvt_x86_setup_pagetables(hvt->mem, hvt->mem_alloc_size);
 
     hvt->cpu_cycle_freq = get_tsc_freq();
 
@@ -168,6 +177,15 @@ int hvt_vcpu_loop(struct hvt *hvt)
             switch (vrp->vrp_exit_reason) {
             case VMX_EXIT_IO:
             case SVM_VMEXIT_IOIO:
+                if (vei->vei.vei_port == HVT_RING_KICK_PIO_BASE &&
+                    vei->vei.vei_dir == VEI_DIR_OUT && vei->vei.vei_size == 4) {
+                    if (hvb->kick_net_pipe[1] != -1) {
+                        uint8_t byte = 1;
+                        write(hvb->kick_net_pipe[1], &byte, 1);
+                    }
+                    vei->vrs.vrs_gprs[VCPU_REGS_RIP] += vei->vei.vei_insn_len;
+                    break;
+                }
                 if (vei->vei.vei_dir != VEI_DIR_OUT || vei->vei.vei_size != 4)
                     errx(1, "Invalid guest port access: port=0x%x",
                          vei->vei.vei_port);

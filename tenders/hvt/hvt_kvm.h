@@ -25,11 +25,19 @@
 #ifndef HVT_HV_KVM_H
 #define HVT_HV_KVM_H
 
+#include <pthread.h>
+
 struct hvt_b {
     int kvmfd;
     int vmfd;
     int vcpufd;
     struct kvm_run *vcpurun;
+
+    /* ioeventfd-based ring I/O */
+    int has_ioeventfd;
+    int kick_net_efd;
+    pthread_t io_thread_net;
+    hvt_gpa_t net_ring_gpa;
 };
 
 #endif /* HVT_HV_KVM_H */

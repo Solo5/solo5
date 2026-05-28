@@ -40,6 +40,10 @@
 #include <stdio.h>
 #include <sys/uio.h>
 
+#if defined(__linux__)
+#include <seccomp.h>
+#endif
+
 #include "hvt.h"
 
 #if defined(__linux__) && defined(__x86_64__)
@@ -138,8 +142,8 @@ void hvt_dumpcore_hook(struct hvt *hvt, int status, void *cookie)
                         .p_align = 0,
                         .p_paddr = 0,
                         .p_vaddr = 0,
-                        .p_memsz = hvt->mem_size,
-                        .p_filesz = hvt->mem_size,
+                        .p_memsz = hvt->guest_mem_size,
+                        .p_filesz = hvt->guest_mem_size,
                         .p_flags = 0,
                         .p_offset = offset};
 
@@ -189,12 +193,12 @@ void hvt_dumpcore_hook(struct hvt *hvt, int status, void *cookie)
         warn("dumpcore: Could not determine _SC_PAGESIZE");
         goto failure;
     }
-    assert(hvt->mem_size % page_size == 0);
-    size_t npages = hvt->mem_size / page_size;
+    assert(hvt->guest_mem_size % page_size == 0);
+    size_t npages = hvt->guest_mem_size / page_size;
     size_t ndumped = 0;
     host_mvec_t mvec = malloc(npages);
     assert(mvec);
-    if (mincore(hvt->mem, hvt->mem_size, mvec) == -1) {
+    if (mincore(hvt->mem, hvt->guest_mem_size, mvec) == -1) {
         warn("dumpcore: mincore() failed");
         goto failure;
     }
@@ -270,5 +274,35 @@ static int setup(struct hvt *hvt, struct mft *mft)
     return 0;
 }
 
+#if defined(__linux__)
+/*
+ * Syscalls only dumpcore needs (on abort, when writing the core file).
+ * Stays out of the production solo5-hvt filter because the module is only
+ * linked into solo5-hvt-debug.
+ */
+static void install_seccomp_rules(void *ctx)
+{
+    static const int allow[] = {
+        SCMP_SYS(getpid), /* core filename */
+        SCMP_SYS(openat), /* create core file */
+        SCMP_SYS(close), /* close fds */
+        SCMP_SYS(writev), /* ELF header */
+        SCMP_SYS(lseek), /* section offset */
+        SCMP_SYS(brk), /* asprintf heap */
+        SCMP_SYS(mmap), /* malloc(mvec) */
+        SCMP_SYS(munmap), /* free(mvec) */
+        SCMP_SYS(mincore), /* find mapped pages */
+    };
+    for (size_t i = 0; i < sizeof(allow) / sizeof(allow[0]); i++) {
+        int rc = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, allow[i], 0);
+        if (rc != 0)
+            errx(1, "dumpcore: seccomp_rule_add() failed: %s", strerror(-rc));
+    }
+}
+
+DECLARE_MODULE(dumpcore, .setup = setup, .handle_cmdarg = handle_cmdarg,
+               .usage = usage, .install_seccomp_rules = install_seccomp_rules)
+#else
 DECLARE_MODULE(dumpcore, .setup = setup, .handle_cmdarg = handle_cmdarg,
                .usage = usage)
+#endif

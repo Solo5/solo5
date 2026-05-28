@@ -673,6 +673,23 @@ xen_expect_abort() {
   virtio_expect_success
 }
 
+@test "net_ring hvt" {
+  skip_unless_root
+  skip_unless_host_is Linux
+
+  ( sleep 1; ${TIMEOUT} 60s ping -fq -c 10000 -p deadbeef ${NET0_IP} ) &
+  hvt_run --net:service0=${NET0} -- test_net_ring/test_net_ring.hvt
+  expect_success
+}
+
+@test "net_ring spt" {
+  skip_unless_root
+
+  ( sleep 1; ${TIMEOUT} 60s ping -fq -c 10000 -p deadbeef ${NET0_IP} ) &
+  spt_run --net:service0=${NET0} -- test_net_ring/test_net_ring.spt
+  expect_success
+}
+
 @test "dumpcore hvt" {
   [ "${CONFIG_HOST_ARCH}" = "x86_64" ] || skip "not implemented for ${CONFIG_HOST_ARCH}"
   skip_unless_host_is Linux FreeBSD

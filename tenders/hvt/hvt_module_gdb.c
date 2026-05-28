@@ -456,8 +456,9 @@ static void gdb_handle_exception(struct hvt *hvt, int sigval)
                 break;
             }
 
-            if ((addr > hvt->mem_size) || add_overflow(addr, len, result) ||
-                (result > hvt->mem_size)) {
+            if ((addr > hvt->guest_mem_size) ||
+                add_overflow(addr, len, result) ||
+                (result > hvt->guest_mem_size)) {
                 /* Don't panic about this, just return error so the debugger
                  * tries again. */
                 send_error_msg();
@@ -476,8 +477,9 @@ static void gdb_handle_exception(struct hvt *hvt, int sigval)
                 break;
             }
 
-            if ((addr > hvt->mem_size) || add_overflow(addr, len, result) ||
-                (result > hvt->mem_size)) {
+            if ((addr > hvt->guest_mem_size) ||
+                add_overflow(addr, len, result) ||
+                (result > hvt->guest_mem_size)) {
                 /* Don't panic about this, just return error so the debugger
                  * tries again. */
                 send_error_msg();
@@ -535,8 +537,9 @@ static void gdb_handle_exception(struct hvt *hvt, int sigval)
                 break;
             }
 
-            if ((addr > hvt->mem_size) || add_overflow(addr, len, result) ||
-                (result > hvt->mem_size)) {
+            if ((addr > hvt->guest_mem_size) ||
+                add_overflow(addr, len, result) ||
+                (result > hvt->guest_mem_size)) {
                 /* Don't panic about this, just return error so the debugger
                  * tries again. */
                 send_error_msg();
@@ -639,8 +642,8 @@ static int setup(struct hvt *hvt, struct mft *mft)
      * GDB clients can change memory, and software breakpoints work by
      * replacing instructions with int3's.
      */
-    if (mprotect(hvt->mem, hvt->mem_size, PROT_READ | PROT_WRITE | PROT_EXEC) ==
-        -1)
+    if (mprotect(hvt->mem, hvt->guest_mem_size,
+                 PROT_READ | PROT_WRITE | PROT_EXEC) == -1)
         err(1, "GDB: Cannot remove guest memory protection");
 
     /* Notify the debugger that we are dying. */

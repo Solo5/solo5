@@ -268,7 +268,8 @@ static void aarch64_setup_core_registers(struct hvt *hvt, hvt_gpa_t gpa_ep)
      * Set Stack Poniter for Guest. ARM64 require stack be 16-bytes
      * alignment by default.
      */
-    ret = aarch64_set_one_register(hvb->vcpufd, SP_EL1, hvt->mem_size - 16);
+    ret =
+        aarch64_set_one_register(hvb->vcpufd, SP_EL1, hvt->guest_mem_size - 16);
     if (ret == -1)
         err(1, "Initialize sp[EL1] failed!\n");
 
@@ -300,7 +301,7 @@ void hvt_vcpu_init(struct hvt *hvt, hvt_gpa_t gpa_ep)
      * RAM space and 1GB for MMIO space. Although the guest can use up
      * to 1TB address space which we configured in TCR_EL1.
      */
-    aarch64_setup_memory_mapping(hvt->mem, hvt->mem_size);
+    aarch64_setup_memory_mapping(hvt->mem, hvt->mem_alloc_size);
 
     /* Select preferred target for guest */
     aarch64_setup_preferred_target(hvb->vmfd, hvb->vcpufd);
@@ -397,4 +398,14 @@ int hvt_vcpu_loop(struct hvt *hvt)
 void hvt_mem_size(size_t *mem_size)
 {
     aarch64_mem_size(mem_size);
+}
+
+void hvt_mem_size_roundup(size_t *mem_size)
+{
+    size_t mem = ((*mem_size + AARCH64_GUEST_BLOCK_SIZE - 1) /
+                  AARCH64_GUEST_BLOCK_SIZE) *
+                 AARCH64_GUEST_BLOCK_SIZE;
+    if (mem > AARCH64_MMIO_BASE)
+        mem = AARCH64_MMIO_BASE;
+    *mem_size = mem;
 }
