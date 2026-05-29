@@ -80,6 +80,15 @@ struct hvt *hvt_init(size_t mem_size)
         err(1, "KVM: ioctl (KVM_CHECK_EXTENSION) failed");
     if (ret != 1)
         errx(1, "KVM: host does not support KVM_CAP_USER_MEMORY");
+    /* (dinosaure, 2026-05-20): The unikernel's memory zone is set to 0, which
+     * is particularly important for enabling unikernels with a larger
+     * [hvt_boot_info] to coexist with tenders that have a smaller
+     * [hvt_boot_info] (see version 0.11.0). This avoids the need to increment
+     * the ABI version. This assumption is fragile but correct.
+     *
+     * On FreeBSD and OpenBSD, the hypervisor should provide us a memory region
+     * that has been initialised to zero.
+     */
     hvt->mem = mmap(NULL, mem_size, PROT_READ | PROT_WRITE,
                     MAP_SHARED | MAP_ANONYMOUS, -1, 0);
     if (hvt->mem == MAP_FAILED)
