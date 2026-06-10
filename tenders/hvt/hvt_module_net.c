@@ -52,6 +52,8 @@
 #include "hvt_freebsd.h"
 #elif defined(__OpenBSD__)
 #include "hvt_openbsd.h"
+#elif defined(__DragonFly__)
+#include "hvt_dragonfly.h"
 #endif
 
 static bool module_in_use;
@@ -354,7 +356,7 @@ static void kill_net_pthread(struct hvt *hvt, int status, void *cookie)
         close(hvb->kick_net_efd);
         hvb->kick_net_efd = -1;
     }
-#elif defined(__FreeBSD__) || defined(__OpenBSD__)
+#elif defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__DragonFly__)
     if (hvb->kick_net_pipe[1] != -1) {
         uint8_t byte = 1;
         (void)!write(hvb->kick_net_pipe[1], &byte, 1);
@@ -491,7 +493,7 @@ static int setup(struct hvt *hvt, struct mft *mft)
             goto skip_ring;
         }
         notify_fd = efd;
-#elif defined(__FreeBSD__) || defined(__OpenBSD__)
+#elif defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__DragonFly__)
         if (pipe(hvb->kick_net_pipe) == -1) {
             warn("pipe() failed, falling back to hypercalls");
             goto skip_ring;
@@ -516,7 +518,7 @@ static int setup(struct hvt *hvt, struct mft *mft)
 #if defined(__linux__)
             close(hvb->kick_net_efd);
             hvb->kick_net_efd = -1;
-#elif defined(__FreeBSD__) || defined(__OpenBSD__)
+#elif defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__DragonFly__)
             close(hvb->kick_net_pipe[0]);
             close(hvb->kick_net_pipe[1]);
             hvb->kick_net_pipe[0] = -1;

@@ -281,6 +281,10 @@ case ${HOST_CC_MACHINE} in
         CONFIG_HOST_ARCH=x86_64 CONFIG_HOST=FreeBSD
         CONFIG_HVT_TENDER=1
         ;;
+    x86_64-*dragonfly*)
+        CONFIG_HOST_ARCH=x86_64 CONFIG_HOST=DragonFly
+        CONFIG_HVT_TENDER=1
+        ;;
     amd64-*openbsd*)
         CONFIG_HOST_ARCH=x86_64 CONFIG_HOST=OpenBSD
         CONFIG_HVT_TENDER=1
@@ -494,6 +498,10 @@ case ${CONFIG_HOST} in
         TARGET_CC_LDFLAGS="-Wl,-nopie,--no-execute-only"
         TARGET_LD_LDFLAGS="-nopie --no-execute-only"
         TARGET_CC_CFLAGS="${TARGET_CC_CFLAGS} -fno-emulated-tls"
+        ;;
+    DragonFly)
+        TARGET_LD="${TARGET_LD:-ld}"
+        TARGET_OBJCOPY="${TARGET_OBJCOPY:-objcopy}"
         ;;
     *)
         die "Unsupported host system: ${CONFIG_HOST}"

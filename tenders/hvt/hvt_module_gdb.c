@@ -61,6 +61,10 @@
 
 #include "hvt_gdb_openbsd_x86_64.c"
 
+#elif defined(__DragonFly__) && defined(__x86_64__)
+
+#include "hvt_gdb_dragonfly_x86_64.c"
+
 #elif defined(__linux__) && defined(__aarch64__)
 
 #include "hvt_gdb_kvm_aarch64.c"

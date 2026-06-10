@@ -42,7 +42,7 @@
 #include <sys/epoll.h>
 #include <sys/timerfd.h>
 
-#elif defined(__FreeBSD__) || defined(__OpenBSD__)
+#elif defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__DragonFly__)
 
 #include <sys/types.h>
 #include <sys/event.h>

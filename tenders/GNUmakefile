@@ -81,6 +81,10 @@ else ifeq ($(CONFIG_HOST), OpenBSD)
     hvt_SRCS += hvt/hvt_openbsd.c hvt/hvt_openbsd_$(CONFIG_HOST_ARCH).c
     all_TARGETS += hvt/solo5-hvt
     HOSTLDLIBS += -lpthread
+else ifeq ($(CONFIG_HOST), DragonFly)
+    hvt_SRCS += hvt/hvt_dragonfly.c hvt/hvt_dragonfly_$(CONFIG_HOST_ARCH).c
+    all_TARGETS += hvt/solo5-hvt
+    HOSTLDLIBS += -lpthread -lnvmm
 endif
 
 hvt_SRCS += $(patsubst %,hvt/hvt_module_%.c,$(hvt_MODULES))
