@@ -11,9 +11,9 @@ license: "ISC"
 dev-repo: "git+https://github.com/solo5/solo5.git"
 build: [
   ["env" "TARGET_CC=aarch64-linux-gnu-gcc" "TARGET_LD=aarch64-linux-gnu-ld" "TARGET_OBJCOPY=aarch64-linux-gnu-objcopy" "./configure.sh" "--prefix=%{prefix}%"]
-  [make "V=1"]
+  ["env" "SOLO5_VERSION=%{version}%" make "V=1"]
 ]
-install: [make "V=1" "install-toolchain"]
+install: ["env" "SOLO5_VERSION=%{version}%" make "V=1" "install-toolchain"]
 depends: [
   "conf-pkg-config" {build & os = "linux"}
   "conf-libseccomp" {build & os = "linux"}

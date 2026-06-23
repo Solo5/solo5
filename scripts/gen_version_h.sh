@@ -10,21 +10,22 @@ die ()
 [ $# -ne 1 ] && exit 1
 VERSION_H="$1"
 
-# If we are being run from a release tarball, then a version.h.distrib must
-# be present, and we always use that as our source of truth. Allow ./.git
-# to be a file to support git worktrees.
-if [ ! -d "./.git" -a ! -f "./.git" ]; then
-    if [ ! -f "${VERSION_H}.distrib" ]; then
-	die "${VERSION_H}.distrib: Not found, and we are not in a Git tree"
-    fi
+# Determine the version, in order of precedence:
+#   1. "git describe" in a real checkout (allow ./.git to be a file for worktrees)
+#   2. version.h.distrib shipped in a release tarball
+#   3. $SOLO5_VERSION for an exported snapshot (e.g. an opam tarball pin) that has
+#      neither a Git tree nor a version.h.distrib
+if [ -d "./.git" -o -f "./.git" ]; then
+    VERSION="$(git -C . describe --dirty --tags --always)" ||
+	die "Could not determine Git version"
+elif [ -f "${VERSION_H}.distrib" ]; then
     cp "${VERSION_H}.distrib" "${VERSION_H}" || die
     exit 0
+elif [ -n "${SOLO5_VERSION}" ]; then
+    VERSION="${SOLO5_VERSION}"
+else
+    die "not a Git tree, ${VERSION_H}.distrib not found, and SOLO5_VERSION unset"
 fi
-
-# Otherwise, use "git describe" to get the exact version of this tree, and
-# generate a version.h from it.
-GIT_VERSION="$(git -C . describe --dirty --tags --always)" ||
-    die "Could not determine Git version"
 
 cat <<EOM >${VERSION_H}.tmp || die
 /* Automatically generated, do not edit */
@@ -32,12 +33,12 @@ cat <<EOM >${VERSION_H}.tmp || die
 #ifndef __VERSION_H__
 #define __VERSION_H__
 
-#define SOLO5_VERSION "${GIT_VERSION}"
+#define SOLO5_VERSION "${VERSION}"
 
 #endif
 EOM
 
-# Only touch the target file if it does not exist yet or Git version differs.
+# Only touch the target file if it does not exist yet or the version differs.
 if [ -f ${VERSION_H} ] && diff -q ${VERSION_H} ${VERSION_H}.tmp >/dev/null; then
     rm ${VERSION_H}.tmp || die
 else

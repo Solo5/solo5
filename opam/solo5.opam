@@ -11,9 +11,9 @@ license: "ISC"
 dev-repo: "git+https://github.com/solo5/solo5.git"
 build: [
   ["./configure.sh" "--prefix=%{prefix}%"]
-  [make "V=1"]
+  ["env" "SOLO5_VERSION=%{version}%" make "V=1"]
 ]
-install: [make "V=1" "install"]
+install: ["env" "SOLO5_VERSION=%{version}%" make "V=1" "install"]
 depends: [
   "conf-pkg-config" {build & os = "linux"}
   "conf-libseccomp" {build & os = "linux"}
