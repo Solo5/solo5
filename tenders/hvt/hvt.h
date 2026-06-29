@@ -41,7 +41,7 @@
 /*
  * HVT_DROP_PRIVILEGES (1) enables the function hvt_drop_privileges
  * please see hvt_drop_privileges for more information
- * HCT_DROP_PRIVILEGES would be disabled in a debugging scenario
+ * HVT_DROP_PRIVILEGES would be disabled in a debugging scenario
  * where the hvt has to create/modify files outside it normal operating domain
  */
 #ifndef HVT_DROP_PRIVILEGES
@@ -136,7 +136,7 @@ void hvt_boot_info_init(struct hvt *hvt, hvt_gpa_t gpa_kend, int cmdline_argc,
 int hvt_guest_mprotect(void *t_arg, uint64_t addr_start, uint64_t addr_end,
                        int prot);
 
-#if HVT_DROP_PRIVILEGES
+#if defined(HVT_DROP_PRIVILEGES) && HVT_DROP_PRIVILEGES == 1
 /*
  * Drop privileges. This function is called by the tender before entering the
  * VCPU loop, after guest memory has been set up and all host resources have
