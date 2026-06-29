@@ -153,7 +153,7 @@ struct hvt *hvt_init(size_t mem_size)
     return hvt;
 }
 
-#if HVT_DROP_PRIVILEGES
+#if defined(HVT_DROP_PRIVILEGES) && HVT_DROP_PRIVILEGES == 1
 void hvt_drop_privileges()
 {
     struct passwd *pw = getpwnam(VMD_USER);

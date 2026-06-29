@@ -272,7 +272,7 @@ int main(int argc, char **argv)
 
     hvt_boot_info_init(hvt, gpa_kend, argc, argv, mft, mft_size);
 
-#if HVT_DROP_PRIVILEGES
+#if defined(HVT_DROP_PRIVILEGES) && HVT_DROP_PRIVILEGES == 1
     hvt_drop_privileges();
 #else
     warnx("WARNING: Tender is configured with HVT_DROP_PRIVILEGES=0. Not"

@@ -44,11 +44,18 @@ all_TARGETS += $(common_LIB)
 %.o: %.c %.d
 	$(HOSTCOMPILE.c)
 
+%.debug.o: %.c %.debug.d
+	$(HOSTCOMPILE.c)
+
 %.o: %.S %.d
 	$(HOSTCOMPILE.S)
 
+%.debug.o: %.debug.S %.debug.d
+	$(HOSTCOMPILE.S)
+
 %.d: ;
-.PRECIOUS: %.d
+%.debug.d: ;
+.PRECIOUS: %.d %.debug.d
 
 endif
 
@@ -83,15 +90,23 @@ else ifeq ($(CONFIG_HOST), OpenBSD)
     HOSTLDLIBS += -lpthread
 endif
 
+# NOTE(dinosaure): here, we construct solo5-hvt with *.o objects and
+# solo5-hvt-debug with *.debug.o objects. By this way, we are able to apply
+# certain rules only on solo5-hvt-debug's objects such as HVT_DROP_PRIVILEGES=0
+
 hvt_SRCS += $(patsubst %,hvt/hvt_module_%.c,$(hvt_MODULES))
+hvt_debug_SRCS := $(hvt_SRCS)
 hvt_debug_SRCS += $(patsubst %,hvt/hvt_module_%.c,$(hvt_debug_MODULES))
 hvt_OBJS := $(patsubst %.c,%.o,$(hvt_SRCS))
-hvt_debug_OBJS := $(patsubst %.c,%.o,$(hvt_debug_SRCS))
+hvt_debug_OBJS := $(patsubst %.c,%.debug.o,$(hvt_debug_SRCS))
+
+$(hvt_debug_OBJS): HOSTCFLAGS += -DHVT_DROP_PRIVILEGES=0
+hvt/solo5-hvt-debug: HOSTCFLAGS += -DHVT_DROP_PRIVILEGES=0
 
 hvt/solo5-hvt: $(hvt_OBJS) $(common_LIB)
 	$(HOSTLINK)
 
-hvt/solo5-hvt-debug: $(hvt_OBJS) $(hvt_debug_OBJS) $(common_LIB)
+hvt/solo5-hvt-debug: $(hvt_debug_OBJS) $(common_LIB)
 	$(HOSTLINK)
 
 endif # CONFIG_HVT_TENDER
