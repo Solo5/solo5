@@ -269,8 +269,8 @@ if CC="${HOST_CC}" cc_is_gcc; then
         die "Impossible to recognize the version of GCC: ${gcc_version}"
     fi
 
-    if [ "$major" -lt 10 ]; then
-        die "GCC 10 (or later) is required"
+    if [ "$major" -lt 9 ]; then
+        die "GCC 9 (or later) is required"
     fi
 fi
 
