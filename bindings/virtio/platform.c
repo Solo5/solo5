@@ -108,8 +108,15 @@ void platform_exit(int status __attribute__((unused)),
     outw(0x501, 41);
 
     /*
-     * If we got here, there is no way to initiate "shutdown" on virtio without
-     * ACPI, so just halt.
+     * Initiate an ACPI S5 ("soft off") power-off. This is the portable way to
+     * shut down on QEMU as well as cloud hypervisors. Does not return on
+     * success.
+     */
+    acpi_poweroff();
+
+    /*
+     * If we got here, the ACPI power-off did not take effect (or no ACPI tables
+     * were found), so just halt.
      */
     platform_puts("Solo5: Halted\n", 14);
     cpu_halt();

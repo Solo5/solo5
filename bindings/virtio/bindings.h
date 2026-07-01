@@ -49,6 +49,9 @@ uint64_t tscclock_monotonic(void);
 uint64_t rtc_gettimeofday(void);
 void cpu_block(uint64_t until);
 
+/* acpi.c: ACPI S5 power-off */
+void acpi_poweroff(void);
+
 /* pci.c: only enumerate for now */
 struct pci_config_info {
     uint8_t bus;
