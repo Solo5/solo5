@@ -254,9 +254,9 @@ done
 #
 # Configure host tools and tenders based on HOST_CC.
 #
-HOST_AR=${HOST_AR:-ar}
+HOST_AR="${HOST_AR:-ar}"
 
-HOST_CC=${HOST_CC:-cc}
+HOST_CC="${HOST_CC:-cc}"
 HOST_CC_MACHINE=$(${HOST_CC} -dumpmachine)
 [ $? -ne 0 ] &&
     die "Could not run '${HOST_CC} -dumpmachine', is your compiler working?"
