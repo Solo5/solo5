@@ -67,6 +67,12 @@ typedef char *host_mvec_t;
 #define EM_HOST EM_X86_64
 typedef unsigned char *host_mvec_t;
 
+#elif defined(__DragonFly__) && defined(__x86_64__)
+
+#include "hvt_dumpcore_dragonfly_x86_64.c"
+#define EM_HOST EM_X86_64
+typedef unsigned char *host_mvec_t;
+
 #elif defined(__linux__) && defined(__aarch64__)
 
 #include "hvt_dumpcore_kvm_aarch64.c"

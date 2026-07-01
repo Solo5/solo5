@@ -296,6 +296,10 @@ case ${HOST_CC_MACHINE} in
         CONFIG_HOST_ARCH=x86_64 CONFIG_HOST=FreeBSD
         CONFIG_HVT_TENDER=1
         ;;
+    x86_64-*dragonfly*)
+        CONFIG_HOST_ARCH=x86_64 CONFIG_HOST=DragonFly
+        CONFIG_HVT_TENDER=1
+        ;;
     amd64-*openbsd*)
         CONFIG_HOST_ARCH=x86_64 CONFIG_HOST=OpenBSD
         CONFIG_HVT_TENDER=1
@@ -509,6 +513,18 @@ case ${CONFIG_HOST} in
         TARGET_CC_LDFLAGS="-Wl,-nopie,--no-execute-only"
         TARGET_LD_LDFLAGS="-nopie --no-execute-only"
         TARGET_CC_CFLAGS="${TARGET_CC_CFLAGS} -fno-emulated-tls"
+        ;;
+    DragonFly)
+        TARGET_LD="${TARGET_LD:-ld}"
+        TARGET_OBJCOPY="${TARGET_OBJCOPY:-objcopy}"
+        TARGET_CC="${TARGET_CC:-cc}"
+        if CC="${TARGET_CC}" cc_is_gcc; then
+            major_version=$(echo __GNUC__ | ${TARGET_CC} -E -x c - | tail -n 1)
+            if [ "${major_version}" -lt 9 ]; then
+                err "gcc version ${major_version} of ${TARGET_CC} unsupported on DragonFly"
+                die "gcc 9+ or clang required on DragonFly"
+            fi
+        fi
         ;;
     *)
         die "Unsupported host system: ${CONFIG_HOST}"

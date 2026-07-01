@@ -46,7 +46,7 @@
 #include <linux/ethtool.h>
 #include <linux/sockios.h>
 
-#elif defined(__FreeBSD__)
+#elif defined(__FreeBSD__) || defined(__DragonFly__)
 
 #include <net/if.h>
 
@@ -161,7 +161,7 @@ int tap_attach(const char *ifname, int *mtu)
         return -1;
     }
 
-#elif defined(__FreeBSD__)
+#elif defined(__FreeBSD__) || defined(__DragonFly__)
 
     /*
      * Avoid unused-but-set-variable warning on FreeBSD, where the tap device

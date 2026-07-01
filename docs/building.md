@@ -18,7 +18,7 @@ unikernel -- about building Solo5, and running Solo5-based unikernels.
 
 Solo5 itself has the following build dependencies:
 
-* a 64-bit Linux, FreeBSD or OpenBSD system (see also [Supported
+* a 64-bit Linux, FreeBSD, OpenBSD or DragonFly system (see also [Supported
   targets](#supported-targets) for further requirements),
 * a C11 compiler; recent versions of GCC and clang are supported,
 * GNU make,
@@ -73,6 +73,8 @@ Experimental:
 * _hvt_: OpenBSD vmm, using `solo5-hvt` as a _tender_, on the x86\_64
   architecture.  OpenBSD 6.4 or later is required, 6.7 or later is recommended
   for full W^X support.
+* _hvt_: DragonFly nvmm, using `solo5-hvt` as a _tender_, on the x86\_64
+  architecture.  DragonFly 6.4 or later is recommended.
 * _spt_: Linux systems on the x86\_64, ppc64le and aarch64 architectures, using
   `solo5-spt` as a _tender_. A Linux distribution with libseccomp >= 2.3.3 is
   required.
@@ -181,10 +183,10 @@ ifconfig tap100 inet 10.0.0.1 netmask 255.255.255.0
 In case your unikernel needs to access internet (which is not the case in this
 example), you may need to add "ip forwarding" and a NAT to your host system.
 
-## _hvt_: Running on Linux, FreeBSD and OpenBSD with hardware virtualization
+## _hvt_: Running on Linux, FreeBSD, OpenBSD and DragonFly with hardware virtualization
 
-The _hvt_ ("hardware virtualized tender") target supports Linux, FreeBSD and
-OpenBSD systems and uses hardware virtualization to isolate the guest
+The _hvt_ ("hardware virtualized tender") target supports Linux, FreeBSD,
+OpenBSD and DragonFly systems and uses hardware virtualization to isolate the guest
 unikernel.
 
 On Linux, the `solo5-hvt` _tender_ only requires access to `/dev/kvm` and
@@ -199,6 +201,8 @@ _tender_ in order to access the `vmm` APIs.
 On OpenBSD, the `solo5-hvt` _tender_ must be started as `root`, however it will
 drop privileges to the standard `_vmd` user and further use `pledge(2)` to
 lower its privileges.
+
+On DragonFly, the `solo5-hvt` _tender_ only requires `nvmm` group membership.
 
 To launch the unikernel, in `tests/test_net/` run:
 

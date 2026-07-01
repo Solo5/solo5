@@ -69,7 +69,7 @@ if CC=${CONFIG_TARGET_CC} cc_is_clang; then
     case ${CONFIG_HOST} in
         # The BSDs don't ship some standard headers that we need in Clang's
         # resource directory. Appropriate these from the host system.
-        FreeBSD|OpenBSD)
+        FreeBSD|OpenBSD|DragonFly)
             SRCDIR=/usr/include
             SRCS="float.h stddef.h stdint.h stdbool.h stdarg.h"
             [ "${CONFIG_HOST}" = "FreeBSD" ] && \
@@ -82,6 +82,7 @@ if CC=${CONFIG_TARGET_CC} cc_is_clang; then
             DESTDIR="$(readlink -f ${DESTDIR})"
             Q=
             [ "${CONFIG_HOST}" = "FreeBSD" ] && Q="--quiet"
+            [ "${CONFIG_HOST}" = "DragonFly" ] && Q="--quiet"
             (cd ${SRCDIR} && cpio ${Q} -Lpdm ${DESTDIR} <${DEPS}) || \
                 die "Failure copying host headers"
             rm ${DEPS}
