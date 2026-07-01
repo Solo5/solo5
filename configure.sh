@@ -262,15 +262,18 @@ HOST_CC_MACHINE=$(${HOST_CC} -dumpmachine)
     die "Could not run '${HOST_CC} -dumpmachine', is your compiler working?"
 echo "${prog_NAME}: Using ${HOST_CC} for host compiler (${HOST_CC_MACHINE})"
 
+cc_version=$(${HOST_CC} -dumpversion)
+cc_major=$(echo "$cc_version" | cut -d '.' -f 1)
+if [ -z "$cc_major" ]; then
+    die "Impossible to recognize the version of cc: ${cc_version}"
+fi
 if CC="${HOST_CC}" cc_is_gcc; then
-    gcc_version=$(${HOST_CC} --version | sed 1q)
-    major=$(echo "$gcc_version" | sed -n 's/.*(.*) \([0-9]\+\).*/\1/p')
-    if [ -z "$major" ]; then
-        die "Impossible to recognize the version of GCC: ${gcc_version}"
-    fi
-
-    if [ "$major" -lt 9 ]; then
+    if [ "$cc_major" -lt 9 ]; then
         die "GCC 9 (or later) is required"
+    fi
+else # cc is clang
+    if [ "$cc_major" -lt 10 ]; then
+        die "clang 10 (or later) is required"
     fi
 fi
 
