@@ -1,3 +1,13 @@
+## v0.12.0 (2026-07-02)
+
+- Fix `solo5-hvt-debug` and disable capabilities on this specific binary
+  (spotted by @fnetz, @dinosaure, @hannesm, #643, #644)
+- Verify the version of the compiler (GCC and Clang) (#585, #645, #646,
+  @dinosaure, @hannesm)
+- Support of DragonFly (#640, @mneumann, @dinosaure, @hannesm)
+- Be able to softly power-off an unikernel on virtio (#499, #500, #501, #647,
+  @mbacarella, @kit-ty-kate, @dinosaure)
+
 ## v0.11.0 (2026-05-28)
 
 - Lint our codebase with few warnings (@dinosaure, @hannesm, @MisterDA, #632)
