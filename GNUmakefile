@@ -51,7 +51,7 @@ gen-version-h:
 
 distrib-gen-version-h:
 	@echo "GEN $(VERSION_H).distrib"
-	scripts/gen_version_h.sh $(VERSION_H).distrib
+	GIT_VERSION="$(GIT_VERSION)" scripts/gen_version_h.sh $(VERSION_H).distrib
 
 delete-werror:
 	sed -i -e 's/-Werror//g' Makefile.common

@@ -22,8 +22,8 @@ if [ ! -d "./.git" -a ! -f "./.git" ]; then
 fi
 
 # Otherwise, use "git describe" to get the exact version of this tree, and
-# generate a version.h from it.
-GIT_VERSION="$(git -C . describe --dirty --tags --always)" ||
+# generate a version.h from it. Take a pre-set GIT_VERSION if it exists.
+GIT_VERSION="${GIT_VERSION:-$(git -C . describe --dirty --tags --always)}" ||
     die "Could not determine Git version"
 
 cat <<EOM >${VERSION_H}.tmp || die
