@@ -32,6 +32,9 @@ tests: bindings elftool
 .PHONY: build
 ifdef CONFIG_DISABLE_TOOLCHAIN
 build: elftool tenders
+else ifeq ($(CONFIG_HOST),Darwin)
+# macOS builds only the cross toolchain + bindings (tenders/elftool are Linux/BSD-only).
+build: toolchain bindings
 else
 build: $(SUBDIRS)
 endif
@@ -184,6 +187,8 @@ endif
 install: MAKECMDGOALS :=
 ifdef CONFIG_DISABLE_TOOLCHAIN
 install: install-tools install-tenders
+else ifeq ($(CONFIG_HOST),Darwin)
+install: install-headers install-toolchain
 else
 install: install-tools install-tenders install-headers install-toolchain
 endif

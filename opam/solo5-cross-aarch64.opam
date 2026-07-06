@@ -10,14 +10,18 @@ bug-reports: "https://github.com/solo5/solo5/issues"
 license: "ISC"
 dev-repo: "git+https://github.com/solo5/solo5.git"
 build: [
-  ["env" "TARGET_CC=aarch64-linux-gnu-gcc" "TARGET_LD=aarch64-linux-gnu-ld" "TARGET_OBJCOPY=aarch64-linux-gnu-objcopy" "./configure.sh" "--prefix=%{prefix}%"]
+  ["env" "TARGET_CC=aarch64-linux-gnu-gcc" "TARGET_LD=aarch64-linux-gnu-ld" "TARGET_OBJCOPY=aarch64-linux-gnu-objcopy" "./configure.sh" "--prefix=%{prefix}%"] {os != "macos"}
+  ["env" "TARGET_CC=clang -target aarch64-linux-gnu" "TARGET_LD=ld.lld" "TARGET_OBJCOPY=llvm-objcopy" "./configure.sh" "--prefix=%{prefix}%"] {os = "macos"}
   [make "V=1"]
 ]
-install: [make "V=1" "install-toolchain"]
+install: [
+  [make "V=1" "install-toolchain"]
+  [make "V=1" "install-headers"] {os = "macos"}
+]
 depends: [
   "conf-pkg-config" {build & os = "linux"}
   "conf-libseccomp" {build & os = "linux"}
-  "solo5" {= version}
+  "solo5" {= version & os != "macos"}
 ]
 depexts: [
   ["linux-headers"] {os-distribution = "alpine"}
@@ -25,10 +29,11 @@ depexts: [
   ["kernel-headers"] {os-distribution = "rhel"}
   ["linux-libc-dev"] {os-family = "debian"}
   ["gcc-aarch64-linux-gnu"] {os-family = "debian"}
+  ["llvm" "lld"] {os = "macos" & os-distribution = "homebrew"}
 ]
 available: [
-  (arch != "arm64") &
-  (os = "linux" & os-family = "debian")
+  ((arch != "arm64") & (os = "linux" & os-family = "debian"))
+  | (os = "macos" & arch = "arm64")
 ]
 synopsis: "Solo5 sandboxed execution environment"
 description: """
