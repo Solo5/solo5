@@ -58,10 +58,10 @@ DECLARE_ELF_INTERP
 /*
  * The "ABI1" Solo5 ELF note is declared in this module.
  *
- * Solo5/Muen uses ABI version 2 as of Muen commit 2a64844.
+ * Solo5/Muen uses ABI version 4 as of Muen tools commit 07ce986dadd7.
  */
 ABI1_NOTE_DECLARE_BEGIN{.abi_target = MUEN_ABI_TARGET,
-                        .abi_version = 3} ABI1_NOTE_DECLARE_END
+                        .abi_version = 4} ABI1_NOTE_DECLARE_END
 
     /*
      * Pretend that we are an OpenBSD executable. See elf_abi.h for details.
