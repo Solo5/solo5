@@ -333,6 +333,9 @@ case ${HOST_CC_MACHINE} in
             echo "#undef HAVE_VMM_H" >tenders/hvt/hvt_openbsd_config.h
         fi
         ;;
+    arm64-*darwin*|aarch64-*darwin*)
+        CONFIG_HOST_ARCH=aarch64 CONFIG_HOST=Darwin
+        ;;
     *)
         die "Unsupported host toolchain: ${HOST_CC_MACHINE}"
         ;;
@@ -422,7 +425,22 @@ fi
 #
 # Configure target toolchain and bindings based on TARGET_{CC,LD,OBJCOPY}.
 #
-TARGET_CC="${TARGET_CC:-cc}"
+case ${HOST_CC_MACHINE} in
+    arm64-*darwin*|aarch64-*darwin*)
+        TARGET_CC="${TARGET_CC:-clang -target aarch64-linux-gnu}"
+        # Without the following flag, I see errors such as:
+        # ld.lld: error: runtime/libcamlrun.a(domain.b.o):(function caml_thread_running_on_expected_domain: .text+0x1c): relocation R_AARCH64_TLSLE_ADD_TPREL_HI12 out of range: 18446744073709547536 is not in [0, 16777215]; references 'previous_domain_id'
+        # By changing the possible TLS size, the generated code use different
+        # instructions with which a negative offset is admissible
+        # Is there a better fix?
+        # Because of this doubt, make it overridable, unlike in the other case
+        TARGET_CC_CFLAGS="${TARGET_CC_CFLAGS:--mtls-size=32}"
+        ;;
+    *)
+        TARGET_CC="${TARGET_CC:-cc}"
+        TARGET_CC_CFLAGS=
+        ;;
+esac
 
 printf "%s: Checking that ${TARGET_CC} works: " "${prog_NAME}"
 cat >conftmp.c <<EOM
@@ -465,17 +483,16 @@ case ${TARGET_CC_MACHINE} in
         ;;
 esac
 
-TARGET_CC_CFLAGS=
 TARGET_CC_IS_OPENBSD=
 if CC="${TARGET_CC}" cc_is_clang; then
-    TARGET_CC_CFLAGS=-nostdlibinc
+    TARGET_CC_CFLAGS="${TARGET_CC_CFLAGS} -nostdlibinc"
     # XXX Clang warns for no good reason if -nostdlibinc is used and no
     # compilation is performed. We could work around this by using --config
     # which "claims" all command line arguments as "used", but this is easier
     # for now.
     TARGET_CC_CFLAGS="${TARGET_CC_CFLAGS} -Wno-unused-command-line-argument"
 else
-    TARGET_CC_CFLAGS=-nostdinc
+    TARGET_CC_CFLAGS="${TARGET_CC_CFLAGS} -nostdinc"
 fi
 case ${TARGET_CC_MACHINE} in
     x86_64-*linux*|powerpc64le-*linux*|ppc64le-*linux*)
@@ -546,6 +563,11 @@ case ${CONFIG_HOST} in
                 die "gcc 9+ or clang required on DragonFly"
             fi
         fi
+        ;;
+    Darwin)
+        TARGET_LD="${TARGET_LD:-ld.lld}"
+        TARGET_OBJCOPY="${TARGET_OBJCOPY:-llvm-objcopy}"
+        TARGET_CC_LDFLAGS="-Wl,--build-id=none,-no-pie"
         ;;
     *)
         die "Unsupported host system: ${CONFIG_HOST}"
