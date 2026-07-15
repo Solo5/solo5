@@ -232,7 +232,7 @@ while [ $# -gt 0 ]; do
 
     case "${OPT}" in
         --prefix=*)
-            OPT_PREFIX="${OPT##*=}"
+            OPT_PREFIX="${OPT#*=}"
             ;;
         # Keep --only-tools as an undocumented backward-compatible alias for
         # --disable-toolchain.
