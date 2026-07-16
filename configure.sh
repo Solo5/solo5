@@ -517,7 +517,6 @@ case ${CONFIG_HOST} in
     DragonFly)
         TARGET_LD="${TARGET_LD:-ld}"
         TARGET_OBJCOPY="${TARGET_OBJCOPY:-objcopy}"
-        TARGET_CC="${TARGET_CC:-cc}"
         if CC="${TARGET_CC}" cc_is_gcc; then
             major_version=$(echo __GNUC__ | ${TARGET_CC} -E -x c - | tail -n 1)
             if [ "${major_version}" -lt 9 ]; then
