@@ -313,6 +313,13 @@ case ${HOST_CC_MACHINE} in
             echo "#undef HAVE_VMM_H" >tenders/hvt/hvt_openbsd_config.h
         fi
         ;;
+    arm64-*darwin*|aarch64-*darwin*)
+        CONFIG_HOST_ARCH=aarch64 CONFIG_HOST=Darwin
+        [ -z "${TARGET_CC}" ] && \
+            die "macOS host requires an ELF cross toolchain: set TARGET_CC" \
+                "(e.g. TARGET_CC='clang -target aarch64-linux-gnu')," \
+                "TARGET_LD and TARGET_OBJCOPY"
+        ;;
     *)
         die "Unsupported host toolchain: ${HOST_CC_MACHINE}"
         ;;
@@ -525,6 +532,24 @@ case ${CONFIG_HOST} in
                 die "gcc 9+ or clang required on DragonFly"
             fi
         fi
+        ;;
+    Darwin)
+        # llvm-objcopy is keg-only / off PATH on macOS; pin its absolute path.
+        TARGET_LD="${TARGET_LD:-ld.lld}"
+        TARGET_OBJCOPY="${TARGET_OBJCOPY:-llvm-objcopy}"
+        if ! command -v "${TARGET_OBJCOPY}" >/dev/null 2>&1; then
+            for _llvmbin in \
+                "$(command -v brew >/dev/null 2>&1 && brew --prefix llvm 2>/dev/null)/bin" \
+                /opt/homebrew/opt/llvm/bin /usr/local/opt/llvm/bin \
+                /opt/local/libexec/llvm-*/bin; do
+                if [ -x "${_llvmbin}/${TARGET_OBJCOPY}" ]; then
+                    TARGET_OBJCOPY="${_llvmbin}/${TARGET_OBJCOPY}"
+                    break
+                fi
+            done
+            unset _llvmbin
+        fi
+        TARGET_CC_LDFLAGS="-Wl,--build-id=none,-no-pie"
         ;;
     *)
         die "Unsupported host system: ${CONFIG_HOST}"

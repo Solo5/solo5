@@ -1,0 +1,19 @@
+name: macOS
+on: [push, pull_request]
+jobs:
+  Build:
+    name: ARM64
+    runs-on: macos-15
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Install dependencies
+        run: brew install llvm lld
+      - name: Build
+        run: |
+          export PATH="$(brew --prefix llvm)/bin:$PATH"
+          env TARGET_CC="clang -target aarch64-linux-gnu" \
+            TARGET_LD=ld.lld TARGET_OBJCOPY=llvm-objcopy \
+            ./configure.sh --prefix="$PWD/_install"
+          make V=1
+          make V=1 install
