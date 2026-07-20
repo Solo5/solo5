@@ -107,10 +107,12 @@ install-tools: build
 	@echo INSTALL tools
 	mkdir -p $(D)/bin
 	$(INSTALL) elftool/solo5-elftool $(D)/bin
+ifdef CONFIG_VIRTIO
 	$(INSTALL) scripts/virtio-mkimage/solo5-virtio-mkimage.sh \
 	    $(D)/bin/solo5-virtio-mkimage
 	$(INSTALL) scripts/virtio-run/solo5-virtio-run.sh \
 	    $(D)/bin/solo5-virtio-run
+endif
 
 PUBLIC_HEADERS := include/elf_abi.h include/hvt_abi.h include/mft_abi.h \
     include/spt_abi.h include/solo5.h
