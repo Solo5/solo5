@@ -21,7 +21,10 @@ $(TOPDIR)/Makeconf:
 	$(error Makeconf not found, please run ./configure.sh)
 include Makefile.common
 
-SUBDIRS := elftool tenders toolchain bindings tests
+SUBDIRS := elftool tenders
+ifndef CONFIG_DISABLE_TOOLCHAIN
+SUBDIRS += toolchain bindings tests
+endif
 
 bindings: toolchain
 
@@ -30,14 +33,10 @@ tests: bindings elftool
 .PHONY: $(SUBDIRS)
 
 .PHONY: build
-ifdef CONFIG_DISABLE_TOOLCHAIN
-build: elftool tenders
-else
 build: $(SUBDIRS)
-endif
 .DEFAULT_GOAL := build
 
-$(SUBDIRS): gen-version-h
+elftool tenders bindings: gen-version-h
 
 .PHONY: gen-version-h distrib-gen-version-h
 
@@ -82,11 +81,7 @@ $(SUBDIRS):
 	$(MAKE) -C $@ $(MAKECMDGOALS) $(SUBOVERRIDE)
 
 .PHONY: clean
-ifdef CONFIG_DISABLE_TOOLCHAIN
-clean: elftool tenders
-else
 clean: $(SUBDIRS)
-endif
 	@echo "CLEAN solo5"
 	$(RM) $(VERSION_H)
 
