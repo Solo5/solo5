@@ -139,18 +139,18 @@ ld_is_lld()
 # Check that the linker ${LD} is available and suitable for our purposes.
 check_ld()
 {
-    echo -n "${prog_NAME}: Checking if ${LD} is available: "
+    printf "%s: Checking if ${LD} is available: " "${prog_NAME}"
     if [ -x "$(command -v ${LD})" ]; then
         echo "yes"
     else
         echo "no"
         return 1
     fi
-    echo -n "${prog_NAME}: Checking if ${LD} is LLD: "
+    printf "%s: Checking if ${LD} is LLD: " "${prog_NAME}"
     if ld_is_lld; then
         echo "yes"
         # LLD < 8 chokes on the Xen ldscript, so refuse to use it.
-        echo -n "${prog_NAME}: Checking if LLD ${LD} is LLVM 8 or newer: "
+        printf "%s: Checking if LLD ${LD} is LLVM 8 or newer: " "${prog_NAME}"
         if ${LD} --version 2>&1 | grep -q '^LLD [1-7]\.'; then
             echo "no"
             return 1
@@ -169,7 +169,7 @@ int foo(void)
 EOM
     ${CC} -c conftmp.c -o conftmp.o || return 1
 
-    echo -n "${prog_NAME}: Checking if ${LD} understands ${TARGET_ARCH}: "
+    printf "%s: Checking if ${LD} understands ${TARGET_ARCH}: " "${prog_NAME}"
     if ! ${LD} -r -o conftmp1.o conftmp.o >/dev/null 2>&1; then
         echo "no"
         return 1
@@ -182,7 +182,7 @@ EOM
 # Check that the objcopy ${OBJCOPY} is available and suitable for our purposes.
 check_objcopy()
 {
-    echo -n "${prog_NAME}: Checking if ${OBJCOPY} is available: "
+    printf "%s: Checking if ${OBJCOPY} is available: " "${prog_NAME}"
     if [ -x "$(command -v ${OBJCOPY})" ]; then
         echo "yes"
     else
@@ -205,7 +205,7 @@ EOM
     # [Clang] A LLVM objcopy will understand any LLVM-supported architecture.
     # [GCC] A GNU objcopy will only understand the architecture it was
     # targetted for.
-    echo -n "${prog_NAME}: Checking if ${OBJCOPY} understands ${TARGET_ARCH}: "
+    printf "%s: Checking if ${OBJCOPY} understands ${TARGET_ARCH}: " "${prog_NAME}"
     if ! ${OBJCOPY} conftmp.o conftmp.o >/dev/null 2>&1; then
         echo "no"
         return 1
@@ -215,7 +215,7 @@ EOM
     # [Clang] For LLVM objcopy, -w was introduced in
     # https://reviews.llvm.org/D66613 (release/12.x) and -G was introduced in
     # https://reviews.llvm.org/D50589 (release/8.x).
-    echo -n "${prog_NAME}: Checking if ${OBJCOPY} understands -w -G: "
+    printf "%s: Checking if ${OBJCOPY} understands -w -G: " "${prog_NAME}"
     if ! ${OBJCOPY} -w -G KEEP\* conftmp.o conftmp.o >/dev/null 2>&1; then
         echo "no"
         return 1
@@ -232,7 +232,7 @@ while [ $# -gt 0 ]; do
 
     case "${OPT}" in
         --prefix=*)
-            OPT_PREFIX="${OPT##*=}"
+            OPT_PREFIX="${OPT#*=}"
             ;;
         # Keep --only-tools as an undocumented backward-compatible alias for
         # --disable-toolchain.
@@ -402,7 +402,7 @@ fi
 #
 TARGET_CC="${TARGET_CC:-cc}"
 
-echo -n "${prog_NAME}: Checking that ${TARGET_CC} works: "
+printf "%s: Checking that ${TARGET_CC} works: " "${prog_NAME}"
 cat >conftmp.c <<EOM
 int foo(void)
 {
@@ -517,7 +517,6 @@ case ${CONFIG_HOST} in
     DragonFly)
         TARGET_LD="${TARGET_LD:-ld}"
         TARGET_OBJCOPY="${TARGET_OBJCOPY:-objcopy}"
-        TARGET_CC="${TARGET_CC:-cc}"
         if CC="${TARGET_CC}" cc_is_gcc; then
             major_version=$(echo __GNUC__ | ${TARGET_CC} -E -x c - | tail -n 1)
             if [ "${major_version}" -lt 9 ]; then
@@ -554,16 +553,16 @@ echo "${prog_NAME}: Using ${TARGET_OBJCOPY} for target objcopy"
 TARGET_TRIPLE="${TARGET_ARCH}-solo5-none-static"
 echo "${prog_NAME}: Target toolchain triple is ${TARGET_TRIPLE}"
 
-echo -n "${prog_NAME}: Enabled bindings: stub"
-[ -n "${CONFIG_HVT}" ]    && echo -n " hvt"
-[ -n "${CONFIG_SPT}" ]    && echo -n " spt"
-[ -n "${CONFIG_VIRTIO}" ] && echo -n " virtio"
-[ -n "${CONFIG_MUEN}" ]   && echo -n " muen"
-[ -n "${CONFIG_XEN}" ]    && echo -n " xen"
+printf "%s: Enabled bindings: stub" "${prog_NAME}"
+[ -n "${CONFIG_HVT}" ]    && printf " hvt"
+[ -n "${CONFIG_SPT}" ]    && printf " spt"
+[ -n "${CONFIG_VIRTIO}" ] && printf " virtio"
+[ -n "${CONFIG_MUEN}" ]   && printf " muen"
+[ -n "${CONFIG_XEN}" ]    && printf " xen"
 echo "."
-echo -n "${prog_NAME}: Enabled tenders:"
-[ -n "${CONFIG_HVT_TENDER}" ]    && echo -n " hvt"
-[ -n "${CONFIG_SPT_TENDER}" ]    && echo -n " spt"
+printf "%s: Enabled tenders:" "${prog_NAME}"
+[ -n "${CONFIG_HVT_TENDER}" ]    && printf " hvt"
+[ -n "${CONFIG_SPT_TENDER}" ]    && printf " spt"
 echo "."
 
 #

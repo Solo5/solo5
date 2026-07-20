@@ -21,7 +21,10 @@ $(TOPDIR)/Makeconf:
 	$(error Makeconf not found, please run ./configure.sh)
 include Makefile.common
 
-SUBDIRS := elftool tenders toolchain bindings tests
+SUBDIRS := elftool tenders
+ifndef CONFIG_DISABLE_TOOLCHAIN
+SUBDIRS += toolchain bindings tests
+endif
 
 bindings: toolchain
 
@@ -30,14 +33,10 @@ tests: bindings elftool
 .PHONY: $(SUBDIRS)
 
 .PHONY: build
-ifdef CONFIG_DISABLE_TOOLCHAIN
-build: elftool tenders
-else
 build: $(SUBDIRS)
-endif
 .DEFAULT_GOAL := build
 
-$(SUBDIRS): gen-version-h
+elftool tenders bindings: gen-version-h
 
 .PHONY: gen-version-h distrib-gen-version-h
 
@@ -82,11 +81,7 @@ $(SUBDIRS):
 	$(MAKE) -C $@ $(MAKECMDGOALS) $(SUBOVERRIDE)
 
 .PHONY: clean
-ifdef CONFIG_DISABLE_TOOLCHAIN
-clean: elftool tenders
-else
 clean: $(SUBDIRS)
-endif
 	@echo "CLEAN solo5"
 	$(RM) $(VERSION_H)
 
@@ -107,10 +102,12 @@ install-tools: build
 	@echo INSTALL tools
 	mkdir -p $(D)/bin
 	$(INSTALL) elftool/solo5-elftool $(D)/bin
+ifdef CONFIG_VIRTIO
 	$(INSTALL) scripts/virtio-mkimage/solo5-virtio-mkimage.sh \
 	    $(D)/bin/solo5-virtio-mkimage
 	$(INSTALL) scripts/virtio-run/solo5-virtio-run.sh \
 	    $(D)/bin/solo5-virtio-run
+endif
 
 PUBLIC_HEADERS := include/elf_abi.h include/hvt_abi.h include/mft_abi.h \
     include/spt_abi.h include/solo5.h
