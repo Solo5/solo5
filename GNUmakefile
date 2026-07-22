@@ -21,9 +21,18 @@ $(TOPDIR)/Makeconf:
 	$(error Makeconf not found, please run ./configure.sh)
 include Makefile.common
 
-SUBDIRS := elftool tenders
+SUBDIRS := tenders
+ifndef CONFIG_DISABLE_ELFTOOL
+SUBDIRS += elftool
+endif
 ifndef CONFIG_DISABLE_TOOLCHAIN
-SUBDIRS += toolchain bindings tests
+SUBDIRS += toolchain bindings
+endif
+ifndef CONFIG_DISABLE_TOOLCHAIN
+ifndef CONFIG_DISABLE_ELFTOOL
+# The tests assume both are available for now
+SUBDIRS += tests
+endif
 endif
 
 bindings: toolchain
@@ -101,7 +110,9 @@ install-tools: MAKECMDGOALS :=
 install-tools: build
 	@echo INSTALL tools
 	mkdir -p $(D)/bin
+ifndef CONFIG_DISABLE_ELFTOOL
 	$(INSTALL) elftool/solo5-elftool $(D)/bin
+endif
 ifdef CONFIG_VIRTIO
 	$(INSTALL) scripts/virtio-mkimage/solo5-virtio-mkimage.sh \
 	    $(D)/bin/solo5-virtio-mkimage
