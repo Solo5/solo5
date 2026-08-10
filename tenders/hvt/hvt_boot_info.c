@@ -107,11 +107,11 @@ void hvt_boot_info_init(struct hvt *hvt, hvt_gpa_t gpa_kend, int cmdline_argc,
         if (ring_active) {
             bi->host_features |= HVT_FEATURE_RING_IO;
             bi->net_ring = hvb->net_ring_gpa;
-            /*
-             * Exclude the ring area from usable guest memory so the
-             * guest's heap allocator does not grow on it.
-             */
-            bi->mem_size = hvb->net_ring_gpa;
+            /* [hvt_net_reserve_ring] sets [guest_mem_size] (and,
+             * [bi->mem_size]) if we have a net device for our ringbuffer. We
+             * ensure here that the memory given to the unikernel does not
+             * include our ringbuffer. */
+            assert(bi->mem_size == hvb->net_ring_gpa);
         }
     }
 }
