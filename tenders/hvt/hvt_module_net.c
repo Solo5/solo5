@@ -64,32 +64,38 @@ static hvt_gpa_t reserved_ring_gpa;
 size_t hvt_net_mem_overhead(struct mft *mft)
 {
     for (unsigned i = 0; i != mft->entries; i++) {
-        if (mft->e[i].type == MFT_DEV_NET_BASIC && mft->e[i].attached)
-            return sizeof(struct hvt_ring);
+        if (mft->e[i].type == MFT_DEV_NET_BASIC && mft->e[i].attached) {
+            size_t overhead = sizeof(struct hvt_ring);
+            hvt_mem_size_roundup(&overhead);
+            return overhead;
+        }
     }
     return 0;
 }
 
 void hvt_net_reserve_ring(struct hvt *hvt, struct mft *mft)
 {
-    /* A ring is allocated only if there is at least one network interface
-     * listed in the manifest. The ring is then used by all interfaces. */
-    for (unsigned i = 0; i != mft->entries; i++) {
-        if (mft->e[i].type == MFT_DEV_NET_BASIC && mft->e[i].attached) {
-            size_t ring_size = sizeof(struct hvt_ring);
-            hvt_gpa_t gpa_ring = (hvt->guest_mem_size - ring_size) & ~0xFFFULL;
+    size_t reserve = hvt_net_mem_overhead(mft);
 
-            if (gpa_ring < 0x200000) {
-                warnx("Not enough guest memory for ring allocation");
-                return;
-            }
+    if (reserve == 0) /* no net devices */
+        return;
 
-            memset(hvt->mem + gpa_ring, 0, ring_size);
-            reserved_ring_gpa = gpa_ring;
-            hvt->guest_mem_size = gpa_ring;
-            return;
-        }
+    if (hvt->guest_mem_size < 2 * reserve) {
+        warnx("Not enough guest memory for ring allocation");
+        return;
     }
+
+    hvt_gpa_t gpa_ring = hvt->guest_mem_size - reserve;
+
+    /* NOTE(dinosaure): here, we set [reserved_ring_gpa] (see [setup]) and we
+     * reduce the [guest_mem_size] so that there is a shared memory area between
+     * the unikernel and the tender, which acts as the ring buffer for our
+     * network interfaces. [reserved] **must be** page-aligned (this is a
+     * prerequisite for [rumprun]).
+     */
+    memset(hvt->mem + gpa_ring, 0, sizeof(struct hvt_ring));
+    reserved_ring_gpa = gpa_ring;
+    hvt->guest_mem_size = gpa_ring;
 }
 
 static void hypercall_net_write(struct hvt *hvt, hvt_gpa_t gpa)

@@ -104,9 +104,10 @@ void hvt_net_reserve_ring(struct hvt *hvt, struct mft *mft);
 void hvt_mem_size_roundup(size_t *mem_size);
 
 /*
- * Returns the extra guest memory needed for the network ring buffer, or 0 if
- * no NET_BASIC device is attached in the manifest. Must be called after
- * command-line parsing has set the attached flags.
+ * Returns the extra guest memory needed for the network ring buffer, rounded
+ * up to the architecture page boundary, or 0 if no NET_BASIC device is
+ * attached in the manifest. The return value is roundup on the system page.
+ * Must be called after command-line parsing has set the attached flags.
  */
 size_t hvt_net_mem_overhead(struct mft *mft);
 
