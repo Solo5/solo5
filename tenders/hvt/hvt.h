@@ -206,16 +206,6 @@ struct hvt_module_ops {
     int (*setup)(struct hvt *hvt, struct mft *mft);
     int (*handle_cmdarg)(char *cmdarg, struct mft *mft);
     const char *(*usage)(void);
-#if defined(__linux__)
-    /*
-     * Add module-specific syscalls to the seccomp allowlist. Called from
-     * hvt_seccomp_apply() before the BPF filter is exported, so that
-     * debug-only modules (only linked into solo5-hvt-debug) don't widen
-     * the production filter. (ctx) is a scmp_filter_ctx; typed as void *
-     * here so hvt.h doesn't pull in <seccomp.h>.
-     */
-    void (*install_seccomp_rules)(void *ctx);
-#endif
 };
 
 struct hvt_module {
