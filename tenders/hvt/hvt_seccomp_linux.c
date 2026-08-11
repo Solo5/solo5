@@ -43,9 +43,6 @@
 
 #include "hvt.h"
 
-extern struct hvt_module __start_modules;
-extern struct hvt_module __stop_modules;
-
 static inline int _memfd_create(const char *name, unsigned int flags)
 {
     return syscall(__NR_memfd_create, name, flags);
@@ -60,9 +57,8 @@ void hvt_seccomp_apply(void)
     /*
      * Syscalls the run loop actually needs. Everything else gets SIGSYS.
      * No argument matching yet, per-fd checks would be a nice follow up.
-     * Modules add their own syscalls below via install_seccomp_rules, so
-     * debug-only modules (dumpcore, gdb) don't widen this binary's
-     * filter unless they're linked in.
+     * Only solo5-hvt reaches this: solo5-hvt-debug is built with
+     * HVT_DROP_PRIVILEGES=0, so gdb and dumpcore run unsandboxed.
      */
     static const int allow[] = {
         SCMP_SYS(ioctl), /* KVM_RUN on vcpufd */
@@ -90,11 +86,6 @@ void hvt_seccomp_apply(void)
         rc = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, allow[i], 0);
         if (rc != 0)
             errx(1, "seccomp_rule_add() failed: %s", strerror(-rc));
-    }
-
-    for (struct hvt_module *m = &__start_modules; m < &__stop_modules; m++) {
-        if (m->ops.install_seccomp_rules)
-            m->ops.install_seccomp_rules(ctx);
     }
 
     /* memfd install: clean libseccomp up before arming the filter. */
