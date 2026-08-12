@@ -1,3 +1,23 @@
+## v0.12.1 (2026-08-12)
+
+- roundup the memory for the ringbuffer to have the unikernel memory
+  page-aligned (#660 @dinosaure, fixes #659 by @pocopepe)
+- muen: update sinfo to 05, ABI version to 4 (#654 @reet-)
+- configure.sh: add "--disable-elftool" option (#657 @shym)
+- remove dead seccomp code (from hvt on linux) (#661 @pocopepe)
+- Makefile: install virtio support scripts only if virtio is enabled
+  (#655 @shym)
+- docs: fix broken links in architecture.md (#662 @danila-permogorskii)
+- Makefile: set SUBDIRS appropriately and use it (#655 @shym)
+- configure.sh: remove dead code, TARGET_CC is always initialised earlier
+  (#655 @shym)
+- configure.sh: fix parsing of `--prefix` when the path contains a '='
+  (#655 @shym)
+- configure.sh: replace "echo -n" with "printf" (#655 @shym)
+- CI: deduplicate runs (#655 @shym)
+- Remove travis.yml, remove build.sh and mentions of no-longer running surf
+  build CI (#651 #663 @hannesm)
+
 ## v0.12.0 (2026-07-02)
 
 - Fix `solo5-hvt-debug` and disable capabilities on this specific binary
