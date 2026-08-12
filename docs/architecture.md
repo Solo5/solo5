@@ -172,9 +172,5 @@ system (_target_)-specific modules from shared functionality where possible.
 However, it is acceptable to make minimal, judicious use of `#ifdef` where
 doing otherwise would result in excessive code duplication.
 
-Due to the need to run automated tests on bare metal, our CI system is a custom
-solution, the details of which can be found in a dedicated
-[repository](https://github.com/Solo5/solo5-ci). The scripts run by the CI
-system on every GitHub pull request can be found in [build.sh](../build.sh).
-Additional build and test coverage across supported host systems is provided by
+Build and test coverage across supported host systems is provided by
 GitHub Actions, configured in [.github/workflows](../.github/workflows).
