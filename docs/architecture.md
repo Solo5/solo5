@@ -6,7 +6,7 @@ library operating systems).
 
 Conceptually, if you think of a unikernel as a user process, albeit one that
 does more in "userspace", Solo5 re-defines the
-[interface](../include/solo5/solo5.h) between the process and its host
+[interface](../include/solo5.h) between the process and its host
 operating system or hypervisor in a way that is designed to:
 
 - be as "legacy-free" and "thin"(\*) as possible, thus having a _minimal attack
@@ -131,7 +131,7 @@ extract the binary manifest from a unikernel binary and display it as JSON.
 ## Public API, _Tenders_ and _Bindings_
 
 The _bindings_ implement the Solo5 public ("unikernel-facing") API defined in
-[include/solo5/solo5.h](include/solo5/solo5.h) for a particular _target_.
+[include/solo5.h](../include/solo5.h) for a particular _target_.
 
 The _hvt_ and _spt_ targets make use of a _tender_ which serves as a loader for
 the unikernel within the host OS, sets up access to host resources declared in
@@ -147,7 +147,7 @@ The main components of Solo5 are:
   build _bindings_ and unikernels.
 - [bindings/](../bindings/): the Solo5 _bindings_ to (implementation of) the
   unikernel-facing interface for the various supported targets, as defined in
-  [solo5.h](../include/solo5/solo5.h).
+  [solo5.h](../include/solo5.h).
 - [tenders/common/](../tenders/common): common code shared by _tender_
   implementations, notably including the ELF loader and _application manifest_
   validation routines. The latter is also indirectly included by the bindings
@@ -155,10 +155,10 @@ The main components of Solo5 are:
 - [tenders/hvt/](../tenders/hvt/): the _tender_ implementation for the _hvt_
   target, with tender-internal interfaces defined in
   [hvt.h](../tenders/hvt/hvt.h) and the internal "hypercall" ABI
-  to Solo5 defined in [hvt\_abi.h](../include/solo5/hvt_abi.h).
+  to Solo5 defined in [hvt\_abi.h](../include/hvt_abi.h).
 - [tenders/spt](../tenders/spt/): the _tender_ implementation for the _spt_
   target. Tender-internal interfaces are defined in [spt.h](../tenders/spt/spt.h)
-  and internal Solo5-facing ABIs in [spt\_abi.h](../include/solo5/spt_abi.h).
+  and internal Solo5-facing ABIs in [spt\_abi.h](../include/spt_abi.h).
 - [elftool/](../elftool): a tool for _application manifest_ generation and
   extracting information from Solo5 binaries.
 - [tests/](../tests/): self tests used as part of our CI system.
@@ -175,6 +175,6 @@ doing otherwise would result in excessive code duplication.
 Due to the need to run automated tests on bare metal, our CI system is a custom
 solution, the details of which can be found in a dedicated
 [repository](https://github.com/Solo5/solo5-ci). The scripts run by the CI
-system on every GitHub pull request can be found in [build.sh](../build.sh). We
-also use Travis CI as a "backup", with the corresponding configuration in
-[.travis.yml](../.travis.yml).
+system on every GitHub pull request can be found in [build.sh](../build.sh).
+Additional build and test coverage across supported host systems is provided by
+GitHub Actions, configured in [.github/workflows](../.github/workflows).
