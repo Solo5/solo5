@@ -18,7 +18,6 @@ If everything is ok:
 - `git tag vX.Y.Z`
 - Execute `./configure.sh` to generate `Makeconf`
 - Execute `make distrib`
-- Execute `./scripts/opam-release.sh`
 - Push the tag: `git push --tags`
 - On GitHub, you must create a new release which includes the
   `solo5-vX.Y.Z.tar.gz` artifact
