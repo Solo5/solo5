@@ -22,6 +22,7 @@
 #
 # Passes through to @@CONFIG_TARGET_OBJCOPY@ for actual work.
 #
+PATH="@@CONFIG_PATH_PREPEND@@$PATH"
 [ -n "${__V}" ] && set -x
 exec @@CONFIG_TARGET_OBJCOPY@@ \
     "$@"
