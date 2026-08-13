@@ -47,6 +47,7 @@ bin/$(CONFIG_TARGET_TRIPLE)-%: %.in | bin
 	    -e 's!@@CONFIG_TARGET_LD_LDFLAGS@@!$(CONFIG_TARGET_LD_LDFLAGS)!g' \
 	    -e 's!@@CONFIG_TARGET_LD_MAX_PAGE_SIZE@@!$(CONFIG_TARGET_LD_MAX_PAGE_SIZE)!g' \
 	    -e 's!@@CONFIG_TARGET_OBJCOPY@@!$(CONFIG_TARGET_OBJCOPY)!g' \
+	    -e 's!@@CONFIG_PATH_PREPEND@@!$(CONFIG_PATH_PREPEND)!g' \
 	    $< >$@
 	chmod +x $@
 
