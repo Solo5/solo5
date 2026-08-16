@@ -25,6 +25,7 @@ jobs:
             debian:trixie sh -c '
               apt-get update -qq
               DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \
-                gcc make libseccomp-dev pkg-config
+                gcc make libseccomp-dev pkg-config git
+              git config --global --add safe.directory /src
               ./configure.sh
               make'
