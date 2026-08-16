@@ -43,6 +43,8 @@
 #include "cpu_aarch64.h"
 #elif defined(__powerpc64__)
 #include "cpu_ppc64.h"
+#elif defined(__riscv) && (__riscv_xlen == 64)
+#include "cpu_riscv64.h"
 #else
 #error Unsupported architecture
 #endif

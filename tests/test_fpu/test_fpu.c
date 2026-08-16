@@ -75,6 +75,19 @@ int solo5_app_main(const struct solo5_start_info *si __attribute__((unused)))
     DOMUL(c[2]);
     DOMUL(c[3]);
 #undef DOMUL
+#elif defined(__riscv) && (__riscv_xlen == 64)
+#define DOMUL(VAR)                                                             \
+    __asm__("flw ft0, %0\n"                                                    \
+            "fmul.s ft0, ft0, ft0\n"                                           \
+            "fsw ft0, %0\n"                                                    \
+            : "=m"(VAR)                                                        \
+            : "m"(VAR)                                                         \
+            : "memory")
+    DOMUL(c[0]);
+    DOMUL(c[1]);
+    DOMUL(c[2]);
+    DOMUL(c[3]);
+#undef DOMUL
 #else
 #error Unsupported architecture
 #endif

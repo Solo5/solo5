@@ -246,6 +246,11 @@ void spt_run(struct spt *spt, uint64_t p_entry)
      * Stack alignment on PPC64 is 0x10, minimum stack frame size is 112 bytes.
      */
     uint64_t sp = spt->mem_size - 112;
+#elif defined(__riscv) && (__riscv_xlen == 64)
+    /*
+     * Stack alignment on RISC-V is 0x10, with no minimum frame size.
+     */
+    uint64_t sp = spt->mem_size - 0x10;
 #else
 #error Unsupported architecture
 #endif
