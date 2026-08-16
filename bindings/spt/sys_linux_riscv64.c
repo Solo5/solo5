@@ -121,10 +121,7 @@ long sys_clock_gettime(const long which, void *ts)
     register long a0 __asm__("a0") = which;
     register long a1 __asm__("a1") = (long)ts;
 
-    __asm__ __volatile__("ecall"
-                         : "+r"(a0)
-                         : "r"(a7), "r"(a1)
-                         : "memory");
+    __asm__ __volatile__("ecall" : "+r"(a0) : "r"(a7), "r"(a1) : "memory");
 
     return a0;
 }
