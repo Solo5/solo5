@@ -498,11 +498,12 @@ case ${CONFIG_HOST} in
         # which leads to linkers warning if it is enabled but the input section
         # is subsequently discarded.
         # The '-no-pie' exists because some Linux distributions
-        # (e.g. Alpine >= 3.23) package a GCC which passes '-pie' to ld even 
-        # when '-static' is present.
+        # (e.g. Alpine >= 3.23) package a GCC which passes '-pie' to ld even
+        # when '-static' is present. It is a driver flag, so it must stay
+        # outside the '-Wl,' list.
         TARGET_LD="${TARGET_LD:-ld}"
         TARGET_OBJCOPY="${TARGET_OBJCOPY:-objcopy}"
-        TARGET_CC_LDFLAGS="-Wl,--build-id=none,-no-pie"
+        TARGET_CC_LDFLAGS="-Wl,--build-id=none -no-pie"
         ;;
     FreeBSD)
         TARGET_LD="${TARGET_LD:-ld.lld}"
