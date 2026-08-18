@@ -109,6 +109,7 @@ static void usage(const char *prog)
     fprintf(stderr, "ARGS are optional arguments passed to the unikernel.\n");
     fprintf(stderr, "Core options:\n");
     fprintf(stderr, "  [ --mem=512 ] (guest memory in MB)\n");
+    fprintf(stderr, "  [ --no-net-ring ] (disable the net ring buffer)\n");
     fprintf(stderr, "    --help (display this help)\n");
     fprintf(stderr, "    --version (display version information)\n");
     fprintf(stderr, "Compiled-in modules: ");
@@ -228,7 +229,7 @@ int main(int argc, char **argv)
             argc--;
             argv++;
         }
-	if (strncmp("--no-net-ring", *argv, 13) == 0) {
+	if (strcmp("--no-net-ring", *argv) == 0) {
 	    no_net_ring = 1;
 	    matched = 1;
 	    argc--;
