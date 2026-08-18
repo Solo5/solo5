@@ -1,3 +1,8 @@
+## Unreleased
+
+- Add riscv64 support to the spt target, and a build-only CI job for it
+  (#668 @Zaneham)
+
 ## v0.12.1 (2026-08-12)
 
 - roundup the memory for the ringbuffer to have the unikernel memory

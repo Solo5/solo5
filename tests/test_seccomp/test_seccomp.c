@@ -54,6 +54,11 @@ int solo5_app_main(const struct solo5_start_info *si __attribute__((unused)))
     register long r3 __asm__("r3") = 0;
 
     __asm__ __volatile__("sc" : "=r"(r3) : "r"(r0), "r"(r3) : "cc", "memory");
+#elif defined(__riscv) && (__riscv_xlen == 64)
+    register long a7 __asm__("a7") = 23;
+    register long a0 __asm__("a0") = 1;
+
+    __asm__ __volatile__("ecall" : "+r"(a0) : "r"(a7) : "memory");
 #else
 #error Unsupported architecture
 #endif

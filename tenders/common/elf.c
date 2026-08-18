@@ -58,6 +58,9 @@
 #elif defined(__powerpc64__)
 #define EM_TARGET    EM_PPC64
 #define EM_PAGE_SIZE 0x10000
+#elif defined(__riscv) && (__riscv_xlen == 64)
+#define EM_TARGET    EM_RISCV
+#define EM_PAGE_SIZE 0x1000
 #else
 #error Unsupported target
 #endif

@@ -75,9 +75,9 @@ Experimental:
   for full W^X support.
 * _hvt_: DragonFly nvmm, using `solo5-hvt` as a _tender_, on the x86\_64
   architecture.  DragonFly 6.4 or later is recommended.
-* _spt_: Linux systems on the x86\_64, ppc64le and aarch64 architectures, using
-  `solo5-spt` as a _tender_. A Linux distribution with libseccomp >= 2.3.3 is
-  required.
+* _spt_: Linux systems on the x86\_64, ppc64le, aarch64 and riscv64
+  architectures, using `solo5-spt` as a _tender_. A Linux distribution with
+  libseccomp >= 2.3.3 is required, or >= 2.5.0 on riscv64.
 * _muen_: The [Muen Separation Kernel](https://muen.sk/), on the x86\_64
   architecture. Muen commit `f10bd6b` or later is required.
 

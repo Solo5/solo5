@@ -41,6 +41,9 @@ int solo5_app_main(const struct solo5_start_info *si __attribute__((unused)))
                        : "x0", "w1");
 #elif defined(__powerpc64__)
     __asm__ __volatile("ld 3,-28672(13)" : : : "r3", "r13");
+#elif defined(__riscv) && (__riscv_xlen == 64)
+    /* No gap above tp on RISC-V, the first thread variable is at tp. */
+    __asm__ __volatile("ld a0, 0(tp)" : : : "a0");
 #else
 #error Unsupported architecture
 #endif

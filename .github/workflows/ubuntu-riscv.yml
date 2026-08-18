@@ -1,0 +1,31 @@
+name: Ubuntu-riscv
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+jobs:
+  Build:
+    name: RISCV64
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Set up qemu
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: riscv64
+      # Build only. The tender itself runs fine under qemu-user, but it maps the
+      # guest at a fixed low address and jumps to it, which qemu-user will not
+      # give up, so every unikernel segfaults. Running the suite wants real
+      # hardware.
+      - name: Build
+        run: |
+          docker run --rm --platform linux/riscv64 -v "$PWD:/src" -w /src \
+            debian:trixie sh -c '
+              apt-get update -qq
+              DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \
+                gcc make libseccomp-dev pkg-config git
+              git config --global --add safe.directory /src
+              ./configure.sh
+              make'

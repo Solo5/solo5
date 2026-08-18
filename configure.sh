@@ -299,6 +299,10 @@ case ${HOST_CC_MACHINE} in
         CONFIG_HOST_ARCH=ppc64le CONFIG_HOST=Linux
         CONFIG_SPT_TENDER=1
         ;;
+    riscv64-*linux*)
+        CONFIG_HOST_ARCH=riscv64 CONFIG_HOST=Linux
+        CONFIG_SPT_TENDER=1
+        ;;
     x86_64-*freebsd*)
         CONFIG_HOST_ARCH=x86_64 CONFIG_HOST=FreeBSD
         CONFIG_HVT_TENDER=1
@@ -444,6 +448,11 @@ case ${TARGET_CC_MACHINE} in
     powerpc64le-*|ppc64le-*)
         TARGET_ARCH=ppc64le
         TARGET_LD_MAX_PAGE_SIZE=0x10000
+        CONFIG_SPT=1
+        ;;
+    riscv64-*)
+        TARGET_ARCH=riscv64
+        TARGET_LD_MAX_PAGE_SIZE=0x1000
         CONFIG_SPT=1
         ;;
     *)

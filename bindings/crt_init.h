@@ -26,6 +26,8 @@ extern uintptr_t SSP_GUARD_SYMBOL;
 #define READ_CPU_TICKS cpu_cntvct
 #elif defined(__powerpc64__)
 #define READ_CPU_TICKS cpu_cntvct
+#elif defined(__riscv) && (__riscv_xlen == 64)
+#define READ_CPU_TICKS cpu_cntvct
 #else
 #error Unsupported architecture
 #endif

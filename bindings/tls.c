@@ -47,6 +47,12 @@ struct tcb {
     void *pad;
 };
 
+#elif defined(__riscv) && (__riscv_xlen == 64)
+/* Variant I, but with no gap above tp, so the block starts at tp exactly */
+struct tcb {
+    void *tp;
+};
+
 #else
 #error Unsupported architecture
 #endif
@@ -65,6 +71,8 @@ uintptr_t solo5_tls_tp_offset(uintptr_t tls)
     tp = tls + LTDATA + LTBSS;
 #elif defined(__aarch64__)
     tp = tls;
+#elif defined(__riscv) && (__riscv_xlen == 64)
+    tp = tls + sizeof(struct tcb);
 #else
 #error Unsupported architecture
 #endif
@@ -77,7 +85,7 @@ uintptr_t _solo5_tls_data_offset(uintptr_t tls)
     uintptr_t data;
 #if defined(__x86_64__) || defined(__powerpc64__)
     data = tls;
-#elif defined(__aarch64__)
+#elif defined(__aarch64__) || (defined(__riscv) && (__riscv_xlen == 64))
     data = tls + sizeof(struct tcb);
 #else
 #error Unsupported architecture
@@ -91,9 +99,12 @@ solo5_result_t solo5_tls_init(uintptr_t tls)
     if ((void *)tls == NULL)
         return SOLO5_R_EINVAL;
 
-    /* set tp at its proper place in the TLS block */
+#if !(defined(__riscv) && (__riscv_xlen == 64))
+    /* Set tp at its proper place in the TLS block. Not on RISC-V, where the
+     * thread variables start at tp itself and this would land on live data. */
     uintptr_t *tmp = (uintptr_t *)solo5_tls_tp_offset(tls);
     *tmp = (uintptr_t)tmp;
+#endif
 
     /* copy the .tdata values */
     memcpy((void *)_solo5_tls_data_offset(tls), TDATA, LTDATA);

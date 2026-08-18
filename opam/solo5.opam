@@ -34,7 +34,7 @@ conflicts: [
   "solo5-bindings-xen"
 ]
 available: [
-  (arch = "x86_64" | arch = "arm64" | arch = "ppc64") &
+  (arch = "x86_64" | arch = "arm64" | arch = "ppc64" | arch = "riscv64") &
   (os = "linux" | os = "freebsd" | os = "openbsd" | os = "dragonfly")
 ]
 synopsis: "Solo5 sandboxed execution environment"

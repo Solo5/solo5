@@ -63,6 +63,9 @@ int platform_set_tls_base(uint64_t base)
 #elif defined(__powerpc64__)
     cpu_set_tls_base(base);
     return 0;
+#elif defined(__riscv) && (__riscv_xlen == 64)
+    cpu_set_tls_base(base);
+    return 0;
 #else
 #error Unsupported architecture
 #endif
