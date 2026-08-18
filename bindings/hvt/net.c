@@ -205,5 +205,7 @@ void net_init(const struct hvt_boot_info *bi)
 
     if ((bi->host_features & HVT_FEATURE_RING_IO) && bi->net_ring != 0) {
         net_ring = (struct hvt_ring *)(uintptr_t)bi->net_ring;
+	log(INFO, "Solo5:	net ring buffer @ (0x%llx - 0x%llx)\n",
+	    (unsigned long long)net_ring, (unsigned long long) net_ring + sizeof (struct hvt_ring)); 
     }
 }
