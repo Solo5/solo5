@@ -139,6 +139,7 @@ static void version(const char *prog)
 int main(int argc, char **argv)
 {
     size_t mem_size = 0x20000000;
+    int no_net_ring = 0;
     hvt_gpa_t gpa_ep, gpa_kend;
     const char *prog;
     const char *elf_filename;
@@ -227,6 +228,12 @@ int main(int argc, char **argv)
             argc--;
             argv++;
         }
+	if (strncmp("--no-net-ring", *argv, 13) == 0) {
+	    no_net_ring = 1;
+	    matched = 1;
+	    argc--;
+	    argv++;
+	}
         if (handle_cmdarg(*argv, mft) == 0) {
             /* Handled by module, consume and go on to next arg */
             matched = 1;
@@ -252,20 +259,13 @@ int main(int argc, char **argv)
         err(1, "Could not install signal handler");
 
     hvt_mem_size(&mem_size);
-
-    size_t net_overhead = hvt_net_mem_overhead(mft);
-    if (net_overhead > 0) {
-        mem_size += net_overhead;
-        hvt_mem_size_roundup(&mem_size);
-    }
-
     struct hvt *hvt = hvt_init(mem_size);
 
     elf_load(elf_fd, elf_filename, hvt->mem, hvt->guest_mem_size,
              HVT_GUEST_MIN_BASE, hvt_guest_mprotect, hvt, &gpa_ep, &gpa_kend);
     close(elf_fd); /* Done with ELF binary */
 
-    hvt_net_reserve_ring(hvt, mft);
+    if (no_net_ring == 0) hvt_net_reserve_ring(hvt, mft);
     hvt_vcpu_init(hvt, gpa_ep);
 
     setup_modules(hvt, mft);
