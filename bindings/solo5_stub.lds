@@ -91,10 +91,6 @@ SECTIONS {
         *(.rodata)
         *(.rodata.*)
     } :text
-    .eh_frame :
-    {
-        *(.eh_frame)
-    }
 
     . = ALIGN(CONSTANT(MAXPAGESIZE));
     _erodata = .;
@@ -152,6 +148,10 @@ SECTIONS {
        toolchain might generate to prevent any surprises in the final layout. */
     /DISCARD/ : {
         *(.note.gnu.*)
+        /* Nothing in a unikernel unwinds through DWARF; drop the unused
+           .eh_frame tables instead of mapping ~0.5 MiB into every image. */
+        *(.eh_frame)
+        *(.eh_frame_hdr)
     }
 
     _ltdata = SIZEOF(.tdata);
