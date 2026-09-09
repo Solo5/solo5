@@ -4,6 +4,10 @@ on:
     branches:
       - main
   pull_request:
+
+# Restrict the GITHUB_TOKEN
+permissions: {}
+
 jobs:
   formatting-check:
     name: Formatting Check
@@ -17,7 +21,7 @@ jobs:
           - 'tenders'
           - 'elftool'
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
     - name: Run clang-format style check for Solo5.
       uses: jidicula/clang-format-action@v4.16.0
       with:

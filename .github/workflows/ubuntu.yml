@@ -4,6 +4,10 @@ on:
     branches:
       - main
   pull_request:
+
+# Restrict the GITHUB_TOKEN
+permissions: {}
+
 jobs:
   Build:
     name: AMD64
@@ -16,7 +20,7 @@ jobs:
       CC: ${{ matrix.cc }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Install dependencies
         run: |
           sudo apt-get install -y libseccomp-dev pkg-config ${{ matrix.cc }}

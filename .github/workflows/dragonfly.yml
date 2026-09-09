@@ -4,6 +4,10 @@ on:
     branches:
       - main
   pull_request:
+
+# Restrict the GITHUB_TOKEN
+permissions: {}
+
 jobs:
   Build:
     name: AMD64
@@ -13,7 +17,7 @@ jobs:
     runs-on: ${{ matrix.operating-system }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: DragonFly action
         id: test
         uses: vmactions/dragonflybsd-vm@v1
