@@ -59,8 +59,63 @@ cc_get_header_deps()
     )
 }
 
-[ "$#" -ne 1 ] && die "Missing DESTDIR"
+# To interrogate the C preprocessor to know which compiler it is (GCC or clang)
+# and get other information depending on which one it is so that we can check on
+# every uses of the Solo5 toolchain that our assumptions on the C compiler don't
+# break
+# For GCC, we'll want to make sure that the full version is checked, but changes
+# of minor version will be a warning only
+# For Clang, we'll check only the major number, and FreeBSD's version on that OS
+cpp_test='#ifdef __clang__
+clang
+clang_major __clang_major__
+#ifdef __FreeBSD__
+FreeBSD __FreeBSD__
+#endif
+#else
+gcc
+GNUC __GNUC__
+GNUC_MINOR __GNUC_MINOR__
+GNUC_PATCHLEVEL __GNUC_PATCHLEVEL__
+#endif
+'
+
+cpp_message='"This Solo5 toolchain expects another C compiler version:\\
+ reinstall the opam %s package."'
+
+gen_compiler_version_check()
+{
+    PACKAGE=$1
+    read compiler
+    case "$compiler" in
+        clang)
+            printf '#if !defined(__clang__)'
+            while read key val; do
+                printf ' || __%s__ != %s' "$key" "$val"
+            done
+            printf '\n#error '"$cpp_message"'\n#endif\n' "$PACKAGE"
+            ;;
+        gcc)
+            printf '#if defined(__clang__)'
+            read key val
+            printf ' || __%s__ != %s' "$key" "$val"
+            printf '\n#error '"$cpp_message"'\n#elif' "$PACKAGE"
+            sep=' '
+            while read key val; do
+                printf '%s__%s__ != %s' "$sep" "$key" "$val"
+                sep=' || '
+            done
+            printf '\n#warning '"$cpp_message"'\n#endif\n' "$PACKAGE"
+            ;;
+        *)
+            die "Impossible to identify the compiler: $compiler"
+            ;;
+    esac
+}
+
+[ "$#" -ne 2 ] && die "Usage $0 <DESTDIR> <PACKAGE>"
 DESTDIR=$1
+PACKAGE=$2
 . ../Makeconf.sh || die "Can't find ../Makeconf.sh"
 
 mkdir -p ${DESTDIR} || die "mkdir failed"
@@ -101,5 +156,8 @@ else
     cp -R "${SRCDIR}/." ${DESTDIR} || \
         die "Failure copying host headers"
 fi
+
+printf %s "$cpp_test" | ${CONFIG_TARGET_CC} -E -P -x c - | sed '/^$/d' | \
+  gen_compiler_version_check "${PACKAGE}" > "${DESTDIR}/solo5-compiler-check.h"
 
 cleanup
