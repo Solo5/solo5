@@ -58,7 +58,7 @@ include/solo5: | include
 
 include/$(CONFIG_TARGET_TRIPLE): | include
 	@echo "GEN $@"
-	./gen-headers.sh $@
+	./gen-headers.sh $@ $(CONFIG_PACKAGE)
 
 lib:
 	mkdir -p $@
