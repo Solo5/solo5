@@ -96,7 +96,7 @@ static void handle_mem(char *cmdarg, size_t *mem_size)
 static void usage(const char *prog)
 {
     fprintf(stderr,
-            "usage: %s [ CORE OPTIONS ] [ -- ] "
+            "usage: %s [ CORE OPTIONS ] [ MODULE OPTIONS ] [ -- ] "
             "KERNEL [ ARGS ]\n",
             prog);
     fprintf(stderr, "KERNEL is the filename of the unikernel to run.\n");
@@ -104,6 +104,7 @@ static void usage(const char *prog)
     fprintf(stderr, "Core options:\n");
     fprintf(stderr, "  [ --mem=512 ] (guest memory in MB)\n");
     fprintf(stderr, "    --help (display this help)\n");
+    fprintf(stderr, "    --version (display version information)\n");
     fprintf(stderr, "Compiled-in modules: ");
     for (struct spt_module *m = &__start_modules; m < &__stop_modules; m++) {
         fprintf(stderr, "%s ", m->name);
