@@ -17,7 +17,8 @@ jobs:
         cc: [gcc, clang]
     runs-on: ${{ matrix.operating-system }}
     env:
-      CC: ${{ matrix.cc }}
+      HOST_CC: ${{ matrix.cc }}
+      TARGET_CC: ${{ matrix.cc }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -26,7 +27,7 @@ jobs:
           sudo apt-get install -y libseccomp-dev pkg-config ${{ matrix.cc }}
       - name: Build
         run: |
-          ${CC} --version
+          ${TARGET_CC} --version
           ./configure.sh
           make
       - name: Enable KVM group perms
