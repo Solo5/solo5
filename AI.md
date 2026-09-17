@@ -12,7 +12,7 @@ a direct counterpart, with entirely human-produced content.
    It is strongly recommended that you review a proposed contribution in full
    even if you wrote all of it.
 
-3. If a significant portion of your code, PR description, review comments or
+3. If your code, PR description, review comments or
    messages has been AI-generated, this must be disclosed, stating which tool
    was used and for what.  Reviewing AI-produced code can require a different
    approach from human-written code.  You should have an acknowledgement
