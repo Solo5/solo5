@@ -513,6 +513,9 @@ case ${CONFIG_HOST} in
         TARGET_LD="${TARGET_LD:-ld}"
         TARGET_OBJCOPY="${TARGET_OBJCOPY:-objcopy}"
         TARGET_CC_LDFLAGS="-Wl,--build-id=none -no-pie"
+        if CC="${TARGET_CC}" cc_is_clang && ! LD="${TARGET_LD}" ld_is_lld; then
+          TARGET_CC_LDFLAGS="${TARGET_CC_LDFLAGS} -Wl,--orphan-handling=warn"
+        fi
         ;;
     FreeBSD)
         TARGET_LD="${TARGET_LD:-ld.lld}"
