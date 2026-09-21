@@ -1,5 +1,11 @@
+/* SPDX-License-Identifier: ISC
+ * Copyright (c) 2015-2026 Contributors as noted in the AUTHORS file */
+
+/* This file is generated, do not edit!
+   Edit its source, solo5.lds, instead */
+
 /*
- * Copyright (c) 2015-2020 Contributors as noted in the AUTHORS file
+ * Copyright (c) 2015-2026 Contributors as noted in the AUTHORS file
  *
  * This file is part of Solo5, a sandboxed execution environment.
  *
@@ -17,18 +23,15 @@
  * NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
-
 /*
- * This is the custom linker script for the Solo5 'xen' target.
+ * This is the custom linker script for the Solo5 targets.
  *
  * The script is tested to work with a minimal set of input sections. If there
  * are unexpected input sections not named here, the result will probably not be
  * correct.
  */
 TEXT_START = 0x100000;
-
 ENTRY(_start)
-
 /*
  * Program headers: In order to force the linker to place each of our NOTEs
  * into a separate PT_NOTE header, we need to lay these out explicitly.
@@ -46,33 +49,28 @@ PHDRS {
     note.abi PT_NOTE;
     note.manifest PT_NOTE;
 }
-
 /*
  * Output sections.
  */
 SECTIONS {
     . = TEXT_START; /* No + SIZEOF_HEADERS */
-
     /*
-     * :text: The following input sections are placed in the R/E :text segment.
+     * :text: The following input sections are placed in the :text segment.
      */
     _stext = .;
-
     .text :
     {
         *(.data.multiboot)
         *(.text)
         *(.text.*)
     } :text
-
     .interp : {
         *(.interp)
     } :interp :text
-
     . = ALIGN(CONSTANT(MAXPAGESIZE));
     _etext = .;
-
     /* Read-only data */
+/* For Virtio and Xen, define a fake SOLO5_NOTE_SEGMENT for now */
     .rodata :
     {
         *(.rodata)
@@ -82,16 +80,13 @@ SECTIONS {
     {
         *(.eh_frame)
     }
-
     . = ALIGN(CONSTANT(MAXPAGESIZE));
     _erodata = .;
-
     /*
      * :data: The following input sections are placed in the R/W :data segment.
      */
-
-    /* For Xen, the ABI and MFT NOTEs must be in an R/W segment, as they may
-     * be modified in-place by the bindings. */
+    /* For Virtio and Xen, the ABI and MFT NOTEs must be in an R/W segment, as
+     * they may be modified in-place by the bindings. */
     .note.solo5.manifest :
     {
         *(.note.solo5.manifest*)
@@ -108,7 +103,6 @@ SECTIONS {
     {
         *(.note.solo5.xen*)
     } :data :note.xen
-
     /* Read-write data (initialized) */
     .got :
     {
@@ -120,7 +114,6 @@ SECTIONS {
         *(.data)
         *(.data.*)
     }
-
     . = ALIGN(CONSTANT(MAXPAGESIZE));
     /*
      * tdata and tbss have to be side by side to help the linker calculate the
@@ -132,13 +125,11 @@ SECTIONS {
         *(.tdata)
         . = ALIGN(CONSTANT(MAXPAGESIZE));
     } :tdata
-
     /*
      * _edata is the address of the end of the area to be copied with multiboot
      * (virtio and xen)
      */
     _edata = .;
-
     /* Read-write data (uninitialized) */
     .tbss :
     {
@@ -149,17 +140,14 @@ SECTIONS {
         *(.bss)
         *(COMMON)
     } :bss
-
     . = ALIGN(CONSTANT(MAXPAGESIZE));
     _ebss = .;
     _end = .;
-
     /* We are not building a GNU executable, so discard any default NOTEs the
        toolchain might generate to prevent any surprises in the final layout. */
     /DISCARD/ : {
         *(.note.gnu.*)
     }
-
     _ltdata = _edata - _stdata;
     _ltbss = SIZEOF(.tbss);
 }

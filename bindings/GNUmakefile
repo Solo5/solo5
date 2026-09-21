@@ -105,12 +105,25 @@ define LINK.bindings
 	    $@ $@
 endef
 
+define CPP.lds
+	@echo "CPP $@"
+	{ printf '/* SPDX-License-Identifier: ISC\n * Copyright (c) ' ; \
+	  printf '2015-2026 Contributors as noted in the AUTHORS file */\n' ; \
+	  printf '\n/* This file is generated, do not edit!\n' ; \
+	  printf '   Edit its source, $<, instead */\n\n' ; \
+	  $(HOSTCC) -C -E -P -undef -D SOLO5_$(ABI) -x c $< ; } > $@
+endef
+
 stub_OBJS := $(patsubst %.c,%.o,$(patsubst %.S,%.o,$(stub_SRCS)))
 
 solo5_stub.o: $(stub_OBJS)
 	$(LINK.bindings)
 
-all_TARGETS += solo5_stub.o
+solo5_stub.lds: ABI=STUB
+solo5_stub.lds: solo5.lds
+	$(CPP.lds)
+
+all_TARGETS += solo5_stub.o solo5_stub.lds
 all_OBJS += $(stub_OBJS)
 all_SRCS += $(stub_SRCS)
 
@@ -120,7 +133,11 @@ ifdef CONFIG_HVT
 solo5_hvt.o: $(hvt_OBJS)
 	$(LINK.bindings)
 
-    all_TARGETS += solo5_hvt.o
+solo5_hvt.lds: ABI=HVT
+solo5_hvt.lds: solo5.lds
+	$(CPP.lds)
+
+    all_TARGETS += solo5_hvt.o solo5_hvt.lds
     all_OBJS += $(hvt_OBJS)
     all_SRCS += $(hvt_SRCS)
 endif
@@ -131,7 +148,11 @@ ifdef CONFIG_SPT
 solo5_spt.o: $(spt_OBJS)
 	$(LINK.bindings)
 
-    all_TARGETS += solo5_spt.o
+solo5_spt.lds: ABI=SPT
+solo5_spt.lds: solo5.lds
+	$(CPP.lds)
+
+    all_TARGETS += solo5_spt.o solo5_spt.lds
     all_OBJS += $(spt_OBJS)
     all_SRCS += $(spt_SRCS)
 endif
@@ -142,7 +163,11 @@ ifdef CONFIG_VIRTIO
 solo5_virtio.o: $(virtio_OBJS)
 	$(LINK.bindings)
 
-    all_TARGETS += solo5_virtio.o
+solo5_virtio.lds: ABI=VIRTIO
+solo5_virtio.lds: solo5.lds
+	$(CPP.lds)
+
+    all_TARGETS += solo5_virtio.o solo5_virtio.lds
     all_OBJS += $(virtio_OBJS)
     all_SRCS += $(virtio_SRCS)
 endif
@@ -153,7 +178,11 @@ ifdef CONFIG_MUEN
 solo5_muen.o: $(muen_OBJS)
 	$(LINK.bindings)
 
-    all_TARGETS += solo5_muen.o
+solo5_muen.lds: ABI=MUEN
+solo5_muen.lds: solo5.lds
+	$(CPP.lds)
+
+    all_TARGETS += solo5_muen.o solo5_muen.lds
     all_OBJS += $(muen_OBJS)
     all_SRCS += $(muen_SRCS)
 endif
@@ -164,7 +193,11 @@ ifdef CONFIG_XEN
 solo5_xen.o: $(xen_OBJS)
 	$(LINK.bindings)
 
-    all_TARGETS += solo5_xen.o
+solo5_xen.lds: ABI=XEN
+solo5_xen.lds: solo5.lds
+	$(CPP.lds)
+
+    all_TARGETS += solo5_xen.o solo5_xen.lds
     all_OBJS += $(xen_OBJS)
     all_SRCS += $(xen_SRCS)
 

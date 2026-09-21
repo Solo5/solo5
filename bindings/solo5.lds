@@ -1,9 +1,3 @@
-/* SPDX-License-Identifier: ISC
- * Copyright (c) 2015-2026 Contributors as noted in the AUTHORS file */
-
-/* This file is generated, do not edit!
-   Edit its source, solo5.lds, instead */
-
 /*
  * Copyright (c) 2015-2026 Contributors as noted in the AUTHORS file
  *
@@ -23,6 +17,7 @@
  * NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
+
 /*
  * This is the custom linker script for the Solo5 targets.
  *
@@ -30,73 +25,172 @@
  * are unexpected input sections not named here, the result will probably not be
  * correct.
  */
+#if defined(SOLO5_STUB) || defined(SOLO5_SPT) || defined(SOLO5_HVT) \
+  || defined(SOLO5_VIRTIO) || defined(SOLO5_XEN)
+TEXT_START = 0x100000;
+#elif defined(SOLO5_MUEN)
 TEXT_START = 0x200000;
+#endif
+
 ENTRY(_start)
+
 /*
  * Program headers: In order to force the linker to place each of our NOTEs
  * into a separate PT_NOTE header, we need to lay these out explicitly.
  */
 PHDRS {
     interp PT_INTERP;
+#if defined(SOLO5_STUB) || defined(SOLO5_SPT) || defined(SOLO5_MUEN) \
+  || defined(SOLO5_VIRTIO) || defined(SOLO5_XEN)
     text PT_LOAD FLAGS(5); /* No FILEHDR or PHDRS, force R/E only.
                               FLAGS values come from PF_x in elf.h */
+#elif defined(SOLO5_HVT)
+    text PT_LOAD FLAGS(1); /* No FILEHDR or PHDRS, force E only.
+                              FLAGS values come from PF_x in elf.h */
+#endif
+#if defined(SOLO5_HVT) || defined(SOLO5_SPT)
+    rodata PT_LOAD FLAGS(4);
+#elif defined(SOLO5_MUEN)
     rodata PT_LOAD;
+#endif
+
+#if defined(SOLO5_SPT)
+    data PT_LOAD FLAGS(6);
+#else
     data PT_LOAD;
+#endif
+
     tdata PT_LOAD FLAGS(4); /* RO: this have to be copied into each thread */
     tbss PT_TLS FLAGS(0); /* no perm needed */
+#if defined(SOLO5_STUB) || defined(SOLO5_VIRTIO) || defined(SOLO5_XEN)
+    bss PT_LOAD FLAGS(0);
+#elif defined(SOLO5_SPT)
+    bss PT_LOAD FLAGS(6);
+#else
     bss PT_LOAD;
+#endif
     note.not_openbsd PT_NOTE; /* Must come first. */
+#if defined(SOLO5_XEN)
+    note.xen PT_NOTE;
+#endif
     note.abi PT_NOTE;
     note.manifest PT_NOTE;
 }
+
 /*
  * Output sections.
  */
 SECTIONS {
     . = TEXT_START; /* No + SIZEOF_HEADERS */
+
     /*
      * :text: The following input sections are placed in the :text segment.
      */
     _stext = .;
+
+#if !defined(SOLO5_XEN)
     .interp : {
         *(.interp)
     } :interp :text
+#endif
+
     .text :
     {
+#if defined(SOLO5_VIRTIO) || defined(SOLO5_XEN)
+        *(.data.multiboot)
+#endif
         *(.text)
         *(.text.*)
     } :text
+
+#if defined(SOLO5_XEN)
+    .interp : {
+        *(.interp)
+    } :interp :text
+#endif
+
     . = ALIGN(CONSTANT(MAXPAGESIZE));
     _etext = .;
+
     /* Read-only data */
+
+#if defined(SOLO5_STUB)
+#define SOLO5_NOTE_SEGMENT :text
+    /* For Stub, the ABI and MFT NOTEs are read-only and can be in :text. */
+#elif defined(SOLO5_HVT) || defined(SOLO5_SPT) || defined(SOLO5_MUEN)
+#define SOLO5_NOTE_SEGMENT :rodata
     /* For Hvt, Spt and Muen, the ABI and MFT NOTEs are read-only and can be in
      * :rodata. */
+#elif defined(SOLO5_VIRTIO) || defined(SOLO5_XEN)
+/* For Virtio and Xen, define a fake SOLO5_NOTE_SEGMENT for now */
+#define SOLO5_NOTE_SEGMENT
+#endif
+#if defined(SOLO5_STUB) || defined(SOLO5_HVT) || defined(SOLO5_SPT) \
+  || defined(SOLO5_MUEN)
     .note.solo5.manifest :
     {
         *(.note.solo5.manifest*)
-    } :rodata :note.manifest
+    } SOLO5_NOTE_SEGMENT :note.manifest
     .note.solo5.abi :
     {
         *(.note.solo5.abi*)
-    } :rodata :note.abi
+    } SOLO5_NOTE_SEGMENT :note.abi
     .note.solo5.not_openbsd :
     {
         *(.note.solo5.not_openbsd*)
-    } :rodata :note.not_openbsd
+    } SOLO5_NOTE_SEGMENT :note.not_openbsd
+#endif
+
     .rodata :
     {
         *(.rodata)
         *(.rodata.*)
-    } :rodata
+    } SOLO5_NOTE_SEGMENT
+#if defined(SOLO5_SPT)
+    .eh_frame_hdr :
+    {
+        *(.eh_frame_hdr)
+    } SOLO5_NOTE_SEGMENT
+#endif
     .eh_frame :
     {
         *(.eh_frame)
+#if defined(SOLO5_SPT)
+    } SOLO5_NOTE_SEGMENT
+#else
     }
+#endif
+
     . = ALIGN(CONSTANT(MAXPAGESIZE));
     _erodata = .;
+
     /*
      * :data: The following input sections are placed in the R/W :data segment.
      */
+
+#if defined(SOLO5_VIRTIO) || defined(SOLO5_XEN)
+    /* For Virtio and Xen, the ABI and MFT NOTEs must be in an R/W segment, as
+     * they may be modified in-place by the bindings. */
+    .note.solo5.manifest :
+    {
+        *(.note.solo5.manifest*)
+    } :data :note.manifest
+    .note.solo5.abi :
+    {
+        *(.note.solo5.abi*)
+    } :data :note.abi
+    .note.solo5.not_openbsd :
+    {
+        *(.note.solo5.not_openbsd*)
+    } :data :note.not_openbsd
+#endif
+#if defined(SOLO5_XEN)
+    .note.solo5.xen :
+    {
+        *(.note.solo5.xen*)
+    } :data :note.xen
+#endif
+
     /* Read-write data (initialized) */
     .got :
     {
@@ -108,6 +202,7 @@ SECTIONS {
         *(.data)
         *(.data.*)
     }
+
     . = ALIGN(CONSTANT(MAXPAGESIZE));
     /*
      * tdata and tbss have to be side by side to help the linker calculate the
@@ -119,11 +214,13 @@ SECTIONS {
         *(.tdata)
         . = ALIGN(CONSTANT(MAXPAGESIZE));
     } :tdata
+
     /*
      * _edata is the address of the end of the area to be copied with multiboot
      * (virtio and xen)
      */
     _edata = .;
+
     /* Read-write data (uninitialized) */
     .tbss :
     {
@@ -134,14 +231,22 @@ SECTIONS {
         *(.bss)
         *(COMMON)
     } :bss
+
     . = ALIGN(CONSTANT(MAXPAGESIZE));
     _ebss = .;
     _end = .;
+
     /* We are not building a GNU executable, so discard any default NOTEs the
        toolchain might generate to prevent any surprises in the final layout. */
     /DISCARD/ : {
         *(.note.gnu.*)
     }
+
+#if defined(SOLO5_SPT) || defined(SOLO5_HVT) || defined(SOLO5_VIRTIO) \
+  || defined(SOLO5_XEN)
+    _ltdata = _edata - _stdata;
+#elif defined(SOLO5_STUB) || defined(SOLO5_MUEN)
     _ltdata = SIZEOF(.tdata);
+#endif
     _ltbss = SIZEOF(.tbss);
 }
