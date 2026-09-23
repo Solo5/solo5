@@ -59,7 +59,33 @@ cc_get_header_deps()
     )
 }
 
-[ "$#" -ne 1 ] && die "Missing DESTDIR"
+# To interrogate the C preprocessor to know which compiler it is (GCC or clang)
+# and its major version number so that the following header_template can be
+# filled in with the proper strings and value (they appear in the same order
+# than the %s in the header_template)
+cpp_test='#ifdef __clang__
+!defined clang_major __clang_major__
+#else
+defined GNUC __GNUC__
+#endif
+'
+
+header_template='#if %s(__clang__) || __%s__ != %s
+#error "This Solo5 toolchain expects another C compiler version:\\
+ reinstall the opam solo5 package."
+#endif
+'
+
+gen_compiler_version_check()
+{
+    read def key ver
+    # def is either '!defined' (for Clang) or 'defined' (for GCC)
+    # key is either 'clang_major' or 'GNUC'
+    # ver is the major version number of the compiler
+    printf "$header_template" "$def" "$key" "$ver"
+}
+
+[ "$#" -ne 1 ] && die "Usage $0 <DESTDIR>"
 DESTDIR=$1
 . ../Makeconf.sh || die "Can't find ../Makeconf.sh"
 
@@ -101,5 +127,8 @@ else
     cp -R "${SRCDIR}/." ${DESTDIR} || \
         die "Failure copying host headers"
 fi
+
+printf %s "$cpp_test" | ${CONFIG_TARGET_CC} -E -P -x c - | sed '/^$/d' | \
+  gen_compiler_version_check > "${DESTDIR}/solo5-compiler-check.h"
 
 cleanup
