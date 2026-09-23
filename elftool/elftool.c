@@ -116,11 +116,11 @@ static void usage(const char *prog)
 
 static void valid_dev_name(const char *data, const char *source, size_t line)
 {
-  if (strlen(data) > MFT_NAME_MAX)
-    errx(1, "%s:%zu name too long: %s", source, line, data);
-  for (const char *p = data; *p; p++)
-    if (!isalnum((unsigned char)*p))
-      errx(1, "%s:%zu name %s is not alphanumeric", source, line, data);
+    if (strlen(data) > MFT_NAME_MAX)
+        errx(1, "%s:%zu name too long: %s", source, line, data);
+    for (const char *p = data; *p; p++)
+        if (!isalnum((unsigned char)*p))
+            errx(1, "%s:%zu name %s is not alphanumeric", source, line, data);
 }
 
 static int elftool_gen_mft(const char *source, const char *output)
