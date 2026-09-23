@@ -10,7 +10,7 @@ bug-reports: "https://github.com/solo5/solo5/issues"
 license: "ISC"
 dev-repo: "git+https://github.com/solo5/solo5.git"
 build: [
-  ["./configure.sh" "--prefix=%{prefix}%"]
+  ["./configure.sh" "--prefix=%{prefix}%" "--package=%{name}%"]
   [make "V=1"]
 ]
 install: [make "V=1" "install"]

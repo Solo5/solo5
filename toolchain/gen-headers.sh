@@ -72,21 +72,23 @@ defined GNUC __GNUC__
 
 header_template='#if %s(__clang__) || __%s__ != %s
 #error "This Solo5 toolchain expects another C compiler version:\\
- reinstall the opam solo5 package."
+ reinstall the opam %s package."
 #endif
 '
 
 gen_compiler_version_check()
 {
+    PACKAGE=$1
     read def key ver
     # def is either '!defined' (for Clang) or 'defined' (for GCC)
     # key is either 'clang_major' or 'GNUC'
     # ver is the major version number of the compiler
-    printf "$header_template" "$def" "$key" "$ver"
+    printf "$header_template" "$def" "$key" "$ver" "$PACKAGE"
 }
 
-[ "$#" -ne 1 ] && die "Usage $0 <DESTDIR>"
+[ "$#" -ne 2 ] && die "Usage $0 <DESTDIR> <PACKAGE>"
 DESTDIR=$1
+PACKAGE=$2
 . ../Makeconf.sh || die "Can't find ../Makeconf.sh"
 
 mkdir -p ${DESTDIR} || die "mkdir failed"
@@ -129,6 +131,6 @@ else
 fi
 
 printf %s "$cpp_test" | ${CONFIG_TARGET_CC} -E -P -x c - | sed '/^$/d' | \
-  gen_compiler_version_check > "${DESTDIR}/solo5-compiler-check.h"
+  gen_compiler_version_check "${PACKAGE}" > "${DESTDIR}/solo5-compiler-check.h"
 
 cleanup
