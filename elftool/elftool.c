@@ -216,6 +216,18 @@ static int elftool_gen_mft(const char *source, const char *output)
     return EXIT_SUCCESS;
 }
 
+static bool valid_json_string(const char *data)
+{
+  for (uint i = 0; i < strlen(data); i++) {
+    if (data[i] != 0x2d && data[i] != 0x2e &&
+        !(data[i] >= 0x30 && data[i] <= 0x5a) &&
+        !(data[i] >= 0x61 && data[i] <= 0x7a)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 static int elftool_query_mft(const char *binary)
 {
     int bin_fd = open(binary, O_RDONLY);
@@ -248,7 +260,10 @@ static int elftool_query_mft(const char *binary)
     for (unsigned i = 0; i != mft->entries; i++) {
         if (mft->e[i].type >= MFT_RESERVED_FIRST)
             continue;
-
+        if (!valid_json_string(mft->e[i].name)) {
+          warnx("%s: Invalid device name", mft->e[i].name);
+          return EXIT_FAILURE;
+        }
         printf("    { \"name\": \"%s\", \"type\": \"%s\" }%s\n", mft->e[i].name,
                mft_type_to_string(mft->e[i].type),
                (i == (mft->entries - 1) ? "" : ","));
