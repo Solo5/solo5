@@ -462,7 +462,7 @@ static void gdb_handle_exception(struct hvt *hvt, int sigval)
 
             if ((addr > hvt->guest_mem_size) ||
                 add_overflow(addr, len, result) ||
-                (result > hvt->guest_mem_size)) {
+                (result > hvt->guest_mem_size) || (len > BUFMAX / 2)) {
                 /* Don't panic about this, just return error so the debugger
                  * tries again. */
                 send_error_msg();
