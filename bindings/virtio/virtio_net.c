@@ -324,6 +324,7 @@ static uint8_t *virtio_net_recv_pkt_get(struct virtio_net_desc *nd,
     virtio_rmb();
     e = &(nd->recvq.used->ring[nd->recvq.last_used & mask]);
     desc_idx = e->id;
+    assert(e->len >= sizeof(struct virtio_net_hdr));
 
     buf = (struct io_buffer *)nd->recvq.desc[desc_idx].addr;
     buf->len = e->len;
