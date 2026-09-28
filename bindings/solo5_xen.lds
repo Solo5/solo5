@@ -71,7 +71,6 @@ SECTIONS {
     . = ALIGN(CONSTANT(MAXPAGESIZE));
     _etext = .;
     /* Read-only data */
-/* For Virtio and Xen, define a fake SOLO5_NOTE_SEGMENT for now */
     .rodata :
     {
         *(.rodata)

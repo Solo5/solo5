@@ -69,19 +69,20 @@ SECTIONS {
     . = ALIGN(CONSTANT(MAXPAGESIZE));
     _etext = .;
     /* Read-only data */
-    /* For Stub, the ABI and MFT NOTEs are read-only and can be in :text. */
+    /* For Hvt, Spt and Muen, the ABI and MFT NOTEs are read-only and can be in
+     * :rodata. */
     .note.solo5.manifest :
     {
         *(.note.solo5.manifest*)
-    } :text :note.manifest
+    } :rodata :note.manifest
     .note.solo5.abi :
     {
         *(.note.solo5.abi*)
-    } :text :note.abi
+    } :rodata :note.abi
     .note.solo5.not_openbsd :
     {
         *(.note.solo5.not_openbsd*)
-    } :text :note.not_openbsd
+    } :rodata :note.not_openbsd
     .rodata :
     {
         *(.rodata)
