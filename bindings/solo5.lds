@@ -99,31 +99,22 @@ SECTIONS {
 
     /* Read-only data */
 
-#if defined(SOLO5_STUB)
-#define SOLO5_NOTE_SEGMENT :text
-    /* For Stub, the ABI and MFT NOTEs are read-only and can be in :text. */
-#elif defined(SOLO5_HVT) || defined(SOLO5_SPT) || defined(SOLO5_MUEN)
-#define SOLO5_NOTE_SEGMENT :rodata
-    /* For Hvt, Spt and Muen, the ABI and MFT NOTEs are read-only and can be in
-     * :rodata. */
-#elif defined(SOLO5_VIRTIO) || defined(SOLO5_XEN)
-/* For Virtio and Xen, define a fake SOLO5_NOTE_SEGMENT for now */
-#define SOLO5_NOTE_SEGMENT
-#endif
 #if defined(SOLO5_STUB) || defined(SOLO5_HVT) || defined(SOLO5_SPT) \
   || defined(SOLO5_MUEN)
+    /* For Hvt, Spt and Muen, the ABI and MFT NOTEs are read-only and can be in
+     * :rodata. */
     .note.solo5.manifest :
     {
         *(.note.solo5.manifest*)
-    } SOLO5_NOTE_SEGMENT :note.manifest
+    } :rodata :note.manifest
     .note.solo5.abi :
     {
         *(.note.solo5.abi*)
-    } SOLO5_NOTE_SEGMENT :note.abi
+    } :rodata :note.abi
     .note.solo5.not_openbsd :
     {
         *(.note.solo5.not_openbsd*)
-    } SOLO5_NOTE_SEGMENT :note.not_openbsd
+    } :rodata :note.not_openbsd
 #endif
 
     .rodata :
@@ -135,7 +126,7 @@ SECTIONS {
     .eh_frame_hdr :
     {
         *(.eh_frame_hdr)
-    } SOLO5_NOTE_SEGMENT
+    } :rodata
 #endif
     .eh_frame :
     {
