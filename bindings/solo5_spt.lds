@@ -111,7 +111,7 @@ SECTIONS {
     {
         *(.data)
         *(.data.*)
-    }
+    } :data
     . = ALIGN(CONSTANT(MAXPAGESIZE));
     /*
      * tdata and tbss have to be side by side to help the linker calculate the

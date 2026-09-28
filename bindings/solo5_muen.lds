@@ -91,7 +91,7 @@ SECTIONS {
     .eh_frame :
     {
         *(.eh_frame)
-    }
+    } :rodata
     . = ALIGN(CONSTANT(MAXPAGESIZE));
     _erodata = .;
     /*
@@ -107,7 +107,7 @@ SECTIONS {
     {
         *(.data)
         *(.data.*)
-    }
+    } :data
     . = ALIGN(CONSTANT(MAXPAGESIZE));
     /*
      * tdata and tbss have to be side by side to help the linker calculate the
