@@ -130,7 +130,7 @@ SECTIONS {
     {
         *(.rodata)
         *(.rodata.*)
-    } SOLO5_NOTE_SEGMENT
+    } :rodata
 #if defined(SOLO5_SPT)
     .eh_frame_hdr :
     {
@@ -140,11 +140,7 @@ SECTIONS {
     .eh_frame :
     {
         *(.eh_frame)
-#if defined(SOLO5_SPT)
-    } SOLO5_NOTE_SEGMENT
-#else
-    }
-#endif
+    } :rodata
 
     . = ALIGN(CONSTANT(MAXPAGESIZE));
     _erodata = .;
@@ -186,7 +182,7 @@ SECTIONS {
     {
         *(.data)
         *(.data.*)
-    }
+    } :data
 
     . = ALIGN(CONSTANT(MAXPAGESIZE));
     /*
