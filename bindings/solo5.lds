@@ -48,27 +48,12 @@ PHDRS {
     text PT_LOAD FLAGS(1); /* No FILEHDR or PHDRS, force E only.
                               FLAGS values come from PF_x in elf.h */
 #endif
-#if defined(SOLO5_HVT) || defined(SOLO5_SPT)
+
     rodata PT_LOAD FLAGS(4);
-#elif defined(SOLO5_MUEN)
-    rodata PT_LOAD;
-#endif
-
-#if defined(SOLO5_SPT)
     data PT_LOAD FLAGS(6);
-#else
-    data PT_LOAD;
-#endif
-
     tdata PT_LOAD FLAGS(4); /* RO: this have to be copied into each thread */
     tbss PT_TLS FLAGS(0); /* no perm needed */
-#if defined(SOLO5_STUB) || defined(SOLO5_VIRTIO) || defined(SOLO5_XEN)
-    bss PT_LOAD FLAGS(0);
-#elif defined(SOLO5_SPT)
     bss PT_LOAD FLAGS(6);
-#else
-    bss PT_LOAD;
-#endif
     note.not_openbsd PT_NOTE; /* Must come first. */
 #if defined(SOLO5_XEN)
     note.xen PT_NOTE;
