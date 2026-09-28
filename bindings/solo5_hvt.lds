@@ -41,10 +41,10 @@ PHDRS {
     text PT_LOAD FLAGS(1); /* No FILEHDR or PHDRS, force E only.
                               FLAGS values come from PF_x in elf.h */
     rodata PT_LOAD FLAGS(4);
-    data PT_LOAD;
+    data PT_LOAD FLAGS(6);
     tdata PT_LOAD FLAGS(4); /* RO: this have to be copied into each thread */
     tbss PT_TLS FLAGS(0); /* no perm needed */
-    bss PT_LOAD;
+    bss PT_LOAD FLAGS(6);
     note.not_openbsd PT_NOTE; /* Must come first. */
     note.abi PT_NOTE;
     note.manifest PT_NOTE;
