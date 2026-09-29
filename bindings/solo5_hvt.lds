@@ -142,6 +142,6 @@ SECTIONS {
     /DISCARD/ : {
         *(.note.gnu.*)
     }
-    _ltdata = _edata - _stdata;
+    _ltdata = SIZEOF(.tdata);
     _ltbss = SIZEOF(.tbss);
 }

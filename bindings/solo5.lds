@@ -214,11 +214,6 @@ SECTIONS {
         *(.note.gnu.*)
     }
 
-#if defined(SOLO5_SPT) || defined(SOLO5_HVT) || defined(SOLO5_VIRTIO) \
-  || defined(SOLO5_XEN)
-    _ltdata = _edata - _stdata;
-#elif defined(SOLO5_STUB) || defined(SOLO5_MUEN)
     _ltdata = SIZEOF(.tdata);
-#endif
     _ltbss = SIZEOF(.tbss);
 }
