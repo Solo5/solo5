@@ -53,6 +53,10 @@ all_TARGETS += $(common_LIB)
 %.debug.o: %.debug.S %.debug.d
 	$(HOSTCOMPILE.S)
 
+# The %.debug.o rules build a second object from the same source,
+# so the must not share dependency files with the %.o rules above.
+%.debug.o: DEPBASE = $*.debug
+
 %.d: ;
 %.debug.d: ;
 .PRECIOUS: %.d %.debug.d

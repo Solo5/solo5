@@ -37,18 +37,22 @@ LDFLAGS :=
 OBJCOPY := __V=$(V) $(TOPDIR)/toolchain/bin/$(CONFIG_TARGET_TRIPLE)-objcopy
 
 # Also used by the HOST_ rules below.
-DEPFLAGS = -MT $@ -MMD -MP -MF $*.Td
+# DEPBASE is the basename for the object's dependency files.
+# Rules building more than one object from the same source
+# must override it (see tenders/GNUmakefile)
+DEPBASE = $*
+DEPFLAGS = -MT $@ -MMD -MP -MF $(DEPBASE).Td
 
 define COMPILE.c
 	@echo "CC $@"
 	$(CC) $(DEPFLAGS) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
-	mv -f $*.Td $*.d && touch $@
+	mv -f $(DEPBASE).Td $(DEPBASE).d && touch $@
 endef
 
 define COMPILE.S
 	@echo "AS $@"
 	$(CC) $(DEPFLAGS) $(CFLAGS) $(CPPFLAGS) -DASM_FILE -c $< -o $@
-	mv -f $*.Td $*.d && touch $@
+	mv -f $(DEPBASE).Td $(DEPBASE).d && touch $@
 endef
 
 #
@@ -65,13 +69,13 @@ HOSTAR := $(CONFIG_HOST_AR)
 define HOSTCOMPILE.c
 	@echo "HOSTCC $@"
 	$(HOSTCC) $(DEPFLAGS) $(HOSTCFLAGS) $(HOSTCPPFLAGS) -c $< -o $@
-	mv -f $*.Td $*.d && touch $@
+	mv -f $(DEPBASE).Td $(DEPBASE).d && touch $@
 endef
 
 define HOSTCOMPILE.S
 	@echo "HOSTAS $@"
 	$(HOSTCC) $(DEPFLAGS) $(HOSTCFLAGS) $(HOSTCPPFLAGS) -DASM_FILE -c $< -o $@
-	mv -f $*.Td $*.d && touch $@
+	mv -f $(DEPBASE).Td $(DEPBASE).d && touch $@
 endef
 
 define HOSTLINK
