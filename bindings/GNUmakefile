@@ -111,7 +111,7 @@ define CPP.lds
 	  printf '2015-2026 Contributors as noted in the AUTHORS file */\n' ; \
 	  printf '\n/* This file is generated, do not edit!\n' ; \
 	  printf '   Edit its source, $<, instead */\n\n' ; \
-	  $(HOSTCC) -C -E -P -undef -D SOLO5_$(ABI) -x c $< ; } > $@
+	  $(HOSTCC) -E -P -undef -D SOLO5_$(ABI) -x c $< ; } > $@
 endef
 
 stub_OBJS := $(patsubst %.c,%.o,$(patsubst %.S,%.o,$(stub_SRCS)))
