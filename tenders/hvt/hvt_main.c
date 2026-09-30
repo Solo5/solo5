@@ -145,7 +145,6 @@ int main(int argc, char **argv)
     const char *prog;
     const char *elf_filename;
     int elf_fd = -1;
-    int matched;
 
     prog = basename(*argv);
     argc--;
@@ -222,29 +221,26 @@ int main(int argc, char **argv)
             break;
         }
 
-        matched = 0;
         if (strncmp("--mem=", *argv, 6) == 0) {
             handle_mem(*argv, &mem_size);
-            matched = 1;
             argc--;
             argv++;
+            continue;
         }
         if (strncmp("--no-net-ring", *argv, sizeof("--no-net-ring")) == 0) {
             no_net_ring = 1;
-            matched = 1;
             argc--;
             argv++;
+            continue;
         }
         if (handle_cmdarg(*argv, mft) == 0) {
             /* Handled by module, consume and go on to next arg */
-            matched = 1;
             argc--;
             argv++;
+            continue;
         }
-        if (!matched) {
-            warnx("Invalid option: `%s'", *argv);
-            usage(prog);
-        }
+        warnx("Invalid option: `%s'", *argv);
+        usage(prog);
     }
     assert(elf_filename == *argv);
     argc--;
