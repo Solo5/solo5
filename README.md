@@ -71,3 +71,6 @@ Archive](https://www.mail-archive.com/solo5@lists.h3q.com/).
 If you are considering a substantial contribution to Solo5, would like to port
 a new unikernel to Solo5, or have general questions unrelated to a specific
 unikernel, please get in touch via the mailing list.
+
+Contributions involving AI must comply with the rules set out [here][./AI.md].
+If they do not comply, we reserve the right to reject your contribution.
