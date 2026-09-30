@@ -25,3 +25,4 @@ toolchain/include/
 toolchain/lib/
 solo5-*.tar.gz
 /bindings/noexecstack.*
+/bindings/solo5_*.lds
