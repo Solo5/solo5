@@ -114,6 +114,15 @@ static void usage(const char *prog)
     exit(EXIT_FAILURE);
 }
 
+static void valid_dev_name(const char *data, const char *source, size_t line)
+{
+    if (strlen(data) > MFT_NAME_MAX)
+        errx(1, "%s:%zu name too long: %s", source, line, data);
+    for (const char *p = data; *p; p++)
+        if (!isalnum((unsigned char)*p))
+            errx(1, "%s:%zu name %s is not alphanumeric", source, line, data);
+}
+
 static int elftool_gen_mft(const char *source, const char *output)
 {
     FILE *sfp = strncmp(source, "-", 2) ? fopen(source, "r") : stdin;
@@ -198,13 +207,7 @@ static int elftool_gen_mft(const char *source, const char *output)
         if (jdevname->u.s[0] == 0)
             errx(1, "%s:%zu: .devices[...]: .name may not be empty", source,
                  jdevname->line);
-        if (strlen(jdevname->u.s) > MFT_NAME_MAX)
-            errx(1, "%s:%zu: .devices[...]: name too long", source,
-                 jdevname->line);
-        for (char *p = jdevname->u.s; *p; p++)
-            if (!isalnum((unsigned char)*p))
-                errx(1, "%s:%zu: .devices[...]: name is not alphanumeric",
-                     source, jdevname->line);
+        valid_dev_name(jdevname->u.s, source, jdevname->line);
         if (jdevtype == NULL)
             errx(1, "%s:%zu: .devices[...]: missing .type", source, (*i)->line);
         fprintf(ofp, out_entry, jdevname->u.s, jdevtype->u.s);
@@ -249,6 +252,7 @@ static int elftool_query_mft(const char *binary)
         if (mft->e[i].type >= MFT_RESERVED_FIRST)
             continue;
 
+        valid_dev_name(mft->e[i].name, binary, 0);
         printf("    { \"name\": \"%s\", \"type\": \"%s\" }%s\n", mft->e[i].name,
                mft_type_to_string(mft->e[i].type),
                (i == (mft->entries - 1) ? "" : ","));
