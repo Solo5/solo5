@@ -80,6 +80,7 @@ case ${M} in
         exec @@CONFIG_TARGET_CC@@ \
             @@CONFIG_TARGET_CC_CFLAGS@@ \
             -isystem ${I}/@@CONFIG_TARGET_TRIPLE@@ \
+            -include solo5-compiler-check.h \
             -I ${I}/solo5 \
             -ffreestanding \
             -fstack-protector-strong \
