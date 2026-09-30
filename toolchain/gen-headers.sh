@@ -72,17 +72,18 @@ defined GNUC __GNUC__
 
 header_template='#if %s(__clang__) || __%s__ != %s
 #error "This Solo5 toolchain expects another C compiler version:\\
- reinstall the opam solo5 package."
+ reinstall the opam %s package."
 #endif
 '
 
 gen_compiler_version_check()
 {
+    pkg="${OPAM_PACKAGE_NAME:-solo5}"
     read def key ver
     # def is either '!defined' (for Clang) or 'defined' (for GCC)
     # key is either 'clang_major' or 'GNUC'
     # ver is the major version number of the compiler
-    printf "$header_template" "$def" "$key" "$ver"
+    printf "$header_template" "$def" "$key" "$ver" "$pkg"
 }
 
 [ "$#" -ne 1 ] && die "Usage $0 <DESTDIR>"
