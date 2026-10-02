@@ -487,8 +487,8 @@ mem_cleanup:
 }
 
 int elf_load_note(int bin_fd, const char *bin_name, uint32_t note_type,
-                  size_t note_align, size_t max_note_size, void **out_note_data,
-                  size_t *out_note_size)
+                  size_t note_align, size_t min_note_size, size_t max_note_size,
+                  void **out_note_data, size_t *out_note_size)
 {
     ssize_t nbytes;
     Elf64_Phdr *phdr = NULL;
@@ -637,7 +637,7 @@ int elf_load_note(int bin_fd, const char *bin_name, uint32_t note_type,
     assert(note_offset >= sizeof nhdr);
     note_pad = note_offset - sizeof nhdr;
     note_size = nhdr.h.n_descsz - note_pad;
-    if (note_size <= 0 || note_size > nhdr.h.n_descsz) {
+    if (note_size < min_note_size || note_size > nhdr.h.n_descsz) {
         warnx("%s: INV_EXE: phdr[%u] note does not fall within valid size"
               " (%zu <= 0 || %zu > %u)",
               bin_name, ph_i, note_size, note_size, nhdr.h.n_descsz);

@@ -182,7 +182,8 @@ int main(int argc, char **argv)
     struct abi1_info *abi1;
     size_t abi1_size;
     if (elf_load_note(elf_fd, elf_filename, ABI1_NOTE_TYPE, ABI1_NOTE_ALIGN,
-                      ABI1_NOTE_MAX_SIZE, (void **)&abi1, &abi1_size) == -1)
+                      sizeof(struct abi1_info), ABI1_NOTE_MAX_SIZE,
+                      (void **)&abi1, &abi1_size) == -1)
         errx(1, "%s: No Solo5 ABI information found in executable",
              elf_filename);
     if (abi1->abi_target != SPT_ABI_TARGET)
@@ -195,7 +196,8 @@ int main(int argc, char **argv)
     struct mft *mft;
     size_t mft_size;
     if (elf_load_note(elf_fd, elf_filename, MFT1_NOTE_TYPE, MFT1_NOTE_ALIGN,
-                      MFT1_NOTE_MAX_SIZE, (void **)&mft, &mft_size) == -1)
+                      sizeof(struct mft), MFT1_NOTE_MAX_SIZE, (void **)&mft,
+                      &mft_size) == -1)
         errx(1, "%s: No Solo5 manifest found in executable", elf_filename);
     if (mft_validate(mft, mft_size) == -1) {
         free(mft);
