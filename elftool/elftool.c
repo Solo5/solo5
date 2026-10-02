@@ -230,7 +230,8 @@ static int elftool_query_mft(const char *binary)
     struct mft *mft;
     size_t mft_size;
     if (elf_load_note(bin_fd, binary, MFT1_NOTE_TYPE, MFT1_NOTE_ALIGN,
-                      MFT1_NOTE_MAX_SIZE, (void **)&mft, &mft_size) == -1) {
+                      sizeof(struct mft), MFT1_NOTE_MAX_SIZE, (void **)&mft,
+                      &mft_size) == -1) {
         warnx("%s: No Solo5 manifest found in executable", binary);
         close(bin_fd);
         return EXIT_FAILURE;
@@ -296,7 +297,8 @@ static int elftool_query_abi(const char *binary)
     struct abi1_info *abi1;
     size_t abi1_size;
     if (elf_load_note(bin_fd, binary, ABI1_NOTE_TYPE, ABI1_NOTE_ALIGN,
-                      ABI1_NOTE_MAX_SIZE, (void **)&abi1, &abi1_size) == -1) {
+                      sizeof(struct abi1_info), ABI1_NOTE_MAX_SIZE,
+                      (void **)&abi1, &abi1_size) == -1) {
         warnx("%s: No Solo5 ABI information found in executable", binary);
         close(bin_fd);
         return EXIT_FAILURE;
