@@ -28,7 +28,7 @@
 # linking. ABI defaults to 'stub' to accomodate non-Solo5-aware build systems,
 # such as GNU autoconf, which use 'cc'-as-linker to test for the presence of
 # symbols.
-
+@@CONFIG_PATH_PREPEND@@
 prog="$(basename $0)"
 I="$(realpath $0 | xargs dirname)/../include"
 [ ! -d "${I}" ] && echo "$prog: Could not determine include path" 1>&2 && exit 1
