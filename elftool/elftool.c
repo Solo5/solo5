@@ -123,6 +123,15 @@ static void valid_dev_name(const char *data, const char *source, size_t line)
             errx(1, "%s:%zu name %s is not alphanumeric", source, line, data);
 }
 
+static void valid_dev_type(const char *data, const char *source, size_t line)
+{
+    if (strlen(data) > MFT_NAME_MAX)
+        errx(1, "%s:%zu type too long: %s", source, line, data);
+    if (!(strncmp(data, "NET_BASIC", 9) || strncmp(data, "BLOCK_BASIC", 11)))
+        errx(1, "%s:%zu type %s is neither NET_BASIC nor BLOCK_BASIC", source,
+             line, data);
+}
+
 static int elftool_gen_mft(const char *source, const char *output)
 {
     FILE *sfp = strncmp(source, "-", 2) ? fopen(source, "r") : stdin;
@@ -210,6 +219,7 @@ static int elftool_gen_mft(const char *source, const char *output)
         valid_dev_name(jdevname->u.s, source, jdevname->line);
         if (jdevtype == NULL)
             errx(1, "%s:%zu: .devices[...]: missing .type", source, (*i)->line);
+        valid_dev_type(jdevtype->u.s, source, jdevtype->line);
         fprintf(ofp, out_entry, jdevname->u.s, jdevtype->u.s);
     }
     fprintf(ofp, out_footer);
