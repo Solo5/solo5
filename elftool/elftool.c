@@ -125,9 +125,8 @@ static void valid_dev_name(const char *data, const char *source, size_t line)
 
 static void valid_dev_type(const char *data, const char *source, size_t line)
 {
-    if (strlen(data) > MFT_NAME_MAX)
-        errx(1, "%s:%zu type too long: %s", source, line, data);
-    if (!(strncmp(data, "NET_BASIC", 9) || strncmp(data, "BLOCK_BASIC", 11)))
+    /* The json parsing ensures data is NUL-terminated. */
+    if (!(strcmp(data, "NET_BASIC") || strcmp(data, "BLOCK_BASIC")))
         errx(1, "%s:%zu type %s is neither NET_BASIC nor BLOCK_BASIC", source,
              line, data);
 }
