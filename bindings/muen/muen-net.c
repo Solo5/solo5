@@ -23,6 +23,7 @@
 #include "reader.h"
 #include "writer.h"
 
+#define ETH_HDR_SIZE  14
 #define PACKET_SIZE   1514
 #define MUENNET_PROTO 0x7ade5c549b08e814ULL
 
@@ -84,6 +85,8 @@ solo5_result_t solo5_net_read(solo5_handle_t handle, uint8_t *buf, size_t size,
     result = muen_channel_read(net_devices[handle].net_in,
                                &net_devices[handle].net_rdr, &pkt);
     if (result == MUCHANNEL_SUCCESS) {
+        if (pkt.length < ETH_HDR_SIZE || pkt.length > PACKET_SIZE)
+            return SOLO5_R_AGAIN;
         memcpy(buf, &pkt.data, pkt.length);
         *read_size = pkt.length;
         return SOLO5_R_OK;
@@ -205,7 +208,8 @@ static bool muen_net_dev_init(const char *name, struct muen_net_device *device,
         (unsigned long long)chan_out->data.mem.size, (unsigned long long)epoch);
 
     device->net_in = (struct muchannel *)(chan_in->data.mem.address);
-    muen_channel_init_reader(&device->net_rdr, MUENNET_PROTO);
+    muen_channel_init_reader(&device->net_rdr, MUENNET_PROTO,
+                             sizeof(struct net_msg), chan_in->data.mem.size);
     log(INFO, "Solo5: Net: '%s': Input  channel @ 0x%llx, size 0x%llx\n", name,
         (unsigned long long)chan_in->data.mem.address,
         (unsigned long long)chan_in->data.mem.size);
