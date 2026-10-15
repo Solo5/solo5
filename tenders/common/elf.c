@@ -639,8 +639,9 @@ int elf_load_note(int bin_fd, const char *bin_name, uint32_t note_type,
     note_size = nhdr.h.n_descsz - note_pad;
     if (note_size < min_note_size || note_size > nhdr.h.n_descsz) {
         warnx("%s: INV_EXE: phdr[%u] note does not fall within valid size"
-              " (%zu <= 0 || %zu > %u)",
-              bin_name, ph_i, note_size, note_size, nhdr.h.n_descsz);
+              " (%zu < %zu || %zu > %u)",
+              bin_name, ph_i, note_size, min_note_size, note_size,
+              nhdr.h.n_descsz);
         goto mem_cleanup;
     }
     note_data = malloc(note_size);
