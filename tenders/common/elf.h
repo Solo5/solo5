@@ -56,8 +56,10 @@ void elf_load(int bin_fd, const char *bin_name, uint8_t *mem, size_t mem_size,
 /*
  * Load the Solo5-owned NOTE of (note_type) from the ELF binary (file).
  * Internal alignment of the note descriptor (content) will be adjusted to
- * (note_align), and a descriptor with a descsz larger than (max_note_size)
- * will cause the executable to be rejected. (bin_name) is the file name of the
+ * (note_align), a descriptor with a descsz larger than (max_note_size)
+ * will cause the executable to be rejected, and a descriptor smaller
+ * (after alignment adjustment) than (min_note_size) will likewise cause
+ * the executable to be rejected. (bin_name) is the file name of the
  * binary and is used to report errors.
  *
  * XXX: In order to not have to deal with internal alignment issues and
@@ -77,7 +79,7 @@ void elf_load(int bin_fd, const char *bin_name, uint8_t *mem, size_t mem_size,
  * In all other cases, reports any errors to stderr and terminates the program.
  */
 int elf_load_note(int bin_fd, const char *bin_name, uint32_t note_type,
-                  size_t note_align, size_t max_note_size, void **note_data,
-                  size_t *note_size);
+                  size_t note_align, size_t min_note_size, size_t max_note_size,
+                  void **note_data, size_t *note_size);
 
 #endif /* COMMON_ELF_H */
