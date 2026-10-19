@@ -38,13 +38,16 @@ struct muchannel_reader {
     uint64_t size;
     uint64_t elements;
     uint64_t rc;
+    uint64_t channel_size;
 };
 
 /*
- * Initialize reader with given protocol.
+ * Initialize reader with given protocol, expected element size and size of the
+ * shared memory channel (including the header).
  */
 void muen_channel_init_reader(struct muchannel_reader *reader,
-                              uint64_t protocol);
+                              uint64_t protocol, uint64_t element_size,
+                              uint64_t channel_size);
 
 /*
  * Read next element from given channel.

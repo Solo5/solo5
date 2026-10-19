@@ -33,33 +33,42 @@ static enum muchannel_reader_result
 synchronize(const struct muchannel *const channel,
             struct muchannel_reader *reader)
 {
-    enum muchannel_reader_result result;
-    uint64_t proto, transport;
+    uint64_t epoch, epoch_after, proto, transport, size, elements, data_size;
 
+    serialized_copy(&channel->hdr.epoch, &epoch);
     serialized_copy(&channel->hdr.protocol, &proto);
     serialized_copy(&channel->hdr.transport, &transport);
+    serialized_copy(&channel->hdr.size, &size);
+    serialized_copy(&channel->hdr.elements, &elements);
+    serialized_copy(&channel->hdr.epoch, &epoch_after);
 
-    if (reader->protocol == proto && SHMSTREAM20 == transport) {
-        serialized_copy(&channel->hdr.epoch, &reader->epoch);
-        serialized_copy(&channel->hdr.size, &reader->size);
-        serialized_copy(&channel->hdr.elements, &reader->elements);
-        reader->rc = 0;
+    if (epoch == MUCHANNEL_NULL_EPOCH || epoch != epoch_after)
+        return MUCHANNEL_INCOMPATIBLE_INTERFACE;
 
-        result = MUCHANNEL_EPOCH_CHANGED;
-    } else
-        result = MUCHANNEL_INCOMPATIBLE_INTERFACE;
+    /* Muen channels are at least 4 KB. */
+    data_size = reader->channel_size - sizeof(struct muchannel_header);
 
-    return result;
+    if (reader->protocol != proto || SHMSTREAM20 != transport || size == 0 ||
+        size != reader->size || elements == 0 || elements > data_size / size)
+        return MUCHANNEL_INCOMPATIBLE_INTERFACE;
+
+    reader->epoch = epoch;
+    reader->elements = elements;
+    reader->rc = 0;
+
+    return MUCHANNEL_EPOCH_CHANGED;
 }
 
 void muen_channel_init_reader(struct muchannel_reader *reader,
-                              uint64_t protocol)
+                              uint64_t protocol, uint64_t element_size,
+                              uint64_t channel_size)
 {
     reader->epoch = MUCHANNEL_NULL_EPOCH;
     reader->protocol = protocol;
-    reader->size = 0;
+    reader->size = element_size;
     reader->elements = 0;
     reader->rc = 0;
+    reader->channel_size = channel_size;
 }
 
 enum muchannel_reader_result
