@@ -126,7 +126,7 @@ static void valid_dev_name(const char *data, const char *source, size_t line)
 static void valid_dev_type(const char *data, const char *source, size_t line)
 {
     /* The json parsing ensures data is NUL-terminated. */
-    if (!(strcmp(data, "NET_BASIC") || strcmp(data, "BLOCK_BASIC")))
+    if (strcmp(data, "NET_BASIC") != 0 && strcmp(data, "BLOCK_BASIC") != 0)
         errx(1, "%s:%zu type %s is neither NET_BASIC nor BLOCK_BASIC", source,
              line, data);
 }
