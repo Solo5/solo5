@@ -41,7 +41,7 @@
  * in this file.
  */
 
-#define HVT_ABI_VERSION 2
+#define HVT_ABI_VERSION 3
 
 /*
  * Lowest virtual address at which guests can be loaded.
