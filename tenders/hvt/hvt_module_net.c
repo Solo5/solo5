@@ -126,8 +126,8 @@ static void hypercall_net_write(struct hvt *hvt, hvt_gpa_t gpa)
 
     ssize_t ret;
 
-    ret =
-        tap_write(&taps[wr->handle], HVT_CHECKED_GPA_P(hvt, wr->data, wr->len), wr->len);
+    ret = tap_write(&taps[wr->handle],
+                    HVT_CHECKED_GPA_P(hvt, wr->data, wr->len), wr->len);
     if (ret == -1) {
         fprintf(stderr, "Fatal error when writing: %s\n", strerror(errno));
         exit(1);
@@ -152,7 +152,8 @@ static void hypercall_net_read(struct hvt *hvt, hvt_gpa_t gpa)
 
     ssize_t ret;
 
-    ret = tap_read(&taps[rd->handle], HVT_CHECKED_GPA_P(hvt, rd->data, rd->len), rd->len);
+    ret = tap_read(&taps[rd->handle], HVT_CHECKED_GPA_P(hvt, rd->data, rd->len),
+                   rd->len);
     if ((ret == 0) || (ret == -1 && errno == EAGAIN)) {
         rd->ret = SOLO5_R_AGAIN;
         return;
