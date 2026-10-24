@@ -439,6 +439,49 @@ einval:
     return -1;
 }
 
+#ifndef TUNSCAP
+static bool rx_virtio_accept(struct tap *d, const struct vnet_hdr *h,
+                             uint8_t *buf, size_t n)
+{
+    uint8_t gso = h->gso_type & ~VNET_GSO_ECN;
+
+    if (gso != VNET_GSO_NONE &&
+        !((gso == VNET_GSO_TCPV4 || gso == VNET_GSO_TCPV6) &&
+          (d->offloads & SOLO5_NET_OFFLOAD_RX_GRO)))
+        return false;
+
+    if (!(d->offloads & SOLO5_NET_OFFLOAD_RX_CSUM))
+        return true;
+
+    struct frame_info fi;
+    bool eligible = frame_classify(buf, n, &fi) == 0 && fi.eligible;
+
+    if (h->flags & VNET_F_NEEDS_CSUM) {
+        /* The L4 field holds a partial (pseudo-header) sum. An eligible
+         * frame can keep it, as the guest will not verify it. */
+        if (eligible && h->csum_start == fi.csum_start &&
+            h->csum_offset == fi.csum_offset)
+            return true;
+        /* Otherwise, the guest will verify it: complete it here, at the
+         * place the kernel told us. */
+        if (frame_csum_complete(buf, n, h->csum_start, h->csum_offset) == -1)
+            return false;
+
+        return true;
+    }
+
+    /* Already verified by the kernel or the NIC. */
+    if (h->flags & VNET_F_DATA_VALID)
+        return true;
+
+    /* No information: verify what the guest will not. */
+    if (eligible && !frame_l4_csum_ok(buf, &fi))
+        return false;
+
+    return true;
+}
+#endif
+
 ssize_t tap_read(struct tap *d, uint8_t *buf, size_t len)
 {
     if (d->kind == TAP_HDR_NONE)
@@ -465,11 +508,7 @@ ssize_t tap_read(struct tap *d, uint8_t *buf, size_t len)
 #ifdef TUNSCAP
         return n; /* TODO: OpenBSD */
 #else
-        uint8_t gso = h.gso_type & ~VNET_GSO_ECN;
-
-        if (gso == VNET_GSO_NONE ||
-            ((gso == VNET_GSO_TCPV4 || gso == VNET_GSO_TCPV6) &&
-             (d->offloads & SOLO5_NET_OFFLOAD_RX_GRO)))
+        if (rx_virtio_accept(d, &h, buf, (size_t)n))
             return n;
 #endif
     }
