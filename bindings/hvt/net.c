@@ -27,6 +27,10 @@ static uint32_t ring_req_id;
 /* Here, we’re doing things differently from VirtIO, which allocates buffers
  * using `malloc()`. Our buffers will be in the .bss section! */
 static uint8_t write_bufs[HVT_RING_SIZE][HVT_RING_BUF_SIZE];
+static struct {
+    uint32_t offloads;
+    size_t max_frame;
+} nets[MFT_MAX_ENTRIES];
 
 static inline void cpu_relax(void)
 {
@@ -197,6 +201,8 @@ solo5_result_t solo5_net_acquire(const char *name, solo5_handle_t *handle,
     info->max_frame = e->u.net_basic.max_frame != 0
                           ? e->u.net_basic.max_frame
                           : info->mtu + SOLO5_NET_HLEN;
+    nets[index].offloads = info->offloads;
+    nets[index].max_frame = info->max_frame;
     memcpy(info->mac_address, e->u.net_basic.mac, sizeof info->mac_address);
     return SOLO5_R_OK;
 }
