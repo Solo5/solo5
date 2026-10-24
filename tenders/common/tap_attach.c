@@ -240,10 +240,10 @@ int tap_attach_flags(const char *ifname, int *mtu, int extra)
         return -1;
     }
 
-    struct ifreq ifr;
     int err;
 
 #if defined(__linux__)
+    struct ifreq ifr;
 
     if (!up) {
         errno = ENETDOWN;
