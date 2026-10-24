@@ -29,6 +29,7 @@
 #include "solo5.h"
 #include "tap_attach.h"
 #include "tap_offload.h"
+#include "tap_frame.h"
 
 #if defined(__linux__)
 
@@ -326,4 +327,150 @@ int tap_offload_setup(struct tap *d, const char *ifname, uint32_t offloads)
 
     d->max_frame = offload_max_frame(d->offloads, d->mtu, d->max_frame);
     return 0;
+}
+
+#include <sys/uio.h>
+
+struct vnet_hdr {
+    uint8_t flags;
+    uint8_t gso_type;
+    uint16_t hdr_len;
+    uint16_t gso_size;
+    uint16_t csum_start;
+    uint16_t csum_offset;
+    uint16_t num_buffers;
+};
+
+_Static_assert(sizeof(struct vnet_hdr) == 12, "struct vnet_hdr is 12 bytes");
+
+#define VNET_F_NEEDS_CSUM 1
+#define VNET_F_DATA_VALID 2
+#define VNET_GSO_NONE     0
+#define VNET_GSO_TCPV4    1
+#define VNET_GSO_TCPV6    4
+#define VNET_GSO_UDP_L4   5
+#define VNET_GSO_ECN      0x80
+
+static uint32_t gso_offload(const struct frame_info *fi)
+{
+    if (fi->l4proto == 17)
+        return SOLO5_NET_OFFLOAD_TX_USO;
+
+    return fi->ipv6 ? SOLO5_NET_OFFLOAD_TX_TSO6 : SOLO5_NET_OFFLOAD_TX_TSO4;
+}
+
+ssize_t tap_write(struct tap *d, const uint8_t *buf, size_t len)
+{
+    struct frame_info fi;
+    size_t wlen = len;
+    bool big = false;
+    uint16_t seg = 0;
+
+    if (d->kind == TAP_HDR_NONE)
+        return write(d->fd, buf, len);
+
+    if (len > d->max_frame || frame_classify(buf, len, &fi) == -1)
+        goto einval;
+    if (fi.eligible) {
+        wlen = fi.ip_end; /* drop Ethernet padding, see tap_frame.h */
+        big = wlen > (size_t)d->mtu + FRAME_ETH_HLEN;
+        if (big) {
+            seg = frame_seg(&fi, d->mtu);
+            if (seg == 0 || !(d->offloads & gso_offload(&fi)))
+                goto einval;
+        }
+    }
+    /* Non-eligible frames go out, the kernel decides. */
+
+    struct vnet_hdr h;
+#ifdef TUNSCAP
+    struct tun_hdr th;
+#endif
+
+    struct iovec iov[2];
+    switch (d->kind) {
+    case TAP_HDR_VIRTIO:
+        memset(&h, 0, sizeof h);
+        if (fi.eligible) {
+            h.hdr_len = fi.hdr_len;
+            if (d->offloads & SOLO5_NET_OFFLOAD_TX_CSUM) {
+                h.flags = VNET_F_NEEDS_CSUM;
+                h.csum_start = fi.csum_start;
+                h.csum_offset = fi.csum_offset;
+            }
+            if (big) {
+                h.gso_type = fi.l4proto == 17 ? VNET_GSO_UDP_L4
+                             : fi.ipv6        ? VNET_GSO_TCPV6
+                                              : VNET_GSO_TCPV4;
+                if (fi.l4proto == 6 && (buf[fi.csum_start + 13] & 0x80))
+                    h.gso_type |= VNET_GSO_ECN;
+                h.gso_size = seg;
+            }
+        }
+        iov[0].iov_base = &h;
+        iov[0].iov_len = sizeof h;
+        break;
+#ifdef TUNSCAP
+    case TAP_HDR_OPENBSD:
+        memset(&th, 0, sizeof th);
+        /* TODO */
+        iov[0].iov_base = &th;
+        iov[0].iov_len = sizeof th;
+        break;
+#endif
+    default:
+        goto einval;
+    }
+    iov[1].iov_base = (void *)(uintptr_t)buf;
+    iov[1].iov_len = wlen;
+
+    ssize_t n = writev(d->fd, iov, 2);
+
+    if (n == -1)
+        return -1;
+    if ((size_t)n != iov[0].iov_len + wlen) {
+        errno = EIO;
+        return -1;
+    }
+    return (ssize_t)len;
+
+einval:
+    errno = EINVAL;
+    return -1;
+}
+
+ssize_t tap_read(struct tap *d, uint8_t *buf, size_t len)
+{
+    if (d->kind == TAP_HDR_NONE)
+        return read(d->fd, buf, len);
+
+    for (;;) {
+#ifdef TUNSCAP
+        struct tun_hdr th;
+        struct iovec iov[2] = {{&th, sizeof th}, {buf, len}};
+#else
+        struct vnet_hdr h;
+        struct iovec iov[2] = {{&h, sizeof h}, {buf, len}};
+#endif
+        ssize_t n = readv(d->fd, iov, 2);
+
+        if (n == -1)
+            return -1;
+        if ((size_t)n < iov[0].iov_len) {
+            errno = EIO;
+            return -1;
+        }
+        n -= iov[0].iov_len;
+
+#ifdef TUNSCAP
+        return n; /* TODO: OpenBSD */
+#else
+        uint8_t gso = h.gso_type & ~VNET_GSO_ECN;
+
+        if (gso == VNET_GSO_NONE ||
+            ((gso == VNET_GSO_TCPV4 || gso == VNET_GSO_TCPV6) &&
+             (d->offloads & SOLO5_NET_OFFLOAD_RX_GRO)))
+            return n;
+#endif
+    }
 }
