@@ -107,7 +107,7 @@ static int tap_fd_ifname(int fd, char *name, int *flags)
 
 #endif
 
-static int tap_configure(const char *ifname, int *mtu, int flags)
+static int tap_configure(int fd, const char *ifname, int *mtu, int flags)
 {
     struct ifreq ifr;
     int sock;
@@ -149,6 +149,8 @@ static int tap_configure(const char *ifname, int *mtu, int flags)
      * Equivalent to: ethtool -K <iface> gro off gso off
      */
     if (!(flags & IFF_VNET_HDR)) {
+        if (ioctl(fd, TUNSETOFFLOAD, 0) == -1)
+            goto fail;
         static const uint32_t cmds[] = {ETHTOOL_SGRO, ETHTOOL_SGSO};
         for (unsigned i = 0; i < sizeof(cmds) / sizeof(cmds[0]); i++) {
             struct ethtool_value eval;
@@ -203,7 +205,7 @@ int tap_attach_flags(const char *ifname, int *mtu, int extra)
             return -1;
         if (tap_fd_ifname(fd, name, &flags) == -1)
             return -1;
-        if (tap_configure(name, mtu, flags) == -1)
+        if (tap_configure(fd, name, mtu, flags) == -1)
             return -1;
 
         return fd;
@@ -326,7 +328,7 @@ int tap_attach_flags(const char *ifname, int *mtu, int extra)
     int flags = 0;
 #endif
 
-    if (tap_configure(ifname, mtu, flags) == -1) {
+    if (tap_configure(fd, ifname, mtu, flags) == -1) {
         err = errno;
         close(fd);
         errno = err;
