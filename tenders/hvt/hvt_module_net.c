@@ -37,6 +37,7 @@
 #endif
 
 #include "../common/tap_attach.h"
+#include "../common/tap_offload.h"
 #include "hvt.h"
 #include "solo5.h"
 
@@ -66,6 +67,7 @@ static volatile int io_thread_stop;
 static hvt_gpa_t reserved_ring_gpa;
 static char ifaces[MFT_MAX_ENTRIES][IFNAMSIZ];
 static uint32_t offloads[MFT_MAX_ENTRIES];
+static struct tap taps[MFT_MAX_ENTRIES];
 
 /* Minimum amount of memory, 512KB */
 #define HVT_GUEST_MIN_FREE 0x80000
@@ -508,14 +510,13 @@ static int setup(struct hvt *hvt, struct mft *mft)
     for (unsigned i = 0; i != mft->entries; i++) {
         if (mft->e[i].type != MFT_DEV_NET_BASIC || !mft->e[i].attached)
             continue;
-        int mtu = -1;
-        int fd = tap_attach(ifaces[i], &mtu);
+        if (tap_offload_setup(&taps[i], ifaces[i], offloads[i]) == -1)
+            err(1, "%s: could not attach", ifaces[i]);
 
-        if (fd < 0 || mtu < 0)
-            err(1, "Could not attach interface: %s", ifaces[i]);
-
-        mft->e[i].u.net_basic.mtu = mtu;
-        mft->e[i].b.hostfd = fd;
+        mft->e[i].u.net_basic.mtu = taps[i].mtu;
+        mft->e[i].u.net_basic.offloads = taps[i].offloads;
+        mft->e[i].u.net_basic.max_frame = taps[i].max_frame;
+        mft->e[i].b.hostfd = taps[i].fd;
 
         char no_mac[6] = {0};
         if (memcmp(mft->e[i].u.net_basic.mac, no_mac, sizeof no_mac) == 0)
