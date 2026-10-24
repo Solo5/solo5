@@ -220,6 +220,8 @@ static bool muen_net_dev_init(const char *name, struct muen_net_device *device,
              device->mac_addr[3], device->mac_addr[4], device->mac_addr[5]);
     memcpy(info->mac_address, device->mac_addr, sizeof info->mac_address);
     info->mtu = 1500;
+    info->offloads = 0;
+    info->max_frame = info->mtu + SOLO5_NET_HLEN;
     log(INFO, "Solo5: Net: '%s': Using MAC address %s\n", name, mac_str);
     return true;
 }

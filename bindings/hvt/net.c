@@ -193,6 +193,10 @@ solo5_result_t solo5_net_acquire(const char *name, solo5_handle_t *handle,
 
     *handle = index;
     info->mtu = e->u.net_basic.mtu;
+    info->offloads = e->u.net_basic.offloads;
+    info->max_frame = e->u.net_basic.max_frame != 0
+                          ? e->u.net_basic.max_frame
+                          : info->mtu + SOLO5_NET_HLEN;
     memcpy(info->mac_address, e->u.net_basic.mac, sizeof info->mac_address);
     return SOLO5_R_OK;
 }
