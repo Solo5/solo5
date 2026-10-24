@@ -513,6 +513,13 @@ static int setup(struct hvt *hvt, struct mft *mft)
         if (tap_offload_setup(&taps[i], ifaces[i], offloads[i]) == -1)
             err(1, "%s: could not attach", ifaces[i]);
 
+#if HVT_FREEBSD_ENABLE_CAPSICUM
+        cap_rights_t rights;
+        cap_rights_init(&rights, CAP_EVENT, CAP_WRITE, CAP_READ);
+        if (cap_rights_limit(taps[i].fd, &rights) == -1)
+            err(1, "%s: cap_rights_limit() failed", ifaces[i]);
+#endif
+
         mft->e[i].u.net_basic.mtu = taps[i].mtu;
         mft->e[i].u.net_basic.offloads = taps[i].offloads;
         mft->e[i].u.net_basic.max_frame = taps[i].max_frame;
@@ -610,13 +617,6 @@ static int setup(struct hvt *hvt, struct mft *mft)
         assert(hvt_core_register_halt_hook(kill_net_pthread) == 0);
     skip_ring:;
     }
-
-#if HVT_FREEBSD_ENABLE_CAPSICUM
-    cap_rights_t rights;
-    cap_rights_init(&rights, CAP_EVENT, CAP_WRITE, CAP_READ);
-    if (cap_rights_limit(netfd, &rights) == -1)
-        err(1, "cap_rights_limit() failed");
-#endif
 
     return 0;
 }
