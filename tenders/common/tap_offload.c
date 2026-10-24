@@ -503,7 +503,7 @@ ssize_t tap_read(struct tap *d, uint8_t *buf, size_t len)
             errno = EIO;
             return -1;
         }
-        n -= iov[0].iov_len;
+        n -= (ssize_t)iov[0].iov_len;
 
 #ifdef TUNSCAP
         return n; /* TODO: OpenBSD */
