@@ -62,6 +62,10 @@ static struct mft *host_mft;
 static volatile int io_thread_stop;
 static hvt_gpa_t reserved_ring_gpa;
 
+static uint32_t offloads[MFT_MAX_ENTRIES];
+static char ifaces[MFT_MAX_ENTRIES][20];
+static struct tap taps[MFT_MAX_ENTRIES];
+
 /* Minimum amount of memory, 512KB */
 #define HVT_GUEST_MIN_FREE 0x80000
 
@@ -120,7 +124,7 @@ static void hypercall_net_write(struct hvt *hvt, hvt_gpa_t gpa)
     ssize_t ret;
 
     ret =
-        write(e->b.hostfd, HVT_CHECKED_GPA_P(hvt, wr->data, wr->len), wr->len);
+        tap_write(&taps[wr->handle], HVT_CHECKED_GPA_P(hvt, wr->data, wr->len), wr->len);
     if (ret == -1) {
         fprintf(stderr, "Fatal error when writing: %s\n", strerror(errno));
         exit(1);
@@ -145,7 +149,7 @@ static void hypercall_net_read(struct hvt *hvt, hvt_gpa_t gpa)
 
     ssize_t ret;
 
-    ret = read(e->b.hostfd, HVT_CHECKED_GPA_P(hvt, rd->data, rd->len), rd->len);
+    ret = tap_read(&taps[rd->handle], HVT_CHECKED_GPA_P(hvt, rd->data, rd->len), rd->len);
     if ((ret == 0) || (ret == -1 && errno == EAGAIN)) {
         rd->ret = SOLO5_R_AGAIN;
         return;
@@ -189,7 +193,7 @@ static inline void process_read_entry(struct hvt *hvt, struct hvt_ring *ring,
         uint64_t ent_data = ent->data;
         uint32_t ent_len = ent->len;
         void *data = HVT_CHECKED_GPA_P(hvt, ent_data, ent_len);
-        ssize_t nr = read(e->b.hostfd, data, ent_len);
+        ssize_t nr = tap_read(&taps[ent->handle], data, ent_len);
 
         if (nr == 0 || (nr == -1 && errno == EAGAIN)) {
             commit->ret = SOLO5_R_AGAIN;
@@ -244,7 +248,7 @@ static inline void process_ring_commits(struct hvt *hvt, struct hvt_ring *ring)
                     uint64_t ent_data = ent->data;
                     uint32_t ent_len = ent->len;
                     void *data = HVT_CHECKED_GPA_P(hvt, ent_data, ent_len);
-                    ssize_t ret = write(e->b.hostfd, data, ent_len);
+                    ssize_t ret = tap_write(&taps[ent->handle], data, ent_len);
                     if (ret == -1)
                         err(1, "Fatal write error on net device");
                     if ((size_t)ret != ent_len)
@@ -382,10 +386,6 @@ static void kill_net_pthread(struct hvt *hvt, int status, void *cookie)
     }
 #endif
 }
-
-static uint32_t offloads[MFT_MAX_ENTRIES];
-static char ifaces[MFT_MAX_ENTRIES][20];
-static struct tap taps[MFT_MAX_ENTRIES];
 
 static int handle_cmdarg(char *cmdarg, struct mft *mft)
 {
