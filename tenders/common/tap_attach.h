@@ -35,6 +35,12 @@
 int tap_attach(const char *ifname, int *mtu);
 
 /*
+ * Same as (tap_attach) but the user is able to add extra flags only on Linux
+ * and if (ifname) is not "@<num>" (otherwise, (extra) is ignored).
+ */
+int tap_attach_flags(const char *ifname, int *mtu, int extra);
+
+/*
  * Generate a random, locally-administered and unicast MAC address, and store it
  * in (*mac), which must be an uint8_t[6].
  */

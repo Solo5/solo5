@@ -61,7 +61,7 @@
 
 #endif
 
-int tap_attach(const char *ifname, int *mtu)
+int tap_attach_flags(const char *ifname, int *mtu, int extra)
 {
     int fd;
 
@@ -71,6 +71,7 @@ int tap_attach(const char *ifname, int *mtu)
      */
     if (ifname[0] == '@') {
         char *endp;
+        errno = 0; /* Reset errno before to set it. */
         long int maybe_fd = strtol(&ifname[1], &endp, 10);
         if (*endp != 0 /* Invalid character at (*endp)? */
             || endp == &ifname[1] /* Empty string? */)
@@ -137,7 +138,7 @@ int tap_attach(const char *ifname, int *mtu)
     /*
      * TODO: IFF_NO_PI may silently truncate packets on read().
      */
-    ifr.ifr_flags = IFF_TAP | IFF_NO_PI;
+    ifr.ifr_flags = IFF_TAP | IFF_NO_PI | extra;
     strncpy(ifr.ifr_name, ifname, IFNAMSIZ - 1);
 
     /*
@@ -170,6 +171,9 @@ int tap_attach(const char *ifname, int *mtu)
     if (!up)
         ;
 
+    /* Avoid unused warning on FreeBSD and DragonFly. */
+    (void)extra;
+
     char devname[strlen(ifname) + 6];
 
     snprintf(devname, sizeof devname, "/dev/%s", ifname);
@@ -183,6 +187,9 @@ int tap_attach(const char *ifname, int *mtu)
         errno = ENETDOWN;
         return -1;
     }
+
+    /* Avoid unused warning on OpenBSD. */
+    (void)extra;
 
     char devname[strlen(ifname) + 6];
 
@@ -216,7 +223,8 @@ int tap_attach(const char *ifname, int *mtu)
 
 #if defined(__linux__)
     /*
-     * Disable GRO/GSO offloads on the TAP interface.
+     * Disable GRO/GSO offloads on the TAP interface only if IFF_VNET_HDR is
+     * not given.
      *
      * Without IFF_VNET_HDR, the kernel can still deliver GRO-aggregated frames
      * (up to 64KB) via read() on the TAP fd. The guest reads with buffer of at
@@ -226,7 +234,7 @@ int tap_attach(const char *ifname, int *mtu)
      *
      * Equivalent to: ethtool -K <iface> gro off gso off
      */
-    {
+    if (!(extra & IFF_VNET_HDR)) {
         static const uint32_t cmds[] = {ETHTOOL_SGRO, ETHTOOL_SGSO};
         for (unsigned i = 0; i < sizeof(cmds) / sizeof(cmds[0]); i++) {
             struct ethtool_value eval;
@@ -244,6 +252,11 @@ int tap_attach(const char *ifname, int *mtu)
     close(sock);
 
     return fd;
+}
+
+int tap_attach(const char *ifname, int *mtu)
+{
+    return tap_attach_flags(ifname, mtu, 0);
 }
 
 void tap_attach_genmac(uint8_t *mac)
