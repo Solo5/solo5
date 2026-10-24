@@ -27,6 +27,10 @@ static uint32_t ring_req_id;
 /* Here, we’re doing things differently from VirtIO, which allocates buffers
  * using `malloc()`. Our buffers will be in the .bss section! */
 static uint8_t write_bufs[HVT_RING_SIZE][HVT_RING_BUF_SIZE];
+static struct {
+    uint32_t offloads;
+    size_t max_frame;
+} nets[MFT_MAX_ENTRIES];
 
 static inline void cpu_relax(void)
 {
@@ -69,6 +73,9 @@ static inline void ring_submit(struct hvt_ring *ring)
 solo5_result_t solo5_net_write(solo5_handle_t handle, const uint8_t *buf,
                                size_t size)
 {
+    if (handle >= MFT_MAX_ENTRIES || size > nets[handle].max_frame)
+        return SOLO5_R_EINVAL;
+
     if (net_ring) {
         /*
          * Flow control: wait if the ring is full. The host advances ent_head
@@ -82,9 +89,14 @@ solo5_result_t solo5_net_write(solo5_handle_t handle, const uint8_t *buf,
 
         /* Fall back to hypercall for packets that do not fit in the
          * per-slot buffer (e.g. jumbo frames with MTU > HVT_RING_BUF_SIZE).
+         * It includes TSO/USO frames. We use the hypercall_write only once
+         * every write already queued in the ring has been sent.
          */
-        if (size > HVT_RING_BUF_SIZE)
+        if (size > HVT_RING_BUF_SIZE) {
+            while (net_ring->ent_head != net_ring->ent_tail)
+                cpu_relax();
             goto hypercall_write;
+        }
 
         /* Copy data into a per-slot static buffer so the caller can safely
          * reuse its buffer after we return (fire-and-forget). write_bufs[] is
@@ -129,6 +141,11 @@ static inline void ring_wait_commit(struct hvt_ring *ring)
 solo5_result_t solo5_net_read(solo5_handle_t handle, uint8_t *buf, size_t size,
                               size_t *read_size)
 {
+    if (handle >= MFT_MAX_ENTRIES ||
+        ((nets[handle].offloads & SOLO5_NET_OFFLOAD_RX_GRO) &&
+         size < nets[handle].max_frame))
+        return SOLO5_R_EINVAL;
+
     if (net_ring) {
         /*
          * Each read is synchronous (submit + wait_commit), so ent_head
@@ -193,6 +210,12 @@ solo5_result_t solo5_net_acquire(const char *name, solo5_handle_t *handle,
 
     *handle = index;
     info->mtu = e->u.net_basic.mtu;
+    info->offloads = e->u.net_basic.offloads;
+    info->max_frame = e->u.net_basic.max_frame != 0
+                          ? e->u.net_basic.max_frame
+                          : info->mtu + SOLO5_NET_HLEN;
+    nets[index].offloads = info->offloads;
+    nets[index].max_frame = info->max_frame;
     memcpy(info->mac_address, e->u.net_basic.mac, sizeof info->mac_address);
     return SOLO5_R_OK;
 }

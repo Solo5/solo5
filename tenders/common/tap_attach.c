@@ -46,6 +46,24 @@
 #include <linux/ethtool.h>
 #include <linux/sockios.h>
 
+static int tap_fd_ifname(int fd, char *name, int *flags)
+{
+    struct ifreq ifr;
+
+    memset(&ifr, 0, sizeof ifr);
+
+    if (ioctl(fd, TUNGETIFF, &ifr) == -1)
+        return -1;
+    if (!(ifr.ifr_flags & IFF_TAP) || !(ifr.ifr_flags & IFF_NO_PI)) {
+        errno = EINVAL;
+        return -1;
+    }
+    memcpy(name, ifr.ifr_name, IFNAMSIZ);
+    name[IFNAMSIZ - 1] = '\0';
+    *flags = ifr.ifr_flags;
+    return 0;
+}
+
 #elif defined(__FreeBSD__) || defined(__DragonFly__)
 
 #include <net/if.h>
@@ -55,22 +73,124 @@
 #include <sys/socket.h>
 #include <net/if.h>
 
-#else /* !__linux__ && !__FreeBSD__ && !__OpenBSD__ */
+#else /* !__linux__ && !__FreeBSD__ && !__DragonFly__ && !__OpenBSD__ */
 
 #error Unsupported target
 
 #endif
 
-int tap_attach(const char *ifname, int *mtu)
+#if defined(__FreeBSD__) || defined(__DragonFly__) || defined(__OpenBSD__)
+
+#include <sys/stat.h>
+
+static int tap_fd_ifname(int fd, char *name, int *flags)
+{
+    struct stat st;
+    const char *dn;
+
+    *flags = 0;
+    if (fstat(fd, &st) == -1)
+        return -1;
+    if (!S_ISCHR(st.st_mode)) {
+        errno = ENOTTY;
+        return -1;
+    }
+
+    dn = devname(st.st_rdev, S_IFCHR);
+    if (dn == NULL || dn[0] == '#' || dn[0] == '?' || strlen(dn) >= IFNAMSIZ) {
+        errno = ENODEV;
+        return -1;
+    }
+    strlcpy(name, dn, IFNAMSIZ);
+    return 0;
+}
+
+#endif
+
+static int tap_configure(int fd, const char *ifname, int *mtu, int flags)
+{
+    struct ifreq ifr;
+    int sock;
+
+#if !defined(__linux__)
+    (void)flags;
+#endif
+
+    /*
+     * Get the configured MTU.
+     */
+
+    sock = socket(AF_INET, SOCK_DGRAM, 0);
+    if (sock == -1)
+        return -1;
+
+    memset(&ifr, 0, sizeof(ifr));
+    strncpy(ifr.ifr_name, ifname, IFNAMSIZ - 1);
+
+    if (ioctl(sock, SIOCGIFMTU, &ifr) == -1)
+        goto fail;
+    if (ifr.ifr_mtu <= 0 || ifr.ifr_mtu > UINT16_MAX) {
+        errno = ERANGE;
+        goto fail;
+    }
+    *mtu = ifr.ifr_mtu;
+
+#if defined(__linux__)
+    /*
+     * Disable GRO/GSO offloads on the TAP interface only if IFF_VNET_HDR is
+     * not given.
+     *
+     * Without IFF_VNET_HDR, the kernel can still deliver GRO-aggregated frames
+     * (up to 64KB) via read() on the TAP fd. The guest reads with buffer of at
+     * most HVT_RING_BUF_SIZE (2048) bytes, so large frames are silently
+     * truncated - the delivered packet has an IP total_length that exceeds the
+     * actual data, corrupting the guest TCP stack.
+     *
+     * Equivalent to: ethtool -K <iface> gro off gso off
+     */
+    if (!(flags & IFF_VNET_HDR)) {
+        if (ioctl(fd, TUNSETOFFLOAD, 0) == -1)
+            goto fail;
+        static const uint32_t cmds[] = {ETHTOOL_SGRO, ETHTOOL_SGSO};
+        for (unsigned i = 0; i < sizeof(cmds) / sizeof(cmds[0]); i++) {
+            struct ethtool_value eval;
+            memset(&eval, 0, sizeof(eval));
+            eval.cmd = cmds[i];
+            eval.data = 0;
+            memset(&ifr, 0, sizeof(ifr));
+            strncpy(ifr.ifr_name, ifname, IFNAMSIZ - 1);
+            ifr.ifr_data = (void *)&eval;
+            ioctl(sock, SIOCETHTOOL, &ifr);
+        }
+    }
+#endif
+
+    close(sock);
+    return 0;
+
+fail:
+    {
+        int e = errno;
+        close(sock);
+        errno = e;
+    }
+    return -1;
+}
+
+int tap_attach_flags(const char *ifname, int *mtu, int extra)
 {
     int fd;
 
     /*
      * Syntax @<number> indicates a pre-existing open fd, so just pass it
-     * through if the supplied <number> is in range and O_NONBLOCK can be set.
+     * through if the supplied <number> is in range and O_NONBLOCK can be set
+     * and we set correctly the given MTU.
      */
     if (ifname[0] == '@') {
+        char name[20];
+        int flags;
         char *endp;
+        errno = 0; /* Reset errno before to set it. */
         long int maybe_fd = strtol(&ifname[1], &endp, 10);
         if (*endp != 0 /* Invalid character at (*endp)? */
             || endp == &ifname[1] /* Empty string? */)
@@ -82,6 +202,10 @@ int tap_attach(const char *ifname, int *mtu)
 
         fd = (int)maybe_fd;
         if (fcntl(fd, F_SETFL, O_NONBLOCK) == -1)
+            return -1;
+        if (tap_fd_ifname(fd, name, &flags) == -1)
+            return -1;
+        if (tap_configure(fd, name, mtu, flags) == -1)
             return -1;
 
         return fd;
@@ -116,10 +240,10 @@ int tap_attach(const char *ifname, int *mtu)
         return -1;
     }
 
-    struct ifreq ifr;
     int err;
 
 #if defined(__linux__)
+    struct ifreq ifr;
 
     if (!up) {
         errno = ENETDOWN;
@@ -137,7 +261,7 @@ int tap_attach(const char *ifname, int *mtu)
     /*
      * TODO: IFF_NO_PI may silently truncate packets on read().
      */
-    ifr.ifr_flags = IFF_TAP | IFF_NO_PI;
+    ifr.ifr_flags = IFF_TAP | IFF_NO_PI | extra;
     strncpy(ifr.ifr_name, ifname, IFNAMSIZ - 1);
 
     /*
@@ -161,6 +285,8 @@ int tap_attach(const char *ifname, int *mtu)
         return -1;
     }
 
+    int flags = ifr.ifr_flags;
+
 #elif defined(__FreeBSD__) || defined(__DragonFly__)
 
     /*
@@ -170,12 +296,17 @@ int tap_attach(const char *ifname, int *mtu)
     if (!up)
         ;
 
+    /* Avoid unused warning on FreeBSD and DragonFly. */
+    (void)extra;
+
     char devname[strlen(ifname) + 6];
 
     snprintf(devname, sizeof devname, "/dev/%s", ifname);
     fd = open(devname, O_RDWR | O_NONBLOCK);
     if (fd == -1)
         return -1;
+
+    int flags = 0;
 
 #elif defined(__OpenBSD__)
 
@@ -184,66 +315,32 @@ int tap_attach(const char *ifname, int *mtu)
         return -1;
     }
 
+    /* Avoid unused warning on OpenBSD. */
+    (void)extra;
+
     char devname[strlen(ifname) + 6];
 
     snprintf(devname, sizeof devname, "/dev/%s", ifname);
     fd = open(devname, O_RDWR | O_NONBLOCK);
     if (fd == -1)
         return -1;
+
+    int flags = 0;
 #endif
 
-    /*
-     * Get the configured MTU.
-     */
-    memset(&ifr, 0, sizeof(ifr));
-    strncpy(ifr.ifr_name, ifname, IFNAMSIZ - 1);
-    int sock = socket(AF_INET, SOCK_DGRAM, 0);
-    if (sock < 0) {
+    if (tap_configure(fd, ifname, mtu, flags) == -1) {
         err = errno;
         close(fd);
-        close(sock);
         errno = err;
         return -1;
     }
-    if (ioctl(sock, SIOCGIFMTU, &ifr) == -1) {
-        err = errno;
-        close(fd);
-        close(sock);
-        errno = err;
-        return -1;
-    }
-    *mtu = ifr.ifr_mtu;
-
-#if defined(__linux__)
-    /*
-     * Disable GRO/GSO offloads on the TAP interface.
-     *
-     * Without IFF_VNET_HDR, the kernel can still deliver GRO-aggregated frames
-     * (up to 64KB) via read() on the TAP fd. The guest reads with buffer of at
-     * most HVT_RING_BUF_SIZE (2048) bytes, so large frames are silently
-     * truncated - the delivered packet has an IP total_length that exceeds the
-     * actual data, corrupting the guest TCP stack.
-     *
-     * Equivalent to: ethtool -K <iface> gro off gso off
-     */
-    {
-        static const uint32_t cmds[] = {ETHTOOL_SGRO, ETHTOOL_SGSO};
-        for (unsigned i = 0; i < sizeof(cmds) / sizeof(cmds[0]); i++) {
-            struct ethtool_value eval;
-            memset(&eval, 0, sizeof(eval));
-            eval.cmd = cmds[i];
-            eval.data = 0;
-            memset(&ifr, 0, sizeof(ifr));
-            strncpy(ifr.ifr_name, ifname, IFNAMSIZ - 1);
-            ifr.ifr_data = (void *)&eval;
-            ioctl(sock, SIOCETHTOOL, &ifr);
-        }
-    }
-#endif
-
-    close(sock);
 
     return fd;
+}
+
+int tap_attach(const char *ifname, int *mtu)
+{
+    return tap_attach_flags(ifname, mtu, 0);
 }
 
 void tap_attach_genmac(uint8_t *mac)

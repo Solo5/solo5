@@ -62,6 +62,8 @@ struct mft_block_basic {
 struct mft_net_basic {
     uint8_t mac[6];
     uint16_t mtu;
+    uint32_t offloads;
+    uint32_t max_frame;
 };
 
 #define MFT_NAME_SIZE 68 /* Bytes, including string terminator */
@@ -83,6 +85,12 @@ struct mft_entry {
     } b;
     bool attached; /* Device attached? */
 };
+
+_Static_assert(sizeof(struct mft_net_basic) <= sizeof(struct mft_block_basic),
+               "mft_net_basic must not grow the mft_entry union");
+/* NOTE(dinosaure): if this assert is false, we must bump MFT_VERSION. */
+_Static_assert(sizeof(struct mft_entry) == 104 /* x86_64/aarch64 */,
+               "mft_entry layout changed");
 
 /*
  * Maximum supported number of manifest entires.

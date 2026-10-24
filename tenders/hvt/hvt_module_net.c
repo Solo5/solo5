@@ -37,6 +37,7 @@
 #endif
 
 #include "../common/tap_attach.h"
+#include "../common/tap_offload.h"
 #include "hvt.h"
 #include "solo5.h"
 
@@ -60,6 +61,10 @@ static bool module_in_use;
 static struct mft *host_mft;
 static volatile int io_thread_stop;
 static hvt_gpa_t reserved_ring_gpa;
+
+static uint32_t offloads[MFT_MAX_ENTRIES];
+static char ifaces[MFT_MAX_ENTRIES][20];
+static struct tap taps[MFT_MAX_ENTRIES];
 
 /* Minimum amount of memory, 512KB */
 #define HVT_GUEST_MIN_FREE 0x80000
@@ -118,8 +123,8 @@ static void hypercall_net_write(struct hvt *hvt, hvt_gpa_t gpa)
 
     ssize_t ret;
 
-    ret =
-        write(e->b.hostfd, HVT_CHECKED_GPA_P(hvt, wr->data, wr->len), wr->len);
+    ret = tap_write(&taps[wr->handle],
+                    HVT_CHECKED_GPA_P(hvt, wr->data, wr->len), wr->len);
     if (ret == -1) {
         fprintf(stderr, "Fatal error when writing: %s\n", strerror(errno));
         exit(1);
@@ -144,7 +149,8 @@ static void hypercall_net_read(struct hvt *hvt, hvt_gpa_t gpa)
 
     ssize_t ret;
 
-    ret = read(e->b.hostfd, HVT_CHECKED_GPA_P(hvt, rd->data, rd->len), rd->len);
+    ret = tap_read(&taps[rd->handle], HVT_CHECKED_GPA_P(hvt, rd->data, rd->len),
+                   rd->len);
     if ((ret == 0) || (ret == -1 && errno == EAGAIN)) {
         rd->ret = SOLO5_R_AGAIN;
         return;
@@ -188,7 +194,7 @@ static inline void process_read_entry(struct hvt *hvt, struct hvt_ring *ring,
         uint64_t ent_data = ent->data;
         uint32_t ent_len = ent->len;
         void *data = HVT_CHECKED_GPA_P(hvt, ent_data, ent_len);
-        ssize_t nr = read(e->b.hostfd, data, ent_len);
+        ssize_t nr = tap_read(&taps[ent->handle], data, ent_len);
 
         if (nr == 0 || (nr == -1 && errno == EAGAIN)) {
             commit->ret = SOLO5_R_AGAIN;
@@ -243,7 +249,7 @@ static inline void process_ring_commits(struct hvt *hvt, struct hvt_ring *ring)
                     uint64_t ent_data = ent->data;
                     uint32_t ent_len = ent->len;
                     void *data = HVT_CHECKED_GPA_P(hvt, ent_data, ent_len);
-                    ssize_t ret = write(e->b.hostfd, data, ent_len);
+                    ssize_t ret = tap_write(&taps[ent->handle], data, ent_len);
                     if (ret == -1)
                         err(1, "Fatal write error on net device");
                     if ((size_t)ret != ent_len)
@@ -384,17 +390,20 @@ static void kill_net_pthread(struct hvt *hvt, int status, void *cookie)
 
 static int handle_cmdarg(char *cmdarg, struct mft *mft)
 {
-    enum { opt_net, opt_net_mac } which;
+    enum { opt_net, opt_net_mac, opt_net_offload } which;
 
     if (strncmp("--net:", cmdarg, 6) == 0)
         which = opt_net;
     else if (strncmp("--net-mac:", cmdarg, 10) == 0)
         which = opt_net_mac;
+    else if (strncmp("--net-offload:", cmdarg, 14) == 0)
+        which = opt_net_offload;
     else
         return -1;
 
     char name[MFT_NAME_SIZE];
     char iface[20]; /* XXX should be IFNAMSIZ, needs extra header here */
+    unsigned index;
     int rc;
     if (which == opt_net) {
         rc = sscanf(cmdarg,
@@ -404,23 +413,13 @@ static int handle_cmdarg(char *cmdarg, struct mft *mft)
         if (rc != 2)
             return -1;
         struct mft_entry *e =
-            mft_get_by_name(mft, name, MFT_DEV_NET_BASIC, NULL);
+            mft_get_by_name(mft, name, MFT_DEV_NET_BASIC, &index);
         if (e == NULL) {
             warnx("Resource not declared in manifest: '%s'", name);
             return -1;
         }
-        int mtu = -1;
-        int fd = tap_attach(iface, &mtu);
-        if (fd < 0 || mtu < 0) {
-            warnx("Could not attach interface: %s: %s", iface, strerror(errno));
-            return -1;
-        }
 
-        /* e->u.net_basic.mac[] is set either by option or generated later by
-         * setup().
-         */
-        e->u.net_basic.mtu = mtu;
-        e->b.hostfd = fd;
+        memcpy(ifaces[index], iface, sizeof(ifaces[index]));
         e->attached = true;
         module_in_use = true;
     } else if (which == opt_net_mac) {
@@ -441,6 +440,54 @@ static int handle_cmdarg(char *cmdarg, struct mft *mft)
             return -1;
         }
         memcpy(e->u.net_basic.mac, mac, sizeof mac);
+    } else if (which == opt_net_offload) {
+        char str_offloads[64]; /* csum,tso,uso,gro */
+        int end = 0;
+        uint32_t want = 0;
+        rc = sscanf(cmdarg,
+                    "--net-offload:%" XSTR(MFT_NAME_MAX) "[A-Za-z0-9]="
+                                                         "%63[a-z,]%n",
+                    name, str_offloads, &end);
+        if (rc != 2 || cmdarg[end] != '\0')
+            return -1;
+        struct mft_entry *e =
+            mft_get_by_name(mft, name, MFT_DEV_NET_BASIC, &index);
+        if (e == NULL) {
+            warnx("Resource not declared in manifest: '%s'", name);
+            return -1;
+        }
+        if (strcmp(str_offloads, "all") == 0) {
+            want |= SOLO5_NET_OFFLOAD_TX_CSUM;
+            want |= SOLO5_NET_OFFLOAD_TX_TSO4;
+            want |= SOLO5_NET_OFFLOAD_TX_TSO6;
+            want |= SOLO5_NET_OFFLOAD_TX_USO;
+            want |= SOLO5_NET_OFFLOAD_RX_CSUM;
+            want |= SOLO5_NET_OFFLOAD_RX_GRO;
+        } else {
+            char *token = strtok(str_offloads, ",");
+
+            while (token != NULL) {
+                if (strcmp(token, "gro") == 0) {
+                    want |= SOLO5_NET_OFFLOAD_RX_GRO;
+                    want |= SOLO5_NET_OFFLOAD_RX_CSUM;
+                } else if (strcmp(token, "csum") == 0) {
+                    want |= SOLO5_NET_OFFLOAD_TX_CSUM;
+                    want |= SOLO5_NET_OFFLOAD_RX_CSUM;
+                } else if (strcmp(token, "tso") == 0) {
+                    want |= SOLO5_NET_OFFLOAD_TX_TSO4;
+                    want |= SOLO5_NET_OFFLOAD_TX_TSO6;
+                    want |= SOLO5_NET_OFFLOAD_TX_CSUM;
+                } else if (strcmp(token, "uso") == 0) {
+                    want |= SOLO5_NET_OFFLOAD_TX_USO;
+                    want |= SOLO5_NET_OFFLOAD_TX_CSUM;
+                } else {
+                    warnx("Unknown offload '%s' for network '%s'", token, name);
+                    return -1;
+                }
+                token = strtok(NULL, ",");
+            }
+        }
+        offloads[index] |= want;
     }
 
     return 0;
@@ -460,6 +507,21 @@ static int setup(struct hvt *hvt, struct mft *mft)
     for (unsigned i = 0; i != mft->entries; i++) {
         if (mft->e[i].type != MFT_DEV_NET_BASIC || !mft->e[i].attached)
             continue;
+        if (tap_offload_setup(&taps[i], ifaces[i], offloads[i]) == -1)
+            err(1, "%s: could not attach", ifaces[i]);
+
+#if HVT_FREEBSD_ENABLE_CAPSICUM
+        cap_rights_t rights;
+        cap_rights_init(&rights, CAP_EVENT, CAP_WRITE, CAP_READ);
+        if (cap_rights_limit(taps[i].fd, &rights) == -1)
+            err(1, "%s: cap_rights_limit() failed", ifaces[i]);
+#endif
+
+        mft->e[i].u.net_basic.mtu = taps[i].mtu;
+        mft->e[i].u.net_basic.offloads = taps[i].offloads;
+        mft->e[i].u.net_basic.max_frame = taps[i].max_frame;
+        mft->e[i].b.hostfd = taps[i].fd;
+
         char no_mac[6] = {0};
         if (memcmp(mft->e[i].u.net_basic.mac, no_mac, sizeof no_mac) == 0)
             tap_attach_genmac(mft->e[i].u.net_basic.mac);
@@ -553,13 +615,6 @@ static int setup(struct hvt *hvt, struct mft *mft)
     skip_ring:;
     }
 
-#if HVT_FREEBSD_ENABLE_CAPSICUM
-    cap_rights_t rights;
-    cap_rights_init(&rights, CAP_EVENT, CAP_WRITE, CAP_READ);
-    if (cap_rights_limit(netfd, &rights) == -1)
-        err(1, "cap_rights_limit() failed");
-#endif
-
     return 0;
 }
 
@@ -567,7 +622,9 @@ static const char *usage(void)
 {
     return "--net:NAME=IFACE | @NN (attach tap at IFACE or at fd @NN as "
            "network NAME)\n"
-           "  [ --net-mac:NAME=HWADDR ] (set HWADDR for network NAME)";
+           "  [ --net-mac:NAME=HWADDR ] (set HWADDR for network NAME)\n"
+           "  [ --net-offload:NAME=all|csum,tso,uso,gro ] (enable offloads "
+           "for network NAME)";
 }
 
 DECLARE_MODULE(net, .setup = setup, .handle_cmdarg = handle_cmdarg,
