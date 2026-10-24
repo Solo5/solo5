@@ -270,7 +270,6 @@ struct solo5_net_info {
     size_t max_frame; /* Max frame size (including Ethernet header) accepted by
                          (solo5_net_write) and required by (solo5_net_read);
                          mtu + SOLO5_NET_HLEN if no TSO/USO/GRO. */
-
 };
 
 /*
