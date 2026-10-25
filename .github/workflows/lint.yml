@@ -25,5 +25,5 @@ jobs:
     - name: Run clang-format style check for Solo5.
       uses: jidicula/clang-format-action@v4.16.0
       with:
-        clang-format-version: '22'
+        clang-format-version: '23'
         check-path: ${{ matrix.path }}
