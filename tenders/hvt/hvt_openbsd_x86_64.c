@@ -112,7 +112,9 @@ void hvt_vcpu_init(struct hvt *hvt, hvt_gpa_t gpa_ep)
     struct hvt_b *hvb = hvt->b;
 
     struct vm_resetcpu_params vrp = {
+#if defined(VMM_IOC_TERM) /* OpenBSD 7 */
         .vrp_vm_id = hvb->vcp_id,
+#endif
         .vrp_vcpu_id = hvb->vcpu_id,
         .vrp_init_state = {
             .vrs_gprs[VCPU_REGS_RFLAGS] = X86_RFLAGS_INIT,
@@ -145,7 +147,7 @@ void hvt_vcpu_init(struct hvt *hvt, hvt_gpa_t gpa_ep)
 
     hvt->cpu_cycle_freq = get_tsc_freq();
 
-    if (ioctl(hvb->vmd_fd, VMM_IOC_RESETCPU, &vrp) < 0)
+    if (ioctl(hvb->vm_fd, VMM_IOC_RESETCPU, &vrp) < 0)
         err(1, "Cannot reset VCPU - exiting.");
 
     hvt->cpu_boot_info_base = X86_BOOT_INFO_BASE;
@@ -164,11 +166,13 @@ int hvt_vcpu_loop(struct hvt *hvt)
     if (vrp == NULL)
         err(1, "malloc vrp_exit");
 
+#if defined(VMM_IOC_TERM) /* OpenBSD 7 */
     vrp->vrp_vm_id = hvb->vcp_id;
+#endif
     vrp->vrp_vcpu_id = hvb->vcpu_id;
 
     for (;;) {
-        if (ioctl(hvb->vmd_fd, VMM_IOC_RUN, vrp) < 0) {
+        if (ioctl(hvb->vm_fd, VMM_IOC_RUN, vrp) < 0) {
             err(1, "hvt_vcpu_loop: vm / vcpu run ioctl failed");
         }
 
