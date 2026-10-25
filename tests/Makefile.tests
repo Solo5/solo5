@@ -67,6 +67,14 @@ ifdef CONFIG_VIRTIO
 all_TARGETS += $(test_NAME).virtio
 endif
 
+ifdef CONFIG_EC2
+%.ec2: %.o manifest.o
+	@echo "CCLD $@"
+	$(CC) -z solo5-abi=ec2 $< manifest.o -o $@
+
+all_TARGETS += $(test_NAME).ec2
+endif
+
 ifdef CONFIG_MUEN
 %.muen: %.o manifest.o
 	@echo "CCLD $@"

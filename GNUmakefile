@@ -160,6 +160,10 @@ ifdef CONFIG_VIRTIO
 	$(INSTALL) -m 0644 bindings/solo5_virtio.o $(TOOLCHAIN_LIBDIR)
 	$(INSTALL) -m 0644 bindings/solo5_virtio.lds $(TOOLCHAIN_LIBDIR)
 endif
+ifdef CONFIG_EC2
+	$(INSTALL) -m 0644 bindings/solo5_ec2.o $(TOOLCHAIN_LIBDIR)
+	$(INSTALL) -m 0644 bindings/solo5_ec2.lds $(TOOLCHAIN_LIBDIR)
+endif
 ifdef CONFIG_MUEN
 	$(INSTALL) -m 0644 bindings/solo5_muen.o $(TOOLCHAIN_LIBDIR)
 	$(INSTALL) -m 0644 bindings/solo5_muen.lds $(TOOLCHAIN_LIBDIR)

@@ -11,6 +11,7 @@ tests/*/*.stub
 tests/*/*.hvt
 tests/*/*.spt
 tests/*/*.virtio
+tests/*/*.ec2
 tests/*/*.muen
 tests/*/*.xen
 tests/*/*.xl
