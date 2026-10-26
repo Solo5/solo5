@@ -49,11 +49,6 @@
 #include "hvt_openbsd.h"
 #include "hvt_cpu_x86_64.h"
 
-/* XCR0_X87 is the pre-7.5 name for XFEATURE_X87 */
-#ifndef XFEATURE_X87
-#define XFEATURE_X87 XCR0_X87
-#endif
-
 static struct vcpu_segment_info sreg_to_vsi(const struct x86_sreg *);
 
 static uint64_t get_tsc_freq(void)
