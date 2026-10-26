@@ -37,6 +37,7 @@
 #include "spt.h"
 
 static bool module_in_use;
+static char ifaces[MFT_MAX_ENTRIES][IFNAMSIZ];
 
 static int handle_cmdarg(char *cmdarg, struct mft *mft)
 {
@@ -52,6 +53,7 @@ static int handle_cmdarg(char *cmdarg, struct mft *mft)
     char name[MFT_NAME_SIZE];
     char iface[IFNAMSIZ + 1];
     int rc;
+    unsigned index;
     if (which == opt_net) {
         rc = sscanf(cmdarg,
                     "--net:%" XSTR(MFT_NAME_MAX) "[A-Za-z0-9]="
@@ -62,23 +64,12 @@ static int handle_cmdarg(char *cmdarg, struct mft *mft)
         if (strlen(iface) > IFNAMSIZ - 1)
             return -1;
         struct mft_entry *e =
-            mft_get_by_name(mft, name, MFT_DEV_NET_BASIC, NULL);
+            mft_get_by_name(mft, name, MFT_DEV_NET_BASIC, &index);
         if (e == NULL) {
             warnx("Resource not declared in manifest: '%s'", name);
             return -1;
         }
-        int mtu = -1;
-        int fd = tap_attach(iface, &mtu);
-        if (fd < 0 || mtu < 0) {
-            warnx("Could not attach interface: %s: %s", iface, strerror(errno));
-            return -1;
-        }
-
-        /* e->u.net_basic.mac[] is set either by option or generated later by
-         * setup().
-         */
-        e->u.net_basic.mtu = mtu;
-        e->b.hostfd = fd;
+        memcpy(ifaces[index], iface, sizeof(ifaces[index]));
         e->attached = true;
         module_in_use = true;
     } else if (which == opt_net_mac) {
@@ -112,6 +103,15 @@ static int setup(struct spt *spt, struct mft *mft)
     for (unsigned i = 0; i != mft->entries; i++) {
         if (mft->e[i].type != MFT_DEV_NET_BASIC || !mft->e[i].attached)
             continue;
+        int mtu = -1;
+        int fd = tap_attach(ifaces[i], &mtu);
+
+        if (fd < 0 || mtu < 0)
+            err(1, "Could not attach interface: %s", ifaces[i]);
+
+        mft->e[i].u.net_basic.mtu = mtu;
+        mft->e[i].b.hostfd = fd;
+
         char no_mac[6] = {0};
         if (memcmp(mft->e[i].u.net_basic.mac, no_mac, sizeof no_mac) == 0)
             tap_attach_genmac(mft->e[i].u.net_basic.mac);
