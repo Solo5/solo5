@@ -66,7 +66,7 @@ static void cleanup_vmd_fd(void)
 
 static void cleanup_vm(void)
 {
-#if defined(VMM_IOC_TERM) /* OpenBSD 7 */
+#if OpenBSD < 202610 /* OpenBSD 7 */
     if (cleanup_hvt != NULL && cleanup_hvt->b->vcp_id != -1) {
         struct vm_terminate_params vtp = {.vtp_vm_id = cleanup_hvt->b->vcp_id};
         if (ioctl(cleanup_hvt->b->vmd_fd, VMM_IOC_TERM, &vtp) == -1)
@@ -135,7 +135,7 @@ struct hvt *hvt_init(size_t mem_size)
     hvt->mem = (uint8_t *)vmr->vmr_va;
     hvt->guest_mem_size = mem_size;
     hvt->mem_alloc_size = mem_size;
-#if defined(VMM_IOC_TERM) /* OpenBSD 7 */
+#if OpenBSD < 202610 /* OpenBSD 7 */
     hvb->vcp_id = vcp->vcp_id;
     hvb->vm_fd = hvb->vmd_fd;
 #else /* OpenBSD 8 */

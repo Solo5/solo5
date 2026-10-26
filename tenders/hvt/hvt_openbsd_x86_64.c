@@ -41,6 +41,7 @@
 #include <machine/cpu.h>
 #include <machine/vmmvar.h>
 #include <machine/specialreg.h>
+#include <sys/param.h>
 
 #include <dev/vmm/vmm.h>
 
@@ -109,7 +110,7 @@ void hvt_vcpu_init(struct hvt *hvt, hvt_gpa_t gpa_ep)
     struct hvt_b *hvb = hvt->b;
 
     struct vm_resetcpu_params vrp = {
-#if defined(VMM_IOC_TERM) /* OpenBSD 7 */
+#if OpenBSD < 202610 /* OpenBSD 7 */
         .vrp_vm_id = hvb->vcp_id,
 #endif
         .vrp_vcpu_id = hvb->vcpu_id,
@@ -163,7 +164,7 @@ int hvt_vcpu_loop(struct hvt *hvt)
     if (vrp == NULL)
         err(1, "malloc vrp_exit");
 
-#if defined(VMM_IOC_TERM) /* OpenBSD 7 */
+#if OpenBSD < 202610 /* OpenBSD 7 */
     vrp->vrp_vm_id = hvb->vcp_id;
 #endif
     vrp->vrp_vcpu_id = hvb->vcpu_id;
