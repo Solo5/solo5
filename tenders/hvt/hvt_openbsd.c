@@ -69,11 +69,18 @@ static void cleanup_vmd_fd(void)
 
 static void cleanup_vm(void)
 {
+#if defined(VMM_IOC_TERM) /* OpenBSD 7 */
     if (cleanup_hvt != NULL && cleanup_hvt->b->vcp_id != -1) {
         struct vm_terminate_params vtp = {.vtp_vm_id = cleanup_hvt->b->vcp_id};
         if (ioctl(cleanup_hvt->b->vmd_fd, VMM_IOC_TERM, &vtp) == -1)
             warn("terminate vmm ioctl failed - still exiting");
     }
+#else /* OpenBSD 8 */
+    if (cleanup_hvt != NULL && cleanup_hvt->b->vm_fd != -1) {
+        if (close(cleanup_hvt->b->vm_fd) == -1)
+            warn("close vm_fd failed - still exiting");
+    }
+#endif
 }
 
 struct hvt *hvt_init(size_t mem_size)
@@ -101,6 +108,8 @@ struct hvt *hvt_init(size_t mem_size)
 
     hvt->b = hvb;
     hvb->vmd_fd = -1;
+    hvb->vm_fd = -1;
+    hvb->vcp_id = -1;
     hvb->kick_net_pipe[0] = -1;
     hvb->kick_net_pipe[1] = -1;
 
@@ -145,7 +154,15 @@ struct hvt *hvt_init(size_t mem_size)
     hvt->guest_mem_size = mem_size;
     hvt->mem_alloc_size = mem_size;
 #endif
+#if defined(VMM_IOC_TERM) /* OpenBSD 7 */
     hvb->vcp_id = vcp->vcp_id;
+    hvb->vm_fd = hvb->vmd_fd;
+#else /* OpenBSD 8 */
+    hvb->vm_fd = vcp->vcp_fd;
+    if (close(hvb->vmd_fd) == -1)
+        err(1, "close vmd_fd");
+    hvb->vmd_fd = -1;
+#endif
     hvb->vcpu_id = 0; // the first and only cpu is at 0
 
     atexit(cleanup_vm);
@@ -228,7 +245,7 @@ int hvt_guest_mprotect(void *t_arg, uint64_t addr_start, uint64_t addr_end,
     vmep->vmep_size = size;
     vmep->vmep_prot = prot;
 
-    if (ioctl(hvb->vmd_fd, VMM_IOC_MPROTECT_EPT, vmep) < 0) {
+    if (ioctl(hvb->vm_fd, VMM_IOC_MPROTECT_EPT, vmep) < 0) {
         err(1, "mprotect ept vmm ioctl failed - exiting");
     }
 #endif

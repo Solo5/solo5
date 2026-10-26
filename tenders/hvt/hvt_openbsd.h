@@ -30,8 +30,20 @@
 #define VMM_NODE "/dev/vmm"
 #define VMD_USER "_vmd"
 
+/* NOTE(dinosaure): to keep a certain compatibility between OpenBSD 7 and
+ * OpenBSD 8, (vmd_fd) is still used on OpenBSD 7 execution paths and (vm_fd) is
+ * used on all execution paths (including OpenBSD 8 execution paths).
+ *
+ * When we are on OpenBSD 7, we take care to set (vm_fd = vmd_fd). By this way,
+ * we can use (vm_fd) to anything common between OpenBSD 7 and OpenBSD 8. For
+ * specific operations related to OpenBSD 7, we still use (vmd_fd).
+ *
+ * TODO(dinosaure): at some point, we should just delete the OpenBSD 7 support.
+ */
+
 struct hvt_b {
-    int vmd_fd;
+    int vmd_fd; /* OpenBSD 7 */
+    int vm_fd; /* OpenBSD 8 */
     int32_t vcp_id;
     int32_t vcpu_id;
 
