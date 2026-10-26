@@ -42,10 +42,7 @@
 #include <machine/vmmvar.h>
 #include <machine/specialreg.h>
 
-#include "hvt_openbsd_config.h"
-#ifdef HAVE_VMM_H
 #include <dev/vmm/vmm.h>
-#endif
 
 #include "hvt.h"
 #include "hvt_openbsd.h"
