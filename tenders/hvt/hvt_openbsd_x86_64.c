@@ -41,20 +41,13 @@
 #include <machine/cpu.h>
 #include <machine/vmmvar.h>
 #include <machine/specialreg.h>
+#include <sys/param.h>
 
-#include "hvt_openbsd_config.h"
-#ifdef HAVE_VMM_H
 #include <dev/vmm/vmm.h>
-#endif
 
 #include "hvt.h"
 #include "hvt_openbsd.h"
 #include "hvt_cpu_x86_64.h"
-
-/* XCR0_X87 is the pre-7.5 name for XFEATURE_X87 */
-#ifndef XFEATURE_X87
-#define XFEATURE_X87 XCR0_X87
-#endif
 
 static struct vcpu_segment_info sreg_to_vsi(const struct x86_sreg *);
 
@@ -112,7 +105,7 @@ void hvt_vcpu_init(struct hvt *hvt, hvt_gpa_t gpa_ep)
     struct hvt_b *hvb = hvt->b;
 
     struct vm_resetcpu_params vrp = {
-#if defined(VMM_IOC_TERM) /* OpenBSD 7 */
+#if OpenBSD < 202610 /* OpenBSD 7 */
         .vrp_vm_id = hvb->vcp_id,
 #endif
         .vrp_vcpu_id = hvb->vcpu_id,
@@ -166,7 +159,7 @@ int hvt_vcpu_loop(struct hvt *hvt)
     if (vrp == NULL)
         err(1, "malloc vrp_exit");
 
-#if defined(VMM_IOC_TERM) /* OpenBSD 7 */
+#if OpenBSD < 202610 /* OpenBSD 7 */
     vrp->vrp_vm_id = hvb->vcp_id;
 #endif
     vrp->vrp_vcpu_id = hvb->vcpu_id;
