@@ -176,7 +176,7 @@ int tap_attach(const char *ifname, int *mtu)
      * through if the supplied <number> is in range and O_NONBLOCK can be set.
      */
     if (ifname[0] == '@') {
-        char name[20];
+        char name[IFNAMSIZ];
         char *endp;
         long int maybe_fd = strtol(&ifname[1], &endp, 10);
         if (*endp != 0 /* Invalid character at (*endp)? */
