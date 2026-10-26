@@ -84,6 +84,9 @@ struct mft_entry {
     bool attached; /* Device attached? */
 };
 
+_Static_assert(sizeof(struct mft_entry) == 104 /* x86_64/aarch64 */,
+               "mft_entry layout changed, you must bump MFT_VERSION");
+
 /*
  * Maximum supported number of manifest entires.
  */
