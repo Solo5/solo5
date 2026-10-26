@@ -86,9 +86,6 @@ struct hvt *hvt_init(size_t mem_size)
     struct hvt_b *hvb;
     struct vm_create_params *vcp;
     struct vm_mem_range *vmr;
-#if OpenBSD <= 202504
-    void *p;
-#endif
 
     if (geteuid() != 0) {
         errno = EPERM;
@@ -131,26 +128,13 @@ struct hvt *hvt_init(size_t mem_size)
     vcp->vcp_memranges[0].vmr_size = mem_size;
 
     vmr = &vcp->vcp_memranges[0];
-#if OpenBSD <= 202504
-    p = mmap(NULL, vmr->vmr_size, PROT_READ | PROT_WRITE,
-             MAP_PRIVATE | MAP_ANON, -1, 0);
-    if (p == MAP_FAILED)
-        err(1, "mmap");
-
-    vmr->vmr_va = (vaddr_t)p;
-    hvt->mem = p;
-    hvt->guest_mem_size = mem_size;
-    hvt->mem_alloc_size = mem_size;
-#endif
 
     if (ioctl(hvb->vmd_fd, VMM_IOC_CREATE, vcp) < 0)
         err(1, "create vmm ioctl failed - exiting");
 
-#if OpenBSD > 202504
     hvt->mem = (uint8_t *)vmr->vmr_va;
     hvt->guest_mem_size = mem_size;
     hvt->mem_alloc_size = mem_size;
-#endif
 #if defined(VMM_IOC_TERM) /* OpenBSD 7 */
     hvb->vcp_id = vcp->vcp_id;
     hvb->vm_fd = hvb->vmd_fd;
