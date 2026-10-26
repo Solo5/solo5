@@ -31,6 +31,7 @@
 #include <string.h>
 #include <seccomp.h>
 #include <sys/epoll.h>
+#include <linux/if.h>
 
 #include "../common/tap_attach.h"
 #include "spt.h"
@@ -49,14 +50,16 @@ static int handle_cmdarg(char *cmdarg, struct mft *mft)
         return -1;
 
     char name[MFT_NAME_SIZE];
-    char iface[20]; /* XXX should be IFNAMSIZ, needs extra header here */
+    char iface[IFNAMSIZ + 1];
     int rc;
     if (which == opt_net) {
         rc = sscanf(cmdarg,
                     "--net:%" XSTR(MFT_NAME_MAX) "[A-Za-z0-9]="
-                                                 "%19s",
+                                                 "%" XSTR(IFNAMSIZ) "s",
                     name, iface);
         if (rc != 2)
+            return -1;
+        if (strlen(iface) > IFNAMSIZ - 1)
             return -1;
         struct mft_entry *e =
             mft_get_by_name(mft, name, MFT_DEV_NET_BASIC, NULL);

@@ -47,12 +47,16 @@
 #include <sys/eventfd.h>
 #include <sys/ioctl.h>
 #include <linux/kvm.h>
+#include <linux/if.h>
 #include "hvt_kvm.h"
 #elif defined(__FreeBSD__)
+#include <net/if.h>
 #include "hvt_freebsd.h"
 #elif defined(__OpenBSD__)
+#include <net/if.h>
 #include "hvt_openbsd.h"
 #elif defined(__DragonFly__)
+#include <net/if.h>
 #include "hvt_dragonfly.h"
 #endif
 
@@ -394,14 +398,16 @@ static int handle_cmdarg(char *cmdarg, struct mft *mft)
         return -1;
 
     char name[MFT_NAME_SIZE];
-    char iface[20]; /* XXX should be IFNAMSIZ, needs extra header here */
+    char iface[IFNAMSIZ + 1];
     int rc;
     if (which == opt_net) {
         rc = sscanf(cmdarg,
                     "--net:%" XSTR(MFT_NAME_MAX) "[A-Za-z0-9]="
-                                                 "%19s",
+                                                 "%" XSTR(IFNAMSIZ) "s",
                     name, iface);
         if (rc != 2)
+            return -1;
+        if (strlen(iface) > IFNAMSIZ - 1)
             return -1;
         struct mft_entry *e =
             mft_get_by_name(mft, name, MFT_DEV_NET_BASIC, NULL);
