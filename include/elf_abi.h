@@ -41,7 +41,8 @@ enum abi_target {
     VIRTIO_ABI_TARGET,
     MUEN_ABI_TARGET,
     GENODE_ABI_TARGET,
-    XEN_ABI_TARGET
+    XEN_ABI_TARGET,
+    EC2_ABI_TARGET
 };
 
 /*

@@ -60,6 +60,11 @@ muen_SRCS := muen/start.c $(common_SRCS) $(common_hvt_SRCS) \
     muen/muen-clock.c muen/muen-console.c muen/muen-net.c \
     muen/muen-platform_lifecycle.c muen/muen-yield.c muen/muen-sinfo.c
 
+ec2_SRCS := virtio/boot.S ec2/start.c $(common_SRCS) \
+    virtio/platform.c virtio/platform_intr.c virtio/serial.c virtio/time.c \
+    virtio/tscclock.c virtio/clock_subr.c virtio/pvclock.c virtio/acpi.c \
+    ec2/pci.c ec2/nvme.c ec2/ena.c
+
 xen_SRCS := xen/boot.S xen/start.c $(common_SRCS) \
     xen/hypercall_page.S xen/console.c xen/platform.c xen/platform_intr.c \
     xen/evtchn.c xen/time.c xen/pvclock.c xen/stubs.c
@@ -145,6 +150,17 @@ solo5_virtio.o: $(virtio_OBJS)
     all_TARGETS += solo5_virtio.o
     all_OBJS += $(virtio_OBJS)
     all_SRCS += $(virtio_SRCS)
+endif
+
+ifdef CONFIG_EC2
+    ec2_OBJS := $(patsubst %.c,%.o,$(patsubst %.S,%.o,$(ec2_SRCS)))
+
+solo5_ec2.o: $(ec2_OBJS)
+	$(LINK.bindings)
+
+    all_TARGETS += solo5_ec2.o
+    all_OBJS += $(ec2_OBJS)
+    all_SRCS += $(ec2_SRCS)
 endif
 
 ifdef CONFIG_MUEN

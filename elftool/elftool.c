@@ -290,6 +290,8 @@ static const char *abi_target_to_string(int abi_target)
         return "genode";
     case XEN_ABI_TARGET:
         return "xen";
+    case EC2_ABI_TARGET:
+        return "ec2";
     default:
         return "unknown";
     }

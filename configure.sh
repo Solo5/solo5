@@ -429,7 +429,7 @@ else
 fi
 TARGET_CC_MACHINE=$(${TARGET_CC} -dumpmachine)
 
-CONFIG_HVT= CONFIG_SPT= CONFIG_VIRTIO= CONFIG_MUEN= CONFIG_XEN=
+CONFIG_HVT= CONFIG_SPT= CONFIG_VIRTIO= CONFIG_MUEN= CONFIG_XEN= CONFIG_EC2=
 case ${TARGET_CC_MACHINE} in
     x86_64-*|amd64-*)
         TARGET_ARCH=x86_64
@@ -438,6 +438,7 @@ case ${TARGET_CC_MACHINE} in
             CONFIG_HVT=1
         else
             CONFIG_HVT=1 CONFIG_SPT=1 CONFIG_VIRTIO=1 CONFIG_MUEN=1 CONFIG_XEN=1
+            CONFIG_EC2=1
         fi
         ;;
     aarch64-*)
@@ -577,6 +578,7 @@ printf "%s: Enabled bindings: stub" "${prog_NAME}"
 [ -n "${CONFIG_VIRTIO}" ] && printf " virtio"
 [ -n "${CONFIG_MUEN}" ]   && printf " muen"
 [ -n "${CONFIG_XEN}" ]    && printf " xen"
+[ -n "${CONFIG_EC2}" ]    && printf " ec2"
 echo "."
 printf "%s: Enabled tenders:" "${prog_NAME}"
 [ -n "${CONFIG_HVT_TENDER}" ]    && printf " hvt"
@@ -605,6 +607,7 @@ CONFIG_SPT_TENDER_LIBSECCOMP_LDLIBS=${CONFIG_SPT_TENDER_LIBSECCOMP_LDLIBS}
 CONFIG_VIRTIO=${CONFIG_VIRTIO}
 CONFIG_MUEN=${CONFIG_MUEN}
 CONFIG_XEN=${CONFIG_XEN}
+CONFIG_EC2=${CONFIG_EC2}
 CONFIG_TARGET_ARCH=${TARGET_ARCH}
 CONFIG_TARGET_TRIPLE=${TARGET_TRIPLE}
 CONFIG_TARGET_CC=${TARGET_CC}
