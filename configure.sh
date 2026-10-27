@@ -420,11 +420,13 @@ else
 fi
 TARGET_CC_MACHINE=$(${TARGET_CC} -dumpmachine)
 
+TARGET_CC_CFLAGS=
 CONFIG_HVT= CONFIG_SPT= CONFIG_VIRTIO= CONFIG_MUEN= CONFIG_XEN=
 case ${TARGET_CC_MACHINE} in
     x86_64-*|amd64-*)
         TARGET_ARCH=x86_64
         TARGET_LD_MAX_PAGE_SIZE=0x1000
+        TARGET_CC_CFLAGS="-march=x86-64"
         if [ "${CONFIG_HOST}" = "OpenBSD" ]; then
             CONFIG_HVT=1
         else
@@ -451,17 +453,16 @@ case ${TARGET_CC_MACHINE} in
         ;;
 esac
 
-TARGET_CC_CFLAGS=
 TARGET_CC_IS_OPENBSD=
 if CC="${TARGET_CC}" cc_is_clang; then
-    TARGET_CC_CFLAGS=-nostdlibinc
+    TARGET_CC_CFLAGS="${TARGET_CC_CFLAGS} -nostdlibinc"
     # XXX Clang warns for no good reason if -nostdlibinc is used and no
     # compilation is performed. We could work around this by using --config
     # which "claims" all command line arguments as "used", but this is easier
     # for now.
     TARGET_CC_CFLAGS="${TARGET_CC_CFLAGS} -Wno-unused-command-line-argument"
 else
-    TARGET_CC_CFLAGS=-nostdinc
+    TARGET_CC_CFLAGS="${TARGET_CC_CFLAGS} -nostdinc"
 fi
 case ${TARGET_CC_MACHINE} in
     x86_64-*linux*|powerpc64le-*linux*|ppc64le-*linux*)
