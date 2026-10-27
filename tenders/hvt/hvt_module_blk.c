@@ -205,6 +205,13 @@ static int setup(struct hvt *hvt, struct mft *mft)
         if (mft->e[i].type != MFT_DEV_BLOCK_BASIC || !mft->e[i].attached)
             continue;
 
+#if HVT_FREEBSD_ENABLE_CAPSICUM
+        cap_rights_t rights;
+        cap_rights_init(&rights, CAP_PREAD, CAP_PWRITE);
+        if (cap_rights_limit(mft->e[i].b.hostfd, &rights) == -1)
+            err(1, "%s: cap_rights_limit() failed", mft->e[i].name);
+#endif
+
         /*
          * We now set default block_size if needed, and check that the capacity
          * is block aligned, and the capacity is not zero.
@@ -229,13 +236,6 @@ static int setup(struct hvt *hvt, struct mft *mft)
                                          "in size",
                  name, block_size);
     }
-
-#if HVT_FREEBSD_ENABLE_CAPSICUM
-    cap_rights_t rights;
-    cap_rights_init(&rights, CAP_READ, CAP_WRITE, CAP_SEEK);
-    if (cap_rights_limit(diskfd, &rights) == -1)
-        err(1, "cap_rights_limit() failed");
-#endif
 
     return 0;
 }
