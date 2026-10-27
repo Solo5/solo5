@@ -65,6 +65,7 @@ static struct mft *host_mft;
 static volatile int io_thread_stop;
 static hvt_gpa_t reserved_ring_gpa;
 static char ifaces[MFT_MAX_ENTRIES][IFNAMSIZ];
+static uint32_t offloads[MFT_MAX_ENTRIES];
 
 /* Minimum amount of memory, 512KB */
 #define HVT_GUEST_MIN_FREE 0x80000
@@ -389,12 +390,14 @@ static void kill_net_pthread(struct hvt *hvt, int status, void *cookie)
 
 static int handle_cmdarg(char *cmdarg, struct mft *mft)
 {
-    enum { opt_net, opt_net_mac } which;
+    enum { opt_net, opt_net_mac, opt_net_offload } which;
 
     if (strncmp("--net:", cmdarg, 6) == 0)
         which = opt_net;
     else if (strncmp("--net-mac:", cmdarg, 10) == 0)
         which = opt_net_mac;
+    else if (strncmp("--net-offload:", cmdarg, 14) == 0)
+        which = opt_net_offload;
     else
         return -1;
 
@@ -438,6 +441,58 @@ static int handle_cmdarg(char *cmdarg, struct mft *mft)
             return -1;
         }
         memcpy(e->u.net_basic.mac, mac, sizeof mac);
+    } else if (which == opt_net_offload) {
+        char str_offloads[64]; /* csum,tso,uso,gro */
+        int end = 0;
+        uint32_t want = 0;
+        rc = sscanf(cmdarg,
+                    "--net-offload:%" XSTR(MFT_NAME_MAX) "[A-Za-z0-9]="
+                                                         "%63[a-z,]%n",
+                    name, str_offloads, &end);
+
+        if (rc != 2 || cmdarg[end] != '\0')
+            return -1;
+
+        struct mft_entry *e =
+            mft_get_by_name(mft, name, MFT_DEV_NET_BASIC, &index);
+
+        if (e == NULL) {
+            warnx("Resource not declared in manifest: '%s'", name);
+            return -1;
+        }
+
+        if (strcmp(str_offloads, "all") == 0) {
+            want |= SOLO5_NET_OFFLOAD_TX_CSUM;
+            want |= SOLO5_NET_OFFLOAD_TX_TSO4;
+            want |= SOLO5_NET_OFFLOAD_TX_TSO6;
+            want |= SOLO5_NET_OFFLOAD_TX_USO;
+            want |= SOLO5_NET_OFFLOAD_RX_CSUM;
+            want |= SOLO5_NET_OFFLOAD_RX_GRO;
+        } else {
+            char *token = strtok(str_offloads, ",");
+
+            while (token != NULL) {
+                if (strcmp(token, "gro") == 0) {
+                    want |= SOLO5_NET_OFFLOAD_RX_GRO;
+                    want |= SOLO5_NET_OFFLOAD_RX_CSUM;
+                } else if (strcmp(token, "csum") == 0) {
+                    want |= SOLO5_NET_OFFLOAD_TX_CSUM;
+                    want |= SOLO5_NET_OFFLOAD_RX_CSUM;
+                } else if (strcmp(token, "tso") == 0) {
+                    want |= SOLO5_NET_OFFLOAD_TX_TSO4;
+                    want |= SOLO5_NET_OFFLOAD_TX_TSO6;
+                    want |= SOLO5_NET_OFFLOAD_TX_CSUM;
+                } else if (strcmp(token, "uso") == 0) {
+                    want |= SOLO5_NET_OFFLOAD_TX_USO;
+                    want |= SOLO5_NET_OFFLOAD_TX_CSUM;
+                } else {
+                    warnx("Unknown offload '%s' for network '%s'", token, name);
+                    return -1;
+                }
+                token = strtok(NULL, ",");
+            }
+        }
+        offloads[index] |= want;
     }
 
     return 0;
