@@ -404,6 +404,8 @@ solo5_result_t solo5_net_acquire(const char *name, solo5_handle_t *h,
 
     memcpy(info->mac_address, mft_e->u.net_basic.mac, sizeof info->mac_address);
     info->mtu = mft_e->u.net_basic.mtu;
+    info->offloads = 0;
+    info->max_frame = info->mtu + SOLO5_NET_HLEN;
     *h = mft_index;
     log(INFO, "Solo5: Application acquired '%s' as network device\n", name);
     return SOLO5_R_OK;

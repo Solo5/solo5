@@ -47,7 +47,7 @@
 #include <linux/sockios.h>
 
 /* Load the name of the net interface into (*name) */
-static int tap_fd_ifname(int fd, char *name)
+static int tap_fd_ifname(int fd, char *name, int *flags)
 {
     struct ifreq ifr;
 
@@ -61,6 +61,7 @@ static int tap_fd_ifname(int fd, char *name)
     }
     memcpy(name, ifr.ifr_name, IFNAMSIZ);
     name[IFNAMSIZ - 1] = '\0';
+    *flags = ifr.ifr_flags;
     return 0;
 }
 
@@ -84,11 +85,12 @@ static int tap_fd_ifname(int fd, char *name)
 #include <sys/stat.h>
 
 /* Load the name of the net interface into (*name) */
-static int tap_fd_ifname(int fd, char *name)
+static int tap_fd_ifname(int fd, char *name, int *flags)
 {
     struct stat st;
     const char *dn;
 
+    *flags = 0;
     if (fstat(fd, &st) == -1)
         return -1;
     if (!S_ISCHR(st.st_mode)) {
@@ -108,7 +110,7 @@ static int tap_fd_ifname(int fd, char *name)
 
 #endif
 
-static int tap_configure(const char *ifname, int *mtu)
+static int tap_configure(int fd, const char *ifname, int *mtu, int flags)
 {
     struct ifreq ifr;
     int sock;
@@ -121,6 +123,11 @@ static int tap_configure(const char *ifname, int *mtu)
     sock = socket(AF_INET, SOCK_DGRAM, 0);
     if (sock < 0)
         return -1;
+
+#if !defined(__linux__)
+    (void)flags;
+#endif
+
     if (ioctl(sock, SIOCGIFMTU, &ifr) == -1)
         goto fail;
     if (ifr.ifr_mtu <= 0 || ifr.ifr_mtu > UINT16_MAX) {
@@ -131,7 +138,8 @@ static int tap_configure(const char *ifname, int *mtu)
 
 #if defined(__linux__)
     /*
-     * Disable GRO/GSO offloads on the TAP interface.
+     * Disable GRO/GSO offloads on the TAP interface only if IFF_VNET_HDR is
+     * not given.
      *
      * Without IFF_VNET_HDR, the kernel can still deliver GRO-aggregated frames
      * (up to 64KB) via read() on the TAP fd. The guest reads with buffer of at
@@ -141,7 +149,9 @@ static int tap_configure(const char *ifname, int *mtu)
      *
      * Equivalent to: ethtool -K <iface> gro off gso off
      */
-    {
+    if (!(flags & IFF_VNET_HDR)) {
+        if (ioctl(fd, TUNSETOFFLOAD, 0) == -1)
+            goto fail;
         static const uint32_t cmds[] = {ETHTOOL_SGRO, ETHTOOL_SGSO};
         for (unsigned i = 0; i < sizeof(cmds) / sizeof(cmds[0]); i++) {
             struct ethtool_value eval;
@@ -159,25 +169,29 @@ static int tap_configure(const char *ifname, int *mtu)
     close(sock);
     return 0;
 
-fail: {
-    int e = errno;
-    close(sock);
-    errno = e;
-} /* Ignore errno from close(2) */
+fail:
+    {
+        int e = errno;
+        close(sock);
+        errno = e;
+    }
     return -1;
 }
 
-int tap_attach(const char *ifname, int *mtu)
+int tap_attach_flags(const char *ifname, int *mtu, int extra)
 {
     int fd;
 
     /*
      * Syntax @<number> indicates a pre-existing open fd, so just pass it
-     * through if the supplied <number> is in range and O_NONBLOCK can be set.
+     * through if the supplied <number> is in range and O_NONBLOCK can be set
+     * and we set correctly the given MTU.
      */
     if (ifname[0] == '@') {
         char name[IFNAMSIZ];
+        int flags;
         char *endp;
+        errno = 0; /* Reset errno before to set it. */
         long int maybe_fd = strtol(&ifname[1], &endp, 10);
         if (*endp != 0 /* Invalid character at (*endp)? */
             || endp == &ifname[1] /* Empty string? */)
@@ -190,9 +204,9 @@ int tap_attach(const char *ifname, int *mtu)
         fd = (int)maybe_fd;
         if (fcntl(fd, F_SETFL, O_NONBLOCK) == -1)
             return -1;
-        if (tap_fd_ifname(fd, name) == -1)
+        if (tap_fd_ifname(fd, name, &flags) == -1)
             return -1;
-        if (tap_configure(name, mtu) == -1)
+        if (tap_configure(fd, name, mtu, flags) == -1)
             return -1;
 
         return fd;
@@ -248,7 +262,7 @@ int tap_attach(const char *ifname, int *mtu)
     /*
      * TODO: IFF_NO_PI may silently truncate packets on read().
      */
-    ifr.ifr_flags = IFF_TAP | IFF_NO_PI;
+    ifr.ifr_flags = IFF_TAP | IFF_NO_PI | extra;
     strncpy(ifr.ifr_name, ifname, IFNAMSIZ - 1);
 
     /*
@@ -272,6 +286,8 @@ int tap_attach(const char *ifname, int *mtu)
         return -1;
     }
 
+    int flags = ifr.ifr_flags;
+
 #elif defined(__FreeBSD__) || defined(__DragonFly__)
 
     /*
@@ -281,12 +297,17 @@ int tap_attach(const char *ifname, int *mtu)
     if (!up)
         ;
 
+    /* Avoid unused warning on FreeBSD and DragonFly. */
+    (void)extra;
+
     char devname[strlen(ifname) + 6];
 
     snprintf(devname, sizeof devname, "/dev/%s", ifname);
     fd = open(devname, O_RDWR | O_NONBLOCK);
     if (fd == -1)
         return -1;
+
+    int flags = 0;
 
 #elif defined(__OpenBSD__)
 
@@ -295,15 +316,20 @@ int tap_attach(const char *ifname, int *mtu)
         return -1;
     }
 
+    /* Avoid unused warning on OpenBSD. */
+    (void)extra;
+
     char devname[strlen(ifname) + 6];
 
     snprintf(devname, sizeof devname, "/dev/%s", ifname);
     fd = open(devname, O_RDWR | O_NONBLOCK);
     if (fd == -1)
         return -1;
+
+    int flags = 0;
 #endif
 
-    if (tap_configure(ifname, mtu) == -1) {
+    if (tap_configure(fd, ifname, mtu, flags) == -1) {
         err = errno;
         close(fd);
         errno = err;
@@ -311,6 +337,11 @@ int tap_attach(const char *ifname, int *mtu)
     }
 
     return fd;
+}
+
+int tap_attach(const char *ifname, int *mtu)
+{
+    return tap_attach_flags(ifname, mtu, 0);
 }
 
 void tap_attach_genmac(uint8_t *mac)
