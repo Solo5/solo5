@@ -253,10 +253,23 @@ void solo5_console_write(const char *buf, size_t size);
  * Ethernet frame header (target, source, type) length in bytes.
  */
 #define SOLO5_NET_HLEN 14
+/*
+ * Offloads enabled on a network device.
+ */
+#define SOLO5_NET_OFFLOAD_TX_CSUM (1U << 0)
+#define SOLO5_NET_OFFLOAD_TX_TSO4 (1U << 1)
+#define SOLO5_NET_OFFLOAD_TX_TSO6 (1U << 2)
+#define SOLO5_NET_OFFLOAD_TX_USO  (1U << 3)
+#define SOLO5_NET_OFFLOAD_RX_CSUM (1U << 4)
+#define SOLO5_NET_OFFLOAD_RX_GRO  (1U << 5)
 
 struct solo5_net_info {
     uint8_t mac_address[SOLO5_NET_ALEN];
     size_t mtu; /* Not including Ethernet header */
+    uint32_t offloads; /* SOLO5_NET_OFFLOAD_* enabled on this device */
+    size_t max_frame; /* Max frame size (including Ethernet header) accepted by
+                         (solo5_net_write) and required by (solo5_net_read);
+                         mtu + SOLO5_NET_HLEN if no TSO/USO/GRO. */
 };
 
 /*
@@ -276,7 +289,8 @@ solo5_result_t solo5_net_acquire(const char *name, solo5_handle_t *handle,
  * dropped.
  *
  * The maximum allowed value for (size) is (solo5_net_info.mtu +
- * SOLO5_NET_HLEN). The packet must include the ethernet frame header.
+ * SOLO5_NET_HLEN) if TSO/USO/GRO is not enabled. The packet must include the
+ * ethernet frame header.
  */
 solo5_result_t solo5_net_write(solo5_handle_t handle, const uint8_t *buf,
                                size_t size);
@@ -285,7 +299,8 @@ solo5_result_t solo5_net_write(solo5_handle_t handle, const uint8_t *buf,
  * Receives a single network packet from the network device identified by
  * (handle) into the buffer (*buf), without blocking.
  *
- * (size) must be at least (solo5_net_info.mtu + SOLO5_NET_HLEN).
+ * (size) must be at least (solo5_net_info.mtu + SOLO5_NET_HLEN) if TSO/USO/GRO
+ * is not enabled.
  *
  * If no packets are available returns SOLO5_R_AGAIN, otherwise returns
  * SOLO5_R_OK and the size of the received packet including the ethernet frame
