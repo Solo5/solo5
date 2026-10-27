@@ -1,3 +1,28 @@
+## v0.13.1 (2026-10-27)
+
+- Tender (spt/hvt): argument after --mem is only processed once
+  (#673 @danila-permogorskii)
+- spt tender: mention --version and MODULE OPTIONS in usage
+  (#672 @danila-permogorskii)
+- CI: drop permissions, update actions/checkout (#677 @shym)
+- CI: set HOST_CC and TARGET_CC for clang (#680 @shym)
+- check the C compiler on invocations (#678 @shym)
+- spt: split rodata and data (#680 @dinosaure)
+- validate device name and device type (#682 #686 #690 #691 @hannesm @reynir)
+- tenders: validate minimum note size (elf_load_note) (#687 @hannesm)
+- muen: make shmstream reader more robust, drop net packets with invalid size
+  (#688 @kensan)
+- hvt tender: adapt to OpenBSD 8 (#695 @dinosaure)
+- hvt tender: drop FreeBSD < 14 support (#698 @hannesm)
+- hvt tender: drop OpenBSD <= 7.7 support (#697 @hannesm)
+- retrieve and set MTU for pre-opened net device (#693 @dinosaure)
+- tap: initialize at setup time (#701 @dinosaure)
+- merge linker scripts, use C preprocessor for conditionals (#685 @shym)
+- linker scripts: assign both tdata and tbss to TLS (#689 @shym)
+- x86: pass -march=x86-64 explicitly (#703 @hannesm)
+- add a static assert about mft_entry (#700 @dinosaure)
+- add an AI policy (#675 @dinosaure)
+
 ## v0.13.0 (2026-08-28)
 
 - Fix the compilation on Alpine and pass `-no-pie` option outside the `-Wl`
