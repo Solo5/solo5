@@ -62,6 +62,8 @@ struct mft_block_basic {
 struct mft_net_basic {
     uint8_t mac[6];
     uint16_t mtu;
+    uint32_t offloads;
+    uint32_t max_frame;
 };
 
 #define MFT_NAME_SIZE 68 /* Bytes, including string terminator */
