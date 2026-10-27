@@ -47,7 +47,7 @@
 #include <linux/sockios.h>
 
 /* Load the name of the net interface into (*name) */
-static int tap_fd_ifname(int fd, char *name)
+static int tap_fd_ifname(int fd, char *name, int *flags)
 {
     struct ifreq ifr;
 
@@ -61,6 +61,7 @@ static int tap_fd_ifname(int fd, char *name)
     }
     memcpy(name, ifr.ifr_name, IFNAMSIZ);
     name[IFNAMSIZ - 1] = '\0';
+    *flags = ifr.ifr_flags;
     return 0;
 }
 
@@ -84,7 +85,7 @@ static int tap_fd_ifname(int fd, char *name)
 #include <sys/stat.h>
 
 /* Load the name of the net interface into (*name) */
-static int tap_fd_ifname(int fd, char *name)
+static int tap_fd_ifname(int fd, char *name, int *flags)
 {
     struct stat st;
     const char *dn;
@@ -103,12 +104,13 @@ static int tap_fd_ifname(int fd, char *name)
     }
 
     strlcpy(name, dn, IFNAMSIZ);
+    *flags = 0;
     return 0;
 }
 
 #endif
 
-static int tap_configure(const char *ifname, int *mtu)
+static int tap_configure(const char *ifname, int *mtu, int extra)
 {
     struct ifreq ifr;
     int sock;
@@ -131,7 +133,8 @@ static int tap_configure(const char *ifname, int *mtu)
 
 #if defined(__linux__)
     /*
-     * Disable GRO/GSO offloads on the TAP interface.
+     * Disable GRO/GSO offloads on the TAP interface only if the user does not
+     * set IFF_VNET_HDR.
      *
      * Without IFF_VNET_HDR, the kernel can still deliver GRO-aggregated frames
      * (up to 64KB) via read() on the TAP fd. The guest reads with buffer of at
@@ -141,7 +144,7 @@ static int tap_configure(const char *ifname, int *mtu)
      *
      * Equivalent to: ethtool -K <iface> gro off gso off
      */
-    {
+    if (!(extra & IFF_VNET_HDR)) {
         static const uint32_t cmds[] = {ETHTOOL_SGRO, ETHTOOL_SGSO};
         for (unsigned i = 0; i < sizeof(cmds) / sizeof(cmds[0]); i++) {
             struct ethtool_value eval;
@@ -167,7 +170,7 @@ fail: {
     return -1;
 }
 
-int tap_attach(const char *ifname, int *mtu)
+int tap_attach_flags(const char *ifname, int *mtu, int extra)
 {
     int fd;
 
@@ -178,6 +181,7 @@ int tap_attach(const char *ifname, int *mtu)
     if (ifname[0] == '@') {
         char name[IFNAMSIZ];
         char *endp;
+        int flags;
         long int maybe_fd = strtol(&ifname[1], &endp, 10);
         if (*endp != 0 /* Invalid character at (*endp)? */
             || endp == &ifname[1] /* Empty string? */)
@@ -190,9 +194,9 @@ int tap_attach(const char *ifname, int *mtu)
         fd = (int)maybe_fd;
         if (fcntl(fd, F_SETFL, O_NONBLOCK) == -1)
             return -1;
-        if (tap_fd_ifname(fd, name) == -1)
+        if (tap_fd_ifname(fd, name, &flags) == -1)
             return -1;
-        if (tap_configure(name, mtu) == -1)
+        if (tap_configure(name, mtu, flags) == -1)
             return -1;
 
         return fd;
@@ -248,7 +252,7 @@ int tap_attach(const char *ifname, int *mtu)
     /*
      * TODO: IFF_NO_PI may silently truncate packets on read().
      */
-    ifr.ifr_flags = IFF_TAP | IFF_NO_PI;
+    ifr.ifr_flags = IFF_TAP | IFF_NO_PI | extra;
     strncpy(ifr.ifr_name, ifname, IFNAMSIZ - 1);
 
     /*
@@ -281,6 +285,7 @@ int tap_attach(const char *ifname, int *mtu)
     if (!up)
         ;
 
+    (void)extra;
     char devname[strlen(ifname) + 6];
 
     snprintf(devname, sizeof devname, "/dev/%s", ifname);
@@ -295,6 +300,7 @@ int tap_attach(const char *ifname, int *mtu)
         return -1;
     }
 
+    (void)extra;
     char devname[strlen(ifname) + 6];
 
     snprintf(devname, sizeof devname, "/dev/%s", ifname);
@@ -303,7 +309,7 @@ int tap_attach(const char *ifname, int *mtu)
         return -1;
 #endif
 
-    if (tap_configure(ifname, mtu) == -1) {
+    if (tap_configure(ifname, mtu, extra) == -1) {
         err = errno;
         close(fd);
         errno = err;
@@ -311,6 +317,11 @@ int tap_attach(const char *ifname, int *mtu)
     }
 
     return fd;
+}
+
+int tap_attach(const char *ifname, int *mtu)
+{
+    return tap_attach_flags(ifname, mtu, 0);
 }
 
 void tap_attach_genmac(uint8_t *mac)
