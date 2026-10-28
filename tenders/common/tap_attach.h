@@ -35,6 +35,13 @@
 int tap_attach(const char *ifname, int *mtu);
 
 /*
+ * Same as (tap_attach) but also lets the user to specify (extra) flags when we
+ * allocate file-descriptors from the given (ifname) TAP interface. These flags
+ * don't apply for pre-opened TAP interfaces ("@<num>").
+ */
+int tap_attach_with_flags(const char *ifname, int *mtu, int extra);
+
+/*
  * Generate a random, locally-administered and unicast MAC address, and store it
  * in (*mac), which must be an uint8_t[6].
  */
