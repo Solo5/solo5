@@ -82,7 +82,7 @@ else ifeq ($(CONFIG_HOST), FreeBSD)
     HOSTLDLIBS += -lpthread
 ifeq ($(CONFIG_HVT_TENDER_ENABLE_CAPSICUM), 1)
     HOSTLDLIBS += -lnv
-    CFLAGS += -DHVT_FREEBSD_ENABLE_CAPSICUM=1
+    HOSTCFLAGS += -DHVT_FREEBSD_ENABLE_CAPSICUM=1
 endif
 else ifeq ($(CONFIG_HOST), OpenBSD)
     hvt_SRCS += hvt/hvt_openbsd.c hvt/hvt_openbsd_$(CONFIG_HOST_ARCH).c
