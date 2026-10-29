@@ -21,8 +21,12 @@ jobs:
         with:
           usesh: true
           prepare: |
-            pkg install -y pkgconf gmake git
+            pkg install -y pkgconf gmake git sudo bash
           run: |
             git config --global --add safe.directory /home/runner/work/solo5/solo5
+            set -x
             ./configure.sh
             gmake
+            cd tests
+            sudo ./setup-tests.sh
+            sudo ./run-tests.sh
