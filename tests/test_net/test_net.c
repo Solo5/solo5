@@ -203,7 +203,9 @@ static bool handle_ip(int ifindex, uint8_t *buf)
     if (p->ip.version_ihl != 0x45)
         return false; /* we don't support IPv6, yet :-) */
 
-    if (p->ip.type != 0x00)
+    /* Ignore the Explicit Congestion Notification bits, which might be set as
+     * the test will ping-flood the unikernel */
+    if ((p->ip.type & 0xc) != 0x00)
         return false;
 
     if (p->ip.proto != 0x01)
