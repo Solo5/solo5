@@ -91,6 +91,11 @@ solo5_result_t solo5_net_read(solo5_handle_t handle, uint8_t *buf, size_t size,
         *read_size = pkt.length;
         return SOLO5_R_OK;
     } else {
+        /* Without draining, the read position stays behind forever and the
+         * device never delivers a packet again. */
+        if (result == MUCHANNEL_OVERRUN_DETECTED)
+            muen_channel_drain(net_devices[handle].net_in,
+                               &net_devices[handle].net_rdr);
         return SOLO5_R_AGAIN;
     }
 }
