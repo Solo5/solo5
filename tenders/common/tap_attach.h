@@ -37,7 +37,8 @@ int tap_attach(const char *ifname, int *mtu);
 /*
  * Same as (tap_attach) but also lets the user to specify (extra) flags when we
  * allocate file-descriptors from the given (ifname) TAP interface. These flags
- * don't apply for pre-opened TAP interfaces ("@<num>").
+ * don't apply (and are just ignored) for pre-opened TAP interfaces ("@<num>").
+ * These flags are only used on Linux systems, we ignore them on BSD systems.
  */
 int tap_attach_with_flags(const char *ifname, int *mtu, int extra);
 
