@@ -533,6 +533,10 @@ case ${CONFIG_HOST} in
                 err "gcc version ${major_version} of ${TARGET_CC} unsupported on DragonFly"
                 die "gcc 9+ or clang required on DragonFly"
             fi
+            # use bfd linker to avoid ld.gold error:
+            #     error: allocated section not in any PT_LOAD segment
+            #     /usr/libexec/binutils234/elf/ld.gold: internal error in data_size
+            TARGET_CC_CFLAGS="${TARGET_CC_CFLAGS} -fuse-ld=bfd"
         fi
         ;;
     *)
