@@ -99,8 +99,10 @@ if CC=${CONFIG_TARGET_CC} cc_is_clang; then
         FreeBSD|OpenBSD|DragonFly)
             SRCDIR=/usr/include
             SRCS="float.h stddef.h stdint.h stdbool.h stdarg.h"
-            [ "${CONFIG_HOST}" = "FreeBSD" ] && \
+            [ "${CONFIG_HOST}" = "FreeBSD"] && \
                 SRCS="${SRCS} stdalign.h stdatomic.h"
+            [ "${CONFIG_HOST}" = "DragonFly"] && \
+                SRCS="${SRCS} stdalign.h"
             DEPS="$(mktemp)"
             CC=${CONFIG_TARGET_CC} cc_get_header_deps ${SRCDIR} ${SRCS} \
                 >${DEPS} || \
@@ -121,12 +123,43 @@ if CC=${CONFIG_TARGET_CC} cc_is_clang; then
             ;;
     esac
 else
-    # For GCC there isn't an equivalent of -nostdlibinc, so we need to
-    # appropriate all of its internal headers.
-    SRCDIR="$(${CONFIG_TARGET_CC} -print-file-name=include)"
-    [ -d "${SRCDIR}" ] || die "Cannot determine gcc include directory"
-    cp -R "${SRCDIR}/." ${DESTDIR} || \
-        die "Failure copying host headers"
+    case ${CONFIG_HOST} in
+        DragonFly)
+            # DragonFly's system gcc compiler returns "include" when
+            # called with "-print-file-name=include". The gcc's from
+            # the ports collection instead properly return an
+            # absolute path.
+            SRCDIR="$(${CONFIG_TARGET_CC} -print-file-name=include)"
+
+	    if [ "${SRCDIR}" = "include" ]; then
+                SRCDIR=/usr/include
+                SRCS="float.h stddef.h stdint.h stdbool.h stdarg.h stdalign.h"
+                DEPS="$(mktemp)"
+                CC=${CONFIG_TARGET_CC} cc_get_header_deps ${SRCDIR} ${SRCS} \
+                    >${DEPS} || \
+                    die "Failure getting dependencies of host headers"
+                # cpio will fail if CRT_INCDIR is below a symlink, so squash that
+                DESTDIR="$(readlink -f ${DESTDIR})"
+                Q="--quiet"
+                (cd ${SRCDIR} && cpio ${Q} -Lpdm ${DESTDIR} <${DEPS}) || \
+                    die "Failure copying host headers"
+                rm ${DEPS}
+            else
+                [ -d "${SRCDIR}" ] || die "Cannot determine gcc include directory"
+                cp -R "${SRCDIR}/." ${DESTDIR} || \
+                    die "Failure copying host headers"
+            fi
+            ;;
+
+        *)
+            # For GCC there isn't an equivalent of -nostdlibinc, so we need to
+            # appropriate all of its internal headers.
+            SRCDIR="$(${CONFIG_TARGET_CC} -print-file-name=include)"
+            [ -d "${SRCDIR}" ] || die "Cannot determine gcc include directory"
+            cp -R "${SRCDIR}/." ${DESTDIR} || \
+                die "Failure copying host headers"
+            ;;
+    esac
 fi
 
 printf %s "$cpp_test" | ${CONFIG_TARGET_CC} -E -P -x c - | sed '/^$/d' | \
