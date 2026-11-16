@@ -285,7 +285,7 @@ int tap_attach_flags(const char *ifname, int *mtu, int extra)
     if (!up)
         ;
 
-    (void)extra;
+    assert(extra == 0);
     char devname[strlen(ifname) + 6];
 
     snprintf(devname, sizeof devname, "/dev/%s", ifname);
@@ -300,7 +300,7 @@ int tap_attach_flags(const char *ifname, int *mtu, int extra)
         return -1;
     }
 
-    (void)extra;
+    assert(extra == 0);
     char devname[strlen(ifname) + 6];
 
     snprintf(devname, sizeof devname, "/dev/%s", ifname);
