@@ -24,7 +24,7 @@ jobs:
         with:
           usesh: true
           prepare: |
-            pkg install -y gmake git llvm18 gcc9
+            pkg install -y gmake git llvm18 llvm18-libcxx gcc9
           run: |
             git config --global --add safe.directory /home/runner/work/solo5/solo5
             env HOST_CC=clang18 TARGET_LD=ld.lld18 TARGET_CC=clang18 ./configure.sh
