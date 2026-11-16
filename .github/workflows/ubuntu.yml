@@ -36,7 +36,7 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
           sudo apt-get update
-          sudo apt-get install -y libvirt-clients libvirt-daemon-system libvirt-daemon virtinst bridge-utils qemu-kvm qemu-system-x86
+          sudo apt-get install -y libvirt-clients libvirt-daemon-system libvirt-daemon virtinst bridge-utils qemu-system-x86
           sudo usermod -a -G kvm,libvirt $USER
       - name: Test
         run: |
