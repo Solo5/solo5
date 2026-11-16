@@ -99,9 +99,9 @@ if CC=${CONFIG_TARGET_CC} cc_is_clang; then
         FreeBSD|OpenBSD|DragonFly)
             SRCDIR=/usr/include
             SRCS="float.h stddef.h stdint.h stdbool.h stdarg.h"
-            [ "${CONFIG_HOST}" = "FreeBSD"] && \
+            [ "${CONFIG_HOST}" = "FreeBSD" ] && \
                 SRCS="${SRCS} stdalign.h stdatomic.h"
-            [ "${CONFIG_HOST}" = "DragonFly"] && \
+            [ "${CONFIG_HOST}" = "DragonFly" ] && \
                 SRCS="${SRCS} stdalign.h"
             DEPS="$(mktemp)"
             CC=${CONFIG_TARGET_CC} cc_get_header_deps ${SRCDIR} ${SRCS} \
