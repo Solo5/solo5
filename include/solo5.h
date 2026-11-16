@@ -266,10 +266,6 @@ void solo5_console_write(const char *buf, size_t size);
 struct solo5_net_info {
     uint8_t mac_address[SOLO5_NET_ALEN];
     size_t mtu; /* Not including Ethernet header */
-    uint32_t offloads; /* SOLO5_NET_OFFLOAD_* enabled on this device */
-    size_t max_frame; /* Max frame size (including Ethernet header) accepted by
-                         (solo5_net_write) and required by (solo5_net_read);
-                         mtu + SOLO5_NET_HLEN if no TSO/USO/GRO. */
 };
 
 /*
