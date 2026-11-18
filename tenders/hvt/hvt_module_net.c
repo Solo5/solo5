@@ -527,6 +527,8 @@ static int setup(struct hvt *hvt, struct mft *mft)
 
         mft->e[i].u.net_basic.mtu = mtu;
         mft->e[i].b.hostfd = fd;
+        mft->e[i].u.net_basic.offloads = 0;
+        mft->e[i].u.net_basic.max_frame = mtu + SOLO5_NET_HLEN;
 
         char no_mac[6] = {0};
         if (memcmp(mft->e[i].u.net_basic.mac, no_mac, sizeof no_mac) == 0)
