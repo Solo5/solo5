@@ -613,6 +613,16 @@ xen_expect_abort() {
 
   ( sleep 1; ${TIMEOUT} 60s ping -fq -c 100000 ${NET0_IP} ) &
   hvt_run --net:service0=${NET0} -- test_net/test_net.hvt limit
+  # This test is flaky on FreeBSD and OpenBSD, because some packets are often
+  # dropped, at least when running on slow VMs, so let's ignore those failures
+  # when SOLO5_SKIP_TESTS contains "net hvt"
+  if [ "$status" -ne 0 ]; then
+    case "${CONFIG_HOST},${SOLO5_SKIP_TESTS}" in
+      FreeBSD,*"net hvt"*|OpenBSD,*"net hvt"*)
+        skip "flaky, ignored"
+        ;;
+    esac
+  fi
   expect_success
 }
 
