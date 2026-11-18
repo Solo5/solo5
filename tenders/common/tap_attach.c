@@ -170,7 +170,7 @@ fail: {
     return -1;
 }
 
-int tap_attach_flags(const char *ifname, int *mtu, int extra)
+int tap_attach_with_flags(const char *ifname, int *mtu, int extra)
 {
     int fd;
 
@@ -321,7 +321,7 @@ int tap_attach_flags(const char *ifname, int *mtu, int extra)
 
 int tap_attach(const char *ifname, int *mtu)
 {
-    return tap_attach_flags(ifname, mtu, 0);
+    return tap_attach_with_flags(ifname, mtu, 0);
 }
 
 void tap_attach_genmac(uint8_t *mac)
