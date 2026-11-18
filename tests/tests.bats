@@ -364,13 +364,15 @@ xen_expect_abort() {
 }
 
 @test "rnow hvt" {
-  skip_unless_host_is OpenBSD
+  skip_unless_host_is
+    # No longer supported on OpenBSD
   hvt_run test_rnow/test_rnow.hvt
   [ "$status" -eq 1 ] && [[ "$output" == *"host/guest translation fault"* ]]
 }
 
 @test "xnow hvt" {
-  skip_unless_host_is Linux OpenBSD
+  skip_unless_host_is Linux
+    # No longer supported on OpenBSD
 
   hvt_run test_xnow/test_xnow.hvt
   [ "$status" -eq 1 ] && [[ "$output" == *"host/guest translation fault"* ]]
@@ -387,20 +389,23 @@ xen_expect_abort() {
 }
 
 @test "xnor hvt" {
-  skip_unless_host_is OpenBSD
+  skip_unless_host_is
+    # No longer supported on OpenBSD
   hvt_run test_xnor/test_xnor.hvt
   [ "$status" -eq 1 ] && [[ "$output" == *"host/guest translation fault"* ]]
 }
 
 @test "rnox hvt" {
-  skip_unless_host_is OpenBSD
+  skip_unless_host_is
+    # No longer supported on OpenBSD
 
   hvt_run test_rnox/test_rnox.hvt
   [ "$status" -eq 1 ] && [[ "$output" == *"host/guest translation fault"* ]]
 }
 
 @test "wnox hvt" {
-  skip_unless_host_is OpenBSD
+  skip_unless_host_is
+    # No longer supported on OpenBSD
 
   hvt_run test_wnox/test_wnox.hvt
   [ "$status" -eq 1 ] && [[ "$output" == *"host/guest translation fault"* ]]
