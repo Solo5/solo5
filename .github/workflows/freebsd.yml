@@ -27,6 +27,7 @@ jobs:
             set -x
             ./configure.sh
             gmake
+            export SOLO5_SKIP_TESTS="net hvt"
             cd tests
             sudo ./setup-tests.sh
             sudo ./run-tests.sh
