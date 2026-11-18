@@ -166,6 +166,7 @@ match_hostrelease() {
 
 skip_if_host_is() {
   match_hostrelease "$@" && skip "not supported on ${CONFIG_HOST}"
+  return 0
 }
 
 skip_unless_host_is() {
