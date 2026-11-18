@@ -715,6 +715,7 @@ xen_expect_abort() {
 
 @test "net_ring memory hvt" {
   skip_unless_root
+  skip_if_host_is OpenBSD
   local mem=32
 
   run ${TIMEOUT} --foreground 60s "${HVT_TENDER}" --mem=${mem} \
