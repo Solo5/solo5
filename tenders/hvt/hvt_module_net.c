@@ -37,6 +37,7 @@
 #endif
 
 #include "../common/tap_attach.h"
+#include "../common/tap_offload.h"
 #include "hvt.h"
 #include "solo5.h"
 
@@ -66,6 +67,7 @@ static volatile int io_thread_stop;
 static hvt_gpa_t reserved_ring_gpa;
 static char ifaces[MFT_MAX_ENTRIES][IFNAMSIZ];
 static uint32_t offloads[MFT_MAX_ENTRIES];
+static struct tap taps[MFT_MAX_ENTRIES];
 
 /* Minimum amount of memory, 512KB */
 #define HVT_GUEST_MIN_FREE 0x80000
@@ -124,8 +126,8 @@ static void hypercall_net_write(struct hvt *hvt, hvt_gpa_t gpa)
 
     ssize_t ret;
 
-    ret =
-        write(e->b.hostfd, HVT_CHECKED_GPA_P(hvt, wr->data, wr->len), wr->len);
+    ret = tap_write(&taps[wr->handle],
+                    HVT_CHECKED_GPA_P(hvt, wr->data, wr->len), wr->len);
     if (ret == -1) {
         fprintf(stderr, "Fatal error when writing: %s\n", strerror(errno));
         exit(1);
@@ -150,7 +152,8 @@ static void hypercall_net_read(struct hvt *hvt, hvt_gpa_t gpa)
 
     ssize_t ret;
 
-    ret = read(e->b.hostfd, HVT_CHECKED_GPA_P(hvt, rd->data, rd->len), rd->len);
+    ret = tap_read(&taps[rd->handle], HVT_CHECKED_GPA_P(hvt, rd->data, rd->len),
+                   rd->len);
     if ((ret == 0) || (ret == -1 && errno == EAGAIN)) {
         rd->ret = SOLO5_R_AGAIN;
         return;
@@ -194,7 +197,7 @@ static inline void process_read_entry(struct hvt *hvt, struct hvt_ring *ring,
         uint64_t ent_data = ent->data;
         uint32_t ent_len = ent->len;
         void *data = HVT_CHECKED_GPA_P(hvt, ent_data, ent_len);
-        ssize_t nr = read(e->b.hostfd, data, ent_len);
+        ssize_t nr = tap_read(&taps[ent->handle], data, ent_len);
 
         if (nr == 0 || (nr == -1 && errno == EAGAIN)) {
             commit->ret = SOLO5_R_AGAIN;
@@ -249,7 +252,7 @@ static inline void process_ring_commits(struct hvt *hvt, struct hvt_ring *ring)
                     uint64_t ent_data = ent->data;
                     uint32_t ent_len = ent->len;
                     void *data = HVT_CHECKED_GPA_P(hvt, ent_data, ent_len);
-                    ssize_t ret = write(e->b.hostfd, data, ent_len);
+                    ssize_t ret = tap_write(&taps[ent->handle], data, ent_len);
                     if (ret == -1)
                         err(1, "Fatal write error on net device");
                     if ((size_t)ret != ent_len)
@@ -512,21 +515,23 @@ static int setup(struct hvt *hvt, struct mft *mft)
     for (unsigned i = 0; i != mft->entries; i++) {
         if (mft->e[i].type != MFT_DEV_NET_BASIC || !mft->e[i].attached)
             continue;
-        int mtu = -1;
-        int fd = tap_attach(ifaces[i], &mtu);
+        if (tap_offload_setup(&taps[i], ifaces[i], offloads[i]) == -1)
+            err(1, "%s: could not attach", ifaces[i]);
 
-        if (fd < 0 || mtu < 0)
+        if (taps[i].fd < 0 || taps[i].mtu < 0)
             err(1, "Could not attach interface: %s", ifaces[i]);
 
 #if HVT_FREEBSD_ENABLE_CAPSICUM
         cap_rights_t rights;
         cap_rights_init(&rights, CAP_EVENT, CAP_READ, CAP_WRITE);
-        if (cap_rights_limit(fd, &rights) == -1)
+        if (cap_rights_limit(taps[i].fd, &rights) == -1)
             err(1, "%s: cap_rights_limit() failed", ifaces[i]);
 #endif
 
-        mft->e[i].u.net_basic.mtu = mtu;
-        mft->e[i].b.hostfd = fd;
+        mft->e[i].u.net_basic.mtu = taps[i].mtu;
+        mft->e[i].u.net_basic.offloads = taps[i].offloads;
+        mft->e[i].u.net_basic.max_frame = taps[i].max_frame;
+        mft->e[i].b.hostfd = taps[i].fd;
 
         char no_mac[6] = {0};
         if (memcmp(mft->e[i].u.net_basic.mac, no_mac, sizeof no_mac) == 0)
