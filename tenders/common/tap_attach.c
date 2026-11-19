@@ -110,7 +110,7 @@ static int tap_fd_ifname(int fd, char *name, int *flags)
 
 #endif
 
-static int tap_configure(const char *ifname, int *mtu, int extra)
+static int tap_configure(int fd, const char *ifname, int *mtu, int extra)
 {
     struct ifreq ifr;
     int sock;
@@ -145,6 +145,8 @@ static int tap_configure(const char *ifname, int *mtu, int extra)
      * Equivalent to: ethtool -K <iface> gro off gso off
      */
     if (!(extra & IFF_VNET_HDR)) {
+        if (ioctl(fd, TUNSETOFFLOAD, 0) == -1)
+            goto fail;
         static const uint32_t cmds[] = {ETHTOOL_SGRO, ETHTOOL_SGSO};
         for (unsigned i = 0; i < sizeof(cmds) / sizeof(cmds[0]); i++) {
             struct ethtool_value eval;
@@ -196,7 +198,7 @@ int tap_attach_with_flags(const char *ifname, int *mtu, int extra)
             return -1;
         if (tap_fd_ifname(fd, name, &flags) == -1)
             return -1;
-        if (tap_configure(name, mtu, flags) == -1)
+        if (tap_configure(fd, name, mtu, flags) == -1)
             return -1;
 
         return fd;
@@ -232,6 +234,7 @@ int tap_attach_with_flags(const char *ifname, int *mtu, int extra)
     }
 
     int err;
+    int flags = 0;
 
 #if defined(__linux__)
     struct ifreq ifr;
@@ -276,6 +279,8 @@ int tap_attach_with_flags(const char *ifname, int *mtu, int extra)
         return -1;
     }
 
+    flags = ifr.ifr_flags;
+
 #elif defined(__FreeBSD__) || defined(__DragonFly__)
 
     /*
@@ -309,7 +314,7 @@ int tap_attach_with_flags(const char *ifname, int *mtu, int extra)
         return -1;
 #endif
 
-    if (tap_configure(ifname, mtu, extra) == -1) {
+    if (tap_configure(fd, ifname, mtu, flags) == -1) {
         err = errno;
         close(fd);
         errno = err;
