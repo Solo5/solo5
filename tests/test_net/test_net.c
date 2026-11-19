@@ -245,6 +245,8 @@ static bool handle_ip(int ifindex, uint8_t *buf)
         checksum((uint16_t *)&p->ping, htons(p->ip.length) - sizeof(struct ip));
 
     n_pings_received++;
+    if (n_pings_received % 10000 == 0)
+        puts("Received 10000 ping packets\n");
     return true;
 }
 
