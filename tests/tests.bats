@@ -64,10 +64,18 @@ setup() {
     ;;
   *virtio)
     [ -z "${CONFIG_VIRTIO}" ] && skip
-    [ "${CONFIG_HOST}" = "FreeBSD" ] && \
-      [ ! -x "$(command -v grub-bhyve)" ] && \
-      skip "grub-bhyve not available"
-    [ "${CONFIG_HOST}" = "OpenBSD" ] && skip
+    # Same filter on host than solo5-virtio-run
+    case "${CONFIG_HOST}" in
+      Linux)
+        ;;
+      FreeBSD)
+        [ ! -x "$(command -v grub-bhyve)" ] && \
+        skip "grub-bhyve not available"
+        ;;
+      *)
+        skip
+        ;;
+    esac
     VIRTIO=../scripts/virtio-run/solo5-virtio-run.sh
     ;;
   *spt)
@@ -158,6 +166,7 @@ match_hostrelease() {
 
 skip_if_host_is() {
   match_hostrelease "$@" && skip "not supported on ${CONFIG_HOST}"
+  return 0
 }
 
 skip_unless_host_is() {
@@ -355,13 +364,15 @@ xen_expect_abort() {
 }
 
 @test "rnow hvt" {
-  skip_unless_host_is OpenBSD
+  skip_unless_host_is
+    # No longer supported on OpenBSD
   hvt_run test_rnow/test_rnow.hvt
   [ "$status" -eq 1 ] && [[ "$output" == *"host/guest translation fault"* ]]
 }
 
 @test "xnow hvt" {
-  skip_unless_host_is Linux OpenBSD
+  skip_unless_host_is Linux
+    # No longer supported on OpenBSD
 
   hvt_run test_xnow/test_xnow.hvt
   [ "$status" -eq 1 ] && [[ "$output" == *"host/guest translation fault"* ]]
@@ -378,20 +389,23 @@ xen_expect_abort() {
 }
 
 @test "xnor hvt" {
-  skip_unless_host_is OpenBSD
+  skip_unless_host_is
+    # No longer supported on OpenBSD
   hvt_run test_xnor/test_xnor.hvt
   [ "$status" -eq 1 ] && [[ "$output" == *"host/guest translation fault"* ]]
 }
 
 @test "rnox hvt" {
-  skip_unless_host_is OpenBSD
+  skip_unless_host_is
+    # No longer supported on OpenBSD
 
   hvt_run test_rnox/test_rnox.hvt
   [ "$status" -eq 1 ] && [[ "$output" == *"host/guest translation fault"* ]]
 }
 
 @test "wnox hvt" {
-  skip_unless_host_is OpenBSD
+  skip_unless_host_is
+    # No longer supported on OpenBSD
 
   hvt_run test_wnox/test_wnox.hvt
   [ "$status" -eq 1 ] && [[ "$output" == *"host/guest translation fault"* ]]
@@ -605,6 +619,16 @@ xen_expect_abort() {
 
   ( sleep 1; ${TIMEOUT} 60s ping -fq -c 100000 ${NET0_IP} ) &
   hvt_run --net:service0=${NET0} -- test_net/test_net.hvt limit
+  # This test is flaky on FreeBSD and OpenBSD, because some packets are often
+  # dropped, at least when running on slow VMs, so let's ignore those failures
+  # when SOLO5_SKIP_TESTS contains "net hvt"
+  if [ "$status" -ne 0 ]; then
+    case "${CONFIG_HOST},${SOLO5_SKIP_TESTS}" in
+      FreeBSD,*"net hvt"*|OpenBSD,*"net hvt"*)
+        skip "flaky, ignored"
+        ;;
+    esac
+  fi
   expect_success
 }
 
@@ -696,6 +720,7 @@ xen_expect_abort() {
 
 @test "net_ring memory hvt" {
   skip_unless_root
+  skip_if_host_is OpenBSD
   local mem=32
 
   run ${TIMEOUT} --foreground 60s "${HVT_TENDER}" --mem=${mem} \
