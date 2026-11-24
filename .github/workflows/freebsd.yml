@@ -1,4 +1,4 @@
-name: FreeBSD
+name: FreeBSD amd64
 on:
   push:
     branches:
@@ -10,11 +10,8 @@ permissions: {}
 
 jobs:
   Build:
-    name: AMD64
-    strategy:
-      matrix:
-        operating-system: [ubuntu-latest]
-    runs-on: ${{ matrix.operating-system }}
+    name: FreeBSD amd64
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -24,8 +21,12 @@ jobs:
         with:
           usesh: true
           prepare: |
-            pkg install -y pkgconf gmake git
+            pkg install -y pkgconf gmake git sudo bash
           run: |
             git config --global --add safe.directory /home/runner/work/solo5/solo5
+            set -x
             ./configure.sh
             gmake
+            cd tests
+            sudo ./setup-tests.sh
+            sudo ./run-tests.sh
