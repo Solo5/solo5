@@ -70,6 +70,11 @@ int mft_validate(const struct mft *mft, size_t mft_size)
          */
         if (mft->e[i].name[MFT_NAME_MAX] != 0)
             return -1;
+        /* Ensure .type is well-known */
+        if (!(mft->e[i].type == MFT_DEV_BLOCK_BASIC ||
+              mft->e[i].type == MFT_DEV_NET_BASIC ||
+              (i == 0 && mft->e[i].type == MFT_RESERVED_FIRST)))
+            return -1;
         /*
          * Sanitize private fields (to be used by the tender/bindings):
          *
