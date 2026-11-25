@@ -20,13 +20,15 @@
 
 /*
  * tap_offload.c: Common functions for attaching to TAP interfaces with offload
- * options.
+ * options. It also provide (tap_read) and (tap_write) to read and write frames
+ * according offload options.
  */
 
 #ifndef COMMON_TAP_OFFLOAD_H
 #define COMMON_TAP_OFFLOAD_H
 
 #include <stdint.h>
+#include <sys/types.h>
 
 enum tap_hdr_kind { TAP_HDR_NONE, TAP_HDR_VIRTIO, TAP_HDR_OPENBSD };
 
@@ -45,5 +47,20 @@ struct tap {
  * failure. Must be called before any sandboxing (pledge, capsicum).
  */
 int tap_setup(struct tap *d, const char *ifname, uint32_t offloads);
+
+/*
+ * Like write(2) on the TAP fd (d), for one Ethernet frame. Builds the
+ * offload header from the frame itself. Return (len), or -1 with (errno);
+ * (EINVAL) when the frame is inconsistent or larget than the MTU without
+ * a matching offload.
+ */
+ssize_t tap_write(struct tap *d, const uint8_t *buf, size_t len);
+
+/*
+ * Like read(2) on the TAP fd (d), for one Ethernet frame (header stripped).
+ * Malformed frames are dropped. This function returns the number of bytes
+ * actually read or -1 with (EAGAIN) when nothing (more) is pending.
+ */
+ssize_t tap_read(struct tap *d, uint8_t *buf, size_t len);
 
 #endif /* COMMON_TAP_OFFLOAD_H */
