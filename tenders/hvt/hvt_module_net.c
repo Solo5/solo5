@@ -37,6 +37,7 @@
 #endif
 
 #include "../common/tap_attach.h"
+#include "../common/tap_offload.h"
 #include "hvt.h"
 #include "solo5.h"
 
@@ -65,7 +66,7 @@ static struct mft *host_mft;
 static volatile int io_thread_stop;
 static hvt_gpa_t reserved_ring_gpa;
 static char ifaces[MFT_MAX_ENTRIES][IFNAMSIZ];
-static uint32_t offloads[MFT_MAX_ENTRIES];
+static struct tap taps[MFT_MAX_ENTRIES];
 
 /* Minimum amount of memory, 512KB */
 #define HVT_GUEST_MIN_FREE 0x80000
@@ -492,7 +493,7 @@ static int handle_cmdarg(char *cmdarg, struct mft *mft)
                 token = strtok(NULL, ",");
             }
         }
-        offloads[index] |= want;
+        taps[index].offloads |= want;
     }
 
     return 0;
