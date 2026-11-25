@@ -513,23 +513,22 @@ static int setup(struct hvt *hvt, struct mft *mft)
     for (unsigned i = 0; i != mft->entries; i++) {
         if (mft->e[i].type != MFT_DEV_NET_BASIC || !mft->e[i].attached)
             continue;
-        int mtu = -1;
-        int fd = tap_attach(ifaces[i], &mtu);
-
-        if (fd < 0 || mtu < 0)
+        if (tap_setup(&taps[i], ifaces[i], taps[i].offloads) == -1)
+            err(1, "Could not attach interface: %s", ifaces[i]);
+        if (taps[i].fd < 0 || taps[i].mtu < 0)
             err(1, "Could not attach interface: %s", ifaces[i]);
 
 #if HVT_FREEBSD_ENABLE_CAPSICUM
         cap_rights_t rights;
         cap_rights_init(&rights, CAP_EVENT, CAP_READ, CAP_WRITE);
-        if (cap_rights_limit(fd, &rights) == -1)
+        if (cap_rights_limit(taps[i].fd, &rights) == -1)
             err(1, "%s: cap_rights_limit() failed", ifaces[i]);
 #endif
 
-        mft->e[i].u.net_basic.mtu = mtu;
-        mft->e[i].b.hostfd = fd;
-        mft->e[i].u.net_basic.offloads = 0;
-        mft->e[i].u.net_basic.max_frame = mtu + SOLO5_NET_HLEN;
+        mft->e[i].u.net_basic.mtu = taps[i].mtu;
+        mft->e[i].u.net_basic.offloads = taps[i].offloads;
+        mft->e[i].u.net_basic.max_frame = taps[i].max_frame;
+        mft->e[i].b.hostfd = taps[i].fd;
 
         char no_mac[6] = {0};
         if (memcmp(mft->e[i].u.net_basic.mac, no_mac, sizeof no_mac) == 0)
