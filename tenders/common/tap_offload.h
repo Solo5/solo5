@@ -46,4 +46,4 @@ struct tap {
  */
 int tap_setup(struct tap *d, const char *ifname, uint32_t offloads);
 
-#endif
+#endif /* COMMON_TAP_OFFLOAD_H */
