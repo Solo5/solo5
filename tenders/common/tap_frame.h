@@ -112,4 +112,4 @@ bool frame_l4_csum_ok(const uint8_t *f, const struct frame_info *fi);
  */
 int frame_csum_complete(uint8_t *f, size_t len, size_t start, size_t offset);
 
-#endif
+#endif /* COMMON_TAP_FRAME_H */
