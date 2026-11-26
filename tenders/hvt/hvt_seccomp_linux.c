@@ -63,7 +63,9 @@ void hvt_seccomp_apply(void)
     static const int allow[] = {
         SCMP_SYS(ioctl), /* KVM_RUN on vcpufd */
         SCMP_SYS(read), /* net tap */
+        SCMP_SYS(readv), /* net tap */
         SCMP_SYS(write), /* console, net tap, stderr */
+        SCMP_SYS(writev), /* net tap */
         SCMP_SYS(pread64), /* block read */
         SCMP_SYS(pwrite64), /* block write */
         SCMP_SYS(epoll_pwait), /* poll hypercall */

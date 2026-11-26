@@ -28,11 +28,17 @@ all_TARGETS :=
 .SUFFIXES:
 $(V).SILENT:	
 
+ifeq ($(CONFIG_HOST), OpenBSD)
+IO := common/tap_io.obsd.c
+else
+IO := common/tap_io.vnet.c
+endif
+
 ifneq ($(filter 1,$(CONFIG_HVT_TENDER) $(CONFIG_SPT_TENDER)),)
 
 common_LIB := common/libcommon.a
 common_SRCS := common/elf.c common/mft.c common/block_attach.c \
-    common/tap_attach.c common/tap_frame.c common/tap_offload.c
+    common/tap_attach.c common/tap_frame.c common/tap_offload.c $(IO)
 common_OBJS := $(patsubst %.c,%.o,$(common_SRCS))
 
 $(common_LIB): $(common_OBJS)

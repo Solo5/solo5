@@ -88,10 +88,14 @@ solo5_result_t solo5_net_write(solo5_handle_t handle, const uint8_t *buf,
         struct hvt_ring_entry *ent = &net_ring->entries[idx];
 
         /* Fall back to hypercall for packets that do not fit in the
-         * per-slot buffer (e.g. jumbo frames with MTU > HVT_RING_BUF_SIZE).
+         * per-slot buffer (e.g. jumbo frames with MTU > HVT_RING_BUF_SIZE and
+         * TSO/USO frames).
          */
-        if (size > HVT_RING_BUF_SIZE)
+        if (size > HVT_RING_BUF_SIZE) {
+            while (net_ring->ent_head != net_ring->ent_tail)
+                cpu_relax();
             goto hypercall_write;
+        }
 
         /* Copy data into a per-slot static buffer so the caller can safely
          * reuse its buffer after we return (fire-and-forget). write_bufs[] is

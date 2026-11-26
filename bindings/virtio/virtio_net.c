@@ -55,26 +55,7 @@ typedef uint64_t virtio_set_t;
 #define VIRTQ_RECV 0
 #define VIRTQ_XMIT 1
 
-/* This header comes first in the scatter-gather list.
- * If VIRTIO_F_ANY_LAYOUT is not negotiated, it must
- * be the first element of the scatter-gather list.  If you don't
- * specify GSO or CSUM features, you can simply ignore the header.
- */
-struct __attribute__((__packed__)) virtio_net_hdr {
-#define VIRTIO_NET_HDR_F_NEEDS_CSUM 1 /* Use csum_start, csum_offset */
-#define VIRTIO_NET_HDR_F_DATA_VALID 2 /* Csum is valid */
-    uint8_t flags;
-#define VIRTIO_NET_HDR_GSO_NONE  0 /* Not a GSO frame */
-#define VIRTIO_NET_HDR_GSO_TCPV4 1 /* GSO frame, IPv4 TCP (TSO) */
-#define VIRTIO_NET_HDR_GSO_UDP   3 /* GSO frame, IPv4 UDP (UFO) */
-#define VIRTIO_NET_HDR_GSO_TCPV6 4 /* GSO frame, IPv6 TCP */
-#define VIRTIO_NET_HDR_GSO_ECN   0x80 /* TCP has ECN set */
-    uint8_t gso_type;
-    uint16_t hdr_len; /* Ethernet + IP + tcp/udp hdrs */
-    uint16_t gso_size; /* Bytes to append to hdr_len per frame */
-    uint16_t csum_start; /* Position to start checksumming from */
-    uint16_t csum_offset; /* Offset after that to place checksum */
-};
+#include "virtio_net.h"
 
 static char virtio_net_mac_str[18];
 

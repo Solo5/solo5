@@ -25,16 +25,20 @@
 #include <sys/ioctl.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <sys/uio.h>
 
 #include "solo5.h"
 #include "tap_attach.h"
 #include "tap_offload.h"
+#include "tap_frame.h"
+#include "tap_io.h"
 
 #if defined(__linux__)
 
 #include <sys/socket.h>
 #include <linux/if.h>
 #include <linux/if_tun.h>
+#include "virtio_net.h"
 
 static int os_hdr_enabled(int fd)
 {
@@ -48,7 +52,7 @@ static int os_hdr_enabled(int fd)
 
 static int os_setup(struct tap *d, const char *ifname, uint32_t offloads)
 {
-    int mtu = -1, fd, hdrsz = 12;
+    int mtu = -1, fd, hdrsz = sizeof(struct virtio_net_hdr);
     unsigned tunf = 0;
 
     if (ifname[0] == '@') {
@@ -94,6 +98,7 @@ fail: {
 #include <sys/sockio.h>
 #include <net/if.h>
 #include <net/if_tap.h>
+#include "virtio_net.h"
 
 static int os_hdr_enabled(int fd)
 {
@@ -112,7 +117,7 @@ static int os_hdr_enabled(int fd)
 static int os_setup(struct tap *d, const char *ifname, uint32_t offloads)
 {
 #ifdef TAPSVNETHDR
-    int mtu = -1, fd, hdrsz = 12, sock;
+    int mtu = -1, fd, hdrsz = sizeof(struct virtio_net_hdr), sock;
     struct ifreq ifr;
 
     if (ifname[0] == '@') {
@@ -224,7 +229,7 @@ static int os_setup(struct tap *d, const char *ifname, uint32_t offloads)
     if (cap.tun_if_capabilities & IFCAP_TSOv4)
         d->offloads |= SOLO5_NET_OFFLOAD_RX_GRO;
 
-    d->max_frame = 16384; /* TODO(dinosaure): to confirm! */
+    d->max_frame = SOLO5_NET_HLEN + 65535;
     return 0;
 fail: {
     int e = errno;
@@ -322,4 +327,99 @@ int tap_setup(struct tap *d, const char *ifname, uint32_t offloads)
 
     d->max_frame = max_frame(d->offloads, d->mtu, d->max_frame);
     return 0;
+}
+
+#define IPPROTO_UDP 17
+
+static uint32_t gso_offload(const struct frame_info *fi)
+{
+    if (fi->l4proto == IPPROTO_UDP)
+        return SOLO5_NET_OFFLOAD_TX_USO;
+
+    return fi->ipv6 ? SOLO5_NET_OFFLOAD_TX_TSO6 : SOLO5_NET_OFFLOAD_TX_TSO4;
+}
+
+#if defined(__OpenBSD__) /* OpenBSD */
+#define OFFLOAD_HDR_SIZE sizeof(struct tun_hdr)
+#else /* Linux & FreeBSD */
+#include "virtio_net.h"
+#define OFFLOAD_HDR_SIZE sizeof(struct virtio_net_hdr)
+#endif
+
+ssize_t tap_write(struct tap *d, const uint8_t *buf, size_t len)
+{
+    struct frame_info fi;
+    size_t wlen = len;
+    bool big = false;
+    uint16_t seg = 0;
+    _Alignas(uint16_t) uint8_t hdr[OFFLOAD_HDR_SIZE];
+
+    if (d->kind == TAP_HDR_NONE)
+        return write(d->fd, buf, len);
+
+    if (len > d->max_frame || frame_classify(buf, len, &fi) == -1)
+        goto einval;
+
+    if (fi.eligible) {
+        wlen = fi.ip_end; /* drop Ethernet padding */
+        big = wlen > (size_t)d->mtu + SOLO5_NET_HLEN;
+        if (big) {
+            seg = frame_seg(&fi, d->mtu);
+            /* if we don't have, at least, one segment or if the recognized
+             * required offload from the given (buf) is not supported by our tap
+             * device, we go to (einval) */
+            if (seg == 0 || !(d->offloads & gso_offload(&fi)))
+                goto einval;
+        }
+    }
+
+    struct iovec iov[2];
+
+    if (!tx_fill_offload_hdr(d, fi, buf, len, hdr))
+        goto einval;
+
+    iov[0].iov_base = &hdr;
+    iov[0].iov_len = OFFLOAD_HDR_SIZE;
+    iov[1].iov_base = (void *)(uintptr_t)buf;
+    iov[1].iov_len = wlen;
+
+    ssize_t n = writev(d->fd, iov, 2);
+
+    if (n == -1)
+        return -1;
+    if ((size_t)n != iov[0].iov_len + wlen) {
+        errno = EIO;
+        return -1;
+    }
+
+    return (ssize_t)len;
+
+einval:
+    errno = EINVAL;
+    return -1;
+}
+
+ssize_t tap_read(struct tap *d, uint8_t *buf, size_t len)
+{
+    _Alignas(uint16_t) uint8_t hdr[OFFLOAD_HDR_SIZE];
+    struct iovec iov[2] = {{&hdr, sizeof(hdr)}, {buf, len}};
+
+    if (d->kind == TAP_HDR_NONE)
+        return read(d->fd, buf, len);
+
+    for (;;) {
+        ssize_t res = readv(d->fd, iov, 2);
+
+        if (res == -1)
+            return -1;
+        if ((size_t)res < iov[0].iov_len) {
+            errno = EIO;
+            return -1;
+        }
+
+        res -= (ssize_t)iov[0].iov_len;
+
+        if (rx_validate_hdr(d, hdr, buf, (size_t)res))
+            return res;
+    }
 }
