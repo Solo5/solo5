@@ -329,9 +329,11 @@ int tap_setup(struct tap *d, const char *ifname, uint32_t offloads)
     return 0;
 }
 
+#define IPPROTO_UDP 17
+
 static uint32_t gso_offload(const struct frame_info *fi)
 {
-    if (fi->l4proto == 17)
+    if (fi->l4proto == IPPROTO_UDP)
         return SOLO5_NET_OFFLOAD_TX_USO;
 
     return fi->ipv6 ? SOLO5_NET_OFFLOAD_TX_TSO6 : SOLO5_NET_OFFLOAD_TX_TSO4;
