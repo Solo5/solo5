@@ -643,7 +643,7 @@ static const char *usage(void)
     return "--net:NAME=IFACE | @NN (attach tap at IFACE or at fd @NN as "
            "network NAME)\n"
            "  [ --net-mac:NAME=HWADDR ] (set HWADDR for network NAME)\n"
-           "  [ --net-offload:NAME=[all,gro,csum,tso,uso,gro]* ]"
+           "  [ --net-offload:NAME=[all,gro,csum,tso,uso]* ]"
            " (enable offloads for network NAME)";
 }
 
