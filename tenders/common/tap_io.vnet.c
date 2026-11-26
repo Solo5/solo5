@@ -25,128 +25,66 @@
 #include <sys/ioctl.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <sys/uio.h>
 
 #include "solo5.h"
 #include "tap_attach.h"
 #include "tap_offload.h"
 #include "tap_frame.h"
+#include "tap_io.h"
+#include "virtio_net.h"
 
-#include <sys/uio.h>
+#define IPPROTO_UDP 17
+#define IPPROTO_TCP 6
+#define TCP_FLAGS   13
+#define TH_CWR      0x80 /* TCP Header: Congestion Window Reduced */
 
-struct vnet_hdr {
-    uint8_t flags;
-    uint8_t gso_type;
-    uint16_t hdr_len;
-    uint16_t gso_size;
-    uint16_t csum_start;
-    uint16_t csum_offset;
-    uint16_t num_buffers;
-};
-
-_Static_assert(sizeof(struct vnet_hdr) == 12, "struct vnet_hdr is 12 bytes");
-
-#define VNET_F_NEEDS_CSUM 1
-#define VNET_F_DATA_VALID 2
-#define VNET_GSO_NONE     0
-#define VNET_GSO_TCPV4    1
-#define VNET_GSO_TCPV6    4
-#define VNET_GSO_UDP_L4   5
-#define VNET_GSO_ECN      0x80
-
-static uint32_t gso_offload(const struct frame_info *fi)
+bool tx_fill_offload_hdr(struct tap *d, const struct frame_info fi,
+                         const uint8_t *buf, size_t len, uint8_t *raw)
 {
-    if (fi->l4proto == 17)
-        return SOLO5_NET_OFFLOAD_TX_USO;
+    size_t wlen = (fi.eligible) ? fi.ip_end : len; /* drop Ethernet padding */
+    struct virtio_net_hdr *hdr = (struct virtio_net_hdr *)raw;
 
-    return fi->ipv6 ? SOLO5_NET_OFFLOAD_TX_TSO6 : SOLO5_NET_OFFLOAD_TX_TSO4;
-}
+    if (d->kind != TAP_HDR_VIRTIO)
+        return false;
 
-ssize_t tap_write(struct tap *d, const uint8_t *buf, size_t len)
-{
-    struct frame_info fi;
-    size_t wlen = len;
-    bool big = false;
-    uint16_t seg = 0;
-
-    if (d->kind == TAP_HDR_NONE)
-        return write(d->fd, buf, len);
-
-    if (len > d->max_frame || frame_classify(buf, len, &fi) == -1)
-        goto einval;
-
+    memset(hdr, 0, sizeof(*hdr));
     if (fi.eligible) {
-        wlen = fi.ip_end; /* drop Ethernet padding */
-        big = wlen > (size_t)d->mtu + SOLO5_NET_HLEN;
-        if (big) {
-            seg = frame_seg(&fi, d->mtu);
-            /* if we don't have, at least, one segment or if the recognized
-             * required offload from the given (buf) is not supported by our tap
-             * device. */
-            if (seg == 0 || !(d->offloads & gso_offload(&fi)))
-                goto einval;
+        hdr->hdr_len = fi.hdr_len;
+        // CheckSUM Offload
+        if (d->offloads & SOLO5_NET_OFFLOAD_TX_CSUM) {
+            hdr->flags = VIRTIO_NET_HDR_F_NEEDS_CSUM;
+            hdr->csum_start = fi.csum_start;
+            hdr->csum_offset = fi.csum_offset;
+        }
+        // TCP Segmentation Offload
+        if (wlen > (size_t)d->mtu + SOLO5_NET_HLEN) {
+            hdr->gso_type = fi.l4proto == IPPROTO_UDP
+                                ? VIRTIO_NET_HDR_GSO_UDP_L4
+                            : fi.ipv6 ? VIRTIO_NET_HDR_GSO_TCPV6
+                                      : VIRTIO_NET_HDR_GSO_TCPV4;
+            // If ECN flag is set, set it also on the virtio_net_hdr
+            if (fi.l4proto == IPPROTO_TCP &&
+                (buf[fi.csum_start + TCP_FLAGS] & TH_CWR))
+                hdr->gso_type |= VIRTIO_NET_HDR_GSO_ECN;
+            hdr->gso_size = frame_seg(&fi, d->mtu);
         }
     }
 
-    struct iovec iov[2];
-    struct vnet_hdr hdr;
-
-    switch (d->kind) {
-    case TAP_HDR_VIRTIO:
-        memset(&hdr, 0, sizeof(hdr));
-        if (fi.eligible) {
-            hdr.hdr_len = fi.hdr_len;
-            // CheckSUM Offload
-            if (d->offloads & SOLO5_NET_OFFLOAD_TX_CSUM) {
-                hdr.flags = VNET_F_NEEDS_CSUM;
-                hdr.csum_start = fi.csum_start;
-                hdr.csum_offset = fi.csum_offset;
-            }
-            // TCP Segmentation Offload
-            if (big) {
-                hdr.gso_type = fi.l4proto == 17 ? VNET_GSO_UDP_L4
-                               : fi.ipv6        ? VNET_GSO_TCPV6
-                                                : VNET_GSO_TCPV4;
-                if (fi.l4proto == 6 && (buf[fi.csum_start + 13] & 0x80))
-                    hdr.gso_type |= VNET_GSO_ECN;
-                hdr.gso_size = seg;
-            }
-        }
-        iov[0].iov_base = &hdr;
-        iov[0].iov_len = sizeof(hdr);
-        break;
-    case TAP_HDR_OPENBSD:
-    default:
-        goto einval;
-    }
-
-    iov[1].iov_base = (void *)(uintptr_t)buf;
-    iov[1].iov_len = wlen;
-
-    ssize_t n = writev(d->fd, iov, 2);
-
-    if (n == -1)
-        return -1;
-    if ((size_t)n != iov[0].iov_len + wlen) {
-        errno = EIO;
-        return -1;
-    }
-
-    return (ssize_t)len;
-
-einval:
-    errno = EINVAL;
-    return -1;
+    return true;
 }
 
-static bool validate(struct tap *d, const struct vnet_hdr *hdr, uint8_t *buf,
+bool rx_validate_hdr(struct tap *d, const uint8_t *raw, uint8_t *buf,
                      size_t len)
 {
-    uint8_t gso = hdr->gso_type & ~VNET_GSO_ECN;
+    const struct virtio_net_hdr *hdr = (const struct virtio_net_hdr *)raw;
+    uint8_t gso = hdr->gso_type & ~VIRTIO_NET_HDR_GSO_ECN;
 
     /* if it's a GSO_TCPV{4,6} frame and we don't handle RX_GRO, we return
      * false. */
-    if (gso != VNET_GSO_NONE &&
-        !((gso == VNET_GSO_TCPV4 || gso == VNET_GSO_TCPV6) &&
+    if (gso != VIRTIO_NET_HDR_GSO_NONE &&
+        !((gso == VIRTIO_NET_HDR_GSO_TCPV4 ||
+           gso == VIRTIO_NET_HDR_GSO_TCPV6) &&
           (d->offloads & SOLO5_NET_OFFLOAD_RX_GRO)))
         return false;
 
@@ -155,18 +93,18 @@ static bool validate(struct tap *d, const struct vnet_hdr *hdr, uint8_t *buf,
         return true;
 
     struct frame_info fi;
-    bool eligible = frame_classify(buf, len, &fi) == 0 && fi.eligible;
+    bool csum_known = frame_classify(buf, len, &fi) == 0 && fi.eligible;
 
-    if (hdr->flags & VNET_F_NEEDS_CSUM) {
+    if (hdr->flags & VIRTIO_NET_HDR_F_NEEDS_CSUM) {
         /* this particular case corresponds to the local network where the
            kernel does **not** calculate the checksum, but it corresponds to a
            UDP/TCP frame (and if it's IPv6, it's without extension headers):
            there is no need to check/complete the checksum (as it never leaves
            the kernel). */
-        if (eligible && hdr->csum_start == fi.csum_start &&
+        if (csum_known && hdr->csum_start == fi.csum_start &&
             hdr->csum_offset == fi.csum_offset)
             return true;
-        /* here, our frame is not eligible: we calculate and write the checksum
+        /* here, our frame is not TSO/USO: we calculate and write the checksum
            against the value provided by (hdr). */
         if (frame_csum_complete(buf, len, hdr->csum_start, hdr->csum_offset) ==
             -1)
@@ -176,38 +114,13 @@ static bool validate(struct tap *d, const struct vnet_hdr *hdr, uint8_t *buf,
     }
 
     /* here, we trust the kernel. */
-    if (hdr->flags & VNET_F_DATA_VALID)
+    if (hdr->flags & VIRTIO_NET_HDR_F_DATA_VALID)
         return true;
 
     /* here, if it's an eligible frame and the checksum is not right, we fail.
      */
-    if (eligible && !frame_l4_csum_ok(buf, &fi))
+    if (csum_known && !frame_l4_csum_ok(buf, &fi))
         return false;
 
     return true;
-}
-
-ssize_t tap_read(struct tap *d, uint8_t *buf, size_t len)
-{
-    if (d->kind == TAP_HDR_NONE)
-        return read(d->fd, buf, len);
-
-    for (;;) {
-        struct vnet_hdr hdr;
-        struct iovec iov[2] = {{&hdr, sizeof(hdr)}, {buf, len}};
-
-        ssize_t res = readv(d->fd, iov, 2);
-
-        if (res == -1)
-            return -1;
-        if ((size_t)res < iov[0].iov_len) {
-            errno = EIO;
-            return -1;
-        }
-
-        res -= (ssize_t)iov[0].iov_len;
-
-        if (validate(d, &hdr, buf, (size_t)res))
-            return res;
-    }
 }

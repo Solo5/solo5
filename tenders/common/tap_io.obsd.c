@@ -30,88 +30,40 @@
 #include "tap_attach.h"
 #include "tap_offload.h"
 #include "tap_frame.h"
+#include "tap_io.h"
 
 #include <sys/socket.h>
 #include <sys/uio.h>
 #include <net/if.h>
 #include <net/if_tun.h>
 
-static uint32_t gso_offload(const struct frame_info *fi)
-{
-    if (fi->l4proto == 17)
-        return SOLO5_NET_OFFLOAD_TX_USO;
+#define IPPROTO_UDP 17
+#define IPPROTO_TCP 6
 
-    return fi->ipv6 ? SOLO5_NET_OFFLOAD_TX_TSO6 : SOLO5_NET_OFFLOAD_TX_TSO4;
+bool tx_fill_offload_hdr(struct tap *d, const struct frame_info fi,
+                         const uint8_t *buf, size_t len, uint8_t *raw)
+{
+    struct tun_hdr *th = (struct tun_hdr *)raw;
+
+    if (d->kind != TAP_HDR_OPENBSD)
+        return false;
+
+    memset(th, 0, sizeof(*th));
+    if (fi.eligible && (d->offloads & SOLO5_NET_OFFLOAD_TX_CSUM))
+        th->th_flags =
+            fi.l4proto == IPPROTO_TCP ? TUN_H_TCP_CSUM : TUN_H_UDP_CSUM;
+    if (fi.eligible && fi.ip_end > (size_t)d->mtu + SOLO5_NET_HLEN) {
+        th->th_flags |= TUN_H_TCP_MSS;
+        th->th_mss = frame_seg(&fi, d->mtu);
+    }
+
+    return true;
 }
 
-ssize_t tap_write(struct tap *d, const uint8_t *buf, size_t len)
-{
-    struct frame_info fi;
-    size_t wlen = len;
-    bool big = false;
-    uint16_t seg = 0;
-
-    if (d->kind == TAP_HDR_NONE)
-        return write(d->fd, buf, len);
-
-    if (len > d->max_frame || frame_classify(buf, len, &fi) == -1)
-        goto einval;
-
-    if (fi.eligible) {
-        wlen = fi.ip_end; /* drop Ethernet padding */
-        big = wlen > (size_t)d->mtu + SOLO5_NET_HLEN;
-        if (big) {
-            seg = frame_seg(&fi, d->mtu);
-            /* if we don't have, at least, one segment or if the recognized
-             * required offload from the given (buf) is not supported by our tap
-             * device. */
-            if (seg == 0 || !(d->offloads & gso_offload(&fi)))
-                goto einval;
-        }
-    }
-
-    struct iovec iov[2];
-    struct tun_hdr th;
-
-    switch (d->kind) {
-    case TAP_HDR_OPENBSD:
-        memset(&th, 0, sizeof(th));
-        if (fi.eligible && (d->offloads & SOLO5_NET_OFFLOAD_TX_CSUM))
-            th.th_flags = fi.l4proto == 6 ? TUN_H_TCP_CSUM : TUN_H_UDP_CSUM;
-        if (big) {
-            th.th_flags |= TUN_H_TCP_MSS;
-            th.th_mss = seg;
-        }
-        iov[0].iov_base = &th;
-        iov[0].iov_len = sizeof(th);
-        break;
-    case TAP_HDR_VIRTIO:
-    default:
-        goto einval;
-    }
-
-    iov[1].iov_base = (void *)(uintptr_t)buf;
-    iov[1].iov_len = wlen;
-
-    ssize_t n = writev(d->fd, iov, 2);
-
-    if (n == -1)
-        return -1;
-    if ((size_t)n != iov[0].iov_len + wlen) {
-        errno = EIO;
-        return -1;
-    }
-
-    return (ssize_t)len;
-
-einval:
-    errno = EINVAL;
-    return -1;
-}
-
-static bool validate(struct tap *d, const struct tun_hdr *th, uint8_t *buf,
+bool rx_validate_hdr(struct tap *d, const uint8_t *raw, uint8_t *buf,
                      size_t len)
 {
+    const struct tun_hdr *th = (const struct tun_hdr *)raw;
     uint16_t l4 =
         th->th_flags & (TUN_H_TCP_CSUM | TUN_H_UDP_CSUM | TUN_H_ICMP_CSUM);
     struct frame_info fi;
@@ -141,8 +93,8 @@ static bool validate(struct tap *d, const struct tun_hdr *th, uint8_t *buf,
     }
 
     if (l4 == TUN_H_ICMP_CSUM || !fi.eligible ||
-        (l4 == TUN_H_TCP_CSUM && fi.l4proto != 6) ||
-        (l4 == TUN_H_UDP_CSUM && fi.l4proto != 17))
+        (l4 == TUN_H_TCP_CSUM && fi.l4proto != IPPROTO_TCP) ||
+        (l4 == TUN_H_UDP_CSUM && fi.l4proto != IPPROTO_UDP))
         return false;
 
     /* OpenBSD did not compute the checksum and we agreed with the guest that it
@@ -152,29 +104,4 @@ static bool validate(struct tap *d, const struct tun_hdr *th, uint8_t *buf,
 
     return frame_csum_complete(buf, fi.ip_end, fi.csum_start, fi.csum_offset) ==
            0;
-}
-
-ssize_t tap_read(struct tap *d, uint8_t *buf, size_t len)
-{
-    if (d->kind == TAP_HDR_NONE)
-        return read(d->fd, buf, len);
-
-    for (;;) {
-        struct tun_hdr th;
-        struct iovec iov[2] = {{&th, sizeof(th)}, {buf, len}};
-
-        ssize_t res = readv(d->fd, iov, 2);
-
-        if (res == -1)
-            return -1;
-        if ((size_t)res < iov[0].iov_len) {
-            errno = EIO;
-            return -1;
-        }
-
-        res -= (ssize_t)iov[0].iov_len;
-
-        if (validate(d, &th, buf, (size_t)res))
-            return res;
-    }
 }
