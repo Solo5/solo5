@@ -21,6 +21,8 @@
 #ifndef COMMON_VIRTIO_NET_H
 #define COMMON_VIRTIO_NET_H
 
+#include <stdint.h>
+
 /* This header comes first in the scatter-gather list.
  * If VIRTIO_F_ANY_LAYOUT is not negotiated, it must
  * be the first element of the scatter-gather list.  If you don't
